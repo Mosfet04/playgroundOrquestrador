@@ -7,6 +7,7 @@ import { AgentManagement } from '@/components/management/agents/AgentManagement'
 import { ToolManagement } from '@/components/management/tools/ToolManagement'
 import { Dashboard } from '@/components/management/dashboard/Dashboard'
 import { GettingStarted } from '@/components/management/GettingStarted'
+import { SessionViewer } from '@/components/management/sessions/SessionViewer'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('getting-started')
@@ -56,6 +57,8 @@ export default function Home() {
             />
           </div>
         )
+      case 'session-viewer':
+        return <SessionViewer />
       case 'agents':
         return <AgentManagement />
       case 'tools':

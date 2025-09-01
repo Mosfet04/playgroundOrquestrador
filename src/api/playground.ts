@@ -181,3 +181,28 @@ export const deletePlaygroundTeamSessionAPI = async (
   }
   return response
 }
+
+export const getSessionByIdAPI = async (
+  base: string,
+  agentId: string,
+  sessionId: string
+) => {
+  try {
+    const response = await fetch(
+      APIRoutes.GetPlaygroundSession(base, agentId, sessionId),
+      {
+        method: 'GET'
+      }
+    )
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch session: ${response.statusText}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching session by ID:', error)
+    toast.error('Error fetching session data')
+    throw error
+  }
+}

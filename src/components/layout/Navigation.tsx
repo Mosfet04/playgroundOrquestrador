@@ -12,7 +12,8 @@ import {
   BookOpen,
   BarChart3,
   Menu,
-  X
+  X,
+  Search
 } from 'lucide-react'
 
 interface NavigationItem {
@@ -40,6 +41,12 @@ const navigationItems: NavigationItem[] = [
     label: 'Playground',
     icon: MessageSquare,
     description: 'Chat com agentes IA'
+  },
+  {
+    id: 'session-viewer',
+    label: 'Session Viewer',
+    icon: Search,
+    description: 'Buscar chat por Session ID'
   },
   {
     id: 'agents',
