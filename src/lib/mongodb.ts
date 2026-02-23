@@ -27,8 +27,8 @@ export const db = client.db(databaseName)
 export const agentsCollection = db.collection('agents_config')
 export const toolsCollection = db.collection('tools')
 export const ragCollection = db.collection('rag')
-export const userMemoriesCollection = db.collection('user_memories')
-export const storageCollection = db.collection('storage')
+export const userMemoriesCollection = db.collection('agno_memories')
+export const storageCollection = db.collection('agno_sessions')
 
 // Connection function
 export async function connectToMongoDB() {

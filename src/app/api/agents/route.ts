@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { agentsCollection } from '@/lib/mongodb'
 import { AgentConfig } from '@/types/management'
 
@@ -14,6 +13,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
 
     // Construir filtros
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filters: any = {}
     
     if (active !== null) {

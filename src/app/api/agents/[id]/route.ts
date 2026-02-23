@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { agentsCollection } from '@/lib/mongodb'
 import { AgentConfig } from '@/types/management'
+
+type RouteParams = { params: Promise<{ id: string }> }
 
 // GET - Buscar agente por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     const agent = await agentsCollection.findOne({ id })
 
@@ -42,10 +43,10 @@ export async function GET(
 // PUT - Atualizar agente
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
 
     // Verificar se o agente existe
@@ -122,10 +123,10 @@ export async function PUT(
 // DELETE - Deletar agente
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     const result = await agentsCollection.deleteOne({ id })
 

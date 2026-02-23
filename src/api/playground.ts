@@ -3,11 +3,9 @@ import { toast } from 'sonner'
 import { APIRoutes } from './routes'
 
 import {
-  Agent,
   ComboboxAgent,
   SessionEntry,
-  ComboboxTeam,
-  Team
+  ComboboxTeam
 } from '@/types/playground'
 
 export const getPlaygroundAgentsAPI = async (
@@ -21,14 +19,17 @@ export const getPlaygroundAgentsAPI = async (
       return []
     }
     const data = await response.json()
+    // Handle both array response and config-style response
+    const agentList = Array.isArray(data) ? data : (data.agents ?? [])
     // Transform the API response into the expected shape.
-    const agents: ComboboxAgent[] = data.map((item: Agent) => ({
-      value: item.agent_id || '',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const agents: ComboboxAgent[] = agentList.map((item: any) => ({
+      value: item.agent_id || item.id || '',
       label: item.name || '',
       model: {
         provider: item.model?.provider || ''
       },
-      storage: !!item.storage
+      storage: !!(item.storage || item.sessions)
     }))
     return agents
   } catch {
@@ -38,10 +39,18 @@ export const getPlaygroundAgentsAPI = async (
 }
 
 export const getPlaygroundStatusAPI = async (base: string): Promise<number> => {
-  const response = await fetch(APIRoutes.PlaygroundStatus(base), {
-    method: 'GET'
-  })
-  return response.status
+  try {
+    // Try /status first (AGUI interface)
+    const response = await fetch(APIRoutes.PlaygroundStatus(base), {
+      method: 'GET'
+    })
+    if (response.ok) return response.status
+    // Fallback to /health (AgentOS native)
+    const healthResponse = await fetch(`${base}/health`, { method: 'GET' })
+    return healthResponse.ok ? 200 : healthResponse.status
+  } catch {
+    return 503
+  }
 }
 
 export const getAllPlaygroundSessionsAPI = async (
@@ -50,7 +59,7 @@ export const getAllPlaygroundSessionsAPI = async (
 ): Promise<SessionEntry[]> => {
   try {
     const response = await fetch(
-      APIRoutes.GetPlaygroundSessions(base, agentId),
+      APIRoutes.GetPlaygroundSessions(base, agentId, 'agent'),
       {
         method: 'GET'
       }
@@ -61,7 +70,16 @@ export const getAllPlaygroundSessionsAPI = async (
       }
       throw new Error(`Failed to fetch sessions: ${response.statusText}`)
     }
-    return response.json()
+    const data = await response.json()
+    // Handle paginated response: { data: [...], meta: {...} } or array or { items/sessions: [...] }
+    const sessions = Array.isArray(data) ? data : (data.data ?? data.items ?? data.sessions ?? [])
+    return sessions.map((s: Record<string, unknown>) => ({
+      session_id: (s.session_id ?? s.id ?? '') as string,
+      title: (s.session_name ?? s.title ?? s.name ?? s.session_id ?? '') as string,
+      created_at: typeof s.created_at === 'string'
+        ? Math.floor(new Date(s.created_at as string).getTime() / 1000)
+        : (s.created_at ?? s.updated_at ?? 0) as number
+    }))
   } catch {
     return []
   }
@@ -69,25 +87,28 @@ export const getAllPlaygroundSessionsAPI = async (
 
 export const getPlaygroundSessionAPI = async (
   base: string,
-  agentId: string,
+  _agentId: string,
   sessionId: string
 ) => {
   const response = await fetch(
-    APIRoutes.GetPlaygroundSession(base, agentId, sessionId),
+    APIRoutes.GetPlaygroundSession(base, sessionId),
     {
       method: 'GET'
     }
   )
+  if (!response.ok) {
+    throw new Error(`Failed to fetch session: ${response.statusText}`)
+  }
   return response.json()
 }
 
 export const deletePlaygroundSessionAPI = async (
   base: string,
-  agentId: string,
+  _agentId: string,
   sessionId: string
 ) => {
   const response = await fetch(
-    APIRoutes.DeletePlaygroundSession(base, agentId, sessionId),
+    APIRoutes.DeletePlaygroundSession(base, sessionId),
     {
       method: 'DELETE'
     }
@@ -102,22 +123,26 @@ export const getPlaygroundTeamsAPI = async (
   try {
     const response = await fetch(url, { method: 'GET' })
     if (!response.ok) {
-      toast.error(`Failed to fetch playground teams: ${response.statusText}`)
+      // Silently return empty - teams may not be supported by the backend
       return []
     }
     const data = await response.json()
+    // Handle both array response and config-style response
+    const teamList = Array.isArray(data) ? data : (data.teams ?? data.value ?? [])
+    if (!Array.isArray(teamList)) return []
     // Transform the API response into the expected shape.
-    const teams: ComboboxTeam[] = data.map((item: Team) => ({
-      value: item.team_id || '',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const teams: ComboboxTeam[] = teamList.map((item: any) => ({
+      value: item.team_id || item.id || '',
       label: item.name || '',
       model: {
         provider: item.model?.provider || ''
       },
-      storage: !!item.storage
+      storage: !!(item.storage || item.sessions)
     }))
     return teams
   } catch {
-    toast.error('Error fetching playground teams')
+    // Silently return empty - teams endpoint may not exist
     return []
   }
 }
@@ -139,21 +164,27 @@ export const getPlaygroundTeamSessionsAPI = async (
       }
       throw new Error(`Failed to fetch team sessions: ${response.statusText}`)
     }
-    return response.json()
-  } catch (error) {
-    console.error('Error fetching team sessions:', error)
-    toast.error('Error fetching team sessions') // Inform user
+    const data = await response.json()
+    const sessions = Array.isArray(data) ? data : (data.data ?? data.items ?? data.sessions ?? [])
+    return sessions.map((s: Record<string, unknown>) => ({
+      session_id: (s.session_id ?? s.id ?? '') as string,
+      title: (s.session_name ?? s.title ?? s.name ?? s.session_id ?? '') as string,
+      created_at: typeof s.created_at === 'string'
+        ? Math.floor(new Date(s.created_at as string).getTime() / 1000)
+        : (s.created_at ?? s.updated_at ?? 0) as number
+    }))
+  } catch {
     return []
   }
 }
 
 export const getPlaygroundTeamSessionAPI = async (
   base: string,
-  teamId: string,
+  _teamId: string,
   sessionId: string
 ) => {
   const response = await fetch(
-    APIRoutes.GetPlaygroundTeamSession(base, teamId, sessionId),
+    APIRoutes.GetPlaygroundTeamSession(base, sessionId),
     {
       method: 'GET'
     }
@@ -166,11 +197,11 @@ export const getPlaygroundTeamSessionAPI = async (
 
 export const deletePlaygroundTeamSessionAPI = async (
   base: string,
-  teamId: string,
+  _teamId: string,
   sessionId: string
 ) => {
   const response = await fetch(
-    APIRoutes.DeletePlaygroundTeamSession(base, teamId, sessionId),
+    APIRoutes.DeletePlaygroundTeamSession(base, sessionId),
     {
       method: 'DELETE'
     }
@@ -180,29 +211,4 @@ export const deletePlaygroundTeamSessionAPI = async (
     throw new Error(`Failed to delete team session: ${response.statusText}`)
   }
   return response
-}
-
-export const getSessionByIdAPI = async (
-  base: string,
-  agentId: string,
-  sessionId: string
-) => {
-  try {
-    const response = await fetch(
-      APIRoutes.GetPlaygroundSession(base, agentId, sessionId),
-      {
-        method: 'GET'
-      }
-    )
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch session: ${response.statusText}`)
-    }
-    
-    return await response.json()
-  } catch (error) {
-    console.error('Error fetching session by ID:', error)
-    toast.error('Error fetching session data')
-    throw error
-  }
 }

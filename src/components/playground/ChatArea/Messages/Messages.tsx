@@ -151,7 +151,8 @@ const ToolComponent = memo(({ tools }: ToolCallProps) => (
   </div>
 ))
 ToolComponent.displayName = 'ToolComponent'
-const Messages = ({ messages, isMobile = false }: MessageListProps) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const Messages = ({ messages, isMobile: _isMobile = false }: MessageListProps) => {
   if (messages.length === 0) {
     return <ChatBlankState />
   }

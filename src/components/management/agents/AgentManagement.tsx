@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Plus, Search, Filter, Edit, Trash2, Bot, Smartphone } from 'lucide-react'
+import { Plus, Search, Filter, Edit, Trash2, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

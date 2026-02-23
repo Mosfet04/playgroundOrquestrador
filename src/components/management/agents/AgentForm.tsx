@@ -221,6 +221,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
                 <Label>Provider *</Label>
                 <Select
                 value={factoryIaModel}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onValueChange={(value) => setValue('factoryIaModel', value as any)}
                 >
                 <SelectTrigger className="bg-black border border-white text-white">
@@ -301,6 +302,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
                   <Label>Provider de Embedding</Label>
                   <Select
                     value={watch('rag_factoryIaModel')}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onValueChange={(value) => setValue('rag_factoryIaModel', value as any)}
                   >
                     <SelectTrigger className="bg-black border border-white text-white">

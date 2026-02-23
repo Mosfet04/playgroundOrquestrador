@@ -54,6 +54,7 @@ export interface Parameter {
   type: 'string' | 'number' | 'boolean' | 'array' | 'object'
   description: string
   required: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   default_value?: any
 }
 

@@ -11,7 +11,7 @@ import { TextArea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Tool, CreateToolForm, Parameter } from '@/types/management'
+import { Tool, CreateToolForm } from '@/types/management'
 
 interface ToolFormProps {
   tool?: Tool | null
@@ -240,6 +240,7 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
                 <Label>Método HTTP *</Label>
                 <Select
                   value={watch('http_method')}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onValueChange={(value) => setValue('http_method', value as any)}
                 >
                   <SelectTrigger>
@@ -386,6 +387,7 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
                       <Label>Tipo *</Label>
                       <Select
                         value={watch(`parameters.${index}.type`)}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         onValueChange={(value) => setValue(`parameters.${index}.type`, value as any)}
                       >
                         <SelectTrigger>

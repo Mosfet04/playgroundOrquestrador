@@ -1,19 +1,16 @@
 'use client'
 
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { 
   MessageSquare, 
   Bot, 
   Wrench, 
-  Settings,
   Home,
   BookOpen,
   BarChart3,
   Menu,
-  X,
-  Search
+  X
 } from 'lucide-react'
 
 interface NavigationItem {
@@ -41,12 +38,6 @@ const navigationItems: NavigationItem[] = [
     label: 'Playground',
     icon: MessageSquare,
     description: 'Chat com agentes IA'
-  },
-  {
-    id: 'session-viewer',
-    label: 'Session Viewer',
-    icon: Search,
-    description: 'Buscar chat por Session ID'
   },
   {
     id: 'agents',

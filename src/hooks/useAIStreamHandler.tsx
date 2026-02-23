@@ -43,6 +43,7 @@ const useAIChatStreamHandler = () => {
   }, [setMessages])
 /**
  * Generates a stable client ID by combining browser fingerprint and IP address, then hashing the result.
+ * Falls back to fingerprint-only if IP fetch fails.
  * @returns Promise<string> - The stable client ID hash
  */
 const getStableClientId = async (): Promise<string> => {
@@ -52,8 +53,14 @@ const getStableClientId = async (): Promise<string> => {
   const fp = await FingerprintJS.load();
   const { visitorId } = await fp.get();
 
-  const ipRes = await fetch('https://api.ipify.org?format=json');
-  const { ip } = await ipRes.json();
+  let ip = 'unknown';
+  try {
+    const ipRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
+    const data = await ipRes.json();
+    ip = data.ip;
+  } catch {
+    // Fallback to fingerprint only if IP fetch fails
+  }
 
   const raw = `${visitorId}-${ip}`;
   const hash = CryptoJS.SHA256(raw).toString();
@@ -125,10 +132,9 @@ const processToolCall = useCallback(
     async (input: string | FormData) => {
       setIsStreaming(true)
 
-      const formData = input instanceof FormData ? input : new FormData()
-      if (typeof input === 'string') {
-        formData.append('message', input)
-      }
+      const messageText = typeof input === 'string'
+        ? input
+        : (input.get('message') as string) || ''
 
       setMessages((prevMessages) => {
         if (prevMessages.length >= 2) {
@@ -147,7 +153,7 @@ const processToolCall = useCallback(
 
       addMessage({
         role: 'user',
-        content: formData.get('message') as string,
+        content: messageText,
         created_at: Math.floor(Date.now() / 1000)
       })
 
@@ -169,10 +175,7 @@ const processToolCall = useCallback(
         if (mode === 'team' && teamId) {
           playgroundRunUrl = APIRoutes.TeamRun(endpointUrl, teamId)
         } else if (mode === 'agent' && agentId) {
-          playgroundRunUrl = APIRoutes.AgentRun(endpointUrl).replace(
-            '{agent_id}',
-            agentId
-          )
+          playgroundRunUrl = APIRoutes.AgentRun(endpointUrl, agentId)
         }
 
         if (!playgroundRunUrl) {
@@ -182,13 +185,27 @@ const processToolCall = useCallback(
           return
         }
 
+        const userId = await getStableClientId()
+
+        // Backend expects multipart/form-data for all requests
+        const formData = input instanceof FormData ? input : new FormData()
+        if (!(input instanceof FormData)) {
+          formData.append('message', input)
+        }
         formData.append('stream', 'true')
-        formData.append('session_id', sessionId ?? '')
-        formData.append('user_id', await getStableClientId())
+        if (sessionId) {
+          formData.append('session_id', sessionId)
+        }
+        formData.append('user_id', userId)
+        // Teams require monitor flag
+        if (mode === 'team') {
+          formData.append('monitor', 'true')
+        }
+        const requestBody = formData
 
         await streamResponse({
           apiUrl: playgroundRunUrl,
-          requestBody: formData,
+          requestBody,
           onChunk: (chunk: RunResponse) => {
             if (
               chunk.event === RunEvent.RunStarted ||
@@ -205,7 +222,7 @@ const processToolCall = useCallback(
               ) {
                 const sessionData = {
                   session_id: chunk.session_id as string,
-                  title: formData.get('message') as string,
+                  title: messageText,
                   created_at: chunk.created_at
                 }
                 setSessionsData((prevSessionsData) => {

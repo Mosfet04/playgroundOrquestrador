@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { toolsCollection } from '@/lib/mongodb'
 import { Tool } from '@/types/management'
+
+type RouteParams = { params: Promise<{ id: string }> }
 
 // GET - Buscar tool por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     const tool = await toolsCollection.findOne({ id })
 
@@ -63,10 +64,10 @@ export async function GET(
 // PUT - Atualizar tool
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
 
     // Verificar se a tool existe
@@ -143,10 +144,10 @@ export async function PUT(
 // DELETE - Deletar tool
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     const result = await toolsCollection.deleteOne({ id })
 

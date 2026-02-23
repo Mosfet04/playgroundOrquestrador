@@ -4,6 +4,8 @@ export interface DashboardStats {
   totalAgents: number
   uniqueUsers: number
   totalSessions: number
+  totalAgentSessions: number
+  totalTeamSessions: number
   sessionsInPeriod: number
   totalTokens: number
   
@@ -24,12 +26,15 @@ export interface ModelUsage {
 export interface ActivityPoint {
   time: string
   sessions: number
+  agentSessions?: number
+  teamSessions?: number
   tokens?: number
 }
 
 export interface TokenMetrics {
   agentId: string
   agentName: string
+  entityType?: 'agent' | 'team'
   inputTokens: number
   outputTokens: number
   totalTokens: number

@@ -171,7 +171,7 @@ const Endpoint = () => {
                     {isMounted
                       ? truncateText(selectedEndpoint, 21) ||
                         ENDPOINT_PLACEHOLDER
-                      : 'http://localhost:7777/playground'}
+                      : 'http://localhost:7777'}
                   </p>
                   <div
                     className={`size-2 shrink-0 rounded-full ${getStatusColor(isEndpointActive)}`}

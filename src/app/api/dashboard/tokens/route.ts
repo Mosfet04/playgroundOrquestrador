@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToMongoDB, storageCollection, agentsCollection } from '@/lib/mongodb'
+import { connectToMongoDB, storageCollection } from '@/lib/mongodb'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,17 +37,23 @@ export async function GET(request: NextRequest) {
       created_at: { $gte: Math.floor(timeThreshold / 1000) }
     }).toArray()
 
-    // Agrupar por agente
-    const agentMetrics = new Map()
+    // Agrupar por agente ou team
+    const entityMetrics = new Map()
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sessions.forEach((session: any) => {
-      const agentId = session.agent_id
-      const agentName = session.agent_data?.name || agentId
+      const isTeam = session.session_type === 'team'
+      const entityId = isTeam ? session.team_id : session.agent_id
+      const entityData = isTeam ? session.team_data : session.agent_data
+      const entityName = entityData?.name || entityId || 'unknown'
       
-      if (!agentMetrics.has(agentId)) {
-        agentMetrics.set(agentId, {
-          agentId,
-          agentName,
+      if (!entityId) return // skip sessions without an entity identifier
+      
+      if (!entityMetrics.has(entityId)) {
+        entityMetrics.set(entityId, {
+          agentId: entityId,
+          agentName: entityName,
+          entityType: isTeam ? 'team' : 'agent',
           inputTokens: 0,
           outputTokens: 0,
           totalTokens: 0,
@@ -55,15 +61,31 @@ export async function GET(request: NextRequest) {
         })
       }
       
-      const metrics = agentMetrics.get(agentId)
+      const metrics = entityMetrics.get(entityId)
       metrics.sessions += 1
       
-      // Somar tokens das runs
-      if (session.memory?.runs) {
-        session.memory.runs.forEach((run: any) => {
+      // v2.5: tokens nas session_metrics
+      if (session.session_data?.session_metrics) {
+        const sessionMetrics = session.session_data.session_metrics
+        metrics.inputTokens += sessionMetrics.input_tokens || 0
+        metrics.outputTokens += sessionMetrics.output_tokens || 0
+        metrics.totalTokens += sessionMetrics.total_tokens || 0
+      }
+      
+      // Fallback: somar tokens das runs individuais (v2.5 usa runs direto, não memory.runs)
+      const runs = session.runs || session.memory?.runs
+      if (runs && Array.isArray(runs) && !session.session_data?.session_metrics?.total_tokens) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        runs.forEach((run: any) => {
           if (run.metrics) {
-            const inputTokens = run.metrics.input_tokens?.[0] || 0
-            const outputTokens = run.metrics.output_tokens?.[0] || 0
+            // v2.5: metrics.input_tokens é número direto
+            // legado: metrics.input_tokens pode ser array
+            const inputTokens = Array.isArray(run.metrics.input_tokens)
+              ? (run.metrics.input_tokens[0] || 0)
+              : (run.metrics.input_tokens || 0)
+            const outputTokens = Array.isArray(run.metrics.output_tokens)
+              ? (run.metrics.output_tokens[0] || 0)
+              : (run.metrics.output_tokens || 0)
             
             metrics.inputTokens += inputTokens
             metrics.outputTokens += outputTokens
@@ -71,17 +93,9 @@ export async function GET(request: NextRequest) {
           }
         })
       }
-      
-      // Também verificar session_metrics
-      if (session.session_data?.session_metrics) {
-        const sessionMetrics = session.session_data.session_metrics
-        metrics.inputTokens += sessionMetrics.input_tokens || 0
-        metrics.outputTokens += sessionMetrics.output_tokens || 0
-        metrics.totalTokens += sessionMetrics.total_tokens || 0
-      }
     })
 
-    const tokenMetrics = Array.from(agentMetrics.values())
+    const tokenMetrics = Array.from(entityMetrics.values())
       .sort((a, b) => b.totalTokens - a.totalTokens)
 
     return NextResponse.json({

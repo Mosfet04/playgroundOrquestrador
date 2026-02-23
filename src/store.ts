@@ -103,7 +103,7 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
       hasStorage: false,
       setHasStorage: (hasStorage) => set(() => ({ hasStorage })),
       chatInputRef: { current: null },
-      selectedEndpoint: 'http://localhost:7777/playground',
+      selectedEndpoint: 'http://localhost:7777',
       setSelectedEndpoint: (selectedEndpoint) =>
         set(() => ({ selectedEndpoint })),
       agents: [],
@@ -114,7 +114,7 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
       setSelectedModel: (selectedModel) => set(() => ({ selectedModel })),
       selectedTeamId: null,
       setSelectedTeamId: (teamId) => set(() => ({ selectedTeamId: teamId })),
-      mode: 'team',
+      mode: 'agent',
       setMode: (mode) => set(() => ({ mode })),
       sessionsData: null,
       setSessionsData: (sessionsData) =>

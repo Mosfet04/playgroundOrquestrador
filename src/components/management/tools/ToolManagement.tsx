@@ -18,7 +18,8 @@ export function ToolManagement() {
   const [showForm, setShowForm] = useState(false)
   const [editingTool, setEditingTool] = useState<Tool | null>(null)
   const [deletingTool, setDeletingTool] = useState<Tool | null>(null)
-  const [filters, setFilters] = useState<ToolFilters>({})
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [filters, _setFilters] = useState<ToolFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
 
   // Buscar tools

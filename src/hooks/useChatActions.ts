@@ -61,7 +61,7 @@ const useChatActions = () => {
       const teams = await getPlaygroundTeamsAPI(selectedEndpoint)
       return teams
     } catch {
-      toast.error('Error fetching teams')
+      // Silently return empty - teams may not be supported by the backend
       return []
     }
   }, [selectedEndpoint])
@@ -94,40 +94,41 @@ const useChatActions = () => {
       let teams: ComboboxTeam[] = []
       if (status === 200) {
         setIsEndpointActive(true)
-        teams = await getTeams()
+        // Fetch agents first (primary for agno v2.5), then teams
         agents = await getAgents()
+        teams = await getTeams()
 
         if (!agentId && !teamId) {
           const currentMode = usePlaygroundStore.getState().mode
 
-          if (currentMode === 'team' && teams.length > 0) {
-            const firstTeam = teams[0]
-            setTeamId(firstTeam.value)
-            setSelectedTeamId(firstTeam.value)
-            setSelectedModel(firstTeam.model.provider || '')
-            setHasStorage(!!firstTeam.storage)
-          } else if (currentMode === 'agent' && agents.length > 0) {
+          if (currentMode === 'agent' && agents.length > 0) {
             const firstAgent = agents[0]
             setAgentId(firstAgent.value)
             setSelectedModel(firstAgent.model.provider || '')
             setHasStorage(!!firstAgent.storage)
             setSelectedTeamId(null)
+          } else if (currentMode === 'team' && teams.length > 0) {
+            const firstTeam = teams[0]
+            setTeamId(firstTeam.value)
+            setSelectedTeamId(firstTeam.value)
+            setSelectedModel(firstTeam.model.provider || '')
+            setHasStorage(!!firstTeam.storage)
           } else {
-            if (teams.length > 0) {
-              // Prioritize team mode when teams are available
-              setMode('team')
-              const firstTeam = teams[0]
-              setTeamId(firstTeam.value)
-              setSelectedTeamId(firstTeam.value)
-              setSelectedModel(firstTeam.model.provider || '')
-              setHasStorage(!!firstTeam.storage)
-            } else if (agents.length > 0) {
+            // Fallback: prioritize agents over teams
+            if (agents.length > 0) {
               setMode('agent')
               const firstAgent = agents[0]
               setAgentId(firstAgent.value)
               setSelectedModel(firstAgent.model.provider || '')
               setHasStorage(!!firstAgent.storage)
               setSelectedTeamId(null)
+            } else if (teams.length > 0) {
+              setMode('team')
+              const firstTeam = teams[0]
+              setTeamId(firstTeam.value)
+              setSelectedTeamId(firstTeam.value)
+              setSelectedModel(firstTeam.model.provider || '')
+              setHasStorage(!!firstTeam.storage)
             }
           }
         }

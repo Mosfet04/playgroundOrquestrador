@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { 
   BarChart, 
   Bar, 
@@ -17,8 +16,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   Area,
   AreaChart
 } from 'recharts'
@@ -34,11 +31,13 @@ import {
   Clock
 } from 'lucide-react'
 import { DashboardStats, TokenMetrics, TimeFilter } from '@/types/dashboard'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-black border border-white text-white p-2 rounded shadow-lg">
         <p className="font-bold">{label}</p>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {payload.map((item: any) => (
           <p key={item.dataKey}>
             {item.name}: {item.value.toLocaleString()}
@@ -182,7 +181,7 @@ export function Dashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalSessions}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.sessionsInPeriod} no período
+                {stats.totalAgentSessions} agents · {stats.totalTeamSessions} teams · {stats.sessionsInPeriod} no período
               </p>
             </CardContent>
           </Card>
@@ -218,7 +217,7 @@ export function Dashboard() {
             <CardContent>
               <div className="space-y-3">
                 {stats.models.map((model, index) => (
-                  <div key={model.name} className="flex items-center justify-between">
+                  <div key={`${model.name}-${model.provider}-${index}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div 
                         className="w-3 h-3 rounded-full" 
@@ -229,7 +228,7 @@ export function Dashboard() {
                         <p className="text-sm text-muted-foreground">{model.provider}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-black">{model.count} agentes</Badge>
+                    <Badge variant="secondary" className="text-black">{model.count} uso(s)</Badge>
                   </div>
                 ))}
               </div>
@@ -260,7 +259,7 @@ export function Dashboard() {
                         <p className="text-sm text-muted-foreground">{model.provider}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-black">{model.count} agentes</Badge>
+                    <Badge variant="secondary" className="text-black">{model.count} uso(s)</Badge>
                   </div>
                 ))}
               </div>
@@ -268,15 +267,15 @@ export function Dashboard() {
           </Card>
         </div>
 
-        {/* Métricas de Tokens por Agente */}
+        {/* Métricas de Tokens por Entidade */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Consumo de Tokens por Agente
+              Consumo de Tokens por Entidade
             </CardTitle>
             <CardDescription>
-              Total de tokens consumidos por cada agente no período selecionado
+              Total de tokens consumidos por cada agente/team no período selecionado
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -287,8 +286,12 @@ export function Dashboard() {
                 <YAxis />
                 <Tooltip
                     content={<CustomTooltip />}
-                  formatter={(value: number) => [value.toLocaleString(), 'Tokens']}
-                  labelFormatter={(label) => `Agente: ${label}`}
+                  formatter={(value?: string | number) => [typeof value === 'number' ? value.toLocaleString() : String(value ?? ''), 'Tokens']}
+                  labelFormatter={(label) => {
+                    const item = tokenMetrics.find(m => m.agentName === label)
+                    const type = item?.entityType === 'team' ? 'Team' : 'Agent'
+                    return `${type}: ${label}`
+                  }}
                 />
                 <Legend />
                 <Bar dataKey="inputTokens" fill="#8884d8" name="Tokens de Entrada" />
@@ -317,7 +320,9 @@ export function Dashboard() {
                   <XAxis dataKey="time" />
                   <YAxis />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="sessions" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                  <Legend />
+                  <Area type="monotone" dataKey="agentSessions" stackId="1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} name="Agent Sessions" />
+                  <Area type="monotone" dataKey="teamSessions" stackId="1" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Team Sessions" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -327,10 +332,10 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                Status dos Agentes
+                Sessões por Tipo
               </CardTitle>
               <CardDescription>
-                Distribuição por status de atividade
+                Distribuição de sessões entre Agents e Teams
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -338,8 +343,8 @@ export function Dashboard() {
                 <PieChart>
                   <Pie
                     data={[
-                      { name: 'Ativos', value: stats.activeAgents, fill: '#82ca9d' },
-                      { name: 'Inativos', value: stats.totalAgents - stats.activeAgents, fill: '#ffc658' }
+                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: '#8884d8' },
+                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: '#82ca9d' }
                     ]}
                     cx="50%"
                     cy="50%"
@@ -350,13 +355,14 @@ export function Dashboard() {
                     label={({name, value}) => `${name}: ${value}`}
                   >
                     {[
-                      { name: 'Ativos', value: stats.activeAgents, fill: '#82ca9d' },
-                      { name: 'Inativos', value: stats.totalAgents - stats.activeAgents, fill: '#ffc658' }
+                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: '#8884d8' },
+                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: '#82ca9d' }
                     ].map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
