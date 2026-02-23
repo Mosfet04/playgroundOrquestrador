@@ -21,11 +21,13 @@ Este projeto é um **frontend web moderno** que complementa o [Orquestrador IA P
 
 Baseado no [agno-agi Agent UI](https://github.com/agno-agi/agent-ui), este projeto adiciona:
 
+- ✅ **Compatível com Agno 2.5** (nova API de sessões unificada)
+- ✅ **Suporte a Teams e Agents** — gerencie ambos na mesma interface
 - ✅ **Integração direta com MongoDB** (sem necessidade de backend adicional)
 - ✅ **CRUD completo de agentes** via interface web
 - ✅ **Gerenciamento de ferramentas HTTP** personalizadas
 - ✅ **Configuração RAG** visual e simplificada
-- ✅ **Dashboard administrativo** para métricas e controle
+- ✅ **Dashboard administrativo** com métricas de Agents e Teams
 - ✅ **Sincronização automática** com orquestrador Python
 - ✅ **Guia de primeiros passos** para novos usuários
 - ✅ **Suporte a múltiplos providers** em uma interface unificada
@@ -33,11 +35,12 @@ Baseado no [agno-agi Agent UI](https://github.com/agno-agi/agent-ui), este proje
 ## ✨ Funcionalidades Principais
 
 ### 🎮 **Playground de Chat**
-- Interface moderna para conversar com agentes IA
-- Suporte a streaming em tempo real
+- Interface moderna para conversar com agentes e teams IA
+- Suporte a streaming em tempo real (agents e teams)
 - Visualização de tool calls e resultados
-- Histórico de conversas
+- Histórico de conversas (formato v2.5 `chat_history` + legado)
 - Suporte multi-modal (texto, imagem, áudio, vídeo)
+- Identificação estável de usuário via fingerprint
 
 ### � **Gerenciamento de Agentes**
 - ➕ **Criar agentes**: Configure novos agentes com modelos, prompts e ferramentas
@@ -106,6 +109,14 @@ graph LR
   "updated_at": "2025-08-17T10:00:00.000Z"
 }
 ```
+
+#### **`agno_sessions`** - Sessões do Agno (agents e teams)
+> **Nota:** Anteriormente chamada `storage`. Renomeada para `agno_sessions` na v2.5.
+
+Armazena as sessões de interação com agents e teams, incluindo métricas de tokens.
+
+#### **`agno_memories`** - Memórias de Usuário
+> **Nota:** Anteriormente chamada `user_memories`. Renomeada para `agno_memories` na v2.5.
 
 #### **`tools`** - Ferramentas HTTP
 ```json
@@ -483,15 +494,19 @@ volumes:
 
 ## 📈 Roadmap e Contribuições
 
-### **🎯 Fase Atual (v1.0)**
+### **🎯 Fase Atual (v1.1 — Agno 2.5)**
 - ✅ CRUD completo de agentes e ferramentas
 - ✅ Playground de chat funcional
 - ✅ Integração com orquestrador Python
 - ✅ Interface responsiva e moderna
 - ✅ Suporte a múltiplos providers
+- ✅ **Compatibilidade com Agno 2.5** (nova API de sessões unificada)
+- ✅ **Suporte a Teams** no playground, dashboard e sessões
+- ✅ **Dashboard de métricas** com separação Agent/Team, consumo de tokens por entidade
+- ✅ **Carregamento de sessões** compatível com `chat_history` (v2.5) e formato legado
+- ✅ **Collections renomeadas** (`agno_sessions`, `agno_memories`)
 
-### **🚀 Próximas Funcionalidades (v1.1)**
-- 📊 **Dashboard de métricas**: Uso de agentes, custos, performance
+### **🚀 Próximas Funcionalidades (v1.2)**
 - 👥 **Multi-usuário**: Autenticação e controle de acesso
 - 📁 **Organização**: Categorias e tags para agentes
 - 🔄 **Versionamento**: Histórico de mudanças
@@ -584,11 +599,12 @@ This project is a **modern web frontend** that complements the [Python AI Orches
 ## ✨ Key Features
 
 ### 🎮 **Chat Playground**
-- Modern interface for conversing with AI agents
-- Real-time streaming support
+- Modern interface for conversing with AI agents and teams
+- Real-time streaming support (agents and teams)
 - Tool calls and results visualization
-- Conversation history
+- Conversation history (v2.5 `chat_history` format + legacy)
 - Multi-modal support (text, image, audio, video)
+- Stable user identification via fingerprint
 
 ### 🤖 **Agent Management**
 - ➕ **Create agents**: Configure new agents with models, prompts, and tools
@@ -771,15 +787,19 @@ src/
 
 ## 📈 Roadmap and Contributions
 
-### **🎯 Current Phase (v1.0)**
+### **🎯 Current Phase (v1.1 — Agno 2.5)**
 - ✅ Complete CRUD for agents and tools
 - ✅ Functional chat playground
 - ✅ Python orchestrator integration
 - ✅ Responsive and modern interface
 - ✅ Multiple provider support
+- ✅ **Agno 2.5 compatibility** (unified session API)
+- ✅ **Teams support** in playground, dashboard, and sessions
+- ✅ **Metrics dashboard** with Agent/Team breakdown, token consumption per entity
+- ✅ **Session loading** compatible with `chat_history` (v2.5) and legacy format
+- ✅ **Renamed collections** (`agno_sessions`, `agno_memories`)
 
-### **🚀 Next Features (v1.1)**
-- 📊 **Metrics dashboard**: Agent usage, costs, performance
+### **🚀 Next Features (v1.2)**
 - 👥 **Multi-user**: Authentication and access control
 - 📁 **Organization**: Categories and tags for agents
 - 🔄 **Versioning**: Change history
@@ -819,3 +839,35 @@ This project is licensed under [MIT License](./LICENSE).
 ---
 
 **⚡ This project is in its initial phase and is actively evolving. Perfect for developers who want to test AI agent orchestration with a modern, intuitive interface.**
+
+---
+
+## 📋 Changelog
+
+### v1.1.0 — Agno 2.5 (2026-02-23)
+
+#### Novas funcionalidades
+- **Suporte a Teams**: playground, dashboard e sessões agora funcionam com Teams além de Agents
+- **Dashboard aprimorado**: métricas separadas para Agent Sessions e Team Sessions, gráficos de área empilhados, gráfico de pizza por tipo de sessão
+- **Consumo de tokens por entidade**: tabela de tokens agora mostra agents e teams com identificação de tipo
+- **Sessões unificadas**: carregamento de sessões compatível com formato `chat_history` (Agno 2.5) e formato legado (`runs`/`memory.runs`)
+
+#### Alterações de API
+- Rotas do Agno atualizadas: removido prefixo `/v1/playground/` — endpoints agora em `/agents`, `/teams`, `/sessions`
+- Sessões unificadas via query params (`?type=agent|team&component_id=...`)
+- Endpoint padrão alterado de `http://localhost:7777/playground` para `http://localhost:7777`
+- Modo padrão alterado de `team` para `agent`
+
+#### Banco de dados
+- Collection `storage` renomeada para `agno_sessions`
+- Collection `user_memories` renomeada para `agno_memories`
+- Dashboard agora coleta modelos a partir de `agent_data`/`team_data` nas sessões do Agno
+
+#### Melhorias técnicas
+- `useAIStreamHandler`: fallback quando IP não pode ser obtido, timeout de 3s na requisição de IP
+- `useAIStreamHandler`: flag `monitor: true` enviada automaticamente para runs de Teams
+- `useSessionLoader`: suporte ao formato `chat_history` do Agno 2.5 com fallback para formato legado
+- `useChatActions`: prioridade para agents sobre teams no carregamento inicial
+- `layout.tsx`: `viewport` exportado separadamente conforme recomendação do Next.js
+- Correção de keys duplicadas no dashboard (`model.name` → chave composta com provider e index)
+- Adicionados `eslint-disable` para supressões necessárias de `@typescript-eslint/no-explicit-any`
