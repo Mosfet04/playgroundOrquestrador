@@ -471,6 +471,8 @@ pnpm test:e2e       # Playwright (Chromium) against the fake orchestrator in e2e
                     # (first time: pnpm exec playwright install chromium)
 ```
 
+CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, `build` and `test:e2e` on pushes to `main` and on every PR.
+
 #### **3. PR Submission**
 1. **Create an issue** describing the feature/bug
 2. **Fork and clone** the repository
