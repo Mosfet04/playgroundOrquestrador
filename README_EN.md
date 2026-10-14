@@ -150,8 +150,8 @@ graph LR
 
 #### **1. Prerequisites**
 ```bash
-# Node.js 20+ and pnpm 10.33.0 installed (pnpm only)
-node --version  # v20.0.0+
+# Node.js 20.19+ and pnpm 10.33.0 installed (pnpm only)
+node --version  # v20.19.0+
 pnpm --version  # 10.33.0
 
 # MongoDB running (local or cloud)
@@ -462,12 +462,11 @@ pnpm test
 # Linting and formatting
 pnpm lint      # ESLint
 pnpm format    # Prettier
-pnpm type-check # TypeScript
+pnpm typecheck # TypeScript
 
 # Testing
 pnpm test           # Unit tests
-pnpm test:e2e       # End-to-end tests
-pnpm test:coverage  # Coverage report
+pnpm test:watch     # Vitest in watch mode
 ```
 
 #### **3. PR Submission**

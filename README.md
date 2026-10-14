@@ -158,8 +158,8 @@ Armazena as sessões de interação com agents e teams, incluindo métricas de t
 
 #### **1. Pré-requisitos**
 ```bash
-# Node.js 20+ e pnpm 10.33.0 instalados (só pnpm)
-node --version  # v20.0.0+
+# Node.js 20.19+ e pnpm 10.33.0 instalados (só pnpm)
+node --version  # v20.19.0+
 pnpm --version  # 10.33.0
 
 # MongoDB rodando (local ou cloud)
@@ -542,12 +542,11 @@ pnpm test
 # Linting e formatação
 pnpm lint      # ESLint
 pnpm format    # Prettier
-pnpm type-check # TypeScript
+pnpm typecheck # TypeScript
 
 # Testes
 pnpm test           # Unit tests
-pnpm test:e2e       # End-to-end tests
-pnpm test:coverage  # Coverage report
+pnpm test:watch     # Vitest em modo watch
 ```
 
 #### **3. Submissão de PRs**
@@ -644,8 +643,8 @@ This project is a **modern web frontend** that complements the [Python AI Orches
 
 #### **1. Prerequisites**
 ```bash
-# Node.js 20+ and pnpm 10.33.0 installed (pnpm only)
-node --version  # v20.0.0+
+# Node.js 20.19+ and pnpm 10.33.0 installed (pnpm only)
+node --version  # v20.19.0+
 pnpm --version  # 10.33.0
 
 # MongoDB running (local or cloud)

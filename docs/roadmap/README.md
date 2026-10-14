@@ -18,7 +18,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | Item | Status |
 |---|---|
 | P0-01 | concluído |
-| P0-02 | pendente |
+| P0-02 | concluído |
 | P0-03 | pendente |
 | P0-04 | pendente |
 | P0-05 | pendente |

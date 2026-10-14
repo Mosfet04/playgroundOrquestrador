@@ -4,17 +4,19 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": ">=20"
+    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
   },
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
+    "lint": "next lint --dir src --dir tests --file vitest.config.mts",
+    "lint:fix": "next lint --fix --dir src --dir tests --file vitest.config.mts",
     "format": "prettier --check \"**/*.{ts,tsx,mdx}\" --cache",
     "format:fix": "prettier --write \"**/*.{ts,tsx,mdx}\" --cache",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "validate": "pnpm run lint && pnpm run format && pnpm run typecheck"
   },
   "dependencies": {
@@ -55,15 +57,22 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
     "@types/crypto-js": "^4.2.2",
-    "@types/node": "^20",
+    "@types/node": "20.19.43",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
+    "jsdom": "29.1.1",
+    "msw": "2.15.0",
     "postcss": "^8",
     "prettier": "3.4.2",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "4.1.11"
   }
 }
