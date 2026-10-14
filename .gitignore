@@ -51,3 +51,9 @@ next-env.d.ts
 
 # Estado do /dev-cycle (local)
 .claude/dev-cycle/
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

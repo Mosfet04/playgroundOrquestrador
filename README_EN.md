@@ -150,8 +150,8 @@ graph LR
 
 #### **1. Prerequisites**
 ```bash
-# Node.js 20.19+ and pnpm 10.33.0 installed (pnpm only)
-node --version  # v20.19.0+
+# Node.js 22.18+ or 24+ and pnpm 10.33.0 installed (pnpm only)
+node --version  # v22.18.0+ or v24+
 pnpm --version  # 10.33.0
 
 # MongoDB running (local or cloud)
@@ -467,6 +467,8 @@ pnpm typecheck # TypeScript
 # Testing
 pnpm test           # Unit tests
 pnpm test:watch     # Vitest in watch mode
+pnpm test:e2e       # Playwright (Chromium) against the fake orchestrator in e2e/fake-orchestrator
+                    # (first time: pnpm exec playwright install chromium)
 ```
 
 #### **3. PR Submission**

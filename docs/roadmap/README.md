@@ -19,9 +19,10 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 |---|---|
 | P0-01 | concluído |
 | P0-02 | concluído |
-| P0-03 | pendente |
+| P0-03 | concluído |
 | P0-04 | pendente |
 | P0-05 | pendente |
+| P0-06 | pendente |
 | P1-01 | pendente |
 | P1-02 | pendente |
 | P1-03 | pendente |

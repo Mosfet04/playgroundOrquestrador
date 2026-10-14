@@ -4,19 +4,20 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
+    "node": "^22.18.0 || >=24.0.0"
   },
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint --dir src --dir tests --file vitest.config.mts",
-    "lint:fix": "next lint --fix --dir src --dir tests --file vitest.config.mts",
+    "lint": "next lint --dir src --dir tests --dir e2e --file vitest.config.mts --file playwright.config.ts",
+    "lint:fix": "next lint --fix --dir src --dir tests --dir e2e --file vitest.config.mts --file playwright.config.ts",
     "format": "prettier --check \"**/*.{ts,tsx,mdx}\" --cache",
     "format:fix": "prettier --write \"**/*.{ts,tsx,mdx}\" --cache",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "validate": "pnpm run lint && pnpm run format && pnpm run typecheck"
   },
   "dependencies": {
@@ -57,6 +58,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "1.63.0",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.3",

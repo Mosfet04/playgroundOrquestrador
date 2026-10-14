@@ -158,8 +158,8 @@ Armazena as sessões de interação com agents e teams, incluindo métricas de t
 
 #### **1. Pré-requisitos**
 ```bash
-# Node.js 20.19+ e pnpm 10.33.0 instalados (só pnpm)
-node --version  # v20.19.0+
+# Node.js 22.18+ ou 24+ e pnpm 10.33.0 instalados (só pnpm)
+node --version  # v22.18.0+ ou v24+
 pnpm --version  # 10.33.0
 
 # MongoDB rodando (local ou cloud)
@@ -547,6 +547,8 @@ pnpm typecheck # TypeScript
 # Testes
 pnpm test           # Unit tests
 pnpm test:watch     # Vitest em modo watch
+pnpm test:e2e       # Playwright (Chromium) contra o orquestrador falso em e2e/fake-orchestrator
+                    # (1ª vez: pnpm exec playwright install chromium)
 ```
 
 #### **3. Submissão de PRs**
@@ -643,8 +645,8 @@ This project is a **modern web frontend** that complements the [Python AI Orches
 
 #### **1. Prerequisites**
 ```bash
-# Node.js 20.19+ and pnpm 10.33.0 installed (pnpm only)
-node --version  # v20.19.0+
+# Node.js 22.18+ or 24+ and pnpm 10.33.0 installed (pnpm only)
+node --version  # v22.18.0+ or v24+
 pnpm --version  # 10.33.0
 
 # MongoDB running (local or cloud)

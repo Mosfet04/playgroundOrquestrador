@@ -52,3 +52,12 @@ Fora de escopo: auth (P2-01), mascarar headers (P3-03), migrar documentos com `n
 Critérios de aceite: corpo `{"id": {"$ne": null}}` ⇒ 400 sem tocar o banco; busca `.*(a+)+$` não é interpretada como regex; tool com parâmetro `float` gravada e lida; agente enxerga a 11ª tool; `isValidUrl` com 10 mil caracteres inválidos responde em menos de 50 ms.
 Testes exigidos: testes de route handler com `@/lib/mongodb` substituído (`vi.mock`) por coleções falsas em memória, sem `mongodb-memory-server`, um por critério.
 Riscos e dependências: os forms atuais mudam pouco; a reescrita fica para a P3.
+
+## P0-06 — Chat com stream do agno 2.5
+UI: não            Depende (orq.): —
+Objetivo: o chat mostra a resposta em stream com o orquestrador real (BUG-P0-03-1, decisão [0004](../decisions/0004-stream-runcontent-e-fontes.md)).
+Escopo: em `src/types/playground.ts` (`RunEvent`) e `src/hooks/useAIStreamHandler.tsx`: tratar `RunContent`/`TeamRunContent` (eventos do agno 2.5, `agno/run/agent.py` e `agno/run/team.py`) como delta, anexando o `content` de cada evento ao texto da mensagem; não usar `replace(lastContent, '')` com delta (um delta igual ao anterior, ex. `"a"` seguido de `"a"`, some, e um delta que contém o anterior perde o trecho); `RunCompleted`/`TeamRunCompleted` seguem fixando o texto final; o `test.fail` de BUG-P0-03-1 em `e2e/chat.spec.ts` vira teste normal.
+Fora de escopo: o resto do handler (tool calls, reasoning, mídia), o chat via BFF (P2).
+Critérios de aceite: texto parcial visível antes do `RunCompleted` no e2e (o fake segura o `RunCompleted` por 3 s para a mensagem `segure o RunCompleted`); deltas repetidos (`"a"`, `"a"`) aparecem como `"aa"`; o mesmo para team (`TeamRunContent`); `pnpm test:e2e` verde 3× seguidas.
+Testes exigidos: o e2e de BUG-P0-03-1 sem `test.fail`; teste de unidade/hook com MSW para deltas repetidos (agent e team).
+Riscos e dependências: os eventos legados `RunResponseContent`/`TeamRunResponseContent` (conteúdo acumulado) continuam aceitos ou saem — se sair, `needs_decision`.
