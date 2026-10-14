@@ -1,18 +1,48 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Mono, Geist } from 'next/font/google'
+import localFont from 'next/font/local'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  weight: '400',
-  subsets: ['latin']
+
+// IBM Plex servida de src/app/fonts (decisão 0008); licença em src/app/fonts/OFL.txt.
+const plexSans = localFont({
+  src: [
+    {
+      path: './fonts/IBMPlexSans-Regular.woff2',
+      weight: '400',
+      style: 'normal'
+    },
+    {
+      path: './fonts/IBMPlexSans-Italic.woff2',
+      weight: '400',
+      style: 'italic'
+    },
+    {
+      path: './fonts/IBMPlexSans-Medium.woff2',
+      weight: '500',
+      style: 'normal'
+    },
+    {
+      path: './fonts/IBMPlexSans-SemiBold.woff2',
+      weight: '600',
+      style: 'normal'
+    }
+  ],
+  variable: '--font-sans',
+  display: 'swap'
 })
 
-const dmMono = DM_Mono({
-  subsets: ['latin'],
-  variable: '--font-dm-mono',
-  weight: '400'
+const plexMono = localFont({
+  src: [
+    {
+      path: './fonts/IBMPlexMono-Regular.woff2',
+      weight: '400',
+      style: 'normal'
+    },
+    { path: './fonts/IBMPlexMono-Medium.woff2', weight: '500', style: 'normal' }
+  ],
+  variable: '--font-mono',
+  display: 'swap'
 })
 
 export const viewport: Viewport = {
@@ -34,7 +64,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${dmMono.variable} antialiased`}>
+      <body
+        className={`${plexSans.variable} ${plexMono.variable} font-sans antialiased`}
+      >
         <NuqsAdapter>{children}</NuqsAdapter>
         <Toaster />
       </body>

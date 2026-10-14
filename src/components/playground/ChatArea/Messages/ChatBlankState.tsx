@@ -44,7 +44,7 @@ interface ActionButtonProps {
 
 const ActionButton = ({ href, variant, text }: ActionButtonProps) => {
   const baseStyles =
-    'px-4 py-2 text-sm transition-colors font-dmmono tracking-tight'
+    'px-4 py-2 text-sm transition-colors font-mono tracking-tight'
   const variantStyles = {
     primary: 'border border-border hover:bg-neutral-800 rounded-xl'
   }
@@ -106,7 +106,7 @@ const ChatBlankState = () => {
 
   return (
     <section
-      className="flex flex-col items-center text-center font-geist"
+      className="flex flex-col items-center text-center font-sans"
       aria-label="Welcome message"
     >
       <div className="flex max-w-3xl flex-col gap-y-8">

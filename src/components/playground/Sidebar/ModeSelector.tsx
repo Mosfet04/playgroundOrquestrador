@@ -74,7 +74,7 @@ export function ModeSelector() {
       <SelectTrigger className="h-9 w-full rounded-xl border border-primary/15 bg-primaryAccent text-xs font-medium uppercase">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="border-none bg-primaryAccent font-dmmono shadow-lg">
+      <SelectContent className="border-none bg-primaryAccent font-mono shadow-lg">
         {hasAgents && (
           <SelectItem value="agent" className="cursor-pointer">
             <div className="text-xs font-medium uppercase">Agent</div>

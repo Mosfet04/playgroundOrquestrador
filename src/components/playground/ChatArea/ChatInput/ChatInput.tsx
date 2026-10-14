@@ -40,7 +40,7 @@ const ChatInput = ({ isMobile = false }: ChatInputProps) => {
 
   return (
     <div className={cn(
-      "relative mx-auto mb-1 flex w-full items-end justify-center gap-x-2 font-geist",
+      "relative mx-auto mb-1 flex w-full items-end justify-center gap-x-2 font-sans",
       isMobile ? "max-w-full px-2" : "max-w-2xl"
     )}>
       <TextArea

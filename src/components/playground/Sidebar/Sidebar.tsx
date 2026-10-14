@@ -241,7 +241,7 @@ const Sidebar = ({ isMobile = false, isOpen = false, onToggle }: {
   return (
     <motion.aside
       className={cn(
-        "relative flex h-screen shrink-0 grow-0 flex-col overflow-hidden px-2 py-3 font-dmmono",
+        "relative flex h-screen shrink-0 grow-0 flex-col overflow-hidden px-2 py-3 font-mono",
         isMobile ? [
           "fixed top-0 left-0 z-45 bg-background border-r border-border",
           isOpen ? "translate-x-0" : "-translate-x-full",

@@ -14,7 +14,7 @@ Objetivo: Design System aprovado pelo usuário, referência para todo item com t
 Escopo: auditoria heurística da UI atual (`docs/design/auditoria.md`: navegação, hierarquia, formulários, feedback, consistência, acessibilidade, com prints); artifact Design System do playground (tokens shadcn para claro e escuro, tipografia, espaçamento, raio, componentes usados: botão, input, select, switch, card, tabela/lista, dialog, toast, badge de status, campo de segredo por referência); `docs/design/design-system.md` com o link e as regras de uso; artifact Design com o novo layout geral (navegação lateral, cabeçalho, área de conteúdo) que servirá à P1-03; fontes self-hosted (sai `next/font/google`, decisão [0004](../decisions/0004-stream-runcontent-e-fontes.md)).
 Fora de escopo: implementar tokens (P1-02) e rotas (P1-03).
 Critérios de aceite: usuário aprova a direção visual e o layout geral (gate do `/dev-cycle`); `design-system.md` lista cada token com o valor nos dois temas e contraste AA dos pares texto/fundo.
-Testes exigidos: — (item só de design; o gate final é o lint/typecheck sem mudança de código).
+Testes exigidos: a parte de código é só a fonte (decisão 0008): IBM Plex em `src/app/fonts/` com `OFL.txt` via `next/font/local`; regra de lint que barra `next/font/google`; build e e2e verdes sem requisição ao Google (V16).
 Riscos e dependências: tool `Artifact` indisponível no subagente ⇒ fallback do agente (mockup HTML + publicação pela thread principal).
 
 ## P1-02 — Tokens claro/escuro
@@ -52,3 +52,12 @@ Fora de escopo: o realtime de verdade (P4).
 Critérios de aceite: orquestrador fora do ar ⇒ mensagem de erro com ação ("tentar de novo"), não tela vazia; rota inexistente ⇒ 404 do app.
 Testes exigidos: componente dos três estados por lista; E2E com o fake orchestrator desligado.
 Riscos e dependências: —
+
+## P1-06 — Chat no visual do Design System
+UI: sim            Depende (orq.): —
+Objetivo: o `/playground` com a cara aprovada no P1-01 (decisão [0008](../decisions/0008-design-system-direcao-visual.md)).
+Escopo: critérios V14 e V15 de `docs/design/P1-01.md` em `src/components/playground`: painel de sessões (Agente | Team, cartão da entidade, sessões), bolhas do usuário e do agente com métricas, chip de tool call (ok/erro), indicador de stream e composer.
+Fora de escopo: chat via BFF (P2-03); markdown seguro (P2-04).
+Critérios de aceite: V14 e V15 verificados no design QA nos dois temas, desktop e celular; o stream do P0-06 continua passando.
+Testes exigidos: componente do chip de tool call e do indicador de stream; e2e do chat atual verde.
+Riscos e dependências: P1-02 (tokens) e P1-03 (layout).

@@ -39,8 +39,14 @@ export default {
         positive: '#22C55E'
       },
       fontFamily: {
-        geist: 'var(--font-geist-sans)',
-        dmmono: 'var(--font-dm-mono)'
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: [
+          'var(--font-mono)',
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'monospace'
+        ]
       },
       borderRadius: {
         xl: '10px'

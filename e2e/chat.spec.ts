@@ -6,8 +6,8 @@ import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 const openPlaygroundOnFake = async (page: Page) => {
   // Do browser só passam o app e o fake: bloqueia o endpoint padrão
   // (localhost:7777) e a rede externa que o chat usa (ipify e monitoramento do
-  // FingerprintJS). As fontes do next/font/google são baixadas pelo servidor
-  // do Next, fora deste bloqueio (decisão 0004, resolvido no P1-01).
+  // FingerprintJS). As fontes são servidas pelo próprio app, de src/app/fonts
+  // (decisões 0004 e 0008).
   const allowedOrigins = [APP_URL, FAKE_ORCHESTRATOR_URL]
   await page.route(
     (url) => !allowedOrigins.includes(url.origin),
