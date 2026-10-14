@@ -111,7 +111,7 @@ git clone <seu-repositorio>
 cd agent-ui
 
 # Instale as dependências
-npm install
+pnpm install
 
 # Configure o arquivo .env.local
 MONGO_CONNECTION_STRING=mongodb://localhost:56780/?directConnection=true
@@ -119,7 +119,7 @@ MONGO_DATABASE_NAME=agno
 NEXT_PUBLIC_API_URL=http://localhost:3000
 
 # Execute a aplicação
-npm run dev
+pnpm dev
 ```
 
 ### **1.1. Dados de Exemplo (Opcional)**

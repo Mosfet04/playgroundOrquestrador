@@ -13,7 +13,7 @@ UI: não            Depende (orq.): —
 Objetivo: `pnpm install --frozen-lockfile`, `pnpm lint` e `pnpm typecheck` verdes.
 Escopo: remover `package-lock.json`; `packageManager: "pnpm@10.33.0"` e `engines.node` no `package.json`; remover código morto que quebra o typecheck ou não tem uso: `src/components/management/sessions/` (importa `getSessionByIdAPI`, inexistente), `src/app/api/proxy/[...path]/route.ts` (vazio), `src/components/playground/Sidebar/NewChatButton.tsx` (duplicado inline em `Sidebar.tsx`); remover as dependências sem uso `cors` e `@types/cors`; corrigir os erros de lint/typecheck restantes que aparecerem (sem mudar comportamento).
 Fora de escopo: trocar versões de Next/React/Tailwind; refatorar componentes.
-Critérios de aceite: `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck` verdes num clone limpo; `git grep -n "SessionViewer\|getSessionByIdAPI"` vazio; nenhum `package-lock.json`.
+Critérios de aceite: `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck` verdes num clone limpo; `git grep -n "SessionViewer\|getSessionByIdAPI" -- ':!docs/'` vazio; nenhum `package-lock.json`.
 Testes exigidos: os próprios gates (ainda não há suíte).
 Riscos e dependências: erro de typecheck que exija mudança de comportamento ⇒ `needs_decision`.
 

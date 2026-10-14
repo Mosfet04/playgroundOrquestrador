@@ -150,9 +150,9 @@ graph LR
 
 #### **1. Prerequisites**
 ```bash
-# Node.js 18+ and npm/pnpm installed
-node --version  # v18.0.0+
-pnpm --version  # 8.0.0+
+# Node.js 20+ and pnpm 10.33.0 installed (pnpm only)
+node --version  # v20.0.0+
+pnpm --version  # 10.33.0
 
 # MongoDB running (local or cloud)
 # Docker (optional, for local MongoDB)

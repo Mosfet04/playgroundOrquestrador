@@ -158,9 +158,9 @@ Armazena as sessões de interação com agents e teams, incluindo métricas de t
 
 #### **1. Pré-requisitos**
 ```bash
-# Node.js 18+ e npm/pnpm instalados
-node --version  # v18.0.0+
-pnpm --version  # 8.0.0+
+# Node.js 20+ e pnpm 10.33.0 instalados (só pnpm)
+node --version  # v20.0.0+
+pnpm --version  # 10.33.0
 
 # MongoDB rodando (local ou cloud)
 # Docker (opcional, para MongoDB local)
@@ -644,9 +644,9 @@ This project is a **modern web frontend** that complements the [Python AI Orches
 
 #### **1. Prerequisites**
 ```bash
-# Node.js 18+ and npm/pnpm installed
-node --version  # v18.0.0+
-pnpm --version  # 8.0.0+
+# Node.js 20+ and pnpm 10.33.0 installed (pnpm only)
+node --version  # v20.0.0+
+pnpm --version  # 10.33.0
 
 # MongoDB running (local or cloud)
 # Docker (optional, for local MongoDB)
