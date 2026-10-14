@@ -1,12 +1,12 @@
 // Tipos para gerenciamento de agentes e tools
-import { ObjectId } from 'mongodb'
+import type { ObjectId } from 'mongodb'
 
 export interface AgentConfig {
   _id?: ObjectId
   id: string
   nome: string
   model: string
-  factoryIaModel: 'ollama' | 'openai' | 'anthropic' | 'gemini' | 'groq' | 'azure'
+  factoryIaModel: string // valores válidos: os do orquestrador (decisão 0006)
   descricao: string
   prompt: string
   active: boolean
@@ -20,7 +20,7 @@ export interface RagConfig {
   active: boolean
   doc_name: string
   model: string
-  factoryIaModel: 'ollama' | 'openai' | 'gemini' | 'azure'
+  factoryIaModel: string // valores válidos: os do orquestrador (decisão 0006)
 }
 
 export interface Tool {
@@ -29,7 +29,7 @@ export interface Tool {
   name: string
   description: string
   route: string // URL completa da API (equivale a base_url + endpoint)
-  http_method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  http_method: string // idem (decisão 0006)
   parameters?: Parameter[]
   instructions?: string // Instruções de uso da tool
   headers?: Record<string, string>
@@ -43,15 +43,26 @@ export interface Tool {
 
 export interface HttpConfig {
   base_url: string
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  method: string
   endpoint: string
   headers?: Record<string, string>
   parameters?: Parameter[]
 }
 
+// Tipos que o orquestrador aceita (ParameterType em src/domain/entities/tool.py);
+// `number` não existe lá e derruba o carregamento da tool.
+export const PARAMETER_TYPES = [
+  'string',
+  'integer',
+  'float',
+  'boolean',
+  'object',
+  'array'
+] as const
+
 export interface Parameter {
   name: string
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object'
+  type: (typeof PARAMETER_TYPES)[number]
   description: string
   required: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,7 +74,7 @@ export interface CreateAgentForm {
   id: string
   nome: string
   model: string
-  factoryIaModel: 'ollama' | 'openai' | 'anthropic' | 'gemini' | 'groq' | 'azure'
+  factoryIaModel: string
   descricao: string
   prompt: string
   active: boolean
@@ -71,7 +82,7 @@ export interface CreateAgentForm {
   rag_active: boolean
   rag_doc_name?: string
   rag_model?: string
-  rag_factoryIaModel?: 'ollama' | 'openai' | 'gemini' | 'azure'
+  rag_factoryIaModel?: string
 }
 
 export interface CreateToolForm {
@@ -79,7 +90,7 @@ export interface CreateToolForm {
   name: string
   description: string
   route: string // URL completa
-  http_method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  http_method: string
   instructions?: string
   headers: Record<string, string>
   parameters: Parameter[]
@@ -87,7 +98,7 @@ export interface CreateToolForm {
   
   // Campos para compatibilidade com estrutura antiga
   base_url?: string
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  method?: string
   endpoint?: string
 }
 

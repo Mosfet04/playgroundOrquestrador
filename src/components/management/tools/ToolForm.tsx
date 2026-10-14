@@ -11,7 +11,7 @@ import { TextArea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Tool, CreateToolForm } from '@/types/management'
+import { Tool, CreateToolForm, PARAMETER_TYPES } from '@/types/management'
 
 interface ToolFormProps {
   tool?: Tool | null
@@ -25,14 +25,6 @@ const httpMethods = [
   { value: 'PUT', label: 'PUT' },
   { value: 'DELETE', label: 'DELETE' },
   { value: 'PATCH', label: 'PATCH' }
-]
-
-const parameterTypes = [
-  { value: 'string', label: 'String' },
-  { value: 'number', label: 'Number' },
-  { value: 'boolean', label: 'Boolean' },
-  { value: 'array', label: 'Array' },
-  { value: 'object', label: 'Object' }
 ]
 
 export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
@@ -193,10 +185,13 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
+              <Label htmlFor="description">Descrição *</Label>
               <TextArea
                 id="description"
-                {...register('description')}
+                {...register('description', {
+                  validate: (value) =>
+                    value.trim() !== '' || 'Descrição é obrigatória'
+                })}
                 placeholder="Descreva o que esta tool faz..."
                 rows={3}
               />
@@ -394,9 +389,9 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {parameterTypes.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
+                          {PARAMETER_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
                             </SelectItem>
                           ))}
                         </SelectContent>

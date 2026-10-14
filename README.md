@@ -152,6 +152,8 @@ Armazena as sessões de interação com agents e teams, incluindo métricas de t
 }
 ```
 
+Tipos de parâmetro aceitos (os do orquestrador): `string`, `integer`, `float`, `boolean`, `object`, `array`. A `description` da tool e de cada parâmetro é obrigatória.
+
 ## 🚀 Início Rápido
 
 ### **Para Iniciantes**

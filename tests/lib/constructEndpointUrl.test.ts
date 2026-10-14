@@ -32,4 +32,18 @@ describe('constructEndpointUrl', () => {
       'http://localhost:7777'
     )
   })
+
+  it.each([
+    ['%E0%A4%A', 'https://%E0%A4%A'],
+    ['localhost%3A7777%E0%A4%A', 'http://localhost%3A7777%E0%A4%A'],
+    [
+      'http://agentos.example.com/%E0%A4%A',
+      'http://agentos.example.com/%E0%A4%A'
+    ]
+  ])(
+    'não lança URIError com codificação malformada (%s): usa o valor como veio',
+    (value, expected) => {
+      expect(constructEndpointUrl(value)).toBe(expected)
+    }
+  )
 })

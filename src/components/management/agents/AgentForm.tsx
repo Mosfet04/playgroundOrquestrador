@@ -68,15 +68,19 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
   const ragActive = watch('rag_active')
   const factoryIaModel = watch('factoryIaModel')
 
-  // Buscar tools disponíveis
+  // Buscar todas as tools disponíveis (a API é paginada)
   useEffect(() => {
     const fetchTools = async () => {
       try {
-        const response = await fetch('/api/tools')
-        const data = await response.json()
-        if (data.success) {
-          setAvailableTools(data.data.data)
+        const tools: Tool[] = []
+        for (let page = 1, totalPages = 1; page <= totalPages; page++) {
+          const response = await fetch(`/api/tools?limit=100&page=${page}`)
+          const data = await response.json()
+          if (!data.success) return
+          tools.push(...data.data.data)
+          totalPages = data.data.totalPages
         }
+        setAvailableTools(tools)
       } catch (error) {
         console.error('Error fetching tools:', error)
       }

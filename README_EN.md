@@ -144,6 +144,8 @@ graph LR
 }
 ```
 
+Accepted parameter types (the orchestrator's): `string`, `integer`, `float`, `boolean`, `object`, `array`. The tool `description` and each parameter `description` are required.
+
 ## 🚀 Quick Start
 
 ### **For Beginners**

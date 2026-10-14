@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { toolsCollection } from '@/lib/mongodb'
+import { escapeRegExp } from '@/lib/utils'
 import { Tool } from '@/types/management'
+
+import { parseJsonBody } from '../parseJsonBody'
+import { toolBodySchema } from './schema'
 
 // GET - Listar todas as tools
 export async function GET(request: NextRequest) {
@@ -20,10 +24,11 @@ export async function GET(request: NextRequest) {
     }
     
     if (search) {
+      const pattern = escapeRegExp(search)
       filters.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { id: { $regex: search, $options: 'i' } }
+        { name: { $regex: pattern, $options: 'i' } },
+        { description: { $regex: pattern, $options: 'i' } },
+        { id: { $regex: pattern, $options: 'i' } }
       ]
     }
 
@@ -83,24 +88,15 @@ export async function GET(request: NextRequest) {
 // POST - Criar nova tool
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    
-    // Validação básica - apenas name é obrigatório
-    if (!body.name) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Nome é obrigatório' 
-        },
-        { status: 400 }
-      )
-    }
+    const parsed = await parseJsonBody(request, toolBodySchema)
+    if (!parsed.success) return parsed.response
+    const body = parsed.data
 
     // Preparar dados para criação
     const tool: Tool = {
       id: body.id || `tool_${Date.now()}`,
       name: body.name,
-      description: body.description || '',
+      description: body.description,
       route: body.route || `${body.base_url || ''}${body.endpoint || ''}`,
       http_method: body.http_method || body.method || 'GET',
       instructions: body.instructions || '',
