@@ -38,14 +38,19 @@ function parseBuffer(
   while (jsonStartIndex !== -1) {
     let braceCount = 0
     let inString = false
+    let escaped = false
 
     // Iterate through the buffer to find the end of the JSON object
     for (let i = jsonStartIndex; i < buffer.length; i++) {
       const char = buffer[i]
 
-      // Check if the character is a double quote and the previous character is not a backslash
-      // This is to handle escaped quotes in JSON strings
-      if (char === '"' && buffer[i - 1] !== '\\') {
+      // Inside a string, a backslash escapes the next character (so `\\"`
+      // is an escaped backslash followed by the closing quote)
+      if (escaped) {
+        escaped = false
+      } else if (inString && char === '\\') {
+        escaped = true
+      } else if (char === '"') {
         inString = !inString
       }
 

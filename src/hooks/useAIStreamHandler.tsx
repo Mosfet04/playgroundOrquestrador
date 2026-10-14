@@ -207,6 +207,18 @@ const processToolCall = useCallback(
           apiUrl: playgroundRunUrl,
           requestBody,
           onChunk: (chunk: RunResponse) => {
+            const isDelta =
+              chunk.event === RunEvent.RunContent ||
+              chunk.event === RunEvent.TeamRunContent
+            // No team, RunContent/RunCompleted vêm dos membros
+            // (stream_member_events do agno) e não escrevem o texto do team
+            const isTeamMemberEvent =
+              mode === 'team' &&
+              (chunk.event === RunEvent.RunContent ||
+                chunk.event === RunEvent.RunCompleted)
+            // Delta de membro ou sem texto (só raciocínio, citação ou mídia; o
+            // agno omite o content None): não altera a mensagem
+            if (isDelta && (isTeamMemberEvent || chunk.content == null)) return
             if (
               chunk.event === RunEvent.RunStarted ||
               chunk.event === RunEvent.TeamRunStarted ||
@@ -255,7 +267,8 @@ const processToolCall = useCallback(
             } else if (
               chunk.event === RunEvent.RunResponse ||
               chunk.event === RunEvent.RunResponseContent ||
-              chunk.event === RunEvent.TeamRunResponseContent
+              chunk.event === RunEvent.TeamRunResponseContent ||
+              isDelta
             ) {
               setMessages((prevMessages) => {
                 const newMessages = [...prevMessages]
@@ -265,9 +278,14 @@ const processToolCall = useCallback(
                   lastMessage.role === 'agent' &&
                   typeof chunk.content === 'string'
                 ) {
-                  const uniqueContent = chunk.content.replace(lastContent, '')
-                  lastMessage.content += uniqueContent
-                  lastContent = chunk.content
+                  if (isDelta) {
+                    lastMessage.content += chunk.content
+                  } else {
+                    // Eventos legados trazem o conteúdo acumulado
+                    const uniqueContent = chunk.content.replace(lastContent, '')
+                    lastMessage.content += uniqueContent
+                    lastContent = chunk.content
+                  }
 
                   // Handle tool calls streaming
                   lastMessage.tool_calls = processChunkToolCalls(
@@ -405,7 +423,11 @@ const processToolCall = useCallback(
                     }
                     return {
                       ...message,
-                      content: updatedContent,
+                      // Membro de team não sobrescreve o texto, mas a mídia
+                      // dele segue mesclada (decisão 0007)
+                      content: isTeamMemberEvent
+                        ? message.content
+                        : updatedContent,
                       tool_calls: processChunkToolCalls(
                         chunk,
                         message.tool_calls

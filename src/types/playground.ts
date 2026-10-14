@@ -87,6 +87,8 @@ export enum RunEvent {
   RunStarted = 'RunStarted',
   RunResponse = 'RunResponse',
   RunResponseContent = 'RunResponseContent',
+  // agno 2.5: cada RunContent/TeamRunContent traz só o delta do texto
+  RunContent = 'RunContent',
   RunCompleted = 'RunCompleted',
   RunError = 'RunError',
   ToolCallStarted = 'ToolCallStarted',
@@ -98,6 +100,7 @@ export enum RunEvent {
   // Team Events
   TeamRunStarted = 'TeamRunStarted',
   TeamRunResponseContent = 'TeamRunResponseContent',
+  TeamRunContent = 'TeamRunContent',
   TeamRunCompleted = 'TeamRunCompleted',
   TeamRunError = 'TeamRunError',
   TeamRunCancelled = 'TeamRunCancelled',

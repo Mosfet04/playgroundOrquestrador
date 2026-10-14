@@ -47,23 +47,22 @@ test('chat: aponta o endpoint para o fake, escolhe o agente e recebe a resposta 
   await expect(page.getByText('Agente Beta recebeu: Olá, fake')).toBeVisible()
 })
 
-// BUG-P0-03-1: o chat ignora os deltas `RunContent` do agno 2.5 e só mostra o
-// texto no `RunCompleted`. O fake segura o RunCompleted por 3 s para esta
-// mensagem; os deltas chegam em ~100 ms. Vira teste normal no P0-06.
-test.fail(
-  'chat: mostra o texto parcial em stream antes do RunCompleted (BUG-P0-03-1)',
-  async ({ page }) => {
-    await openPlaygroundOnFake(page)
-    await expect(page.getByPlaceholder('Ask anything')).toBeEnabled()
+// BUG-P0-03-1 (corrigido no P0-06): o chat anexa os deltas `RunContent` do
+// agno 2.5. O fake segura o RunCompleted por 3 s para esta mensagem; os deltas
+// chegam em ~100 ms.
+test('chat: mostra o texto parcial em stream antes do RunCompleted (BUG-P0-03-1)', async ({
+  page
+}) => {
+  await openPlaygroundOnFake(page)
+  await expect(page.getByPlaceholder('Ask anything')).toBeEnabled()
 
-    // O prazo de 1,5 s conta da resposta do POST /runs, não do Enter: a
-    // navegação e o início da requisição não entram na janela.
-    const runResponse = page.waitForResponse((r) => r.url().endsWith('/runs'))
-    await sendMessage(page, 'segure o RunCompleted')
-    await runResponse
+  // O prazo de 1,5 s conta da resposta do POST /runs, não do Enter: a
+  // navegação e o início da requisição não entram na janela.
+  const runResponse = page.waitForResponse((r) => r.url().endsWith('/runs'))
+  await sendMessage(page, 'segure o RunCompleted')
+  await runResponse
 
-    await expect(
-      page.getByText('Agente Alfa recebeu: segure o RunCompleted')
-    ).toBeVisible({ timeout: 1500 })
-  }
-)
+  await expect(
+    page.getByText('Agente Alfa recebeu: segure o RunCompleted')
+  ).toBeVisible({ timeout: 1500 })
+})
