@@ -135,7 +135,7 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
             Voltar
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-2xl font-semibold tracking-tight">
               {isEditing ? 'Editar Tool' : 'Nova Tool'}
             </h1>
             <p className="text-muted-foreground">
@@ -325,8 +325,13 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
                     value={newHeaderValue}
                     onChange={(e) => setNewHeaderValue(e.target.value)}
                   />
-                  <Button type="button" onClick={addHeader} size="sm">
-                    <Plus className="w-4 h-4 text-black" />
+                  <Button
+                    type="button"
+                    onClick={addHeader}
+                    size="sm"
+                    aria-label="Adicionar header"
+                  >
+                    <Plus className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -352,9 +357,9 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
                   description: '',
                   required: false
                 })}
-                className="gap-2 text-black"
+                className="gap-2"
               >
-                <Plus className="w-4 h-4 text-black" />
+                <Plus className="w-4 h-4" />
                 Adicionar
               </Button>
             </div>
@@ -437,7 +442,7 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading} className="gap-2 text-black">
+          <Button type="submit" disabled={loading} className="gap-2">
             <Save className="w-4 h-4" />
             {loading ? 'Salvando...' : 'Salvar Tool'}
           </Button>

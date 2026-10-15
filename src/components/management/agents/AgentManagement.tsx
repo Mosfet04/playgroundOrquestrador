@@ -13,6 +13,7 @@ import { AgentForm } from './AgentForm'
 import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
 import { LoadingSpinner, EmptyState } from '@/components/ui/loading'
 import { cn } from '@/lib/utils'
+import { StatusBadge } from '@/components/ui/status-badge'
 
 export function AgentManagement() {
   const [agents, setAgents] = useState<AgentConfig[]>([])
@@ -131,10 +132,7 @@ export function AgentManagement() {
           isMobile && "flex-col space-y-4 items-start"
         )}>
           <div className={isMobile ? "w-full" : ""}>
-            <h1 className={cn(
-              "font-bold",
-              isMobile ? "text-xl" : "text-3xl"
-            )}>
+            <h1 className="text-2xl font-semibold tracking-tight">
               Gerenciamento de Agentes
             </h1>
             <p className={cn(
@@ -147,7 +145,7 @@ export function AgentManagement() {
           <Button 
             onClick={() => setShowForm(true)} 
             className={cn(
-              "gap-2 text-black",
+              "gap-2",
               isMobile && "w-full"
             )}
             size={isMobile ? "sm" : "default"}
@@ -164,9 +162,7 @@ export function AgentManagement() {
             "flex items-center justify-between",
             isMobile && "flex-col items-start space-y-2"
           )}>
-            <CardTitle className={cn(
-              isMobile ? "text-base" : "text-lg"
-            )}>
+            <CardTitle>
               Filtros
             </CardTitle>
             {isMobile && (
@@ -211,9 +207,10 @@ export function AgentManagement() {
             </div>
             
             <div className="space-y-2">
-              <Label>Apenas ativos</Label>
+              <Label htmlFor="active-only">Apenas ativos</Label>
               <div className="flex items-center space-x-2">
                 <Switch
+                  id="active-only"
                   checked={filters.active === true}
                   onCheckedChange={(checked) => 
                     setFilters(prev => ({ 
@@ -267,28 +264,17 @@ export function AgentManagement() {
                   isMobile ? "flex-col space-y-3" : "items-start"
                 )}>
                   <div className="space-y-2 flex-1 min-w-0">
-                    <CardTitle className={cn(
-                      isMobile ? "text-base" : "text-lg"
-                    )}>
+                    <CardTitle>
                       {agent.nome}
                     </CardTitle>
                     <div className={cn(
                       "flex gap-2",
                       isMobile && "flex-wrap"
                     )}>
-                      <span className={cn(
-                        "px-2 py-1 rounded-full font-medium",
-                        isMobile ? "text-xs" : "text-xs",
-                        agent.active 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                      )}>
+                      <StatusBadge active={agent.active}>
                         {agent.active ? 'Ativo' : 'Inativo'}
-                      </span>
-                      <span className={cn(
-                        "px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full font-medium",
-                        isMobile ? "text-xs" : "text-xs"
-                      )}>
+                      </StatusBadge>
+                      <span className="rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">
                         {isMobile ? agent.factoryIaModel.substring(0, 8) + '...' : agent.factoryIaModel}
                       </span>
                     </div>
@@ -302,6 +288,7 @@ export function AgentManagement() {
                       size="sm"
                       onClick={() => handleEditAgent(agent)}
                       className={isMobile ? "flex-1" : ""}
+                      aria-label="Editar agente"
                     >
                       <Edit className="w-4 h-4" />
                       {isMobile && <span className="ml-1 text-xs">Editar</span>}
@@ -311,6 +298,7 @@ export function AgentManagement() {
                       size="sm"
                       onClick={() => setDeletingAgent(agent)}
                       className={isMobile ? "flex-1" : ""}
+                      aria-label="Excluir agente"
                     >
                       <Trash2 className="w-4 h-4" />
                       {isMobile && <span className="ml-1 text-xs">Excluir</span>}

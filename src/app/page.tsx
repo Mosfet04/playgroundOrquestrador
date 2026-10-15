@@ -36,11 +36,11 @@ export default function Home() {
         return <Dashboard />
       case 'playground':
         return (
-          <div className="flex h-screen bg-background/80 relative">
+          <div className="flex h-screen bg-background relative">
             {/* Overlay para sidebar do playground */}
             {isMobile && isSidebarOpen && (
               <div 
-                className="fixed inset-0 bg-black/50 z-44 md:hidden"
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-44 md:hidden"
                 onClick={() => setIsSidebarOpen(false)}
               />
             )}
@@ -71,7 +71,7 @@ export default function Home() {
         {/* Mobile overlay para navigation */}
         {isMobile && isNavigationOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-30 md:hidden"
             onClick={() => setIsNavigationOpen(false)}
           />
         )}
@@ -90,7 +90,7 @@ export default function Home() {
           onToggle={() => setIsNavigationOpen(!isNavigationOpen)}
         />
         
-        <div className="flex-1 overflow-y-auto">
+        <div className="app-main flex-1 overflow-y-auto">
           {renderContent()}
         </div>
       </div>

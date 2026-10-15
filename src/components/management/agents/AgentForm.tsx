@@ -142,7 +142,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
             Voltar
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-2xl font-semibold tracking-tight">
               {isEditing ? 'Editar Agente' : 'Novo Agente'}
             </h1>
             <p className="text-muted-foreground">
@@ -203,10 +203,11 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
 
             <div className="flex items-center space-x-2">
               <Switch
+                id="active"
                 checked={watch('active')}
                 onCheckedChange={(checked) => setValue('active', checked)}
               />
-              <Label>Agente ativo</Label>
+              <Label htmlFor="active">Agente ativo</Label>
             </div>
           </CardContent>
         </Card>
@@ -222,22 +223,18 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Provider *</Label>
+                <Label htmlFor="factoryIaModel">Provider *</Label>
                 <Select
                 value={factoryIaModel}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onValueChange={(value) => setValue('factoryIaModel', value as any)}
                 >
-                <SelectTrigger className="bg-black border border-white text-white">
+                <SelectTrigger id="factoryIaModel">
                     <SelectValue placeholder="Selecione o provider" />
                 </SelectTrigger>
-                <SelectContent className="bg-black border border-white text-white">
+                <SelectContent>
                     {modelProviders.map((provider) => (
-                    <SelectItem
-                        key={provider.value}
-                        value={provider.value}
-                        className="text-white hover:bg-white hover:text-black"
-                    >
+                    <SelectItem key={provider.value} value={provider.value}>
                         {provider.label}
                     </SelectItem>
                     ))}
@@ -285,10 +282,11 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-2">
               <Switch
+                id="rag_active"
                 checked={ragActive}
                 onCheckedChange={(checked) => setValue('rag_active', checked)}
               />
-              <Label>Habilitar RAG</Label>
+              <Label htmlFor="rag_active">Habilitar RAG</Label>
             </div>
 
             {ragActive && (
@@ -303,16 +301,16 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Provider de Embedding</Label>
+                  <Label htmlFor="rag_factoryIaModel">Provider de Embedding</Label>
                   <Select
                     value={watch('rag_factoryIaModel')}
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onValueChange={(value) => setValue('rag_factoryIaModel', value as any)}
                   >
-                    <SelectTrigger className="bg-black border border-white text-white">
+                    <SelectTrigger id="rag_factoryIaModel">
                       <SelectValue placeholder="Selecione o provider" />
                     </SelectTrigger>
-                    <SelectContent className="bg-black border border-white text-white">
+                    <SelectContent>
                       {ragProviders.map((provider) => (
                         <SelectItem key={provider.value} value={provider.value}>
                           {provider.label}
@@ -366,7 +364,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
                           setSelectedToolIds(selectedToolIds.filter(id => id !== tool.id))
                         }
                       }}
-                      className="w-4 h-4"
+                      className="w-4 h-4 accent-primary"
                     />
                     <Label htmlFor={`tool-${tool.id}`} className="flex-1">
                       <div className="font-medium">{tool.name}</div>
@@ -386,7 +384,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading} className="gap-2 text-black">
+          <Button type="submit" disabled={loading} className="gap-2">
             <Save className="w-4 h-4" />
             {loading ? 'Salvando...' : 'Salvar Agente'}
           </Button>

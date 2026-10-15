@@ -9,7 +9,6 @@ const Icon: FC<IconProps> = ({
   type,
   size = 'sm',
   className,
-  color,
   disabled = false
 }) => {
   const IconElement = ICONS[type]
@@ -17,8 +16,8 @@ const Icon: FC<IconProps> = ({
   return (
     <IconElement
       className={cn(
-        color && !disabled ? `text-${color}` : 'text-primary',
-        disabled && 'cursor-default text-muted/50',
+        'text-foreground',
+        disabled && 'cursor-default text-muted-foreground opacity-50',
         className,
         size === 'xxs' && 'size-3',
         size === 'xs' && 'size-4',

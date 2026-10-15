@@ -11,6 +11,7 @@ import { Tool, ToolFilters } from '@/types/management'
 import { ToolForm } from './ToolForm'
 import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
 import { LoadingSpinner, EmptyState } from '@/components/ui/loading'
+import { StatusBadge } from '@/components/ui/status-badge'
 
 export function ToolManagement() {
   const [tools, setTools] = useState<Tool[]>([])
@@ -109,12 +110,12 @@ export function ToolManagement() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Gerenciamento de Tools</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Gerenciamento de Tools</h1>
             <p className="text-muted-foreground">
               Crie e gerencie ferramentas HTTP para seus agentes
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)} className="gap-2 text-black">
+          <Button onClick={() => setShowForm(true)} className="gap-2">
             <Plus className="w-4 h-4" />
             Nova Tool
           </Button>
@@ -123,7 +124,7 @@ export function ToolManagement() {
       {/* Filtros e Busca */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
+          <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -166,19 +167,15 @@ export function ToolManagement() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
-                    <CardTitle className="text-lg">{tool.name}</CardTitle>
+                    <CardTitle>{tool.name}</CardTitle>
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs font-medium">
+                      <span className="rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">
                         {tool.http_method || tool.http_config?.method || 'N/A'}
                       </span>
                       {tool.active !== undefined && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          tool.active 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' 
-                            : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
-                        }`}>
+                        <StatusBadge active={tool.active}>
                           {tool.active ? 'Ativa' : 'Inativa'}
-                        </span>
+                        </StatusBadge>
                       )}
                     </div>
                   </div>
@@ -187,6 +184,7 @@ export function ToolManagement() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEditTool(tool)}
+                      aria-label="Editar tool"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -194,6 +192,7 @@ export function ToolManagement() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setDeletingTool(tool)}
+                      aria-label="Excluir tool"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

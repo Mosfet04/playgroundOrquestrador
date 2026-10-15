@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { cn } from '@/lib/utils'
 import { 
   CheckCircle, 
@@ -80,10 +81,7 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
       {/* Header */}
       <div className="text-center space-y-3">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <h1 className={cn(
-            "font-bold text-center",
-            isMobile ? "text-xl" : "text-3xl"
-          )}>
+          <h1 className="text-2xl font-semibold tracking-tight text-center">
             Bem-vindo ao Agno Manager!
           </h1>
           <span className="text-2xl">🎉</span>
@@ -104,19 +102,14 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
             {completedSteps} de {totalSteps} concluídos
           </Badge>
           {completedSteps === totalSteps && (
-            <Badge className={cn(
-              "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-              isMobile ? "text-xs" : ""
-            )}>
-              🎊 Parabéns! Setup concluído
-            </Badge>
+            <StatusBadge active>🎊 Parabéns! Setup concluído</StatusBadge>
           )}
         </div>
       </div>
 
       {/* Progress Bar */}
       <div className={cn(
-        "bg-gray-200 dark:bg-gray-700 rounded-full h-2",
+        "bg-secondary rounded-full h-2",
         isMobile ? "mx-2" : "w-full"
       )}>
         <div 
@@ -134,7 +127,7 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
           return (
             <Card key={step.id} className={cn(
               "transition-all duration-200",
-              isCompleted ? 'border-green-500 bg-green-50 dark:bg-green-950' : '',
+              isCompleted ? 'border-success' : '',
               isMobile && "mx-2"
             )}>
               <CardHeader className={isMobile ? "p-4" : ""}>
@@ -151,8 +144,8 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
                       "rounded-full flex items-center justify-center flex-shrink-0",
                       isMobile ? "w-10 h-10" : "w-12 h-12",
                       isCompleted 
-                        ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400'
-                        : 'bg-primary/10 text-primary'
+                        ? 'bg-muted text-success'
+                        : 'bg-primary-soft text-primary'
                     )}>
                       {isCompleted ? (
                         <CheckCircle className={cn(isMobile ? "w-5 h-5" : "w-6 h-6")} />
@@ -173,14 +166,14 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
                           Passo {index + 1}
                         </span>
                         <span className={cn(
-                          isCompleted ? 'line-through text-muted-foreground text-black' : '',
+                          isCompleted ? 'line-through text-muted-foreground' : '',
                           isMobile ? "text-sm" : ""
                         )}>
                           {step.title}
                         </span>
                       </CardTitle>
                       <CardDescription className={cn(
-                        isCompleted ? 'text-green-600 dark:text-green-400' : '',
+                        isCompleted ? 'text-success' : '',
                         isMobile ? "text-xs mt-1" : ""
                       )}>
                         {isCompleted ? '✅ Concluído!' : step.description}
@@ -198,7 +191,7 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
                         <Button 
                           onClick={() => onNavigate('agents')} 
                           className={cn(
-                            "gap-2 text-black",
+                            "gap-2",
                             isMobile ? "w-full justify-center" : ""
                           )}
                           size={isMobile ? "sm" : "default"}
@@ -211,7 +204,7 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
                         <Button 
                           onClick={() => onNavigate('tools')} 
                           className={cn(
-                            "gap-2 text-black",
+                            "gap-2",
                             isMobile ? "w-full justify-center" : ""
                           )}
                           size={isMobile ? "sm" : "default"}
@@ -224,7 +217,7 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
                         <Button 
                           onClick={() => onNavigate('playground')} 
                           className={cn(
-                            "gap-2 text-black",
+                            "gap-2",
                             isMobile ? "w-full justify-center" : ""
                           )}
                           size={isMobile ? "sm" : "default"}
@@ -292,15 +285,15 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
 
       {/* Mobile optimization notice */}
       {isMobile && (
-        <Card className="mx-2 border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+        <Card className="mx-2 border-border bg-muted">
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-sm">
-              <Smartphone className="w-4 h-4" />
+            <CardTitle className="flex items-center gap-2 text-foreground text-sm">
+              <Smartphone className="w-4 h-4 text-primary" />
               Otimizado para Mobile
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <p className="text-xs text-blue-600 dark:text-blue-400 leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               ✨ Esta interface foi otimizada para o seu dispositivo móvel. 
               Navegue facilmente entre abas usando o menu superior.
             </p>
@@ -311,12 +304,12 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
       {/* Next Steps */}
       {completedSteps === totalSteps && (
         <Card className={cn(
-          "border-green-500 bg-green-50 dark:bg-green-950",
+          "border-success",
           isMobile && "mx-2"
         )}>
           <CardHeader className={isMobile ? "p-4 pb-2" : ""}>
             <CardTitle className={cn(
-              "text-green-700 dark:text-green-300",
+              "text-success",
               isMobile ? "text-base" : ""
             )}>
               🎉 Próximos Passos
@@ -324,7 +317,7 @@ export function GettingStarted({ onNavigate }: GettingStartedProps) {
           </CardHeader>
           <CardContent className={isMobile ? "p-4 pt-0" : ""}>
             <div className={cn(
-              "space-y-2 text-black",
+              "space-y-2",
               isMobile ? "text-xs space-y-3" : "text-sm"
             )}>
               <p className={isMobile ? "leading-relaxed" : ""}>

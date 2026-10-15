@@ -36,7 +36,7 @@ const SkeletonList: FC<SkeletonListProps> = ({ skeletonCount }) => {
       key={k}
       className={cn(
         'mb-1 h-11 rounded-lg px-3 py-2',
-        idx > 0 && 'bg-background-secondary'
+        idx > 0 && 'bg-muted'
       )}
     />
   ))
@@ -157,7 +157,7 @@ const Sessions = () => {
       <div
         className={`h-[calc(100vh-345px)] overflow-y-auto font-sans transition-all duration-300 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar]:transition-opacity [&::-webkit-scrollbar]:duration-300 ${
           isScrolling
-            ? '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-background [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:opacity-0'
+            ? '[&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:opacity-0'
             : '[&::-webkit-scrollbar]:opacity-100'
         }`}
         onScroll={handleScroll}

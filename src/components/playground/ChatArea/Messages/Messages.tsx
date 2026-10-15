@@ -33,9 +33,9 @@ interface ReferenceItemProps {
 }
 
 const ReferenceItem: FC<ReferenceItemProps> = ({ reference }) => (
-  <div className="relative flex h-[63px] w-[190px] cursor-default flex-col justify-between overflow-hidden rounded-md bg-background-secondary p-3 transition-colors hover:bg-background-secondary/80">
-    <p className="text-sm font-medium text-primary">{reference.name}</p>
-    <p className="truncate text-xs text-primary/40">{reference.content}</p>
+  <div className="relative flex h-[63px] w-[190px] cursor-default flex-col justify-between overflow-hidden rounded-md bg-muted p-3 transition-colors hover:bg-accent">
+    <p className="text-sm font-medium text-foreground">{reference.name}</p>
+    <p className="truncate text-xs text-muted-foreground">{reference.content}</p>
   </div>
 )
 
@@ -67,7 +67,7 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
           <div className="flex items-start gap-4">
             <Tooltip
               delayDuration={0}
-              content={<p className="text-accent">Reasoning</p>}
+              content={<p className="text-popover-foreground">Reasoning</p>}
               side="top"
             >
               <Icon type="reasoning" size="sm" />
@@ -83,7 +83,7 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
           <div className="flex items-start gap-4">
             <Tooltip
               delayDuration={0}
-              content={<p className="text-accent">References</p>}
+              content={<p className="text-popover-foreground">References</p>}
               side="top"
             >
               <Icon type="references" size="sm" />
@@ -97,14 +97,13 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
         <div className="flex items-start gap-3">
           <Tooltip
             delayDuration={0}
-            content={<p className="text-accent">Tool Calls</p>}
+            content={<p className="text-popover-foreground">Tool Calls</p>}
             side="top"
           >
             <Icon
               type="hammer"
-              className="rounded-lg bg-background-secondary p-1"
+              className="rounded-lg bg-muted p-1"
               size="sm"
-              color="secondary"
             />
           </Tooltip>
 
@@ -126,8 +125,8 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
   )
 }
 const Reasoning: FC<ReasoningStepProps> = ({ index, stepTitle }) => (
-  <div className="flex items-center gap-2 text-secondary">
-    <div className="flex h-[20px] items-center rounded-md bg-background-secondary p-2">
+  <div className="flex items-center gap-2 text-foreground">
+    <div className="flex h-[20px] items-center rounded-md bg-muted p-2">
       <p className="text-xs">STEP {index + 1}</p>
     </div>
     <p className="text-xs">{stepTitle}</p>
@@ -146,8 +145,8 @@ const Reasonings: FC<ReasoningProps> = ({ reasoning }) => (
 )
 
 const ToolComponent = memo(({ tools }: ToolCallProps) => (
-  <div className="cursor-default rounded-full bg-accent px-2 py-1.5 text-xs">
-    <p className="font-mono uppercase text-primary/80">{tools.tool_name}</p>
+  <div className="cursor-default rounded-md border border-border bg-muted px-2 py-1.5 font-mono text-xs text-foreground">
+    <p className="uppercase">{tools.tool_name}</p>
   </div>
 ))
 ToolComponent.displayName = 'ToolComponent'

@@ -41,7 +41,6 @@ export interface IconProps {
   type: IconType
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'dot' | 'xxs' | 'default'
   className?: string
-  color?: string
   disabled?: boolean
 }
 

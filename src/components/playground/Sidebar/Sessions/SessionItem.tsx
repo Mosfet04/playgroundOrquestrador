@@ -101,14 +101,14 @@ const SessionItem = ({
         className={cn(
           'group flex h-11 w-full items-center justify-between rounded-lg px-3 py-2 transition-colors duration-200',
           isSelected
-            ? 'cursor-default bg-primary/10'
-            : 'cursor-pointer bg-background-secondary hover:bg-background-secondary/80'
+            ? 'cursor-default bg-primary-soft'
+            : 'cursor-pointer bg-muted hover:bg-accent'
         )}
         onClick={handleGetSession}
       >
         <div className="flex flex-col gap-1">
           <h4
-            className={cn('text-sm font-medium', isSelected && 'text-primary')}
+            className={cn('text-sm font-medium', isSelected && 'text-foreground')}
           >
             {truncateText(title, 20)}
           </h4>

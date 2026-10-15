@@ -31,7 +31,7 @@ export function EmptyState({ title, description, action, icon }: EmptyStateProps
   return (
     <div className="flex flex-col items-center justify-center p-12 text-center">
       {icon && (
-        <div className="w-16 h-16 mb-4 text-muted-foreground/50">
+        <div className="mb-4 h-16 w-16 text-muted-foreground opacity-50">
           {icon}
         </div>
       )}

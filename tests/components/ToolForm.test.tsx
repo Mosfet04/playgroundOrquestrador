@@ -70,7 +70,7 @@ describe('ToolForm', () => {
     await user.type(screen.getByLabelText(/^Nome/), 'Clima')
     await user.type(screen.getByLabelText(/^Rota/), 'https://clima.example.com/v1')
     await user.type(screen.getByLabelText(/^Descrição/), 'Consulta o clima')
-    await user.click(screen.getByRole('button', { name: /adicionar/i }))
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }))
     await user.type(screen.getByPlaceholderText('nome_parametro'), 'latitude')
     await user.click(typeSelect())
     await user.click(await screen.findByRole('option', { name: 'float' }))

@@ -1,6 +1,14 @@
 import type { Config } from 'tailwindcss'
 import tailwindcssAnimate from 'tailwindcss-animate'
 
+// Tokens do Design System (docs/design/design-system.md, "Nomes no código").
+// Os valores ficam em src/app/globals.css (:root = claro, .dark = escuro).
+const token = (name: string) => `hsl(var(--${name}))`
+const withForeground = (name: string) => ({
+  DEFAULT: token(name),
+  foreground: token(`${name}-foreground`)
+})
+
 export default {
   darkMode: ['class'],
   content: [
@@ -10,33 +18,26 @@ export default {
   ],
   theme: {
     extend: {
-      screens: {
-        'xs': '400px',
-        's23': '412px', // Samsung Galaxy S23 específico
-        'sm': '640px',
-        'md': '768px',
-        'lg': '1024px',
-        'xl': '1280px',
-        '2xl': '1536px',
-      },
       zIndex: {
         '44': '44',
-        '45': '45',
+        '45': '45'
       },
       colors: {
-        primary: '#FAFAFA',
-        primaryAccent: '#18181B',
-        brand: '#FF4017',
-        background: {
-          DEFAULT: '#111113',
-          secondary: '#27272A'
-        },
-        secondary: '#f5f5f5',
-        border: 'rgba(var(--color-border-default))',
-        accent: '#27272A',
-        muted: '#A1A1AA',
-        destructive: '#E53935',
-        positive: '#22C55E'
+        background: token('background'),
+        foreground: token('foreground'),
+        border: token('border'),
+        input: token('input'),
+        ring: token('ring'),
+        signal: token('signal'),
+        success: token('success'),
+        warning: token('warning'),
+        card: withForeground('card'),
+        popover: withForeground('popover'),
+        secondary: withForeground('secondary'),
+        muted: withForeground('muted'),
+        accent: withForeground('accent'),
+        destructive: withForeground('destructive'),
+        primary: { ...withForeground('primary'), soft: token('primary-soft') }
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -48,8 +49,19 @@ export default {
           'monospace'
         ]
       },
+      letterSpacing: {
+        tight: '-0.01em',
+        widest: '0.08em'
+      },
       borderRadius: {
-        xl: '10px'
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)'
+      },
+      boxShadow: {
+        popover: 'var(--shadow-popover)',
+        dialog: 'var(--shadow-dialog)',
+        glow: 'var(--shadow-glow)'
       }
     }
   },

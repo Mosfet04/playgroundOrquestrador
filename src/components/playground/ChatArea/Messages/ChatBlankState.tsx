@@ -46,7 +46,7 @@ const ActionButton = ({ href, variant, text }: ActionButtonProps) => {
   const baseStyles =
     'px-4 py-2 text-sm transition-colors font-mono tracking-tight'
   const variantStyles = {
-    primary: 'border border-border hover:bg-neutral-800 rounded-xl'
+    primary: 'border border-border hover:bg-accent rounded-md'
   }
 
   return (
@@ -157,7 +157,7 @@ const ChatBlankState = () => {
                         <Icon type={icon.type} size="default" />
                       </div>
                       <motion.div
-                        className="pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-neutral-800 px-2 py-1 text-xs text-primary"
+                        className="pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-popover"
                         variants={tooltipVariants}
                         initial="hidden"
                         animate={

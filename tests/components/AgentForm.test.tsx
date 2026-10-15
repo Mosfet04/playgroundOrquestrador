@@ -63,4 +63,17 @@ describe('AgentForm', () => {
     ).toBeInTheDocument()
     expect(screen.getAllByRole('checkbox')).toHaveLength(tools.length)
   })
+
+  it('dá nome aos switches pelo Label (F-05)', async () => {
+    serveToolsPaginated()
+
+    render(<AgentForm onSuccess={() => {}} onCancel={() => {}} />)
+
+    expect(
+      await screen.findByRole('switch', { name: 'Agente ativo' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('switch', { name: 'Habilitar RAG' })
+    ).toBeInTheDocument()
+  })
 })

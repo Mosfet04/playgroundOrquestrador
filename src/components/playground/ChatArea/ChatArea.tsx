@@ -14,7 +14,7 @@ interface ChatAreaProps {
 const ChatArea = ({ isMobile = false, onToggleSidebar }: ChatAreaProps) => {
   return (
     <main className={cn(
-      "relative flex flex-grow flex-col rounded-xl bg-background",
+      "relative flex flex-grow flex-col rounded-lg bg-background",
       isMobile ? "m-0 w-full" : "m-1.5"
     )}>
       {/* Mobile header com botão do menu */}

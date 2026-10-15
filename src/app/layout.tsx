@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
+import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
@@ -11,11 +12,6 @@ const plexSans = localFont({
       path: './fonts/IBMPlexSans-Regular.woff2',
       weight: '400',
       style: 'normal'
-    },
-    {
-      path: './fonts/IBMPlexSans-Italic.woff2',
-      weight: '400',
-      style: 'italic'
     },
     {
       path: './fonts/IBMPlexSans-Medium.woff2',
@@ -30,6 +26,18 @@ const plexSans = localFont({
   ],
   variable: '--font-sans',
   display: 'swap'
+})
+
+// O preload do next/font vale por chamada: o itálico tem chamada própria para
+// ser baixado só quando aparece (decisão 0009, D-P1-02-3); a regra que o usa
+// está em globals.css.
+const plexSansItalic = localFont({
+  src: './fonts/IBMPlexSans-Italic.woff2',
+  weight: '400',
+  style: 'italic',
+  variable: '--font-sans-italic',
+  display: 'swap',
+  preload: false
 })
 
 const plexMono = localFont({
@@ -47,8 +55,7 @@ const plexMono = localFont({
 
 export const viewport: Viewport = {
   width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1
+  initialScale: 1
 }
 
 export const metadata: Metadata = {
@@ -63,12 +70,21 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${plexSans.variable} ${plexMono.variable} font-sans antialiased`}
-      >
-        <NuqsAdapter>{children}</NuqsAdapter>
-        <Toaster />
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${plexSans.variable} ${plexSansItalic.variable} ${plexMono.variable}`}
+    >
+      <body className="bg-background font-sans text-foreground antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NuqsAdapter>{children}</NuqsAdapter>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )

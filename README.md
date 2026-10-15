@@ -404,22 +404,9 @@ export const providerConfigs = {
 ### **Customização da Interface**
 
 #### **Temas e Cores**
-```javascript
-// tailwind.config.ts
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        primary: {
-          50: '#f0f9ff',
-          500: '#3b82f6',  // ← Cor principal
-          900: '#1e3a8a'
-        }
-      }
-    }
-  }
-};
-```
+As cores são tokens do Design System (`docs/design/design-system.md`): canais HSL em `src/app/globals.css` (`:root` = claro, `.dark` = escuro) e mapeados no `tailwind.config.ts` (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`...). Nada de hex nem paleta crua do Tailwind nos componentes.
+
+O tema (Claro, Escuro ou Sistema, padrão Sistema) vem do `next-themes` e é escolhido no rodapé da navegação; a escolha fica no `localStorage` (`theme`).
 
 #### **Componentes Personalizados**
 ```typescript

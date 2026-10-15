@@ -24,7 +24,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P0-05 | concluído (contagem de tools legadas com `number` no Mongo real pendente, ver docs/qa/P0-05.md) |
 | P0-06 | concluído |
 | P1-01 | concluído |
-| P1-02 | pendente |
+| P1-02 | concluído |
 | P1-03 | pendente |
 | P1-04 | pendente |
 | P1-05 | pendente |

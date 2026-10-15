@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { 
   BarChart, 
   Bar, 
@@ -35,8 +36,8 @@ import { DashboardStats, TokenMetrics, TimeFilter } from '@/types/dashboard'
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black border border-white text-white p-2 rounded shadow-lg">
-        <p className="font-bold">{label}</p>
+      <div className="rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-popover">
+        {label && <p className="font-semibold">{label}</p>}
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {payload.map((item: any) => (
           <p key={item.dataKey}>
@@ -48,7 +49,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   }
   return null;
 }
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1']
+// Gráficos só com tokens (decisão 0009, D-P1-02-1 = A): série 1 primary, série 2
+// muted-foreground; grade em border, eixos em muted-foreground.
+const CHART = {
+  series1: 'hsl(var(--primary))',
+  series2: 'hsl(var(--muted-foreground))',
+  grid: 'hsl(var(--border))',
+  axis: 'hsl(var(--muted-foreground))',
+  surface: 'hsl(var(--card))',
+  cursor: 'hsl(var(--muted))'
+}
+const AXIS_PROPS = { stroke: CHART.grid, tick: { fill: CHART.axis } }
 
 const timeFilters: TimeFilter[] = [
   { label: 'Última Hora', value: '1h' },
@@ -107,11 +118,11 @@ export function Dashboard() {
     return (
       <div className="management-form">
         <div className="max-w-7xl mx-auto p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-1/4" />
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                <Skeleton key={i} className="h-32" />
               ))}
             </div>
           </div>
@@ -126,16 +137,16 @@ export function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">
               Visão geral do sistema e métricas de uso
             </p>
           </div>
           <Select value={timeFilter} onValueChange={setTimeFilter}>
-            <SelectTrigger className="w-48 bg-black border border-white text-white">
+            <SelectTrigger className="w-48">
               <SelectValue placeholder="Selecionar período" />
             </SelectTrigger>
-            <SelectContent className="bg-black border border-white text-white">
+            <SelectContent>
               {timeFilters.map((filter) => (
                 <SelectItem key={filter.value} value={filter.value}>
                   {filter.label}
@@ -153,7 +164,7 @@ export function Dashboard() {
               <Bot className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeAgents}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{stats.activeAgents}</div>
               <p className="text-xs text-muted-foreground">
                 {stats.totalAgents} total
               </p>
@@ -166,7 +177,7 @@ export function Dashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.uniqueUsers}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{stats.uniqueUsers}</div>
               <p className="text-xs text-muted-foreground">
                 No período selecionado
               </p>
@@ -179,7 +190,7 @@ export function Dashboard() {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSessions}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{stats.totalSessions}</div>
               <p className="text-xs text-muted-foreground">
                 {stats.totalAgentSessions} agents · {stats.totalTeamSessions} teams · {stats.sessionsInPeriod} no período
               </p>
@@ -192,7 +203,7 @@ export function Dashboard() {
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="font-mono text-3xl font-medium tabular-nums">
                 {stats.totalTokens.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -219,16 +230,13 @@ export function Dashboard() {
                 {stats.models.map((model, index) => (
                   <div key={`${model.name}-${model.provider}-${index}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
+                      <div className="w-3 h-3 rounded-full bg-primary" />
                       <div>
                         <p className="font-medium">{model.name}</p>
                         <p className="text-sm text-muted-foreground">{model.provider}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-black">{model.count} uso(s)</Badge>
+                    <Badge variant="secondary">{model.count} uso(s)</Badge>
                   </div>
                 ))}
               </div>
@@ -247,19 +255,16 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {stats.embeddingModels.map((model, index) => (
+                {stats.embeddingModels.map((model) => (
                   <div key={model.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
+                      <div className="w-3 h-3 rounded-full bg-primary" />
                       <div>
                         <p className="font-medium">{model.name}</p>
                         <p className="text-sm text-muted-foreground">{model.provider}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-black">{model.count} uso(s)</Badge>
+                    <Badge variant="secondary">{model.count} uso(s)</Badge>
                   </div>
                 ))}
               </div>
@@ -281,11 +286,12 @@ export function Dashboard() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={tokenMetrics}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="agentName" />
-                <YAxis />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="agentName" {...AXIS_PROPS} />
+                <YAxis {...AXIS_PROPS} />
                 <Tooltip
                     content={<CustomTooltip />}
+                  cursor={{ fill: CHART.cursor }}
                   formatter={(value?: string | number) => [typeof value === 'number' ? value.toLocaleString() : String(value ?? ''), 'Tokens']}
                   labelFormatter={(label) => {
                     const item = tokenMetrics.find(m => m.agentName === label)
@@ -294,8 +300,8 @@ export function Dashboard() {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="inputTokens" fill="#8884d8" name="Tokens de Entrada" />
-                <Bar dataKey="outputTokens" fill="#82ca9d" name="Tokens de Saída" />
+                <Bar dataKey="inputTokens" fill={CHART.series1} name="Tokens de Entrada" />
+                <Bar dataKey="outputTokens" fill={CHART.series2} name="Tokens de Saída" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -316,13 +322,13 @@ export function Dashboard() {
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={stats.activityOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
-                  <YAxis />
-                  <Tooltip content={<CustomTooltip />} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                  <XAxis dataKey="time" {...AXIS_PROPS} />
+                  <YAxis {...AXIS_PROPS} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: CHART.grid }} />
                   <Legend />
-                  <Area type="monotone" dataKey="agentSessions" stackId="1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} name="Agent Sessions" />
-                  <Area type="monotone" dataKey="teamSessions" stackId="1" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Team Sessions" />
+                  <Area type="monotone" dataKey="agentSessions" stackId="1" stroke={CHART.series1} fill={CHART.series1} fillOpacity={0.6} name="Agent Sessions" />
+                  <Area type="monotone" dataKey="teamSessions" stackId="1" stroke={CHART.series2} fill={CHART.series2} fillOpacity={0.6} name="Team Sessions" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -343,25 +349,26 @@ export function Dashboard() {
                 <PieChart>
                   <Pie
                     data={[
-                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: '#8884d8' },
-                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: '#82ca9d' }
+                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: CHART.series1 },
+                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: CHART.series2 }
                     ]}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
                     outerRadius={100}
                     paddingAngle={5}
+                    stroke={CHART.surface}
                     dataKey="value"
                     label={({name, value}) => `${name}: ${value}`}
                   >
                     {[
-                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: '#8884d8' },
-                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: '#82ca9d' }
+                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: CHART.series1 },
+                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: CHART.series2 }
                     ].map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip content={<CustomTooltip />} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>

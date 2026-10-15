@@ -82,10 +82,10 @@ const UserMessage = memo(({ message }: MessageProps) => {
   return (
     <div className="flex items-start pt-4 text-start max-md:break-words">
       <div className="flex flex-row gap-x-3">
-        <p className="flex items-center gap-x-2 text-sm font-medium text-muted">
+        <p className="flex items-center gap-x-2 text-sm font-medium text-muted-foreground">
           <Icon type="user" size="sm" />
         </p>
-        <div className="text-md rounded-lg py-1 font-sans text-secondary">
+        <div className="text-md rounded-lg py-1 font-sans text-foreground">
           {message.content}
         </div>
       </div>

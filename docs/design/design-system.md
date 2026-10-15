@@ -14,7 +14,7 @@
    - Gradiente da marca: `bg-gradient-to-br from-primary to-signal`. Só em marca, avatar, barra do item ativo e ilustração do estado vazio; nunca atrás de texto corrido.
    - Aurora: no tema escuro, a coluna principal tem `radial-gradient(ellipse 720px 280px at 24% 56px, hsl(var(--primary) / 0.12), transparent 70%)`. Uma regra em `globals.css` (`.dark .app-main`), não espalhada.
    - Grade de console: `radial-gradient(hsl(var(--border)) 1px, transparent 1px)` em 16 px, só atrás do estado vazio e da conversa vazia.
-4. **Tema.** `next-themes` com `attribute="class"`, padrão `system`, seletor no cabeçalho com Claro, Escuro e Sistema.
+4. **Tema.** `next-themes` com `attribute="class"`, padrão `system`, seletor no cabeçalho com Claro, Escuro e Sistema (até a P1-03, no rodapé da navegação; ver [P1-02](P1-02.md)).
 5. **Pares.** Todo texto usa um dos pares da tabela de contraste. Superfície nova ou par novo é decisão de design.
 6. **Semântica.** `primary` = ação principal, item ativo, foco, link. `signal` = atividade ao vivo (stream, conexão, tool call), nunca ação nem status de entidade. `destructive`, `success`, `warning` só para o significado deles, sempre com ícone ou ponto e palavra.
 7. **Foco.** `focus-visible:ring-2 ring-ring ring-offset-2 ring-offset-background` em todo elemento interativo; Input, Textarea e composer somam `border-primary shadow-glow`.
@@ -62,6 +62,26 @@ Valores em hex (como no artifact) e em canais HSL (como vão no `globals.css`). 
 | `shadow-glow` | `0 0 0 1px primary/.22, 0 4px 14px -4px primary/.40` | `0 0 0 1px primary/.35, 0 0 24px -6px primary/.60` | hover do botão primário, foco de Input/composer, barra do item ativo, Switch ligado. Decorativo. |
 
 Overlay de Dialog/Sheet: `bg-background/80 backdrop-blur-sm`. Cards não têm sombra: camadas se separam por tom e borda.
+
+### Nomes no código (P1-02)
+
+`globals.css`, em `:root` (claro) e `.dark` (escuro), só canais HSL (sem hex, `rgb()` ou `rgba()`):
+
+- Cores: `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--popover-foreground`, `--primary`, `--primary-foreground`, `--primary-soft`, `--signal`, `--secondary`, `--secondary-foreground`, `--muted`, `--muted-foreground`, `--accent`, `--accent-foreground`, `--destructive`, `--destructive-foreground`, `--success`, `--warning`, `--border`, `--input`, `--ring`. Mais `--radius: 0.5rem`.
+- Sombras por tema: `--shadow-popover`, `--shadow-dialog` e `--shadow-glow`. Valores da tabela de sombras, com `rgba(15,20,28,α)` escrito como `hsl(var(--foreground) / α)` no claro (é a mesma cor), `rgba(0,0,0,α)` como `hsl(0 0% 0% / α)` no escuro, e o glow com `hsl(var(--primary) / α)`.
+
+`tailwind.config.ts`, em `theme.extend`:
+
+| Chave | Valor |
+|---|---|
+| `colors.background`, `foreground`, `border`, `input`, `ring`, `signal`, `success`, `warning` | `hsl(var(--<nome>))` |
+| `colors.card`, `popover`, `secondary`, `muted`, `accent`, `destructive` | `{ DEFAULT: 'hsl(var(--<nome>))', foreground: 'hsl(var(--<nome>-foreground))' }` |
+| `colors.primary` | `{ DEFAULT, foreground, soft: 'hsl(var(--primary-soft))' }` → `bg-primary-soft` |
+| `borderRadius` | `lg: 'var(--radius)'`, `md: 'calc(var(--radius) - 2px)'`, `sm: 'calc(var(--radius) - 4px)'` |
+| `boxShadow` | `popover: 'var(--shadow-popover)'`, `dialog: 'var(--shadow-dialog)'`, `glow: 'var(--shadow-glow)'` |
+| `fontFamily` | como em Tipografia |
+
+Saem: `primaryAccent`, `brand`, `positive` (vira `success`), `background.secondary`, `--color-border-default`, `screens` (`xs`, `s23`; ficam os padrão), `borderRadius.xl`. Utilitário da grade de pontos e keyframes de ponto ao vivo e skeleton entram no item que os usar. Tokens de gráfico: decisão D-P1-02-1.
 
 ## Contraste AA (WCAG 2.1)
 

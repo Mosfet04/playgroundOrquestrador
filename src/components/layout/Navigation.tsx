@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ThemeSelect } from '@/components/layout/ThemeSelect'
 import { 
   MessageSquare, 
   Bot, 
@@ -69,8 +70,9 @@ export function Navigation({ activeTab, onTabChange, isMobile = false, isOpen = 
         <Button
           variant="ghost"
           size="sm"
-          className="fixed top-4 left-4 z-50 md:hidden bg-background border border-border shadow-lg"
+          className="fixed top-4 left-4 z-50 md:hidden bg-background border border-border shadow-popover"
           onClick={onToggle}
+          aria-label={isOpen ? 'Fechar menu' : 'Abrir menu'}
         >
           {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
         </Button>
@@ -78,7 +80,7 @@ export function Navigation({ activeTab, onTabChange, isMobile = false, isOpen = 
 
       {/* Navigation Sidebar */}
       <nav className={cn(
-        "bg-background border-r border-border flex flex-col transition-transform duration-300 ease-in-out",
+        "bg-card border-r border-border flex flex-col transition-transform duration-300 ease-in-out",
         isMobile ? [
           "fixed top-0 left-0 h-full z-40 w-80",
           isOpen ? "translate-x-0" : "-translate-x-full"
@@ -112,7 +114,7 @@ export function Navigation({ activeTab, onTabChange, isMobile = false, isOpen = 
                   variant={isActive ? 'secondary' : 'ghost'}
                   className={cn(
                       'w-full justify-start gap-3 h-auto p-3',
-                      isActive && 'bg-secondary text-black'
+                      isActive && 'bg-primary-soft text-foreground hover:bg-primary-soft'
                   )}
                   onClick={() => onTabChange(item.id)}
                   >
@@ -132,7 +134,8 @@ export function Navigation({ activeTab, onTabChange, isMobile = false, isOpen = 
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-3">
+          <ThemeSelect />
           <div className="text-xs text-muted-foreground text-center">
             v1.0.0 - Powered by Agno
           </div>

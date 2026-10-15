@@ -59,7 +59,7 @@ const ChatInput = ({ isMobile = false }: ChatInputProps) => {
           }
         }}
         className={cn(
-          "w-full border border-accent bg-primaryAccent text-sm text-primary focus:border-accent",
+          "w-full rounded-lg bg-card text-foreground",
           isMobile ? "px-3" : "px-4"
         )}
         disabled={!(selectedAgent || teamId)}
@@ -72,11 +72,10 @@ const ChatInput = ({ isMobile = false }: ChatInputProps) => {
         }
         size={isMobile ? "default" : "icon"}
         className={cn(
-          "rounded-xl bg-primary text-primaryAccent",
           isMobile ? "px-4 py-2" : "p-5"
         )}
       >
-        <Icon type="send" color="primaryAccent" />
+        <Icon type="send" className="text-primary-foreground" />
         {isMobile && <span className="ml-2 text-xs">Enviar</span>}
       </Button>
     </div>
