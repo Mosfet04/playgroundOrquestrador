@@ -269,7 +269,7 @@ SENTRY_DSN=https://...
 
 #### **1. Primeira Execução**
 1. **Acesse** `http://localhost:3000`
-2. **Siga o guia** "Primeiros Passos" na tela inicial
+2. **Siga o guia** "Primeiros Passos" na tela inicial (`/`). Cada seção tem endereço próprio (`/playground`, `/agents`, `/agents/<id>`, `/tools`, `/dashboard`): dá para favoritar, abrir em nova aba e usar o voltar do navegador
 3. **Configure** sua primeira ferramenta HTTP
 4. **Crie** seu primeiro agente IA
 5. **Teste** no playground de chat
@@ -340,7 +340,9 @@ src/
 │   │   ├── agents/            # CRUD agentes
 │   │   ├── tools/             # CRUD ferramentas
 │   │   └── dashboard/         # Métricas e stats
-│   └── page.tsx               # Página principal
+│   └── (app)/                 # Rotas com a casca (navegação + cabeçalho):
+│                              # /, /playground, /agents[/new|/<id>],
+│                              # /tools[/new|/<id>], /dashboard
 ├── components/
 │   ├── layout/                # Navegação e layout
 │   ├── management/            # Telas de gerenciamento
@@ -406,7 +408,7 @@ export const providerConfigs = {
 #### **Temas e Cores**
 As cores são tokens do Design System (`docs/design/design-system.md`): canais HSL em `src/app/globals.css` (`:root` = claro, `.dark` = escuro) e mapeados no `tailwind.config.ts` (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`...). Nada de hex nem paleta crua do Tailwind nos componentes.
 
-O tema (Claro, Escuro ou Sistema, padrão Sistema) vem do `next-themes` e é escolhido no rodapé da navegação; a escolha fica no `localStorage` (`theme`).
+O tema (Claro, Escuro ou Sistema, padrão Sistema) vem do `next-themes` e é escolhido no botão do cabeçalho (no celular, também no rodapé do menu); a escolha fica no `localStorage` (`theme`).
 
 #### **Componentes Personalizados**
 ```typescript

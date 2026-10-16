@@ -53,7 +53,7 @@ describe('AgentForm', () => {
   it('lista todas as tools, inclusive além da 1ª página', async () => {
     serveToolsPaginated()
 
-    render(<AgentForm onSuccess={() => {}} onCancel={() => {}} />)
+    render(<AgentForm onSuccess={() => {}} />)
 
     expect(
       await screen.findByRole('checkbox', { name: /Ferramenta 101/ })
@@ -67,7 +67,7 @@ describe('AgentForm', () => {
   it('dá nome aos switches pelo Label (F-05)', async () => {
     serveToolsPaginated()
 
-    render(<AgentForm onSuccess={() => {}} onCancel={() => {}} />)
+    render(<AgentForm onSuccess={() => {}} />)
 
     expect(
       await screen.findByRole('switch', { name: 'Agente ativo' })

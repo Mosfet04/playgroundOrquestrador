@@ -45,7 +45,7 @@ describe('ToolForm', () => {
   it('não envia descrição só com espaços', async () => {
     const bodies = captureSave()
     const user = userEvent.setup()
-    render(<ToolForm onSuccess={() => {}} onCancel={() => {}} />)
+    render(<ToolForm onSuccess={() => {}} />)
 
     await user.type(screen.getByLabelText(/ID da Tool/), 'clima')
     await user.type(screen.getByLabelText(/^Nome/), 'Clima')
@@ -64,7 +64,7 @@ describe('ToolForm', () => {
   it('envia o parâmetro float escolhido no seletor', async () => {
     const bodies = captureSave()
     const user = userEvent.setup()
-    render(<ToolForm onSuccess={() => {}} onCancel={() => {}} />)
+    render(<ToolForm onSuccess={() => {}} />)
 
     await user.type(screen.getByLabelText(/ID da Tool/), 'clima')
     await user.type(screen.getByLabelText(/^Nome/), 'Clima')

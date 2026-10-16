@@ -29,6 +29,10 @@ const agents: FakeAgent[] = [
   { id: 'agente-beta', name: 'Agente Beta' }
 ]
 const sessionsByAgent = new Map<string, FakeSession[]>()
+// Histórico no formato v2.5 lido por src/hooks/useSessionLoader.tsx
+// (`chat_history` com role, content e created_at).
+type ChatEntry = { role: 'user' | 'assistant'; content: string; created_at: number }
+const historyBySession = new Map<string, ChatEntry[]>()
 
 // Formato do AgentResponse do AgentOS (agno/os/routers/agents/schema.py).
 const toAgentResponse = (agent: FakeAgent) => ({
@@ -122,6 +126,11 @@ const runAgent = async (
     content: deltas.join(''),
     content_type: 'str'
   })
+  historyBySession.set(sessionId, [
+    ...(historyBySession.get(sessionId) ?? []),
+    { role: 'user', content: message, created_at: base.created_at },
+    { role: 'assistant', content: deltas.join(''), created_at: base.created_at }
+  ])
   res.end()
 }
 
@@ -145,6 +154,10 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
       meta: { page: 1, limit: 20, total_pages: 1, total_count: data.length }
     })
   }
+
+  const session = /^GET \/sessions\/([^/]+)$/.exec(route)
+  const history = session && historyBySession.get(session[1])
+  if (history) return sendJson(res, 200, { chat_history: history })
 
   const run = /^POST \/agents\/([^/]+)\/runs$/.exec(route)
   const agent = run && agents.find((a) => a.id === run[1])

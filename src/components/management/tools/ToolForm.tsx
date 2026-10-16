@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,7 +17,6 @@ import { Tool, CreateToolForm, PARAMETER_TYPES } from '@/types/management'
 interface ToolFormProps {
   tool?: Tool | null
   onSuccess: () => void
-  onCancel: () => void
 }
 
 const httpMethods = [
@@ -27,7 +27,7 @@ const httpMethods = [
   { value: 'PATCH', label: 'PATCH' }
 ]
 
-export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
+export function ToolForm({ tool, onSuccess }: ToolFormProps) {
   const [loading, setLoading] = useState(false)
   const [headers, setHeaders] = useState<Record<string, string>>(
     tool?.headers || tool?.http_config?.headers || {}
@@ -98,7 +98,7 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
         headers
       }
 
-      const url = isEditing ? `/api/tools/${tool.id}` : '/api/tools'
+      const url = isEditing ? `/api/tools/${encodeURIComponent(tool.id)}` : '/api/tools'
       const method = isEditing ? 'PUT' : 'POST'
 
       const response = await fetch(url, {
@@ -126,13 +126,15 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
   }
 
   return (
-    <div className="management-form">
+    <div>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onCancel} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Voltar
+          <Button variant="ghost" asChild className="gap-2">
+            <Link href="/tools">
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              Voltar
+            </Link>
           </Button>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
@@ -439,8 +441,8 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
 
         {/* Botões de ação */}
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
+          <Button variant="outline" asChild>
+            <Link href="/tools">Cancelar</Link>
           </Button>
           <Button type="submit" disabled={loading} className="gap-2">
             <Save className="w-4 h-4" />

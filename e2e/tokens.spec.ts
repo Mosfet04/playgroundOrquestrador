@@ -185,7 +185,10 @@ test.describe('celular', () => {
     expect(viewport).not.toMatch(/maximum-scale|user-scalable/)
 
     await page.getByRole('button', { name: 'Abrir menu' }).click()
-    await page.getByRole('button', { name: /^Playground/ }).click()
+    await page
+      .getByRole('dialog', { name: 'Menu' })
+      .getByRole('link', { name: 'Playground' })
+      .click()
     const chatInput = page.getByPlaceholder('Ask anything')
     await expect(chatInput).toBeVisible()
     expect(

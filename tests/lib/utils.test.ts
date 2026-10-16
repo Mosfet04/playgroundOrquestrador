@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { cn, getJsonMarkdown, isValidUrl, truncateText } from '@/lib/utils'
+import {
+  cn,
+  decodeUrlSegment,
+  getJsonMarkdown,
+  isValidUrl,
+  truncateText
+} from '@/lib/utils'
 
 describe('cn', () => {
   it('junta classes e resolve conflito do tailwind pela última', () => {
@@ -75,5 +81,15 @@ describe('getJsonMarkdown', () => {
     const circular: Record<string, unknown> = {}
     circular.self = circular
     expect(getJsonMarkdown(circular)).toBe('```\n[object Object]\n```')
+  })
+})
+
+describe('decodeUrlSegment', () => {
+  it('decodifica o id que o App Router entrega codificado', () => {
+    expect(decodeUrlSegment('agente%20alfa%2F1')).toBe('agente alfa/1')
+  })
+
+  it('devolve o trecho como veio quando o % é inválido', () => {
+    expect(decodeUrlSegment('100%')).toBe('100%')
   })
 })

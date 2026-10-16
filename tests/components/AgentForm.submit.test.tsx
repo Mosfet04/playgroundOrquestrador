@@ -42,7 +42,7 @@ describe('AgentForm: envio', () => {
       })
     )
     const user = userEvent.setup()
-    render(<AgentForm onSuccess={() => {}} onCancel={() => {}} />)
+    render(<AgentForm onSuccess={() => {}} />)
 
     await user.type(screen.getByLabelText(/ID do Agente/), 'assistente')
     await user.type(screen.getByLabelText(/^Nome/), 'Assistente')

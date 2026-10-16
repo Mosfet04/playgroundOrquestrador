@@ -1,146 +1,91 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { ThemeSelect } from '@/components/layout/ThemeSelect'
-import { 
-  MessageSquare, 
-  Bot, 
-  Wrench, 
-  Home,
-  BookOpen,
-  BarChart3,
-  Menu,
-  X
-} from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
-interface NavigationItem {
-  id: string
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-  description?: string
-}
+import { cn, focusRing } from '@/lib/utils'
+import { NAV_GROUPS, activeState } from './routes'
 
-const navigationItems: NavigationItem[] = [
-  {
-    id: 'getting-started',
-    label: 'Primeiros Passos',
-    icon: BookOpen,
-    description: 'Guia de configuração inicial'
-  },
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: BarChart3,
-    description: 'Métricas e estatísticas'
-  },
-  {
-    id: 'playground',
-    label: 'Playground',
-    icon: MessageSquare,
-    description: 'Chat com agentes IA'
-  },
-  {
-    id: 'agents',
-    label: 'Agentes',
-    icon: Bot,
-    description: 'Gerenciar agentes IA'
-  },
-  {
-    id: 'tools',
-    label: 'Tools',
-    icon: Wrench,
-    description: 'Gerenciar ferramentas'
-  }
-]
-
-interface NavigationProps {
-  activeTab: string
-  onTabChange: (tab: string) => void
-  isMobile?: boolean
-  isOpen?: boolean
-  onToggle?: () => void
-}
-
-export function Navigation({ activeTab, onTabChange, isMobile = false, isOpen = false, onToggle }: NavigationProps) {
+// Marca (V1): quadrado de 28 px com o gradiente da marca e o glifo de três nós.
+export function Brand() {
   return (
-    <>
-      {/* Mobile Menu Button */}
-      {isMobile && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="fixed top-4 left-4 z-50 md:hidden bg-background border border-border shadow-popover"
-          onClick={onToggle}
-          aria-label={isOpen ? 'Fechar menu' : 'Abrir menu'}
-        >
-          {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-        </Button>
-      )}
+    <div className="flex items-center gap-2">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br from-primary to-signal text-primary-foreground">
+        <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
+          <path
+            d="M4 4.5 12 8M4 11.5 12 8M4 4.5v7"
+            stroke="currentColor"
+            strokeWidth="1.25"
+            fill="none"
+          />
+          <circle cx="4" cy="4.5" r="2" fill="currentColor" />
+          <circle cx="4" cy="11.5" r="2" fill="currentColor" />
+          <circle cx="12" cy="8" r="2" fill="currentColor" />
+        </svg>
+      </span>
+      <span className="leading-tight">
+        <span className="block text-sm font-semibold">Orquestrador</span>
+        <span className="block font-mono text-xs text-muted-foreground">
+          playground
+        </span>
+      </span>
+    </div>
+  )
+}
 
-      {/* Navigation Sidebar */}
-      <nav className={cn(
-        "bg-card border-r border-border flex flex-col transition-transform duration-300 ease-in-out",
-        isMobile ? [
-          "fixed top-0 left-0 h-full z-40 w-80",
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        ] : "w-64 relative"
-      )}>
-        {/* Header */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Home className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold">Agno Manager</h1>
-              <p className="text-sm text-muted-foreground">
-                Orquestrador de Agentes IA
-              </p>
-            </div>
-          </div>
-        </div>
+export function Navigation({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname()
 
-        {/* Navigation Items */}
-        <div className="flex-1 p-4">
-          <div className="space-y-2">
-            {navigationItems.map((item) => {
-              const Icon = item.icon
-              const isActive = activeTab === item.id
-              
+  return (
+    <nav
+      aria-label="Navegação principal"
+      className="flex-1 space-y-4 overflow-y-auto px-3 py-4"
+    >
+      {NAV_GROUPS.map((group) => (
+        <div key={group.items[0].href} className="space-y-1">
+          {group.label && (
+            <p className="px-3 pb-1 font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              {group.label}
+            </p>
+          )}
+          <ul className="space-y-1">
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const current = activeState(pathname, href)
               return (
-                <Button
-                  key={item.id}
-                  variant={isActive ? 'secondary' : 'ghost'}
-                  className={cn(
-                      'w-full justify-start gap-3 h-auto p-3',
-                      isActive && 'bg-primary-soft text-foreground hover:bg-primary-soft'
-                  )}
-                  onClick={() => onTabChange(item.id)}
-                  >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="font-medium truncate">{item.label}</div>
-                    {item.description && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        {item.description}
-                      </div>
+                <li key={href}>
+                  <Link
+                    href={href}
+                    aria-current={current}
+                    onClick={onNavigate}
+                    className={cn(
+                      'relative flex h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors lg:h-9',
+                      focusRing,
+                      current
+                        ? 'bg-primary-soft font-medium text-foreground'
+                        : 'text-foreground hover:bg-accent'
                     )}
-                  </div>
-                </Button>
+                  >
+                    {current && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -left-3 inset-y-1.5 w-[3px] rounded-r-sm bg-gradient-to-b from-primary to-signal shadow-glow"
+                      />
+                    )}
+                    <Icon
+                      aria-hidden="true"
+                      className={cn(
+                        'size-4 shrink-0',
+                        current ? 'text-primary' : 'text-muted-foreground'
+                      )}
+                    />
+                    {label}
+                  </Link>
+                </li>
               )
             })}
-          </div>
+          </ul>
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-border space-y-3">
-          <ThemeSelect />
-          <div className="text-xs text-muted-foreground text-center">
-            v1.0.0 - Powered by Agno
-          </div>
-        </div>
-      </nav>
-    </>
+      ))}
+    </nav>
   )
 }

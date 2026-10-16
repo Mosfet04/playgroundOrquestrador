@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Foco por teclado do Design System (V8) para links fora do Button.
+export const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+
 export const truncateText = (text: string, limit: number) => {
   if (text) {
     return text.length > limit ? `${text.slice(0, limit)}..` : text
@@ -21,6 +25,16 @@ export const isValidUrl = (url: string): boolean => {
     return isHttp && username === '' && password === ''
   } catch {
     return false
+  }
+}
+
+// Trecho de URL (ex.: `params.id` do App Router, que o Next 15.2 entrega
+// codificado). Sequência % inválida volta como veio.
+export const decodeUrlSegment = (segment: string): string => {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
   }
 }
 

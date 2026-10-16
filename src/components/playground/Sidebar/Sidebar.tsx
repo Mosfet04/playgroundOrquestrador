@@ -200,81 +200,47 @@ const Endpoint = () => {
   )
 }
 
-const Sidebar = ({ isMobile = false, isOpen = false, onToggle }: { 
-  isMobile?: boolean
-  isOpen?: boolean 
-  onToggle?: () => void 
-}) => {
+// Painel de sessões e agente. No desktop fica na página do playground; abaixo
+// de lg abre no Sheet do cabeçalho (AppHeader), onde não colapsa. Só
+// renderiza: a carga (status, agentes, sessões) é do ChatArea.
+const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const { clearChat, focusChatInput, initializePlayground } = useChatActions()
-  const {
-    messages,
-    selectedEndpoint,
-    isEndpointActive,
-    selectedModel,
-    hydrated,
-    isEndpointLoading
-  } = usePlaygroundStore()
+  const { clearChat, focusChatInput } = useChatActions()
+  const { messages, isEndpointActive, selectedModel, isEndpointLoading } =
+    usePlaygroundStore()
   const [isMounted, setIsMounted] = useState(false)
   const [agentId] = useQueryState('agent')
   const [teamId] = useQueryState('team')
 
-  useEffect(() => {
-    setIsMounted(true)
-    if (hydrated) initializePlayground()
-  }, [selectedEndpoint, initializePlayground, hydrated])
+  // A carga do playground fica no ChatArea (montado uma vez): abaixo de lg
+  // há uma 2ª Sidebar no Sheet, que só renderiza.
+  useEffect(() => setIsMounted(true), [])
 
   const handleNewChat = () => {
     clearChat()
     focusChatInput()
   }
 
-  // Em mobile, não permitir colapsar - usar toggle do parent
-  const handleToggle = () => {
-    if (isMobile && onToggle) {
-      onToggle()
-    } else {
-      setIsCollapsed(!isCollapsed)
-    }
-  }
-
   return (
     <motion.aside
-      className={cn(
-        "relative flex h-screen shrink-0 grow-0 flex-col overflow-hidden px-2 py-3 font-mono",
-        isMobile ? [
-          "fixed top-0 left-0 z-45 bg-background border-r border-border",
-          isOpen ? "translate-x-0" : "-translate-x-full",
-          "transition-transform duration-300 ease-in-out"
-        ] : "relative"
-      )}
-      initial={{ width: isMobile ? '20rem' : '16rem' }}
-      animate={{ 
-        width: isMobile ? '20rem' : (isCollapsed ? '2.5rem' : '16rem'),
-        x: isMobile ? (isOpen ? 0 : -320) : 0
-      }}
+      className="relative flex h-full shrink-0 grow-0 flex-col overflow-hidden px-2 py-3 font-mono"
+      initial={{ width: '16rem' }}
+      animate={{ width: isCollapsed ? '2.5rem' : '16rem' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
       <motion.button
-        onClick={handleToggle}
-        className={cn(
-          "absolute z-10 p-1",
-          isMobile ? "right-2 top-2" : "right-2 top-2"
-        )}
-        aria-label={
-          isMobile 
-            ? 'Close sidebar' 
-            : (isCollapsed ? 'Expand sidebar' : 'Collapse sidebar')
-        }
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute right-2 top-2 z-10 hidden p-1 lg:block"
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         type="button"
         whileTap={{ scale: 0.95 }}
       >
         <Icon
-          type={isMobile ? "x" : "sheet"}
+          type="sheet"
           size="xs"
           className={cn(
             "transform",
-            !isMobile && (isCollapsed ? 'rotate-180' : 'rotate-0')
+            isCollapsed ? 'rotate-180' : 'rotate-0'
           )}
         />
       </motion.button>

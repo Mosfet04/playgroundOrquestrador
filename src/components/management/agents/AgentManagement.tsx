@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { Plus, Search, Filter, Edit, Trash2, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,32 +10,18 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { AgentConfig, AgentFilters } from '@/types/management'
-import { AgentForm } from './AgentForm'
 import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
 import { LoadingSpinner, EmptyState } from '@/components/ui/loading'
-import { cn } from '@/lib/utils'
+import { cn, focusRing } from '@/lib/utils'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 export function AgentManagement() {
   const [agents, setAgents] = useState<AgentConfig[]>([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editingAgent, setEditingAgent] = useState<AgentConfig | null>(null)
   const [deletingAgent, setDeletingAgent] = useState<AgentConfig | null>(null)
   const [filters, setFilters] = useState<AgentFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
-  const [isMobile, setIsMobile] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
 
   // Buscar agentes
   const fetchAgents = async () => {
@@ -71,7 +58,7 @@ export function AgentManagement() {
   // Deletar agente
   const handleDeleteAgent = async (agent: AgentConfig) => {
     try {
-      const response = await fetch(`/api/agents/${agent.id}`, {
+      const response = await fetch(`/api/agents/${encodeURIComponent(agent.id)}`, {
         method: 'DELETE'
       })
       
@@ -96,112 +83,62 @@ export function AgentManagement() {
     fetchAgents()
   }, [filters, searchTerm])
 
-  const handleFormSuccess = () => {
-    setShowForm(false)
-    setEditingAgent(null)
-    fetchAgents()
-  }
-
-  const handleEditAgent = (agent: AgentConfig) => {
-    setEditingAgent(agent)
-    setShowForm(true)
-  }
-
-  if (showForm) {
-    return (
-      <AgentForm
-        agent={editingAgent}
-        onSuccess={handleFormSuccess}
-        onCancel={() => {
-          setShowForm(false)
-          setEditingAgent(null)
-        }}
-      />
-    )
-  }
-
   return (
-    <div className="management-form">
-      <div className={cn(
-        "mx-auto space-y-6 max-w-7xl",
-        isMobile ? "p-4" : "p-6"
-      )}>
+    <div>
+      <div className="mx-auto max-w-7xl space-y-6 p-4 lg:p-6">
         {/* Header */}
-        <div className={cn(
-          "flex items-center justify-between",
-          isMobile && "flex-col space-y-4 items-start"
-        )}>
-          <div className={isMobile ? "w-full" : ""}>
+        <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="w-full lg:w-auto">
             <h1 className="text-2xl font-semibold tracking-tight">
               Gerenciamento de Agentes
             </h1>
-            <p className={cn(
-              "text-muted-foreground",
-              isMobile ? "text-sm" : ""
-            )}>
+            <p className="text-sm text-muted-foreground lg:text-base">
               Crie e gerencie seus agentes de IA
             </p>
           </div>
-          <Button 
-            onClick={() => setShowForm(true)} 
-            className={cn(
-              "gap-2",
-              isMobile && "w-full"
-            )}
-            size={isMobile ? "sm" : "default"}
-          >
-            <Plus className="w-4 h-4" />
-            Novo Agente
+          <Button asChild className="w-full gap-2 lg:w-auto">
+            <Link href="/agents/new">
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Novo Agente
+            </Link>
           </Button>
         </div>
 
       {/* Filtros e Busca */}
       <Card>
-        <CardHeader className={isMobile ? "p-4 pb-2" : ""}>
-          <div className={cn(
-            "flex items-center justify-between",
-            isMobile && "flex-col items-start space-y-2"
-          )}>
+        <CardHeader className="p-4 pb-2 lg:p-6">
+          <div className="flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:justify-between">
             <CardTitle>
               Filtros
             </CardTitle>
-            {isMobile && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="text-xs"
-              >
-                <Filter className="w-3 h-3 mr-1" />
-                {showFilters ? 'Ocultar' : 'Mostrar'} Filtros
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="text-xs lg:hidden"
+            >
+              <Filter className="w-3 h-3 mr-1" />
+              {showFilters ? 'Ocultar' : 'Mostrar'} Filtros
+            </Button>
           </div>
         </CardHeader>
         <CardContent className={cn(
-          "space-y-4",
-          isMobile ? "p-4 pt-0" : "",
-          isMobile && !showFilters && "hidden"
+          "space-y-4 p-4 pt-0 lg:block lg:p-6 lg:pt-0",
+          !showFilters && "hidden"
         )}>
-          <div className={cn(
-            "grid gap-4",
-            isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3"
-          )}>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="search" className={isMobile ? "text-sm" : ""}>
+              <Label htmlFor="search">
                 Buscar
               </Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="search"
-                  placeholder={isMobile ? "ID, nome..." : "ID, nome ou descrição..."}
+                  placeholder="ID, nome ou descrição..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={cn(
-                    "pl-10",
-                    isMobile && "text-sm h-9"
-                  )}
+                  className="pl-10"
                 />
               </div>
             </div>
@@ -234,90 +171,69 @@ export function AgentManagement() {
       ) : agents.length === 0 ? (
         <EmptyState
           title="Nenhum agente encontrado"
-          description={
-            isMobile 
-              ? "Crie seu primeiro agente" 
-              : "Crie seu primeiro agente para começar a usar o sistema de orquestração de IA"
-          }
+          description="Crie seu primeiro agente para começar a usar o sistema de orquestração de IA"
           action={
-            <Button 
-              onClick={() => setShowForm(true)} 
-              className="gap-2"
-              size={isMobile ? "sm" : "default"}
-            >
-              <Plus className="w-4 h-4" />
-              Criar primeiro agente
+            <Button asChild className="gap-2">
+              <Link href="/agents/new">
+                <Plus className="w-4 h-4" aria-hidden="true" />
+                Criar primeiro agente
+              </Link>
             </Button>
           }
           icon={<Bot className="w-full h-full" />}
         />
       ) : (
-        <div className={cn(
-          "grid gap-6",
-          isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-        )}>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {agents.map((agent) => (
             <Card key={agent.id} className="relative">
-              <CardHeader className={isMobile ? "p-4" : ""}>
-                <div className={cn(
-                  "flex justify-between",
-                  isMobile ? "flex-col space-y-3" : "items-start"
-                )}>
+              <CardHeader className="p-4 lg:p-6">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-2 flex-1 min-w-0">
                     <CardTitle>
-                      {agent.nome}
+                      <Link href={`/agents/${encodeURIComponent(agent.id)}`} className={cn('rounded-sm hover:underline', focusRing)}>
+                        {agent.nome}
+                      </Link>
                     </CardTitle>
-                    <div className={cn(
-                      "flex gap-2",
-                      isMobile && "flex-wrap"
-                    )}>
+                    <div className="flex flex-wrap gap-2">
                       <StatusBadge active={agent.active}>
                         {agent.active ? 'Ativo' : 'Inativo'}
                       </StatusBadge>
                       <span className="rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">
-                        {isMobile ? agent.factoryIaModel.substring(0, 8) + '...' : agent.factoryIaModel}
+                        {agent.factoryIaModel}
                       </span>
                     </div>
                   </div>
-                  <div className={cn(
-                    "flex gap-1",
-                    isMobile ? "w-full justify-end" : "flex-shrink-0"
-                  )}>
+                  <div className="flex w-full justify-end gap-1 lg:w-auto lg:shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleEditAgent(agent)}
-                      className={isMobile ? "flex-1" : ""}
-                      aria-label="Editar agente"
+                      asChild
+                      className="flex-1 lg:flex-none"
                     >
-                      <Edit className="w-4 h-4" />
-                      {isMobile && <span className="ml-1 text-xs">Editar</span>}
+                      <Link href={`/agents/${encodeURIComponent(agent.id)}`} aria-label="Editar agente">
+                        <Edit className="w-4 h-4" aria-hidden="true" />
+                        <span className="text-xs lg:hidden">Editar</span>
+                      </Link>
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setDeletingAgent(agent)}
-                      className={isMobile ? "flex-1" : ""}
+                      className="flex-1 lg:flex-none"
                       aria-label="Excluir agente"
                     >
                       <Trash2 className="w-4 h-4" />
-                      {isMobile && <span className="ml-1 text-xs">Excluir</span>}
+                      <span className="text-xs lg:hidden">Excluir</span>
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className={isMobile ? "p-4 pt-0" : ""}>
-                <CardDescription className={cn(
-                  "mb-4",
-                  isMobile ? "text-xs" : ""
-                )}>
+              <CardContent className="p-4 pt-0 lg:p-6 lg:pt-0">
+                <CardDescription className="mb-4 text-xs lg:text-sm">
                   {agent.descricao || 'Sem descrição'}
                 </CardDescription>
-                <div className={cn(
-                  "space-y-2",
-                  isMobile ? "text-xs" : "text-sm"
-                )}>
-                  <div className={isMobile ? "truncate" : ""}>
+                <div className="space-y-2 text-xs lg:text-sm">
+                  <div className="truncate lg:whitespace-normal">
                     <span className="font-medium">ID:</span> {agent.id}
                   </div>
                   <div>

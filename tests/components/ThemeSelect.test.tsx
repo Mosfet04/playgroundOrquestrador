@@ -46,7 +46,7 @@ afterEach(() => {
 })
 
 // Mesma configuração do src/app/layout.tsx.
-function renderThemeSelect() {
+function renderThemeSelect(variant?: 'icon') {
   render(
     <ThemeProvider
       attribute="class"
@@ -54,7 +54,7 @@ function renderThemeSelect() {
       enableSystem
       disableTransitionOnChange
     >
-      <ThemeSelect />
+      <ThemeSelect variant={variant} />
     </ThemeProvider>
   )
 }
@@ -121,5 +121,23 @@ describe('ThemeSelect', () => {
       'Escuro'
     )
     expect(html).toHaveClass('dark')
+  })
+
+  it('variante do cabeçalho: botão só com ícone, nome com o tema atual', async () => {
+    renderThemeSelect('icon')
+
+    const button = screen.getByRole('combobox', {
+      name: 'Tema: Sistema. Alterar tema'
+    })
+    expect(button).toHaveTextContent('')
+
+    const user = userEvent.setup()
+    await user.click(button)
+    await user.click(await screen.findByRole('option', { name: 'Escuro' }))
+
+    expect(html).toHaveClass('dark')
+    expect(
+      screen.getByRole('combobox', { name: 'Tema: Escuro. Alterar tema' })
+    ).toBeInTheDocument()
   })
 })

@@ -6,7 +6,6 @@ import utc from 'dayjs/plugin/utc'
 import { useQueryState } from 'nuqs'
 
 import { usePlaygroundStore } from '@/store'
-import useSessionLoader from '@/hooks/useSessionLoader'
 
 import SessionItem from './SessionItem'
 import SessionBlankState from './SessionBlankState'
@@ -43,22 +42,14 @@ const SkeletonList: FC<SkeletonListProps> = ({ skeletonCount }) => {
 }
 
 const Sessions = () => {
-  const [agentId] = useQueryState('agent', {
-    parse: (v) => v || undefined,
-    history: 'push'
-  })
-  const [teamId] = useQueryState('team')
   const [sessionId] = useQueryState('session')
 
+  // A carga das sessões (lista e a de ?session=) fica no ChatArea.
   const {
-    selectedEndpoint,
-    mode,
     isEndpointActive,
     isEndpointLoading,
-    hydrated,
     hasStorage,
     sessionsData,
-    setSessionsData,
     isSessionsLoading
   } = usePlaygroundStore()
 
@@ -67,7 +58,6 @@ const Sessions = () => {
     null
   )
 
-  const { getSessions, getSession } = useSessionLoader()
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   const handleScroll = () => {
@@ -90,38 +80,6 @@ const Sessions = () => {
       }
     }
   }, [])
-
-  useEffect(() => {
-    if (hydrated && sessionId && selectedEndpoint && (agentId || teamId)) {
-      const entityType = agentId ? 'agent' : 'team'
-      getSession({ entityType, agentId, teamId }, sessionId)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated])
-
-  useEffect(() => {
-    if (!selectedEndpoint || !hasStorage || isEndpointLoading) return
-    if (!(agentId || teamId)) {
-      setSessionsData(() => null)
-      return
-    }
-
-    setSessionsData(() => null)
-    getSessions({
-      entityType: mode,
-      agentId,
-      teamId
-    })
-  }, [
-    selectedEndpoint,
-    agentId,
-    teamId,
-    mode,
-    isEndpointLoading,
-    hasStorage,
-    getSessions,
-    setSessionsData
-  ])
 
   useEffect(() => {
     if (sessionId) setSelectedSessionId(sessionId)

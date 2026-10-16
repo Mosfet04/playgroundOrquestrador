@@ -18,10 +18,6 @@ export default {
   ],
   theme: {
     extend: {
-      zIndex: {
-        '44': '44',
-        '45': '45'
-      },
       colors: {
         background: token('background'),
         foreground: token('foreground'),

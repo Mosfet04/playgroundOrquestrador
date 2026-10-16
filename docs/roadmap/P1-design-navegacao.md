@@ -60,4 +60,4 @@ Escopo: critérios V14 e V15 de `docs/design/P1-01.md` em `src/components/playgr
 Fora de escopo: chat via BFF (P2-03); markdown seguro (P2-04).
 Critérios de aceite: V14 e V15 verificados no design QA nos dois temas, desktop e celular; o stream do P0-06 continua passando.
 Testes exigidos: componente do chip de tool call e do indicador de stream; e2e do chat atual verde.
-Riscos e dependências: P1-02 (tokens) e P1-03 (layout).
+Riscos e dependências: P1-02 (tokens) e P1-03 (layout). Limitação herdada LIM-P1-03-1 (`tests/components/PlaygroundSessionUrl.test.tsx`, `it.fails`): com o orquestrador fora ao abrir `/playground?agent=&session=`, `initializePlayground` zera `?agent=` e a sessão não recarrega após o refresh; corrigir aqui ou na P2-03 e virar o teste em `it`.

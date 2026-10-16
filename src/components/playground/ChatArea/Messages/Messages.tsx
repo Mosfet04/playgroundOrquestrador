@@ -16,7 +16,6 @@ import Icon from '@/components/ui/icon'
 
 interface MessageListProps {
   messages: PlaygroundChatMessage[]
-  isMobile?: boolean
 }
 
 interface MessageWrapperProps {
@@ -150,8 +149,7 @@ const ToolComponent = memo(({ tools }: ToolCallProps) => (
   </div>
 ))
 ToolComponent.displayName = 'ToolComponent'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const Messages = ({ messages, isMobile: _isMobile = false }: MessageListProps) => {
+const Messages = ({ messages }: MessageListProps) => {
   if (messages.length === 0) {
     return <ChatBlankState />
   }

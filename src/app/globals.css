@@ -84,12 +84,6 @@
       system-ui, sans-serif;
   }
 
-  /* Garantir scroll adequado para formulários */
-  .management-form {
-    max-height: calc(100vh - 2rem);
-    overflow-y: auto;
-  }
-
   /* Garantir que elementos não ficam fora da tela. `border` sem cor usa o
      token (padrão shadcn); sem isto vale o gray-200 do preflight. */
   * {

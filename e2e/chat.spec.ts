@@ -14,8 +14,7 @@ const openPlaygroundOnFake = async (page: Page) => {
     (route) => route.abort()
   )
 
-  await page.goto('/')
-  await page.getByRole('button', { name: /^Playground/ }).click()
+  await page.goto('/playground')
 
   const sidebar = page.locator('aside')
   await sidebar.getByText('http://localhost:7777').click()

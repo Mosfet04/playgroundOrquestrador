@@ -296,7 +296,9 @@ src/
 │   │   ├── agents/            # Agent CRUD
 │   │   ├── tools/             # Tools CRUD
 │   │   └── dashboard/         # Metrics and stats
-│   └── page.tsx               # Main page
+│   └── (app)/                 # Routes inside the shell (navigation + header):
+│                              # /, /playground, /agents[/new|/<id>],
+│                              # /tools[/new|/<id>], /dashboard
 ├── components/
 │   ├── layout/                # Navigation and layout
 │   ├── management/            # Management screens
