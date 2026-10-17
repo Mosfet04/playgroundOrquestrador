@@ -189,7 +189,7 @@ test.describe('celular', () => {
       .getByRole('dialog', { name: 'Menu' })
       .getByRole('link', { name: 'Playground' })
       .click()
-    const chatInput = page.getByPlaceholder('Ask anything')
+    const chatInput = page.getByPlaceholder('Pergunte qualquer coisa')
     await expect(chatInput).toBeVisible()
     expect(
       await chatInput.evaluate((el) => getComputedStyle(el).fontSize)

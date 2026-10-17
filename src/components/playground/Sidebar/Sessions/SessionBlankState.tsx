@@ -2,6 +2,7 @@ import React from 'react'
 import { usePlaygroundStore } from '@/store'
 import { useQueryState } from 'nuqs'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 const HistoryBlankStateIcon = () => (
   <svg
@@ -87,31 +88,30 @@ const SessionBlankState = () => {
   const { selectedEndpoint, isEndpointActive, hasStorage } =
     usePlaygroundStore()
   const [agentId] = useQueryState('agent')
+  const t = useTranslations('playground')
 
   const errorMessage = (() => {
     switch (true) {
       case !isEndpointActive:
-        return 'Endpoint is not connected. Please connect the endpoint to see the history.'
+        return t('sessionsEndpointOff')
       case !selectedEndpoint:
-        return 'Select an endpoint to see the history.'
+        return t('sessionsNoEndpoint')
       case !agentId:
-        return 'Select an agent to see the history.'
+        return t('sessionsNoAgent')
       case !hasStorage:
-        return (
-          <>
-            Connect{' '}
+        return t.rich('sessionsNoStorage', {
+          link: (chunks) => (
             <Link
               className="underline"
               href={'https://docs.agno.com/storage'}
               target="_blank"
             >
-              storage
-            </Link>{' '}
-            to your agent to see sessions.{' '}
-          </>
-        )
+              {chunks}
+            </Link>
+          )
+        })
       default:
-        return 'No session records yet. Start a conversation to create one.'
+        return t('sessionsEmpty')
     }
   })()
 
@@ -120,7 +120,9 @@ const SessionBlankState = () => {
       <div className="flex flex-col items-center gap-1">
         <HistoryBlankStateIcon />
         <div className="flex flex-col items-center gap-2">
-          <h3 className="text-sm font-medium text-foreground">No Session found</h3>
+          <h3 className="text-sm font-medium text-foreground">
+            {t('sessionsEmptyTitle')}
+          </h3>
           <p className="max-w-[210px] text-center text-sm text-muted-foreground">
             {errorMessage}
           </p>

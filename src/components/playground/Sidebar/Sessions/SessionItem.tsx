@@ -1,4 +1,5 @@
 import { useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 import { SessionEntry } from '@/types/playground'
 import { Button } from '../../../ui/button'
 import useSessionLoader from '@/hooks/useSessionLoader'
@@ -35,6 +36,8 @@ const SessionItem = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const { clearChat } = useChatActions()
+  const t = useTranslations('playground')
+  const tc = useTranslations('common')
 
   const handleGetSession = async () => {
     if (!(agentId || teamId)) return
@@ -79,17 +82,19 @@ const SessionItem = ({
           setSessionId(null)
           clearChat()
         }
-        toast.success('Session deleted')
+        toast.success(t('sessionDeleted'))
       } else {
-        const errorMsg = await response?.text()
+        // O corpo da resposta não vai à UI: só a frase e o código (P1-04b).
         toast.error(
-          `Failed to delete session: ${response?.statusText || 'Unknown error'} ${errorMsg || ''}`
+          tc('withCode', {
+            message: t('deleteSessionError'),
+            status: response.status
+          })
         )
       }
     } catch (error) {
-      toast.error(
-        `Failed to delete session: ${error instanceof Error ? error.message : String(error)}`
-      )
+      console.error('Error deleting session:', error)
+      toast.error(t('deleteSessionError'))
     } finally {
       setIsDeleteModalOpen(false)
       setIsDeleting(false)
@@ -121,6 +126,7 @@ const SessionItem = ({
             e.stopPropagation()
             setIsDeleteModalOpen(true)
           }}
+          aria-label={t('deleteSession', { title })}
         >
           <Icon type="trash" size="xs" />
         </Button>

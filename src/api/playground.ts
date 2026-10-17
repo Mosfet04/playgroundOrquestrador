@@ -1,5 +1,3 @@
-import { toast } from 'sonner'
-
 import { APIRoutes } from './routes'
 
 import {
@@ -15,8 +13,7 @@ export const getPlaygroundAgentsAPI = async (
   try {
     const response = await fetch(url, { method: 'GET' })
     if (!response.ok) {
-      toast.error(`Failed to fetch playground agents: ${response.statusText}`)
-      return []
+      throw new Error(`HTTP ${response.status}`)
     }
     const data = await response.json()
     // Handle both array response and config-style response
@@ -32,9 +29,9 @@ export const getPlaygroundAgentsAPI = async (
       storage: !!(item.storage || item.sessions)
     }))
     return agents
-  } catch {
-    toast.error('Error fetching playground agents')
-    return []
+  } catch (error) {
+    // Sem toast aqui: o hook avisa no idioma da UI (BUG-P1-04b-1).
+    throw new Error('Failed to fetch playground agents', { cause: error })
   }
 }
 
@@ -68,7 +65,7 @@ export const getAllPlaygroundSessionsAPI = async (
       if (response.status === 404) {
         return []
       }
-      throw new Error(`Failed to fetch sessions: ${response.statusText}`)
+      throw new Error(`HTTP ${response.status}`)
     }
     const data = await response.json()
     // Handle paginated response: { data: [...], meta: {...} } or array or { items/sessions: [...] }
@@ -80,8 +77,9 @@ export const getAllPlaygroundSessionsAPI = async (
         ? Math.floor(new Date(s.created_at as string).getTime() / 1000)
         : (s.created_at ?? s.updated_at ?? 0) as number
     }))
-  } catch {
-    return []
+  } catch (error) {
+    // 404 já virou lista vazia; o resto sobe para o hook (BUG-P1-04b-1).
+    throw new Error('Failed to fetch sessions', { cause: error })
   }
 }
 
@@ -162,7 +160,7 @@ export const getPlaygroundTeamSessionsAPI = async (
       if (response.status === 404) {
         return []
       }
-      throw new Error(`Failed to fetch team sessions: ${response.statusText}`)
+      throw new Error(`HTTP ${response.status}`)
     }
     const data = await response.json()
     const sessions = Array.isArray(data) ? data : (data.data ?? data.items ?? data.sessions ?? [])
@@ -173,8 +171,9 @@ export const getPlaygroundTeamSessionsAPI = async (
         ? Math.floor(new Date(s.created_at as string).getTime() / 1000)
         : (s.created_at ?? s.updated_at ?? 0) as number
     }))
-  } catch {
-    return []
+  } catch (error) {
+    // 404 já virou lista vazia; o resto sobe para o hook (BUG-P1-04b-1).
+    throw new Error('Failed to fetch team sessions', { cause: error })
   }
 }
 

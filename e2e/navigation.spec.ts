@@ -182,7 +182,7 @@ test('/playground?agent=…&session=… sobrevive à recarga com o agente e as m
   await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
   await page.getByRole('option', { name: 'Agente Beta' }).click()
 
-  const chatInput = page.getByPlaceholder('Ask anything')
+  const chatInput = page.getByPlaceholder('Pergunte qualquer coisa')
   await chatInput.fill('Olá, recarga')
   await chatInput.press('Enter')
   await expect(page.getByText('Agente Beta recebeu: Olá, recarga')).toBeVisible()

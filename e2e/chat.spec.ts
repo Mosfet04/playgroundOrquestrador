@@ -25,7 +25,7 @@ const openPlaygroundOnFake = async (page: Page) => {
 }
 
 const sendMessage = async (page: Page, message: string) => {
-  const chatInput = page.getByPlaceholder('Ask anything')
+  const chatInput = page.getByPlaceholder('Pergunte qualquer coisa')
   await chatInput.fill(message)
   await chatInput.press('Enter')
 }
@@ -53,7 +53,7 @@ test('chat: mostra o texto parcial em stream antes do RunCompleted (BUG-P0-03-1)
   page
 }) => {
   await openPlaygroundOnFake(page)
-  await expect(page.getByPlaceholder('Ask anything')).toBeEnabled()
+  await expect(page.getByPlaceholder('Pergunte qualquer coisa')).toBeEnabled()
 
   // O prazo de 1,5 s conta da resposta do POST /runs, não do Enter: a
   // navegação e o início da requisição não entram na janela.

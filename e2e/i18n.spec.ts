@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 
-import { APP_URL } from '../playwright.config'
+import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // P1-04: idioma em cookie, sem prefixo na URL (decisão 0011). Sem cookie é
@@ -207,4 +207,58 @@ test.describe('celular', () => {
     await expect(menu.getByRole('combobox', { name: 'Theme' })).toBeVisible()
     expect(await pageMark(page)).toBe('mesma página')
   })
+})
+
+// P1-04b: a troca de idioma com a conversa aberta não remonta o chat. O fake
+// segura o último delta de "segure até liberar" até o POST /hold/release.
+test('playground: trocar o idioma no meio do stream mantém mensagens, stream, composer, agente e URL', async ({
+  page,
+  request
+}) => {
+  // 1ª carga do /playground e da server action compilam no `next dev`.
+  test.slow()
+  await page.route(
+    (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
+    (route) => route.abort()
+  )
+  await page.goto('/playground')
+  await hydrated(page)
+  const sidebar = page.locator('aside')
+  await sidebar.getByText('http://localhost:7777').click()
+  await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
+  await sidebar.getByRole('textbox').press('Enter')
+  const composer = page.getByPlaceholder('Pergunte qualquer coisa')
+  await expect(composer).toBeEnabled()
+
+  await composer.fill('segure até liberar')
+  await composer.press('Enter')
+  await expect(page.getByText('Agente Alfa recebeu:')).toBeVisible()
+  await composer.fill('rascunho')
+  await expect(page).toHaveURL(/[?&]session=/)
+  const url = page.url()
+  expect(url).toContain('agent=agente-alfa')
+  await expect(page.getByRole('button', { name: 'Enviar' })).toBeDisabled()
+  await markPage(page)
+
+  await page.getByRole('combobox', { name: /Alterar idioma/ }).click()
+  await page.getByRole('option', { name: 'English' }).click()
+  await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+
+  await expect(sidebar.getByText('New chat')).toBeVisible()
+  await expect(sidebar.getByText('Sessions')).toBeVisible()
+  await expect(page.getByPlaceholder('Ask anything')).toHaveValue('rascunho')
+  // a mensagem do usuário e a sessão criada na lista do painel
+  await expect(page.getByText('segure até liberar', { exact: true })).toHaveCount(2)
+  await expect(page.getByText('Agente Alfa recebeu:')).toBeVisible()
+  // ainda em stream: o envio segue bloqueado
+  await expect(page.getByRole('button', { name: 'Send' })).toBeDisabled()
+  expect(page.url()).toBe(url)
+  expect(await pageMark(page)).toBe('mesma página')
+
+  expect((await request.post(`${FAKE_ORCHESTRATOR_URL}/hold/release`)).ok()).toBe(true)
+  await expect(page.getByText('Agente Alfa recebeu: segure até liberar')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send' })).toBeEnabled()
+  await expect(page.getByPlaceholder('Ask anything')).toHaveValue('rascunho')
+  await expect(sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' })).toBeVisible()
+  expect(page.url()).toBe(url)
 })

@@ -4,12 +4,14 @@ import type React from 'react'
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStickToBottomContext } from 'use-stick-to-bottom'
+import { useTranslations } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
 import Icon from '@/components/ui/icon'
 
 const ScrollToBottom: React.FC = () => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext()
+  const t = useTranslations('playground')
 
   return (
     <AnimatePresence>
@@ -27,7 +29,7 @@ const ScrollToBottom: React.FC = () => {
             size="icon"
             variant="secondary"
             className="border border-border bg-background text-foreground shadow-popover transition-shadow duration-300 hover:bg-accent"
-            aria-label="Rolar para o fim"
+            aria-label={t('scrollToBottom')}
           >
             <Icon type="arrow-down" size="xs" />
           </Button>

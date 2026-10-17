@@ -9,6 +9,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ModeSelector } from '@/components/playground/Sidebar/ModeSelector'
 import { usePlaygroundStore } from '@/store'
 
+import { IntlProvider } from '../helpers/intl'
+
 const agent = {
   value: 'agent-1',
   label: 'Assistente',
@@ -25,9 +27,11 @@ const initialStoreState = usePlaygroundStore.getState()
 function renderModeSelector(searchParams = '') {
   const onUrlUpdate = vi.fn<OnUrlUpdateFunction>()
   render(
-    <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
-      <ModeSelector />
-    </NuqsTestingAdapter>
+    <IntlProvider>
+      <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
+        <ModeSelector />
+      </NuqsTestingAdapter>
+    </IntlProvider>
   )
   return { onUrlUpdate }
 }
@@ -49,16 +53,16 @@ describe('ModeSelector', () => {
 
     const select = screen.getByRole('combobox')
     expect(select).toBeDisabled()
-    expect(select).toHaveTextContent('No Mode Available')
+    expect(select).toHaveTextContent('Nenhum modo disponível')
   })
 
-  it('mostra o modo Agent travado quando só há agentes', () => {
+  it('mostra o modo Agente travado quando só há agentes', () => {
     usePlaygroundStore.setState({ agents: [agent] })
     renderModeSelector()
 
     const select = screen.getByRole('combobox')
     expect(select).toBeDisabled()
-    expect(select).toHaveTextContent('Agent')
+    expect(select).toHaveTextContent('Agente')
   })
 
   it('troca sozinho para Team quando só há times', async () => {
@@ -86,7 +90,7 @@ describe('ModeSelector', () => {
 
     const select = screen.getByRole('combobox')
     expect(select).toBeEnabled()
-    expect(select).toHaveTextContent('Agent')
+    expect(select).toHaveTextContent('Agente')
 
     await user.click(select)
     await user.click(await screen.findByRole('option', { name: 'Team' }))

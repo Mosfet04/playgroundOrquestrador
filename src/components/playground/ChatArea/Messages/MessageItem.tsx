@@ -6,6 +6,7 @@ import Videos from './Multimedia/Videos'
 import Images from './Multimedia/Images'
 import Audios from './Multimedia/Audios'
 import { memo } from 'react'
+import { useTranslations } from 'next-intl'
 import AgentThinkingLoader from './AgentThinkingLoader'
 
 interface MessageProps {
@@ -14,16 +15,18 @@ interface MessageProps {
 
 const AgentMessage = ({ message }: MessageProps) => {
   const { streamingErrorMessage } = usePlaygroundStore()
+  const t = useTranslations('playground')
   let messageContent
   if (message.streamingError) {
+    // O tipo do erro é traduzido aqui (muda junto com o idioma); o detalhe é
+    // o texto do orquestrador, mostrado como dado (P1-04b).
     messageContent = (
       <p className="text-destructive">
-        Oops! Something went wrong while streaming.{' '}
-        {streamingErrorMessage ? (
-          <>{streamingErrorMessage}</>
-        ) : (
-          'Please try refreshing the page or try again later.'
-        )}
+        {t('streamError')}{' '}
+        {streamingErrorMessage
+          ? t(`streamErrorKind.${streamingErrorMessage.kind}`)
+          : t('streamErrorHint')}
+        {streamingErrorMessage?.detail && <> {streamingErrorMessage.detail}</>}
       </p>
     )
   } else if (message.content) {

@@ -3,25 +3,30 @@ import { Button } from '@/components/ui/button'
 import { ModeSelector } from '@/components/playground/Sidebar/ModeSelector'
 import { EntitySelector } from '@/components/playground/Sidebar/EntitySelector'
 import useChatActions from '@/hooks/useChatActions'
-import { usePlaygroundStore } from '@/store'
+import { DEFAULT_ENDPOINT, usePlaygroundStore } from '@/store'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import Icon from '@/components/ui/icon'
 import { getProviderIcon } from '@/lib/modelProvider'
 import Sessions from './Sessions'
 import { isValidUrl, cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 import { truncateText } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const ENDPOINT_PLACEHOLDER = 'NO ENDPOINT ADDED'
-const SidebarHeader = () => (
-  <div className="flex items-center gap-2">
-    <Icon type="agno" size="xs" />
-    <span className="text-xs font-medium uppercase text-foreground">Agent UI</span>
-  </div>
-)
+const SidebarHeader = () => {
+  const t = useTranslations('playground')
+  return (
+    <div className="flex items-center gap-2">
+      <Icon type="agno" size="xs" />
+      <span className="text-xs font-medium uppercase text-foreground">
+        {t('brand')}
+      </span>
+    </div>
+  )
+}
 
 const NewChatButton = ({
   disabled,
@@ -29,17 +34,20 @@ const NewChatButton = ({
 }: {
   disabled: boolean
   onClick: () => void
-}) => (
-  <Button
-    onClick={onClick}
-    disabled={disabled}
-    size="lg"
-    className="h-9 w-full text-xs font-medium"
-  >
-    <Icon type="plus-icon" size="xs" className="text-primary-foreground" />
-    <span className="uppercase">New Chat</span>
-  </Button>
-)
+}) => {
+  const t = useTranslations('playground')
+  return (
+    <Button
+      onClick={onClick}
+      disabled={disabled}
+      size="lg"
+      className="h-9 w-full text-xs font-medium"
+    >
+      <Icon type="plus-icon" size="xs" className="text-primary-foreground" />
+      <span className="uppercase">{t('newChat')}</span>
+    </Button>
+  )
+}
 
 const ModelDisplay = ({ model }: { model: string }) => (
   <div className="flex h-9 w-full items-center gap-3 rounded-md border border-border bg-muted p-3 text-xs font-medium uppercase text-muted-foreground">
@@ -68,6 +76,9 @@ const Endpoint = () => {
   const [isRotating, setIsRotating] = useState(false)
   const [, setAgentId] = useQueryState('agent')
   const [, setSessionId] = useQueryState('session')
+  const t = useTranslations('playground')
+  // A URL descreve o botão "Editar endpoint" (há 2 Sidebars abaixo de lg).
+  const endpointUrlId = useId()
 
   useEffect(() => {
     setEndpointValue(selectedEndpoint)
@@ -79,7 +90,7 @@ const Endpoint = () => {
 
   const handleSave = async () => {
     if (!isValidUrl(endpointValue)) {
-      toast.error('Please enter a valid URL')
+      toast.error(t('invalidUrl'))
       return
     }
     const cleanEndpoint = endpointValue.replace(/\/$/, '').trim()
@@ -115,7 +126,9 @@ const Endpoint = () => {
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <div className="text-xs font-medium uppercase text-foreground">Endpoint</div>
+      <div className="text-xs font-medium uppercase text-foreground">
+        {t('endpoint')}
+      </div>
       {isEditing ? (
         <div className="flex w-full items-center gap-1">
           <input
@@ -131,6 +144,7 @@ const Endpoint = () => {
             size="icon"
             onClick={handleSave}
             className="hover:cursor-pointer hover:bg-transparent"
+            aria-label={t('saveEndpoint')}
           >
             <Icon type="save" size="xs" />
           </Button>
@@ -138,10 +152,20 @@ const Endpoint = () => {
       ) : (
         <div className="flex w-full items-center gap-1">
           <motion.div
-            className="relative flex h-9 w-full cursor-pointer items-center justify-between rounded-md border border-border bg-muted p-3 uppercase"
+            className="relative flex h-9 w-full cursor-pointer items-center justify-between rounded-md border border-border bg-muted p-3 uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            role="button"
+            tabIndex={0}
+            aria-label={t('editEndpoint')}
+            aria-describedby={endpointUrlId}
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
             onClick={() => setIsEditing(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setIsEditing(true)
+              }
+            }}
             transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
             <AnimatePresence mode="wait">
@@ -155,7 +179,7 @@ const Endpoint = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <p className="flex items-center gap-2 whitespace-nowrap text-xs font-medium text-foreground">
-                    <Icon type="edit" size="xxs" /> EDIT ENDPOINT
+                    <Icon type="edit" size="xxs" /> {t('editEndpoint')}
                   </p>
                 </motion.div>
               ) : (
@@ -167,11 +191,13 @@ const Endpoint = () => {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <p className="text-xs font-medium text-muted-foreground">
+                  <p
+                    id={endpointUrlId}
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     {isMounted
-                      ? truncateText(selectedEndpoint, 21) ||
-                        ENDPOINT_PLACEHOLDER
-                      : 'http://localhost:7777'}
+                      ? truncateText(selectedEndpoint, 21) || t('noEndpoint')
+                      : DEFAULT_ENDPOINT}
                   </p>
                   <div
                     className={`size-2 shrink-0 rounded-full ${getStatusColor(isEndpointActive)}`}
@@ -185,6 +211,7 @@ const Endpoint = () => {
             size="icon"
             onClick={handleRefresh}
             className="hover:cursor-pointer hover:bg-transparent"
+            aria-label={t('refresh')}
           >
             <motion.div
               key={isRotating ? 'rotating' : 'idle'}
@@ -211,6 +238,7 @@ const Sidebar = () => {
   const [isMounted, setIsMounted] = useState(false)
   const [agentId] = useQueryState('agent')
   const [teamId] = useQueryState('team')
+  const t = useTranslations('playground')
 
   // A carga do playground fica no ChatArea (montado uma vez): abaixo de lg
   // há uma 2ª Sidebar no Sheet, que só renderiza.
@@ -231,7 +259,7 @@ const Sidebar = () => {
       <motion.button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute right-2 top-2 z-10 hidden p-1 lg:block"
-        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-label={isCollapsed ? t('expandPanel') : t('collapsePanel')}
         type="button"
         whileTap={{ scale: 0.95 }}
       >
@@ -270,7 +298,7 @@ const Sidebar = () => {
                   transition={{ duration: 0.5, ease: 'easeInOut' }}
                 >
                   <div className="text-xs font-medium uppercase text-foreground">
-                    Mode
+                    {t('mode')}
                   </div>
                   {isEndpointLoading ? (
                     <div className="flex w-full flex-col gap-2">

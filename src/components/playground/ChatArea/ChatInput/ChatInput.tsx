@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { usePlaygroundStore } from '@/store'
 import useAIChatStreamHandler from '@/hooks/useAIStreamHandler'
 import { useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 import Icon from '@/components/ui/icon'
 
 const ChatInput = () => {
@@ -16,6 +17,7 @@ const ChatInput = () => {
   const [teamId] = useQueryState('team')
   const [inputMessage, setInputMessage] = useState('')
   const isStreaming = usePlaygroundStore((state) => state.isStreaming)
+  const t = useTranslations('playground')
   const handleSubmit = async () => {
     if (!inputMessage.trim()) return
 
@@ -25,18 +27,15 @@ const ChatInput = () => {
     try {
       await handleStreamResponse(currentMessage)
     } catch (error) {
-      toast.error(
-        `Error in handleSubmit: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      )
+      console.error('Error sending the message:', error)
+      toast.error(t('sendError'))
     }
   }
 
   return (
     <div className="relative mx-auto mb-1 flex w-full max-w-full items-end justify-center gap-x-2 px-2 font-sans lg:max-w-2xl lg:px-0">
       <TextArea
-        placeholder={'Ask anything'}
+        placeholder={t('composerPlaceholder')}
         value={inputMessage}
         onChange={(e) => setInputMessage(e.target.value)}
         onKeyDown={(e) => {
@@ -60,9 +59,10 @@ const ChatInput = () => {
           !(selectedAgent || teamId) || !inputMessage.trim() || isStreaming
         }
         className="lg:w-9 lg:p-5"
+        aria-label={t('send')}
       >
         <Icon type="send" className="text-primary-foreground" />
-        <span className="ml-2 text-xs lg:hidden">Enviar</span>
+        <span className="ml-2 text-xs lg:hidden">{t('send')}</span>
       </Button>
     </div>
   )

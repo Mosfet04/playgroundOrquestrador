@@ -14,6 +14,7 @@ import {
   ChatEntry
 } from '@/types/playground'
 import { getJsonMarkdown } from '@/lib/utils'
+import { usePlaygroundTranslationsRef } from './usePlaygroundTranslationsRef'
 
 interface ChatHistoryEntry {
   id?: string
@@ -56,6 +57,7 @@ const useSessionLoader = () => {
     (state) => state.setIsSessionsLoading
   )
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
+  const t = usePlaygroundTranslationsRef()
 
   const getSessions = useCallback(
     async ({ entityType, agentId, teamId }: LoaderArgs) => {
@@ -70,14 +72,15 @@ const useSessionLoader = () => {
             : await getAllPlaygroundSessionsAPI(selectedEndpoint, agentId!)
 
         setSessionsData(sessions)
-      } catch {
-        toast.error('Error loading sessions')
+      } catch (error) {
+        console.error('Error loading sessions:', error)
+        toast.error(t.current('sessionsLoadError'))
         setSessionsData([])
       } finally {
         setIsSessionsLoading(false)
       }
     },
-    [selectedEndpoint, setSessionsData, setIsSessionsLoading]
+    [selectedEndpoint, setSessionsData, setIsSessionsLoading, t]
   )
 
   const getSession = useCallback(

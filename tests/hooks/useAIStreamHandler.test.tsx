@@ -9,6 +9,7 @@ import { usePlaygroundStore } from '@/store'
 
 import { AGENTOS_URL } from '../msw/handlers'
 import { server } from '../msw/server'
+import { IntlProvider } from '../helpers/intl'
 
 const initialStoreState = usePlaygroundStore.getState()
 
@@ -42,9 +43,11 @@ const externalHandlers = [
 const sendMessage = async (mode: 'agent' | 'team', searchParams: string) => {
   usePlaygroundStore.setState({ mode, selectedEndpoint: AGENTOS_URL })
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <NuqsTestingAdapter searchParams={searchParams}>
-      {children}
-    </NuqsTestingAdapter>
+    <IntlProvider>
+      <NuqsTestingAdapter searchParams={searchParams}>
+        {children}
+      </NuqsTestingAdapter>
+    </IntlProvider>
   )
   const { result } = renderHook(() => useAIChatStreamHandler(), { wrapper })
   await act(() => result.current.handleStreamResponse('oi'))

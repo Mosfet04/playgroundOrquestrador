@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { type RunResponse } from '@/types/playground'
+import { type StreamingError } from '@/store'
 
 /**
  * Processes a single JSON chunk by passing it to the provided callback.
@@ -106,7 +107,7 @@ export default function useAIResponseStream() {
       headers?: Record<string, string>
       requestBody: FormData | Record<string, unknown>
       onChunk: (chunk: RunResponse) => void
-      onError: (error: Error) => void
+      onError: (error: StreamingError) => void
       onComplete: () => void
     }): Promise<void> => {
       const {
@@ -137,9 +138,19 @@ export default function useAIResponseStream() {
               : JSON.stringify(requestBody)
         })
 
+        // Resposta de erro do orquestrador: só o `detail` em texto segue para
+        // a UI, como dado (P1-04b).
         if (!response.ok) {
-          const errorData = await response.json()
-          throw errorData
+          const body: unknown = await response.json().catch(() => null)
+          const detail =
+            typeof body === 'object' &&
+            body !== null &&
+            'detail' in body &&
+            typeof body.detail === 'string'
+              ? body.detail
+              : undefined
+          onError({ kind: 'runError', detail })
+          return
         }
 
         if (!response.body) {
@@ -167,11 +178,10 @@ export default function useAIResponseStream() {
         }
         await processStream()
       } catch (error) {
-        if (typeof error === 'object' && error !== null && 'detail' in error) {
-          onError(new Error(String(error.detail)))
-        } else {
-          onError(new Error(String(error)))
-        }
+        // Sem resposta (rede, corpo vazio ou stream interrompido): a exceção
+        // fica no console, não vai à UI (P1-04b).
+        console.error('Error reading the chat stream:', error)
+        onError({ kind: 'network' })
       }
     },
     []

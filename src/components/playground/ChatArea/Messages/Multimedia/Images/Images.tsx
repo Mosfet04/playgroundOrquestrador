@@ -1,4 +1,5 @@
 import { memo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { type ImageData } from '@/types/playground'
 import { cn, isValidUrl } from '@/lib/utils'
@@ -7,11 +8,12 @@ import { cn, isValidUrl } from '@/lib/utils'
 // e só vira link se for http(s) (nada de javascript:).
 const ImageItem = ({ image }: { image: ImageData }) => {
   const [error, setError] = useState(false)
+  const t = useTranslations('playground')
 
   if (error) {
     return (
       <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-md bg-muted text-muted-foreground">
-        <p className="text-foreground">Image unavailable</p>
+        <p className="text-foreground">{t('imageUnavailable')}</p>
         {isValidUrl(image.url) ? (
           <a
             href={image.url}
@@ -34,7 +36,7 @@ const ImageItem = ({ image }: { image: ImageData }) => {
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={image.url}
-      alt={image.revised_prompt || 'AI generated image'}
+      alt={image.revised_prompt || t('imageAlt')}
       className="w-full rounded-lg"
       onError={() => setError(true)}
     />

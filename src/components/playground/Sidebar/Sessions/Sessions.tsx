@@ -4,6 +4,7 @@ import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import { useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 
 import { usePlaygroundStore } from '@/store'
 
@@ -43,6 +44,7 @@ const SkeletonList: FC<SkeletonListProps> = ({ skeletonCount }) => {
 
 const Sessions = () => {
   const [sessionId] = useQueryState('session')
+  const t = useTranslations('playground')
 
   // A carga das sessões (lista e a de ?session=) fica no ChatArea.
   const {
@@ -101,7 +103,9 @@ const Sessions = () => {
   if (isSessionsLoading || isEndpointLoading) {
     return (
       <div className="w-full">
-        <div className="mb-2 text-xs font-medium uppercase">Sessions</div>
+        <div className="mb-2 text-xs font-medium uppercase">
+          {t('sessions')}
+        </div>
         <div className="mt-4 h-[calc(100vh-325px)] w-full overflow-y-auto">
           <SkeletonList skeletonCount={5} />
         </div>
@@ -111,7 +115,9 @@ const Sessions = () => {
 
   return (
     <div className="w-full">
-      <div className="mb-2 w-full text-xs font-medium uppercase">Sessions</div>
+      <div className="mb-2 w-full text-xs font-medium uppercase">
+        {t('sessions')}
+      </div>
       <div
         className={`h-[calc(100vh-345px)] overflow-y-auto font-sans transition-all duration-300 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar]:transition-opacity [&::-webkit-scrollbar]:duration-300 ${
           isScrolling

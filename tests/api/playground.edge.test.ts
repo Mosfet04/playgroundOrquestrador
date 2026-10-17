@@ -82,27 +82,22 @@ describe('getPlaygroundTeamsAPI (falhas e formatos)', () => {
 })
 
 describe('sessões (falhas e formatos)', () => {
-  it.each([
-    ['404', () => new HttpResponse(null, { status: 404 })],
-    ['falha de rede', () => HttpResponse.error()]
-  ])('agente: lista vazia em %s', async (_name, resolver) => {
-    server.use(http.get(`${AGENTOS_URL}/sessions`, resolver))
+  it('404: lista vazia (agente e time)', async () => {
+    server.use(http.get(`${AGENTOS_URL}/sessions`, () => new HttpResponse(null, { status: 404 })))
 
-    expect(await getAllPlaygroundSessionsAPI(AGENTOS_URL, 'agent-1')).toEqual(
-      []
-    )
+    expect(await getAllPlaygroundSessionsAPI(AGENTOS_URL, 'agent-1')).toEqual([])
+    expect(await getPlaygroundTeamSessionsAPI(AGENTOS_URL, 'team-1')).toEqual([])
   })
 
+  // BUG-P1-04b-1 (D-P1-04b-2): a falha sobe para o hook, que avisa no idioma.
   it.each([
-    ['404', () => new HttpResponse(null, { status: 404 })],
     ['500', () => new HttpResponse(null, { status: 500 })],
     ['falha de rede', () => HttpResponse.error()]
-  ])('time: lista vazia em %s', async (_name, resolver) => {
+  ])('%s: relança (agente e time)', async (_name, resolver) => {
     server.use(http.get(`${AGENTOS_URL}/sessions`, resolver))
 
-    expect(await getPlaygroundTeamSessionsAPI(AGENTOS_URL, 'team-1')).toEqual(
-      []
-    )
+    await expect(getAllPlaygroundSessionsAPI(AGENTOS_URL, 'agent-1')).rejects.toThrow()
+    await expect(getPlaygroundTeamSessionsAPI(AGENTOS_URL, 'team-1')).rejects.toThrow()
   })
 
   it('aceita lista pura, com created_at numérico e título de reserva', async () => {

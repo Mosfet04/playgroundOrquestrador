@@ -104,7 +104,7 @@ describe('/playground: painel no Sheet', () => {
       screen.getByRole('button', { name: 'Abrir sessões e agente' })
     )
     const panel = screen.getByRole('dialog', { name: 'Sessões e agente' })
-    expect(await within(panel).findByText('Sessions')).toBeInTheDocument()
+    expect(await within(panel).findByText('Sessões')).toBeInTheDocument()
     // Dá vez aos efeitos e às respostas do MSW de uma eventual recarga.
     await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
 

@@ -11,6 +11,7 @@ import {
   Reference
 } from '@/types/playground'
 import React, { type FC } from 'react'
+import { useTranslations } from 'next-intl'
 import ChatBlankState from './ChatBlankState'
 import Icon from '@/components/ui/icon'
 
@@ -59,6 +60,7 @@ const References: FC<ReferenceProps> = ({ references }) => (
 )
 
 const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
+  const t = useTranslations('playground')
   return (
     <div className="flex flex-col gap-y-9">
       {message.extra_data?.reasoning_steps &&
@@ -66,13 +68,15 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
           <div className="flex items-start gap-4">
             <Tooltip
               delayDuration={0}
-              content={<p className="text-popover-foreground">Reasoning</p>}
+              content={
+                <p className="text-popover-foreground">{t('reasoning')}</p>
+              }
               side="top"
             >
               <Icon type="reasoning" size="sm" />
             </Tooltip>
             <div className="flex flex-col gap-3">
-              <p className="text-xs uppercase">Reasoning</p>
+              <p className="text-xs uppercase">{t('reasoning')}</p>
               <Reasonings reasoning={message.extra_data.reasoning_steps} />
             </div>
           </div>
@@ -82,7 +86,9 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
           <div className="flex items-start gap-4">
             <Tooltip
               delayDuration={0}
-              content={<p className="text-popover-foreground">References</p>}
+              content={
+                <p className="text-popover-foreground">{t('references')}</p>
+              }
               side="top"
             >
               <Icon type="references" size="sm" />
@@ -96,7 +102,9 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
         <div className="flex items-start gap-3">
           <Tooltip
             delayDuration={0}
-            content={<p className="text-popover-foreground">Tool Calls</p>}
+            content={
+              <p className="text-popover-foreground">{t('toolCalls')}</p>
+            }
             side="top"
           >
             <Icon
@@ -123,14 +131,17 @@ const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
     </div>
   )
 }
-const Reasoning: FC<ReasoningStepProps> = ({ index, stepTitle }) => (
-  <div className="flex items-center gap-2 text-foreground">
-    <div className="flex h-[20px] items-center rounded-md bg-muted p-2">
-      <p className="text-xs">STEP {index + 1}</p>
+const Reasoning: FC<ReasoningStepProps> = ({ index, stepTitle }) => {
+  const t = useTranslations('playground')
+  return (
+    <div className="flex items-center gap-2 text-foreground">
+      <div className="flex h-[20px] items-center rounded-md bg-muted p-2">
+        <p className="text-xs uppercase">{t('step', { n: index + 1 })}</p>
+      </div>
+      <p className="text-xs">{stepTitle}</p>
     </div>
-    <p className="text-xs">{stepTitle}</p>
-  </div>
-)
+  )
+}
 const Reasonings: FC<ReasoningProps> = ({ reasoning }) => (
   <div className="flex flex-col items-start justify-center gap-2">
     {reasoning.map((title, index) => (

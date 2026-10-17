@@ -60,7 +60,7 @@ Escopo: estados vazio/carregando/erro do Design System nas listas, dashboard e c
 Fora de escopo: o realtime de verdade (P4).
 Critérios de aceite: orquestrador fora do ar ⇒ mensagem de erro com ação ("tentar de novo"), não tela vazia; rota inexistente ⇒ 404 do app.
 Testes exigidos: componente dos três estados por lista; E2E com o fake orchestrator desligado.
-Riscos e dependências: —
+Riscos e dependências: herdado do P1-04b — os estados "Endpoint desconectado", "sem agente" e "sem storage" do painel de sessões existem no catálogo mas a UI não os alcança (`Sidebar.tsx`: `isEndpointActive &&` esconde Modo e Sessões com o orquestrador fora); lacunas conhecidas da regra de lint (prop de componente próprio e `action.label`/`cancel.label` de toast) registradas em `tests/lint/jsxLiterals.test.ts`.
 
 ## P1-06 — Chat no visual do Design System
 UI: sim            Depende (orq.): —

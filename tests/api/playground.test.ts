@@ -91,22 +91,25 @@ describe('getPlaygroundAgentsAPI', () => {
     ])
   })
 
-  it('avisa o usuário e devolve lista vazia em erro HTTP', async () => {
+  // BUG-P1-04b-1 (decisão 0012, D-P1-04b-2): o src/api não avisa o usuário;
+  // relança com o status e o hook mostra a frase do catálogo.
+  it('relança com o status em erro HTTP, sem toast', async () => {
     const toastError = vi.spyOn(toast, 'error')
     server.use(http.get(`${AGENTOS_URL}/agents`, () => internalError()))
 
-    expect(await getPlaygroundAgentsAPI(AGENTOS_URL)).toEqual([])
-    expect(toastError).toHaveBeenCalledWith(
-      'Failed to fetch playground agents: Internal Server Error'
-    )
+    await expect(getPlaygroundAgentsAPI(AGENTOS_URL)).rejects.toMatchObject({
+      message: 'Failed to fetch playground agents',
+      cause: expect.objectContaining({ message: 'HTTP 500' })
+    })
+    expect(toastError).not.toHaveBeenCalled()
   })
 
-  it('avisa o usuário e devolve lista vazia em falha de rede', async () => {
+  it('relança a falha de rede, sem toast', async () => {
     const toastError = vi.spyOn(toast, 'error')
     server.use(http.get(`${AGENTOS_URL}/agents`, () => HttpResponse.error()))
 
-    expect(await getPlaygroundAgentsAPI(AGENTOS_URL)).toEqual([])
-    expect(toastError).toHaveBeenCalledWith('Error fetching playground agents')
+    await expect(getPlaygroundAgentsAPI(AGENTOS_URL)).rejects.toThrow()
+    expect(toastError).not.toHaveBeenCalled()
   })
 })
 
@@ -152,12 +155,13 @@ describe('getAllPlaygroundSessionsAPI', () => {
     )
   })
 
-  it('devolve lista vazia em erro HTTP', async () => {
+  it('relança com o status em erro HTTP (o hook avisa)', async () => {
     server.use(http.get(`${AGENTOS_URL}/sessions`, () => internalError()))
 
-    expect(await getAllPlaygroundSessionsAPI(AGENTOS_URL, 'agent-1')).toEqual(
-      []
-    )
+    await expect(getAllPlaygroundSessionsAPI(AGENTOS_URL, 'agent-1')).rejects.toMatchObject({
+      message: 'Failed to fetch sessions',
+      cause: expect.objectContaining({ message: 'HTTP 500' })
+    })
   })
 })
 

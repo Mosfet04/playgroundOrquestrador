@@ -14,6 +14,7 @@ import {
   getPlaygroundTeamsAPI
 } from '@/api/playground'
 import { useQueryState } from 'nuqs'
+import { usePlaygroundTranslationsRef } from './usePlaygroundTranslationsRef'
 
 const useChatActions = () => {
   const { chatInputRef } = usePlaygroundStore()
@@ -36,6 +37,7 @@ const useChatActions = () => {
   const setMode = usePlaygroundStore((state) => state.setMode)
   const [agentId, setAgentId] = useQueryState('agent')
   const [teamId, setTeamId] = useQueryState('team')
+  const t = usePlaygroundTranslationsRef()
 
   const getStatus = useCallback(async () => {
     try {
@@ -50,11 +52,12 @@ const useChatActions = () => {
     try {
       const agents = await getPlaygroundAgentsAPI(selectedEndpoint)
       return agents
-    } catch {
-      toast.error('Error fetching agents')
+    } catch (error) {
+      console.error('Error loading agents:', error)
+      toast.error(t.current('agentsLoadError'))
       return []
     }
-  }, [selectedEndpoint])
+  }, [selectedEndpoint, t])
 
   const getTeams = useCallback(async () => {
     try {

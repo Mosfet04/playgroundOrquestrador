@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { APIRoutes } from '@/api/routes'
 
@@ -30,6 +31,7 @@ const useAIChatStreamHandler = () => {
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
   const hasStorage = usePlaygroundStore((state) => state.hasStorage)
   const { streamResponse } = useAIResponseStream()
+  const t = useTranslations('playground')
 
   const updateMessagesWithErrorState = useCallback(() => {
     setMessages((prevMessages) => {
@@ -180,7 +182,7 @@ const processToolCall = useCallback(
 
         if (!playgroundRunUrl) {
           updateMessagesWithErrorState()
-          setStreamingErrorMessage('Please select an agent or team first.')
+          setStreamingErrorMessage({ kind: 'noEntity' })
           setIsStreaming(false)
           return
         }
@@ -381,12 +383,16 @@ const processToolCall = useCallback(
               chunk.event === RunEvent.TeamRunCancelled
             ) {
               updateMessagesWithErrorState()
-              const errorContent =
-                (chunk.content as string) ||
-                (chunk.event === RunEvent.TeamRunCancelled
-                  ? 'Run cancelled'
-                  : 'Error during run')
-              setStreamingErrorMessage(errorContent)
+              setStreamingErrorMessage({
+                kind:
+                  chunk.event === RunEvent.TeamRunCancelled
+                    ? 'cancelled'
+                    : 'runError',
+                detail:
+                  typeof chunk.content === 'string' && chunk.content
+                    ? chunk.content
+                    : undefined
+              })
               if (hasStorage && newSessionId) {
                 setSessionsData(
                   (prevSessionsData) =>
@@ -418,7 +424,7 @@ const processToolCall = useCallback(
                       try {
                         updatedContent = JSON.stringify(chunk.content)
                       } catch {
-                        updatedContent = 'Error parsing response'
+                        updatedContent = t('parseError')
                       }
                     }
                     return {
@@ -454,7 +460,7 @@ const processToolCall = useCallback(
           },
           onError: (error) => {
             updateMessagesWithErrorState()
-            setStreamingErrorMessage(error.message)
+            setStreamingErrorMessage(error)
             if (hasStorage && newSessionId) {
               setSessionsData(
                 (prevSessionsData) =>
@@ -467,10 +473,11 @@ const processToolCall = useCallback(
           onComplete: () => {}
         })
       } catch (error) {
+        // Falha antes do stream (montar a URL ou o user_id): sem tipo, a bolha
+        // mostra só a dica genérica; a exceção fica no console (P1-04b).
+        console.error('Error starting the chat stream:', error)
         updateMessagesWithErrorState()
-        setStreamingErrorMessage(
-          error instanceof Error ? error.message : String(error)
-        )
+        setStreamingErrorMessage(null)
         if (hasStorage && newSessionId) {
           setSessionsData(
             (prevSessionsData) =>
@@ -500,7 +507,8 @@ const processToolCall = useCallback(
       sessionId,
       setSessionId,
       hasStorage,
-      processChunkToolCalls
+      processChunkToolCalls,
+      t
     ]
   )
 

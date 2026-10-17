@@ -397,7 +397,8 @@ test.describe('sessão do chat não recarrega na troca de idioma', () => {
     await sidebar.getByRole('textbox').press('Enter')
     await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
     await page.getByRole('option', { name: 'Agente Beta' }).click()
-    const chatInput = page.getByPlaceholder('Ask anything')
+    // o placeholder muda com o idioma (P1-04b): o composer é o único textarea
+    const chatInput = page.locator('textarea')
     await chatInput.fill('Ola, idioma')
     await chatInput.press('Enter')
     await expect(page.getByText('Agente Beta recebeu: Ola, idioma')).toBeVisible()

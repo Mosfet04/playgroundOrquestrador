@@ -23,6 +23,22 @@ const CHUNK_DELAY_MS = 30
 // (BUG-P0-03-1, corrigido no P0-06).
 const HOLD_COMPLETION_MESSAGE = 'segure o RunCompleted'
 const HOLD_COMPLETION_MS = 3000
+// Mensagem que para o stream antes do último delta até o teste chamar
+// POST /hold/release: o e2e troca o idioma com o stream aberto (P1-04b). O
+// prazo máximo evita stream preso se o teste cair antes de liberar.
+const HOLD_UNTIL_RELEASE_MESSAGE = 'segure até liberar'
+const HOLD_MAX_MS = 60_000
+const heldStreams = new Set<() => void>()
+const waitForRelease = () =>
+  new Promise<void>((resolve) => {
+    const release = () => {
+      clearTimeout(timer)
+      heldStreams.delete(release)
+      resolve()
+    }
+    const timer = setTimeout(release, HOLD_MAX_MS)
+    heldStreams.add(release)
+  })
 
 const agents: FakeAgent[] = [
   { id: 'agente-alfa', name: 'Agente Alfa' },
@@ -108,7 +124,12 @@ const runAgent = async (
     'Access-Control-Allow-Origin': '*'
   })
   writeEvent(res, { ...base, event: 'RunStarted', model: 'fake-model' })
-  for (const delta of deltas) {
+  for (const [index, delta] of deltas.entries()) {
+    if (
+      message === HOLD_UNTIL_RELEASE_MESSAGE &&
+      index === deltas.length - 1
+    )
+      await waitForRelease()
     await delay(CHUNK_DELAY_MS)
     writeEvent(res, {
       ...base,
@@ -143,6 +164,11 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   if (route === 'GET /agents')
     return sendJson(res, 200, agents.map(toAgentResponse))
   if (route === 'GET /teams') return sendJson(res, 200, [])
+  if (route === 'POST /hold/release') {
+    const released = [...heldStreams]
+    released.forEach((release) => release())
+    return sendJson(res, 200, { released: released.length })
+  }
   if (route === 'GET /sessions') {
     const componentId = url.searchParams.get('component_id') ?? ''
     const data =

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/select'
 import { usePlaygroundStore } from '@/store'
 import { useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 import useChatActions from '@/hooks/useChatActions'
 
 export function ModeSelector() {
@@ -27,6 +28,7 @@ export function ModeSelector() {
   const [, setAgentId] = useQueryState('agent')
   const [, setTeamId] = useQueryState('team')
   const [, setSessionId] = useQueryState('session')
+  const t = useTranslations('playground')
 
   const hasTeams = teams.length > 0
   const hasAgents = agents.length > 0
@@ -59,7 +61,7 @@ export function ModeSelector() {
     return (
       <Select disabled>
         <SelectTrigger className="h-9 w-full text-xs font-medium uppercase opacity-50">
-          <SelectValue placeholder="No Mode Available" />
+          <SelectValue placeholder={t('noMode')} />
         </SelectTrigger>
       </Select>
     )
@@ -77,12 +79,16 @@ export function ModeSelector() {
       <SelectContent className="font-mono">
         {hasAgents && (
           <SelectItem value="agent" className="cursor-pointer">
-            <div className="text-xs font-medium uppercase">Agent</div>
+            <div className="text-xs font-medium uppercase">
+              {t('modeAgent')}
+            </div>
           </SelectItem>
         )}
         {hasTeams && (
           <SelectItem value="team" className="cursor-pointer">
-            <div className="text-xs font-medium uppercase">Team</div>
+            <div className="text-xs font-medium uppercase">
+              {t('modeTeam')}
+            </div>
           </SelectItem>
         )}
       </SelectContent>

@@ -96,7 +96,7 @@ describe('/playground com ?agent= e ?session=', () => {
     )
     renderPlayground()
 
-    expect(await screen.findByText('Sessions')).toBeInTheDocument()
+    expect(await screen.findByText('Sessões')).toBeInTheDocument()
     expect(screen.queryByText('Resposta do histórico')).not.toBeInTheDocument()
     expect(screen.getByRole('main')).toBeInTheDocument()
   })
@@ -135,7 +135,7 @@ describe('/playground com ?agent= e ?session=', () => {
       online = true
       await user.click(refreshButton())
 
-      expect(await screen.findByText('Sessions', {}, { timeout: 2000 })).toBeInTheDocument()
+      expect(await screen.findByText('Sessões', {}, { timeout: 2000 })).toBeInTheDocument()
       await waitFor(() => expect(window.location.search).toContain('session=session-a1'))
       expect(
         await screen.findByText('Resposta do histórico', {}, { timeout: 1500 })

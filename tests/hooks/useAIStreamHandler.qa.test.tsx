@@ -9,6 +9,7 @@ import { usePlaygroundStore } from '@/store'
 
 import { AGENTOS_URL } from '../msw/handlers'
 import { server } from '../msw/server'
+import { IntlProvider } from '../helpers/intl'
 
 const initialStoreState = usePlaygroundStore.getState()
 
@@ -38,9 +39,11 @@ const run = async (events: Record<string, unknown>[]) => {
   )
   usePlaygroundStore.setState({ mode: 'agent', selectedEndpoint: AGENTOS_URL })
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <NuqsTestingAdapter searchParams="?agent=agent-1">
-      {children}
-    </NuqsTestingAdapter>
+    <IntlProvider>
+      <NuqsTestingAdapter searchParams="?agent=agent-1">
+        {children}
+      </NuqsTestingAdapter>
+    </IntlProvider>
   )
   const { result } = renderHook(() => useAIChatStreamHandler(), { wrapper })
   await act(() => result.current.handleStreamResponse('oi'))
@@ -61,7 +64,7 @@ describe('useAIChatStreamHandler: QA do stream com deltas', () => {
 
     expect(last.content).toBe('parcial')
     expect(last.streamingError).toBe(true)
-    expect(streamingErrorMessage).toBe('modelo caiu')
+    expect(streamingErrorMessage).toEqual({ kind: 'runError', detail: 'modelo caiu' })
   })
 
   // BUG-P0-06-1 (corrigido no P0-06, decisão 0007 D-P0-06-2): o parser do

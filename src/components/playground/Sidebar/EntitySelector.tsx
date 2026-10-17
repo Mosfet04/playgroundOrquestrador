@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/select'
 import { usePlaygroundStore } from '@/store'
 import { useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 import Icon from '@/components/ui/icon'
 import { useEffect } from 'react'
 import useChatActions from '@/hooks/useChatActions'
@@ -34,10 +35,11 @@ export function EntitySelector() {
     history: 'push'
   })
   const [, setSessionId] = useQueryState('session')
+  const t = useTranslations('playground')
 
   const currentEntities = mode === 'team' ? teams : agents
   const currentValue = mode === 'team' ? teamId : agentId
-  const placeholder = mode === 'team' ? 'Select Team' : 'Select Agent'
+  const placeholder = mode === 'team' ? t('selectTeam') : t('selectAgent')
 
   useEffect(() => {
     if (currentValue && currentEntities.length > 0) {
@@ -87,7 +89,9 @@ export function EntitySelector() {
     return (
       <Select disabled>
         <SelectTrigger className="h-9 w-full text-xs font-medium uppercase opacity-50">
-          <SelectValue placeholder={`No ${mode}s Available`} />
+          <SelectValue
+            placeholder={mode === 'team' ? t('noTeams') : t('noAgents')}
+          />
         </SelectTrigger>
       </Select>
     )
