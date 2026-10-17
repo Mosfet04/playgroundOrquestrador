@@ -74,8 +74,6 @@ async function mockApi(page: Page) {
 const setLocaleCookie = (context: BrowserContext, value: string) =>
   context.addCookies([{ name: 'locale', value, url: APP_URL }])
 const html = (page: Page) => page.locator('html')
-const expectSwitch = expect.configure({ timeout: 15_000 })
-const expectNavigation = expect.configure({ timeout: 15_000 })
 
 const markPage = (page: Page) =>
   page.evaluate(() => Object.assign(window, { __qaSentinel: 'mesma página' }))
@@ -242,11 +240,11 @@ test('o idioma persiste ao navegar entre rotas depois da troca (client e hard na
   await markPage(page)
   await openLanguageMenu(page)
   await page.getByRole('option', { name: 'English' }).click()
-  await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+  await expect(html(page)).toHaveAttribute('lang', 'en')
 
   // navegação client-side pelo menu
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Dashboard' }).click()
-  await expectNavigation(page).toHaveURL('/dashboard')
+  await expect(page).toHaveURL('/dashboard')
   await expect(page).toHaveTitle('Dashboard · Orchestrator Playground')
   await expect(page.getByRole('heading', { name: 'Active agents' })).toBeVisible()
   await expect(html(page)).toHaveAttribute('lang', 'en')
@@ -254,8 +252,8 @@ test('o idioma persiste ao navegar entre rotas depois da troca (client e hard na
 
   // voltar
   await page.goBack()
-  await expectNavigation(page).toHaveURL('/agents')
-  await expectNavigation(page.getByRole('heading', { level: 1, name: 'Agent management' })).toBeVisible()
+  await expect(page).toHaveURL('/agents')
+  await expect(page.getByRole('heading', { level: 1, name: 'Agent management' })).toBeVisible()
   await expect(html(page)).toHaveAttribute('lang', 'en')
 
   // navegação completa: o cookie vai junto
@@ -275,7 +273,7 @@ test('voltar de EN para pt-BR pelo seletor também funciona, e o cookie fica com
   await openLanguageMenu(page)
   await page.getByRole('option', { name: 'Português (Brasil)' }).click()
 
-  await expectSwitch(html(page)).toHaveAttribute('lang', 'pt-BR')
+  await expect(html(page)).toHaveAttribute('lang', 'pt-BR')
   await expect(page).toHaveTitle('Agentes · Playground do Orquestrador')
   await expect(desktopTrigger(page)).toHaveText('PT')
   expect(await pageMark(page)).toBe('mesma página')
@@ -313,8 +311,8 @@ test('teclado: Esc fecha sem trocar; Enter + seta + Enter troca; o foco fica no 
     await expect(page.getByRole('option', { name: 'English' })).toBeFocused({ timeout: 1000 })
     await page.keyboard.press('Enter')
     await expect.poll(() => posts.length, { timeout: 2000 }).toBe(1)
-  }).toPass({ timeout: 40_000 })
-  await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+  }).toPass()
+  await expect(html(page)).toHaveAttribute('lang', 'en')
   await expect(desktopTrigger(page)).toBeFocused()
 })
 
@@ -322,10 +320,10 @@ test('troca em andamento: trigger ocupado (aria-busy), uma só action, e libera 
   page
 }) => {
   await page.goto('/agents')
-  // aquece a action (1ª compilação do next dev) trocando e voltando uma vez
+  // deixa a página em EN (e, no dev, compila a action)
   await openLanguageMenu(page)
   await page.getByRole('option', { name: 'English' }).click()
-  await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+  await expect(html(page)).toHaveAttribute('lang', 'en')
 
   let release!: () => void
   const gate = new Promise<void>((resolve) => (release = resolve))
@@ -351,7 +349,7 @@ test('troca em andamento: trigger ocupado (aria-busy), uma só action, e libera 
   await page.getByRole('option', { name: 'Português (Brasil)' }).click()
 
   release()
-  await expectSwitch(html(page)).toHaveAttribute('lang', 'pt-BR')
+  await expect(html(page)).toHaveAttribute('lang', 'pt-BR')
   await expect(desktopTrigger(page)).toHaveAttribute('aria-busy', 'false')
   // O Next enfileira as actions: com o guard quebrado, a 2ª só sairia depois
   // da 1ª terminar, então a checagem tem de vir depois do aria-busy voltar.
@@ -370,7 +368,7 @@ test('duas abas: a troca numa vale na outra ao recarregar (cookie compartilhado)
 
   await openLanguageMenu(page)
   await page.getByRole('option', { name: 'English' }).click()
-  await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+  await expect(html(page)).toHaveAttribute('lang', 'en')
 
   // (a aba B pode ou não atualizar sozinha: o `next dev` manda refresh às
   // abas quando compila; por isso só se afirma o que vale depois do reload)
@@ -383,9 +381,6 @@ test.describe('sessão do chat não recarrega na troca de idioma', () => {
   test('o /playground mantém as mensagens, o agente e a página; a casca troca', async ({
     page
   }) => {
-    // A 1ª carga do /playground compila o chunk do chat no `next dev`; com a
-    // suíte em paralelo a hidratação passa dos 30 s padrão.
-    test.slow()
     await page.route(
       (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
       (route) => route.abort()
@@ -408,7 +403,7 @@ test.describe('sessão do chat não recarrega na troca de idioma', () => {
 
     await openLanguageMenu(page)
     await page.getByRole('option', { name: 'English' }).click()
-    await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+    await expect(html(page)).toHaveAttribute('lang', 'en')
 
     expect(await pageMark(page)).toBe('mesma página')
     expect(page.url()).toBe(url)
@@ -436,7 +431,7 @@ test.describe('server action como fronteira', () => {
     await openLanguageMenu(page)
     await page.getByRole('option', { name: 'English' }).click()
     const request = await posted
-    await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+    await expect(html(page)).toHaveAttribute('lang', 'en')
     return {
       id: request.headers()['next-action']!,
       body: request.postData()!,

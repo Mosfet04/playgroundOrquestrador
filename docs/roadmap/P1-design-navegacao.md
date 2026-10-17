@@ -79,4 +79,5 @@ Fora de escopo: testes novos de produto.
 Critérios de aceite: suíte e2e completa verde 5× seguidas na CI; tempo total da CI medido e registrado antes/depois.
 Testes exigidos: a própria suíte.
 Riscos e dependências: o build passa a ser pré-requisito do e2e (tempo de CI); env de build com o Mongo fake.
+Resultado: local com `CI=true`, e2e de ~110 s (dev, 1 falha em 2) para ~48 s (build + start, 7/7 verdes); confirmação no Actions pendente do push. Limite aceito (D-P1-07-3): sem `suppressHydrationWarning` no `<html>` só o e2e local (dev) acusa, porque o React de produção não compara atributos.
 

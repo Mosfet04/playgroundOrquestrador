@@ -548,6 +548,14 @@ pnpm test:e2e       # Playwright (Chromium) contra o orquestrador falso em e2e/f
 
 A CI (`.github/workflows/ci.yml`) roda `lint`, `typecheck`, `test`, `build` e `test:e2e` em push na `main` e em todo PR.
 
+Sem `CI`, o `pnpm test:e2e` sobe o app com `next dev` (prazos maiores por causa da compilação sob demanda). Com `CI=true`, ele roda `next build` + `next start` (como na CI). Para reproduzir localmente:
+
+```bash
+CI=true MONGO_CONNECTION_STRING=mongodb://127.0.0.1:1/ci-fake MONGO_DATABASE_NAME=ci-fake pnpm test:e2e
+```
+
+Os valores `MONGO_*` são de mentira (porta 1, sem Mongo): o build só precisa que existam. O build sobrescreve a pasta `.next`: pare qualquer `next dev` do projeto antes e, depois, suba o dev de novo (ele recompila).
+
 #### **3. Submissão de PRs**
 1. **Crie uma issue** descrevendo a funcionalidade/bug
 2. **Fork e clone** o repositório

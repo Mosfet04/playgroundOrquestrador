@@ -28,7 +28,6 @@ const listOf = (data: unknown[]) => ({
   data: { data, total: data.length, page: 1, limit: 10, totalPages: 1 }
 })
 
-const expectNavigation = expect.configure({ timeout: 15_000 })
 const mainNav = (page: Page) =>
   page.getByRole('navigation', { name: 'Navegação principal' })
 const trail = (page: Page) =>
@@ -80,7 +79,7 @@ test('id hostil: o link codifica, o editor carrega o id literal e nada executa',
   await expect(link).toHaveAttribute('href', href)
   await link.click()
 
-  await expectNavigation(page).toHaveURL(href)
+  await expect(page).toHaveURL(href)
   await expect(page.getByLabel(/ID do agente/)).toHaveValue(hostile.id)
   await expect(trail(page).getByText(hostile.nome)).toHaveAttribute('aria-current', 'page')
   expect(requested).toContain('a%2Fb%3Fc%23d%20%3Cx%3E')
@@ -124,9 +123,9 @@ test('enquanto o detalhe carrega a casca já está desenhada; depois o editor ap
   await expect(page.getByRole('heading', { name: 'Editar agente' })).toHaveCount(0)
 
   // O estado "carregando" já vem no HTML do servidor: o fetch só sai depois da
-  // hidratação, que no `next dev` sob carga passa de 5 s.
+  // hidratação.
   release()
-  await expectNavigation(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
+  await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
   await expect(trail(page).getByText('Agente Alfa')).toBeVisible()
 })
@@ -147,7 +146,7 @@ test('erro 500 no detalhe: "Não foi possível carregar" com o código, link de 
   await expect(alert).not.toContainText('falha')
   await expect(mainNav(page)).toBeVisible()
   await alert.getByRole('link', { name: 'Voltar para agentes' }).click()
-  await expectNavigation(page).toHaveURL('/agents')
+  await expect(page).toHaveURL('/agents')
 })
 
 test('falha de rede no detalhe: bloco de erro, sem tela vazia', async ({ page }) => {
@@ -165,7 +164,7 @@ test('/agents/new: deep link, recarga e voltar para a lista', async ({ page }) =
   await page.goto('/agents')
   await hydrated(page)
   await page.getByRole('link', { name: 'Novo agente' }).click()
-  await expectNavigation(page).toHaveURL('/agents/new')
+  await expect(page).toHaveURL('/agents/new')
   await expect(page.getByRole('heading', { level: 1, name: 'Novo agente' })).toBeVisible()
 
   await page.reload()
@@ -180,11 +179,10 @@ test('/agents/new: deep link, recarga e voltar para a lista', async ({ page }) =
 
   // Depois da recarga, a entrada /agents do histórico é de outro documento: o
   // goBack é uma carga completa (RSC + hidratação + GET da lista), não um
-  // popstate. No `next dev` sob carga isso passa de 5 s; o mesmo prazo do
-  // expectNavigation vale. O snapshot da falha já mostrava o h1.
+  // popstate.
   await page.goBack()
-  await expectNavigation(page).toHaveURL('/agents')
-  await expectNavigation(
+  await expect(page).toHaveURL('/agents')
+  await expect(
     page.getByRole('heading', { level: 1, name: 'Gerenciamento de agentes' })
   ).toBeVisible()
 })
@@ -194,11 +192,11 @@ test('salvar o editor navega para a lista (push): voltar reabre o editor', async
   await page.goto('/agents')
   await hydrated(page)
   await page.getByRole('link', { name: 'Agente Alfa' }).click()
-  await expectNavigation(page).toHaveURL('/agents/agente%20alfa')
+  await expect(page).toHaveURL('/agents/agente%20alfa')
   await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
   await hydrated(page)
   await page.getByRole('button', { name: /Atualizar|Salvar/ }).click()
-  await expectNavigation(page).toHaveURL('/agents')
+  await expect(page).toHaveURL('/agents')
   expect(requested).toContain('PUT agente%20alfa')
 
   await page.goBack()
@@ -219,7 +217,7 @@ test('teclado: Tab até um item da navegação e Enter navega; o item destino fi
   }
   await page.keyboard.press('Enter')
 
-  await expectNavigation(page).toHaveURL('/agents')
+  await expect(page).toHaveURL('/agents')
   const current = mainNav(page).locator('[aria-current]')
   await expect(current).toHaveCount(1)
   await expect(current).toHaveAccessibleName('Agentes')
@@ -238,9 +236,6 @@ test('rota fora do mapa: a página 404 do Next, sem exceção', async ({ page })
 test('Playground -> Início -> Voltar devolve ?agent= e ?session= e as mensagens', async ({
   page
 }) => {
-  // A 1ª carga do /playground compila o chunk do chat no `next dev`; com a
-  // suíte em paralelo a hidratação passa dos 30 s padrão.
-  test.slow()
   await page.route(
     (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
     (route) => route.abort()
@@ -261,10 +256,10 @@ test('Playground -> Início -> Voltar devolve ?agent= e ?session= e as mensagens
   const url = page.url()
 
   await mainNav(page).getByRole('link', { name: 'Início' }).click()
-  await expectNavigation(page).toHaveURL('/')
+  await expect(page).toHaveURL('/')
 
   await page.goBack()
-  await expectNavigation(page).toHaveURL(url)
+  await expect(page).toHaveURL(url)
   await hydrated(page)
   await expect(page.getByText('Agente Beta recebeu: Ida e volta')).toBeVisible()
   await expect(

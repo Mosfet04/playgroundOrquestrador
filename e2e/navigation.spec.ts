@@ -57,10 +57,6 @@ const mockManagementApi = async (page: Page) => {
   )
 }
 
-// A 1ª navegação client-side para uma rota compila a página no `next dev`
-// (webServer do Playwright): a troca de URL após um clique ganha mais prazo.
-const expectNavigation = expect.configure({ timeout: 15_000 })
-
 const mainNav = (page: Page) =>
   page.getByRole('navigation', { name: 'Navegação principal' })
 const trail = (page: Page) =>
@@ -80,7 +76,7 @@ test('deep link /agents/<id> abre o editor; voltar retorna à lista; recarga pre
   await expect(nameLink).toHaveAttribute('href', AGENT_PATH)
   await nameLink.click()
 
-  await expectNavigation(page).toHaveURL(AGENT_PATH)
+  await expect(page).toHaveURL(AGENT_PATH)
   await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeVisible()
   await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
   await expect(mainNav(page).getByRole('link', { name: 'Agentes' })).toHaveAttribute(
@@ -106,10 +102,10 @@ test('deep link /agents/<id> abre o editor; voltar retorna à lista; recarga pre
 test('"Voltar" do editor leva à lista; "Novo agente" abre /agents/new', async ({ page }) => {
   await page.goto(AGENT_PATH)
   await page.getByRole('link', { name: 'Voltar' }).click()
-  await expectNavigation(page).toHaveURL('/agents')
+  await expect(page).toHaveURL('/agents')
 
   await page.getByRole('link', { name: 'Novo agente' }).click()
-  await expectNavigation(page).toHaveURL('/agents/new')
+  await expect(page).toHaveURL('/agents/new')
   await expect(page.getByRole('heading', { level: 1, name: 'Novo agente' })).toBeVisible()
   await expect(trail(page).getByText('Novo agente')).toHaveAttribute('aria-current', 'page')
   await expect(page).toHaveTitle(`Novo agente · ${TITLE}`)
@@ -131,7 +127,7 @@ for (const [path, message, back] of [
     await expect(trail(page)).toBeVisible()
 
     await alert.getByRole('link', { name: back }).click()
-    await expectNavigation(page).toHaveURL(path.replace('/nao-existe', ''))
+    await expect(page).toHaveURL(path.replace('/nao-existe', ''))
   })
 }
 
@@ -142,10 +138,7 @@ test('deep link /tools/<id> abre o editor da tool', async ({ page }) => {
   await expect(page).toHaveTitle(`clima · Tools · ${TITLE}`)
 })
 
-// Os testes que percorrem várias rotas pagam a compilação de cada uma no
-// `next dev` (~5 s por rota com os workers em paralelo).
 test('cada rota tem o <title> do mapa e um só item ativo', async ({ page }) => {
-  test.slow()
   for (const [path, title, active] of [
     ['/', 'Início', 'Início'],
     ['/playground', 'Playground', 'Playground'],
@@ -165,9 +158,6 @@ test('cada rota tem o <title> do mapa e um só item ativo', async ({ page }) => 
 test('/playground?agent=…&session=… sobrevive à recarga com o agente e as mensagens', async ({
   page
 }) => {
-  // A 1ª carga do /playground compila o chunk do chat no `next dev`; com a
-  // suíte em paralelo a hidratação passa dos 30 s padrão.
-  test.slow()
   // Só o app e o fake: o chat também chama rede externa (ipify, FingerprintJS).
   await page.route(
     (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
@@ -227,7 +217,6 @@ test('teclado: 1º Tab mostra "Pular para o conteúdo", que leva ao <main>', asy
 
 for (const width of [390, 1023, 1440]) {
   test(`nenhuma rota rola na horizontal em ${width} px`, async ({ page }) => {
-    test.slow()
     await page.setViewportSize({ width, height: 844 })
     for (const path of ['/', '/playground', '/agents', AGENT_PATH, '/tools', '/dashboard']) {
       await page.goto(path)
@@ -256,7 +245,7 @@ test.describe('celular', () => {
     await expect(sheet.getByRole('combobox', { name: 'Tema' })).toBeVisible()
 
     await sheet.getByRole('link', { name: 'Tools' }).click()
-    await expectNavigation(page).toHaveURL('/tools')
+    await expect(page).toHaveURL('/tools')
     await expect(sheet).toBeHidden()
 
     await menuButton.click()

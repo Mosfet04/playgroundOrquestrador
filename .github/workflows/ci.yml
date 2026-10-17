@@ -84,4 +84,11 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
+      # Com CI=true (padrão do Actions), o Playwright builda e serve o app com
+      # next build + next start (playwright.config.ts, decisão 0013). O build
+      # importa src/lib/mongodb.ts: mesmos valores de mentira do job checks,
+      # sem Mongo e sem conexão real.
       - run: pnpm test:e2e
+        env:
+          MONGO_CONNECTION_STRING: mongodb://127.0.0.1:1/ci-fake
+          MONGO_DATABASE_NAME: ci-fake

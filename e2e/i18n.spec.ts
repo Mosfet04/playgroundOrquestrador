@@ -58,11 +58,6 @@ const setLocaleCookie = (context: BrowserContext, value: string) =>
 
 const html = (page: Page) => page.locator('html')
 
-
-// A 1ª troca compila a server action e refaz o RSC no `next dev` (webServer
-// do Playwright): a mudança do `lang` ganha mais prazo.
-const expectSwitch = expect.configure({ timeout: 15_000 })
-
 // Sentinela em window: some se a página recarregar.
 const markPage = (page: Page) =>
   page.evaluate(() => Object.assign(window, { __i18nSentinel: 'mesma página' }))
@@ -136,7 +131,7 @@ test('trocar o idioma em /agents/new mantém a rota e o form, sem recarregar; o 
   await expect(options.nth(1)).toHaveAttribute('lang', 'en')
   await page.getByRole('option', { name: 'English' }).click()
 
-  await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+  await expect(html(page)).toHaveAttribute('lang', 'en')
   await expect(page).toHaveTitle('New agent · Orchestrator Playground')
   await expect(page).toHaveURL('/agents/new')
   await expect(page.getByLabel('Agent ID *')).toHaveValue('agente-novo')
@@ -199,7 +194,7 @@ test.describe('celular', () => {
     await language.click()
     await page.getByRole('option', { name: 'English' }).click()
 
-    await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+    await expect(html(page)).toHaveAttribute('lang', 'en')
     const menu = page.getByRole('dialog', { name: 'Menu' })
     await expect(menu).toBeVisible()
     await expect(menu.getByRole('combobox', { name: 'Language' })).toHaveText('English')
@@ -215,8 +210,6 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
   page,
   request
 }) => {
-  // 1ª carga do /playground e da server action compilam no `next dev`.
-  test.slow()
   await page.route(
     (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
     (route) => route.abort()
@@ -242,7 +235,7 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
 
   await page.getByRole('combobox', { name: /Alterar idioma/ }).click()
   await page.getByRole('option', { name: 'English' }).click()
-  await expectSwitch(html(page)).toHaveAttribute('lang', 'en')
+  await expect(html(page)).toHaveAttribute('lang', 'en')
 
   await expect(sidebar.getByText('New chat')).toBeVisible()
   await expect(sidebar.getByText('Sessions')).toBeVisible()
