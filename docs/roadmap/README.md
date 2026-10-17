@@ -26,9 +26,11 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P1-01 | concluído |
 | P1-02 | concluído |
 | P1-03 | concluído |
-| P1-04 | pendente |
+| P1-04 | concluído |
+| P1-04b | pendente |
 | P1-05 | pendente |
 | P1-06 | pendente |
+| P1-07 | pendente |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

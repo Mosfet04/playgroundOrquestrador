@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,44 +19,27 @@ import {
 } from 'lucide-react'
 
 interface Step {
-  id: string
-  title: string
-  description: string
+  /** Chave do passo em `home.steps` (título, descrição e ação). */
+  id: 'createAgent' | 'createTool' | 'testPlayground'
+  /** Atalho do passo (link real, P1-03). */
+  href: string
   icon: React.ComponentType<{ className?: string }>
   completed: boolean
 }
 
-// Atalho de cada passo (link real, P1-03).
-const stepLinks: Record<string, { href: string; label: string }> = {
-  'create-agent': { href: '/agents/new', label: 'Criar Agente' },
-  'create-tool': { href: '/tools/new', label: 'Criar Tool' },
-  'test-playground': { href: '/playground', label: 'Ir ao Playground' }
-}
-
 export function GettingStarted() {
+  const t = useTranslations('home')
   const [steps, setSteps] = useState<Step[]>([
+    { id: 'createAgent', href: '/agents/new', icon: Bot, completed: false },
+    { id: 'createTool', href: '/tools/new', icon: Wrench, completed: false },
     {
-      id: 'create-agent',
-      title: 'Crie seu primeiro agente',
-      description: 'Configure um agente IA com modelo, prompt e ferramentas',
-      icon: Bot,
-      completed: false
-    },
-    {
-      id: 'create-tool',
-      title: 'Adicione uma ferramenta HTTP',
-      description: 'Configure uma API externa para expandir as capacidades',
-      icon: Wrench,
-      completed: false
-    },
-    {
-      id: 'test-playground',
-      title: 'Teste no playground',
-      description: 'Converse com seu agente no playground de chat',
+      id: 'testPlayground',
+      href: '/playground',
       icon: MessageSquare,
       completed: false
     }
   ])
+  const strong = (chunks: React.ReactNode) => <strong>{chunks}</strong>
 
   const markAsCompleted = (stepId: string) => {
     setSteps(prev => prev.map(step => 
@@ -72,21 +56,21 @@ export function GettingStarted() {
       <div className="text-center space-y-3">
         <div className="flex items-center justify-center gap-2 mb-2">
           <h1 className="text-2xl font-semibold tracking-tight text-center">
-            Bem-vindo ao Agno Manager!
+            {t('title')}
           </h1>
           <span className="text-2xl">🎉</span>
         </div>
         
         <p className="px-2 text-sm text-muted-foreground lg:px-0 lg:text-base">
-          Configure seus primeiros agentes IA em poucos passos
+          {t('subtitle')}
         </p>
         
         <div className="flex flex-wrap items-center justify-center gap-2 px-2 lg:px-0">
           <Badge variant="outline">
-            {completedSteps} de {totalSteps} concluídos
+            {t('progress', { completed: completedSteps, total: totalSteps })}
           </Badge>
           {completedSteps === totalSteps && (
-            <StatusBadge active>🎊 Parabéns! Setup concluído</StatusBadge>
+            <StatusBadge active>{t('allDone')}</StatusBadge>
           )}
         </div>
       </div>
@@ -131,20 +115,22 @@ export function GettingStarted() {
                     <div className="flex-1 min-w-0">
                       <CardTitle className="flex flex-col items-start gap-2 text-base lg:flex-row lg:items-center">
                         <span className="text-xs text-muted-foreground lg:text-sm">
-                          Passo {index + 1}
+                          {t('step', { number: index + 1 })}
                         </span>
                         <span className={cn(
                           isCompleted ? 'line-through text-muted-foreground' : '',
                           "text-sm lg:text-base"
                         )}>
-                          {step.title}
+                          {t(`steps.${step.id}.title`)}
                         </span>
                       </CardTitle>
                       <CardDescription className={cn(
                         isCompleted ? 'text-success' : '',
                         "mt-1 text-xs lg:mt-0 lg:text-sm"
                       )}>
-                        {isCompleted ? '✅ Concluído!' : step.description}
+                        {isCompleted
+                          ? t('stepDone')
+                          : t(`steps.${step.id}.description`)}
                       </CardDescription>
                     </div>
                   </div>
@@ -153,8 +139,8 @@ export function GettingStarted() {
                   {!isCompleted && (
                     <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-shrink-0 lg:flex-row">
                       <Button asChild className="w-full justify-center gap-2 lg:w-auto">
-                        <Link href={stepLinks[step.id].href}>
-                          {stepLinks[step.id].label}
+                        <Link href={step.href}>
+                          {t(`steps.${step.id}.action`)}
                           <ArrowRight className="w-4 h-4" aria-hidden="true" />
                         </Link>
                       </Button>
@@ -163,7 +149,7 @@ export function GettingStarted() {
                         onClick={() => markAsCompleted(step.id)}
                         className="w-full lg:w-auto"
                       >
-                        Marcar como feito
+                        {t('markDone')}
                       </Button>
                     </div>
                   )}
@@ -179,24 +165,17 @@ export function GettingStarted() {
         <CardHeader className="p-4 pb-2 lg:p-6">
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="size-4 lg:size-5" />
-            Dicas Úteis
+            {t('tipsTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 p-4 pt-0 lg:p-6 lg:pt-0">
           <div className="space-y-2 text-xs lg:text-sm">
             <div className="space-y-3 lg:space-y-2">
-              <p className="leading-relaxed lg:leading-normal">
-                💡 <strong>Providers suportados:</strong> Ollama (local), OpenAI, Anthropic, Google, Groq, Azure
-              </p>
-              <p className="leading-relaxed lg:leading-normal">
-                🔧 <strong>Ferramentas HTTP:</strong> Configure APIs como Weather, GitHub, qualquer REST API
-              </p>
-              <p className="leading-relaxed lg:leading-normal">
-                🧠 <strong>RAG (Opcional):</strong> Adicione base de conhecimento para contexto personalizado
-              </p>
-              <p className="leading-relaxed lg:leading-normal">
-                ⚡ <strong>Sincronização automática:</strong> Agentes criados aqui ficam disponíveis no orquestrador imediatamente
-              </p>
+              {(['providers', 'tools', 'rag', 'sync'] as const).map((tip) => (
+                <p key={tip} className="leading-relaxed lg:leading-normal">
+                  {t.rich(`tips.${tip}`, { strong })}
+                </p>
+              ))}
             </div>
           </div>
         </CardContent>
@@ -207,13 +186,12 @@ export function GettingStarted() {
         <CardHeader className="p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-foreground text-sm">
             <Smartphone className="w-4 h-4 text-primary" />
-            Otimizado para Mobile
+            {t('mobileTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            ✨ Esta interface foi otimizada para o seu dispositivo móvel. 
-            Navegue facilmente entre abas usando o menu superior.
+            {t('mobileText')}
           </p>
         </CardContent>
       </Card>
@@ -223,23 +201,18 @@ export function GettingStarted() {
         <Card className="mx-2 border-success lg:mx-0">
           <CardHeader className="p-4 pb-2 lg:p-6">
             <CardTitle className="text-success">
-              🎉 Próximos Passos
+              {t('nextStepsTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 lg:p-6 lg:pt-0">
             <div className="space-y-3 text-xs lg:space-y-2 lg:text-sm">
-              <p className="leading-relaxed lg:leading-normal">
-                ✅ Explore recursos avançados como RAG e configurações personalizadas
-              </p>
-              <p className="leading-relaxed lg:leading-normal">
-                ✅ Crie múltiplos agentes especializados para diferentes tarefas
-              </p>
-              <p className="leading-relaxed lg:leading-normal">
-                ✅ Configure ferramentas HTTP para APIs do seu negócio
-              </p>
-              <p className="leading-relaxed lg:leading-normal">
-                ✅ Teste integrações com o orquestrador Python
-              </p>
+              {(['advanced', 'specialized', 'tools', 'integration'] as const).map(
+                (step) => (
+                  <p key={step} className="leading-relaxed lg:leading-normal">
+                    {t(`nextSteps.${step}`)}
+                  </p>
+                )
+              )}
             </div>
           </CardContent>
         </Card>

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -7,6 +7,7 @@ import { AgentEditor } from '@/components/management/agents/AgentEditor'
 import { ToolEditor } from '@/components/management/tools/ToolEditor'
 
 import { server } from '../msw/server'
+import { renderWithIntl } from '../helpers/intl'
 
 // Sem o App Router no jsdom (next/navigation 15.2): só o push é observado.
 const router = vi.hoisted(() => ({ push: (href: string) => href }))
@@ -51,13 +52,13 @@ describe('AgentEditor', () => {
         return HttpResponse.json({ success: true, data: agent })
       })
     )
-    render(<AgentEditor id={agent.id} />)
+    renderWithIntl(<AgentEditor id={agent.id} />)
 
-    expect(screen.getByText('Carregando agente...').closest('[aria-busy="true"]')).not.toBeNull()
+    expect(screen.getByText('Carregando agente…').closest('[aria-busy="true"]')).not.toBeNull()
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Editar Agente' })
+      await screen.findByRole('heading', { level: 1, name: 'Editar agente' })
     ).toBeInTheDocument()
-    expect(screen.getByLabelText(/ID do Agente/)).toHaveValue(agent.id)
+    expect(screen.getByLabelText(/ID do agente/)).toHaveValue(agent.id)
     expect(requested).toEqual(['/api/agents/agente%20alfa%2F1'])
   })
 
@@ -73,9 +74,9 @@ describe('AgentEditor', () => {
       )
     )
     const user = userEvent.setup()
-    render(<AgentEditor id={agent.id} />)
+    renderWithIntl(<AgentEditor id={agent.id} />)
 
-    await screen.findByRole('heading', { name: 'Editar Agente' })
+    await screen.findByRole('heading', { name: 'Editar agente' })
     expect(screen.getByRole('link', { name: 'Voltar' })).toHaveAttribute('href', '/agents')
     expect(screen.getByRole('link', { name: 'Cancelar' })).toHaveAttribute('href', '/agents')
 
@@ -85,10 +86,10 @@ describe('AgentEditor', () => {
 
   it('sem id mostra o form de criação, sem buscar agente', async () => {
     server.use(noTools)
-    render(<AgentEditor />)
+    renderWithIntl(<AgentEditor />)
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Novo Agente' })
+      await screen.findByRole('heading', { level: 1, name: 'Novo agente' })
     ).toBeInTheDocument()
   })
 
@@ -101,7 +102,7 @@ describe('AgentEditor', () => {
         )
       )
     )
-    render(<AgentEditor id="nao-existe" />)
+    renderWithIntl(<AgentEditor id="nao-existe" />)
 
     const alert = await screen.findByRole('alert')
     expect(within(alert).getByText('Agente não encontrado')).toBeInTheDocument()
@@ -120,7 +121,7 @@ describe('AgentEditor', () => {
         )
       )
     )
-    render(<AgentEditor id="agente-alfa" />)
+    renderWithIntl(<AgentEditor id="agente-alfa" />)
 
     const alert = await screen.findByRole('alert')
     expect(
@@ -140,7 +141,7 @@ describe('ToolEditor', () => {
         )
       )
     )
-    render(<ToolEditor id="nao-existe" />)
+    renderWithIntl(<ToolEditor id="nao-existe" />)
 
     const alert = await screen.findByRole('alert')
     expect(within(alert).getByText('Tool não encontrada')).toBeInTheDocument()
@@ -166,10 +167,10 @@ describe('ToolEditor', () => {
         })
       )
     )
-    render(<ToolEditor id="clima" />)
+    renderWithIntl(<ToolEditor id="clima" />)
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Editar Tool' })
+      await screen.findByRole('heading', { level: 1, name: 'Editar tool' })
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Voltar' })).toHaveAttribute('href', '/tools')
   })

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Plus, Search, Edit, Trash2, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tool, ToolFilters } from '@/types/management'
 import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
+import { useRequestError } from '../common/useRequestError'
 import { LoadingSpinner, EmptyState } from '@/components/ui/loading'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { cn, focusRing } from '@/lib/utils'
@@ -21,6 +23,9 @@ export function ToolManagement() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [filters, _setFilters] = useState<ToolFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
+  const t = useTranslations('tools')
+  const tc = useTranslations('common')
+  const requestError = useRequestError()
 
   // Buscar tools
   const fetchTools = async () => {
@@ -36,16 +41,16 @@ export function ToolManagement() {
       }
 
       const response = await fetch(`/api/tools?${params.toString()}`)
-      const data = await response.json()
+      const data = response.ok ? await response.json() : null
 
-      if (data.success) {
+      if (data?.success) {
         setTools(data.data.data)
       } else {
-        toast.error(data.error || 'Erro ao carregar tools')
+        toast.error(requestError(response.status, { failed: t('listError') }))
       }
     } catch (error) {
       console.error('Error fetching tools:', error)
-      toast.error('Erro ao carregar tools')
+      toast.error(requestError(undefined, { failed: t('listError') }))
     } finally {
       setLoading(false)
     }
@@ -58,17 +63,22 @@ export function ToolManagement() {
         method: 'DELETE'
       })
       
-      const data = await response.json()
-      
-      if (data.success) {
-        toast.success('Tool deletada com sucesso')
+      const data = response.ok ? await response.json() : null
+
+      if (data?.success) {
+        toast.success(t('deleted'))
         fetchTools()
       } else {
-        toast.error(data.error || 'Erro ao deletar tool')
+        toast.error(
+          requestError(response.status, {
+            failed: t('deleteError'),
+            notFound: t('notFound')
+          })
+        )
       }
     } catch (error) {
       console.error('Error deleting tool:', error)
-      toast.error('Erro ao deletar tool')
+      toast.error(requestError(undefined, { failed: t('deleteError') }))
     } finally {
       setDeletingTool(null)
     }
@@ -85,15 +95,15 @@ export function ToolManagement() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Gerenciamento de Tools</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
             <p className="text-muted-foreground">
-              Crie e gerencie ferramentas HTTP para seus agentes
+              {t('subtitle')}
             </p>
           </div>
           <Button asChild className="gap-2">
             <Link href="/tools/new">
               <Plus className="w-4 h-4" aria-hidden="true" />
-              Nova Tool
+              {t('form.newTitle')}
             </Link>
           </Button>
         </div>
@@ -101,17 +111,17 @@ export function ToolManagement() {
       {/* Filtros e Busca */}
       <Card>
         <CardHeader>
-          <CardTitle>Filtros</CardTitle>
+          <CardTitle>{tc('filters')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="search">Buscar</Label>
+              <Label htmlFor="search">{tc('search')}</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="search"
-                  placeholder="ID, nome ou descrição..."
+                  placeholder={tc('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -124,16 +134,16 @@ export function ToolManagement() {
 
       {/* Lista de Tools */}
       {loading ? (
-        <LoadingSpinner text="Carregando tools..." />
+        <LoadingSpinner text={t('loadingList')} />
       ) : tools.length === 0 ? (
         <EmptyState
-          title="Nenhuma tool encontrada"
-          description="Crie sua primeira ferramenta HTTP para expandir as capacidades dos seus agentes"
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
           action={
             <Button asChild className="gap-2">
               <Link href="/tools/new">
                 <Plus className="w-4 h-4" aria-hidden="true" />
-                Criar primeira tool
+                {t('createFirst')}
               </Link>
             </Button>
           }
@@ -156,11 +166,11 @@ export function ToolManagement() {
                     </CardTitle>
                     <div className="flex items-center gap-2">
                       <span className="rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">
-                        {tool.http_method || tool.http_config?.method || 'N/A'}
+                        {tool.http_method || tool.http_config?.method || tc('notAvailable')}
                       </span>
                       {tool.active !== undefined && (
                         <StatusBadge active={tool.active}>
-                          {tool.active ? 'Ativa' : 'Inativa'}
+                          {tool.active ? t('active') : t('inactive')}
                         </StatusBadge>
                       )}
                     </div>
@@ -169,7 +179,7 @@ export function ToolManagement() {
                     <Button variant="ghost" size="sm" asChild>
                       <Link
                         href={`/tools/${encodeURIComponent(tool.id)}`}
-                        aria-label="Editar tool"
+                        aria-label={t('editLabel')}
                       >
                         <Edit className="w-4 h-4" aria-hidden="true" />
                       </Link>
@@ -178,7 +188,7 @@ export function ToolManagement() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setDeletingTool(tool)}
-                      aria-label="Excluir tool"
+                      aria-label={t('deleteLabel')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -187,29 +197,29 @@ export function ToolManagement() {
               </CardHeader>
               <CardContent>
                 <CardDescription className="mb-4">
-                  {tool.description || 'Sem descrição'}
+                  {tool.description || tc('noDescription')}
                 </CardDescription>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="font-medium">ID:</span> {tool.id}
+                    <span className="font-medium">{t('idField')}</span> {tool.id}
                   </div>
                   <div>
-                    <span className="font-medium">Rota:</span> 
+                    <span className="font-medium">{t('routeField')}</span> 
                     <span className="break-all">
-                      {tool.route || (tool.http_config ? `${tool.http_config.base_url}${tool.http_config.endpoint}` : 'N/A')}
+                      {tool.route || (tool.http_config ? `${tool.http_config.base_url}${tool.http_config.endpoint}` : tc('notAvailable'))}
                     </span>
                   </div>
                   {tool.instructions && (
                     <div>
-                      <span className="font-medium">Instruções:</span> 
+                      <span className="font-medium">{t('instructionsField')}</span> 
                       <span className="text-muted-foreground">{tool.instructions}</span>
                     </div>
                   )}
                   <div>
-                    <span className="font-medium">Parâmetros:</span> {tool.parameters?.length || tool.http_config?.parameters?.length || 0}
+                    <span className="font-medium">{t('parametersField')}</span> {tool.parameters?.length || tool.http_config?.parameters?.length || 0}
                   </div>
                   <div>
-                    <span className="font-medium">Headers:</span> {Object.keys(tool.headers || tool.http_config?.headers || {}).length}
+                    <span className="font-medium">{t('headersField')}</span> {Object.keys(tool.headers || tool.http_config?.headers || {}).length}
                   </div>
                 </div>
               </CardContent>
@@ -222,8 +232,8 @@ export function ToolManagement() {
       <DeleteConfirmDialog
         open={!!deletingTool}
         onOpenChange={() => setDeletingTool(null)}
-        title="Deletar Tool"
-        description={`Tem certeza que deseja deletar a tool "${deletingTool?.name}"? Esta ação não pode ser desfeita.`}
+        title={t('deleteTitle')}
+        description={t('deleteDescription', { name: deletingTool?.name ?? '' })}
         onConfirm={() => deletingTool && handleDeleteTool(deletingTool)}
       />
       </div>

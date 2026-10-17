@@ -352,6 +352,7 @@ src/
 │   ├── playground/           # Interface de chat
 │   └── ui/                   # Componentes base (shadcn)
 ├── hooks/                     # React hooks customizados
+├── i18n/                      # next-intl: idioma pelo cookie (request.ts)
 ├── lib/                      # Utilitários e configurações
 │   ├── mongodb.ts           # Cliente MongoDB
 │   ├── utils.ts             # Funções auxiliares
@@ -409,6 +410,9 @@ export const providerConfigs = {
 As cores são tokens do Design System (`docs/design/design-system.md`): canais HSL em `src/app/globals.css` (`:root` = claro, `.dark` = escuro) e mapeados no `tailwind.config.ts` (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`...). Nada de hex nem paleta crua do Tailwind nos componentes.
 
 O tema (Claro, Escuro ou Sistema, padrão Sistema) vem do `next-themes` e é escolhido no botão do cabeçalho (no celular, também no rodapé do menu); a escolha fica no `localStorage` (`theme`).
+
+#### **Idioma**
+A UI está em pt-BR (padrão) e EN, com `next-intl`. Os textos ficam nos catálogos `messages/pt-BR.json` e `messages/en.json` (mesmas chaves nos dois, conferido por `tests/i18n/catalogs.test.ts`); nas pastas já migradas o lint recusa texto literal em JSX. O idioma é escolhido no botão `PT`/`EN` do cabeçalho (no celular, na linha "Idioma" do menu), fica no cookie `locale` e não entra na URL; sem cookie, a página abre em pt-BR. Trocar de idioma não recarrega a página.
 
 #### **Componentes Personalizados**
 ```typescript

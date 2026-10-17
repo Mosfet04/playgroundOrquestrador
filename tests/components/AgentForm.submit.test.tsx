@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -7,6 +7,7 @@ import { agentBodySchema } from '@/app/api/agents/schema'
 import { AgentForm } from '@/components/management/agents/AgentForm'
 
 import { server } from '../msw/server'
+import { renderWithIntl } from '../helpers/intl'
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -42,9 +43,9 @@ describe('AgentForm: envio', () => {
       })
     )
     const user = userEvent.setup()
-    render(<AgentForm onSuccess={() => {}} />)
+    renderWithIntl(<AgentForm onSuccess={() => {}} />)
 
-    await user.type(screen.getByLabelText(/ID do Agente/), 'assistente')
+    await user.type(screen.getByLabelText(/ID do agente/), 'assistente')
     await user.type(screen.getByLabelText(/^Nome/), 'Assistente')
     await user.type(screen.getByLabelText(/^Modelo/), 'llama3.2')
     await user.click(await screen.findByRole('checkbox', { name: /Tool da página 2/ }))

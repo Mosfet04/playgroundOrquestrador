@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useFormatter, useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -31,17 +32,22 @@ import {
   TrendingUp,
   Clock
 } from 'lucide-react'
-import { DashboardStats, TokenMetrics, TimeFilter } from '@/types/dashboard'
+import { DashboardStats, TokenMetrics } from '@/types/dashboard'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, labelFormatter }: any) => {
+  const format = useFormatter()
   if (active && payload && payload.length) {
     return (
       <div className="rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-popover">
-        {label && <p className="font-semibold">{label}</p>}
+        {label && (
+          <p className="font-semibold">
+            {labelFormatter ? labelFormatter(label, payload) : label}
+          </p>
+        )}
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {payload.map((item: any) => (
           <p key={item.dataKey}>
-            {item.name}: {item.value.toLocaleString()}
+            {item.name}: {format.number(item.value)}
           </p>
         ))}
       </div>
@@ -61,19 +67,21 @@ const CHART = {
 }
 const AXIS_PROPS = { stroke: CHART.grid, tick: { fill: CHART.axis } }
 
-const timeFilters: TimeFilter[] = [
-  { label: 'Última Hora', value: '1h' },
-  { label: 'Últimas 24h', value: '24h' },
-  { label: 'Últimos 7 dias', value: '7d' },
-  { label: 'Últimos 30 dias', value: '30d' },
-  { label: 'Últimos 90 dias', value: '90d' }
-]
+const TIME_FILTERS = ['1h', '24h', '7d', '30d', '90d'] as const
+
+// Eixo de "atividade": a chave do dia vem do BFF como YYYY-MM-DD em UTC; sem o
+// timeZone, 2026-10-15 viraria "14 de out." em UTC-3 (P1-04, formatos).
+const DAY_FORMAT = { day: 'numeric', month: 'short', timeZone: 'UTC' } as const
 
 export function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [tokenMetrics, setTokenMetrics] = useState<TokenMetrics[]>([])
   const [timeFilter, setTimeFilter] = useState<string>('24h')
   const [loading, setLoading] = useState(true)
+  const t = useTranslations('dashboard')
+  const format = useFormatter()
+  const formatDay = (time: string) => format.dateTime(new Date(time), DAY_FORMAT)
+  const formatNumber = (value: number) => format.number(value)
 
   // Buscar estatísticas gerais
   const fetchStats = async () => {
@@ -137,19 +145,19 @@ export function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
             <p className="text-muted-foreground">
-              Visão geral do sistema e métricas de uso
+              {t('subtitle')}
             </p>
           </div>
           <Select value={timeFilter} onValueChange={setTimeFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Selecionar período" />
+              <SelectValue placeholder={t('periodPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              {timeFilters.map((filter) => (
-                <SelectItem key={filter.value} value={filter.value}>
-                  {filter.label}
+              {TIME_FILTERS.map((filter) => (
+                <SelectItem key={filter} value={filter}>
+                  {t(`period.${filter}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -160,54 +168,58 @@ export function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Agentes Ativos</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('activeAgents')}</CardTitle>
               <Bot className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="font-mono text-3xl font-medium tabular-nums">{stats.activeAgents}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{format.number(stats.activeAgents)}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.totalAgents} total
+                {t('totalAgents', { total: stats.totalAgents })}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuários Únicos</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('uniqueUsers')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="font-mono text-3xl font-medium tabular-nums">{stats.uniqueUsers}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{format.number(stats.uniqueUsers)}</div>
               <p className="text-xs text-muted-foreground">
-                No período selecionado
+                {t('inPeriod')}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sessões Criadas</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('sessionsCreated')}</CardTitle>
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="font-mono text-3xl font-medium tabular-nums">{stats.totalSessions}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{format.number(stats.totalSessions)}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.totalAgentSessions} agents · {stats.totalTeamSessions} teams · {stats.sessionsInPeriod} no período
+                {t('sessionsBreakdown', {
+                  agents: stats.totalAgentSessions,
+                  teams: stats.totalTeamSessions,
+                  period: stats.sessionsInPeriod
+                })}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tokens Consumidos</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('tokensConsumed')}</CardTitle>
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="font-mono text-3xl font-medium tabular-nums">
-                {stats.totalTokens.toLocaleString()}
+                {format.number(stats.totalTokens)}
               </div>
               <p className="text-xs text-muted-foreground">
-                No período selecionado
+                {t('inPeriod')}
               </p>
             </CardContent>
           </Card>
@@ -219,10 +231,10 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5" />
-                Modelos de IA
+                {t('aiModels')}
               </CardTitle>
               <CardDescription>
-                Modelos utilizados pelos agentes ativos
+                {t('aiModelsDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -236,7 +248,7 @@ export function Dashboard() {
                         <p className="text-sm text-muted-foreground">{model.provider}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary">{model.count} uso(s)</Badge>
+                    <Badge variant="secondary">{t('uses', { count: model.count })}</Badge>
                   </div>
                 ))}
               </div>
@@ -247,10 +259,10 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Modelos de Embedding
+                {t('embeddingModels')}
               </CardTitle>
               <CardDescription>
-                Modelos de embedding em uso no RAG
+                {t('embeddingModelsDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -264,7 +276,7 @@ export function Dashboard() {
                         <p className="text-sm text-muted-foreground">{model.provider}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary">{model.count} uso(s)</Badge>
+                    <Badge variant="secondary">{t('uses', { count: model.count })}</Badge>
                   </div>
                 ))}
               </div>
@@ -277,10 +289,10 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Consumo de Tokens por Entidade
+              {t('tokensByEntity')}
             </CardTitle>
             <CardDescription>
-              Total de tokens consumidos por cada agente/team no período selecionado
+              {t('tokensByEntityDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -288,20 +300,15 @@ export function Dashboard() {
               <BarChart data={tokenMetrics}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
                 <XAxis dataKey="agentName" {...AXIS_PROPS} />
-                <YAxis {...AXIS_PROPS} />
-                <Tooltip
-                    content={<CustomTooltip />}
-                  cursor={{ fill: CHART.cursor }}
-                  formatter={(value?: string | number) => [typeof value === 'number' ? value.toLocaleString() : String(value ?? ''), 'Tokens']}
-                  labelFormatter={(label) => {
-                    const item = tokenMetrics.find(m => m.agentName === label)
-                    const type = item?.entityType === 'team' ? 'Team' : 'Agent'
-                    return `${type}: ${label}`
-                  }}
+                <YAxis
+                  allowDecimals={false}
+                  tickFormatter={formatNumber}
+                  {...AXIS_PROPS}
                 />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: CHART.cursor }} />
                 <Legend />
-                <Bar dataKey="inputTokens" fill={CHART.series1} name="Tokens de Entrada" />
-                <Bar dataKey="outputTokens" fill={CHART.series2} name="Tokens de Saída" />
+                <Bar dataKey="inputTokens" fill={CHART.series1} name={t('inputTokens')} />
+                <Bar dataKey="outputTokens" fill={CHART.series2} name={t('outputTokens')} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -313,22 +320,30 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Atividade por Tempo
+                {t('activity')}
               </CardTitle>
               <CardDescription>
-                Distribuição de sessões ao longo do tempo
+                {t('activityDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={stats.activityOverTime}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="time" {...AXIS_PROPS} />
-                  <YAxis {...AXIS_PROPS} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: CHART.grid }} />
+                  <XAxis dataKey="time" tickFormatter={formatDay} {...AXIS_PROPS} />
+                  <YAxis
+                    allowDecimals={false}
+                    tickFormatter={formatNumber}
+                    {...AXIS_PROPS}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ stroke: CHART.grid }}
+                    labelFormatter={(time) => formatDay(String(time))}
+                  />
                   <Legend />
-                  <Area type="monotone" dataKey="agentSessions" stackId="1" stroke={CHART.series1} fill={CHART.series1} fillOpacity={0.6} name="Agent Sessions" />
-                  <Area type="monotone" dataKey="teamSessions" stackId="1" stroke={CHART.series2} fill={CHART.series2} fillOpacity={0.6} name="Team Sessions" />
+                  <Area type="monotone" dataKey="agentSessions" stackId="1" stroke={CHART.series1} fill={CHART.series1} fillOpacity={0.6} name={t('agentSessions')} />
+                  <Area type="monotone" dataKey="teamSessions" stackId="1" stroke={CHART.series2} fill={CHART.series2} fillOpacity={0.6} name={t('teamSessions')} />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -338,10 +353,10 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                Sessões por Tipo
+                {t('sessionsByType')}
               </CardTitle>
               <CardDescription>
-                Distribuição de sessões entre Agents e Teams
+                {t('sessionsByTypeDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -349,8 +364,8 @@ export function Dashboard() {
                 <PieChart>
                   <Pie
                     data={[
-                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: CHART.series1 },
-                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: CHART.series2 }
+                      { name: t('agentSessions'), value: stats.totalAgentSessions, fill: CHART.series1 },
+                      { name: t('teamSessions'), value: stats.totalTeamSessions, fill: CHART.series2 }
                     ]}
                     cx="50%"
                     cy="50%"
@@ -359,11 +374,11 @@ export function Dashboard() {
                     paddingAngle={5}
                     stroke={CHART.surface}
                     dataKey="value"
-                    label={({name, value}) => `${name}: ${value}`}
+                    label={({ name, value }) => `${name}: ${format.number(Number(value))}`}
                   >
                     {[
-                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: CHART.series1 },
-                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: CHART.series2 }
+                      { name: t('agentSessions'), value: stats.totalAgentSessions, fill: CHART.series1 },
+                      { name: t('teamSessions'), value: stats.totalTeamSessions, fill: CHART.series2 }
                     ].map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}

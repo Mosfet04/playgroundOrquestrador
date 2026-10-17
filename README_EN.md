@@ -308,6 +308,7 @@ src/
 │   ├── playground/           # Chat interface
 │   └── ui/                   # Base components (shadcn)
 ├── hooks/                     # Custom React hooks
+├── i18n/                      # next-intl: language from the cookie (request.ts)
 ├── lib/                      # Utilities and configurations
 │   ├── mongodb.ts           # MongoDB client
 │   ├── utils.ts             # Helper functions

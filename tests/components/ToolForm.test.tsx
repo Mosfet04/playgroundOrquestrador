@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -7,6 +7,7 @@ import { toolBodySchema } from '@/app/api/tools/schema'
 import { ToolForm } from '@/components/management/tools/ToolForm'
 
 import { server } from '../msw/server'
+import { renderWithIntl } from '../helpers/intl'
 
 beforeAll(() => {
   // O jsdom não implementa estas APIs, que Switch e Select do Radix usam.
@@ -45,9 +46,9 @@ describe('ToolForm', () => {
   it('não envia descrição só com espaços', async () => {
     const bodies = captureSave()
     const user = userEvent.setup()
-    render(<ToolForm onSuccess={() => {}} />)
+    renderWithIntl(<ToolForm onSuccess={() => {}} />)
 
-    await user.type(screen.getByLabelText(/ID da Tool/), 'clima')
+    await user.type(screen.getByLabelText(/ID da tool/), 'clima')
     await user.type(screen.getByLabelText(/^Nome/), 'Clima')
     await user.type(screen.getByLabelText(/^Rota/), 'https://clima.example.com/v1')
     await user.type(screen.getByLabelText(/^Descrição/), '   ')
@@ -64,9 +65,9 @@ describe('ToolForm', () => {
   it('envia o parâmetro float escolhido no seletor', async () => {
     const bodies = captureSave()
     const user = userEvent.setup()
-    render(<ToolForm onSuccess={() => {}} />)
+    renderWithIntl(<ToolForm onSuccess={() => {}} />)
 
-    await user.type(screen.getByLabelText(/ID da Tool/), 'clima')
+    await user.type(screen.getByLabelText(/ID da tool/), 'clima')
     await user.type(screen.getByLabelText(/^Nome/), 'Clima')
     await user.type(screen.getByLabelText(/^Rota/), 'https://clima.example.com/v1')
     await user.type(screen.getByLabelText(/^Descrição/), 'Consulta o clima')

@@ -1,9 +1,11 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppShell, usePageLabel } from '@/components/layout/AppShell'
 import { Navigation } from '@/components/layout/Navigation'
+
+import { renderWithIntl } from '../helpers/intl'
 
 // Sem o App Router no jsdom: o pathname vem do mock (next/navigation 15.2).
 const route = vi.hoisted(() => ({ pathname: '/' }))
@@ -51,7 +53,7 @@ function activeLinks(container: HTMLElement) {
 describe('Navigation: item ativo', () => {
   it('em / só Início fica ativo, por igualdade exata', () => {
     route.pathname = '/'
-    render(<Navigation />)
+    renderWithIntl(<Navigation />)
 
     const active = activeLinks(mainNav())
     expect(active).toHaveLength(1)
@@ -61,7 +63,7 @@ describe('Navigation: item ativo', () => {
 
   it('na rota da lista o item recebe aria-current="page"', () => {
     route.pathname = '/agents'
-    render(<Navigation />)
+    renderWithIntl(<Navigation />)
 
     const active = activeLinks(mainNav())
     expect(active).toHaveLength(1)
@@ -73,7 +75,7 @@ describe('Navigation: item ativo', () => {
     'na sub-rota %s "Agentes" fica ativo com aria-current="true"',
     (pathname) => {
       route.pathname = pathname
-      render(<Navigation />)
+      renderWithIntl(<Navigation />)
 
       const active = activeLinks(mainNav())
       expect(active).toHaveLength(1)
@@ -84,7 +86,7 @@ describe('Navigation: item ativo', () => {
 
   it('os itens são links reais para as rotas, nos grupos da navegação', () => {
     route.pathname = '/'
-    render(<Navigation />)
+    renderWithIntl(<Navigation />)
 
     const hrefs = within(mainNav())
       .getAllByRole('link')
@@ -110,7 +112,7 @@ describe('AppShell', () => {
   it('o 1º Tab mostra "Pular para o conteúdo" e o 2º vai ao 1º item da navegação', async () => {
     route.pathname = '/agents'
     const user = userEvent.setup()
-    render(
+    renderWithIntl(
       <AppShell>
         <h1>Agentes</h1>
       </AppShell>
@@ -128,7 +130,7 @@ describe('AppShell', () => {
 
   it('a trilha de um detalhe mostra o grupo, o link da lista e o id até o nome chegar', () => {
     route.pathname = '/agents/agente%20alfa'
-    const { rerender } = render(
+    const { rerender } = renderWithIntl(
       <AppShell>
         <LabeledPage />
       </AppShell>
@@ -155,10 +157,36 @@ describe('AppShell', () => {
     expect(current).toHaveAttribute('title', 'Agente Alfa')
   })
 
+  it('em EN a casca vem do catálogo EN: trilha, navegação, subtítulo e seletores', () => {
+    route.pathname = '/agents/new'
+    renderWithIntl(
+      <AppShell>
+        <h1>New agent</h1>
+      </AppShell>,
+      { locale: 'en' }
+    )
+
+    expect(screen.getByRole('link', { name: 'Skip to content' })).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' })
+    expect(within(nav).getByRole('link', { name: 'Agents' })).toHaveAttribute(
+      'aria-current',
+      'true'
+    )
+    const trail = screen.getByRole('navigation', { name: 'You are here' })
+    expect(within(trail).getByText('Configure')).toBeInTheDocument()
+    expect(within(trail).getByText('New agent')).toHaveAttribute('aria-current', 'page')
+    // Subtítulo mono do celular: a seção em minúsculas.
+    expect(screen.getByText('agents')).toBeInTheDocument()
+    expect(
+      screen.getByRole('combobox', { name: 'Language: English. Change language' })
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open menu' })).toBeInTheDocument()
+  })
+
   it('o menu abre um Sheet que começa no 1º item; Esc fecha e devolve o foco', async () => {
     route.pathname = '/tools'
     const user = userEvent.setup()
-    render(
+    renderWithIntl(
       <AppShell>
         <h1>Tools</h1>
       </AppShell>
@@ -178,6 +206,9 @@ describe('AppShell', () => {
     expect(
       within(sheet).getByRole('combobox', { name: 'Tema' })
     ).toBeInTheDocument()
+    expect(
+      within(sheet).getByRole('combobox', { name: 'Idioma' })
+    ).toHaveTextContent('Português (Brasil)')
 
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument()
@@ -187,7 +218,7 @@ describe('AppShell', () => {
   it('"Fechar menu" fecha o Sheet', async () => {
     route.pathname = '/'
     const user = userEvent.setup()
-    render(<AppShell>conteúdo</AppShell>)
+    renderWithIntl(<AppShell>conteúdo</AppShell>)
 
     await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
     await user.click(screen.getByRole('button', { name: 'Fechar menu' }))
@@ -198,7 +229,7 @@ describe('AppShell', () => {
   it('o Sheet fecha quando a janela passa de 1024 px', async () => {
     route.pathname = '/'
     const user = userEvent.setup()
-    render(<AppShell>conteúdo</AppShell>)
+    renderWithIntl(<AppShell>conteúdo</AppShell>)
 
     await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
     expect(screen.getByRole('dialog', { name: 'Menu' })).toBeInTheDocument()

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
+import { NextIntlClientProvider } from 'next-intl'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { Toaster } from '@/components/ui/sonner'
@@ -58,36 +60,40 @@ export const viewport: Viewport = {
   initialScale: 1
 }
 
-export const metadata: Metadata = {
-  title: {
-    default: 'Playground do Orquestrador',
-    template: '%s · Playground do Orquestrador'
-  },
-  description:
-    'A modern chat interface for AI agents built with Next.js, Tailwind CSS, and TypeScript. This template provides a ready-to-use UI for interacting with Agno agents.'
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('metadata')
+  return {
+    title: { default: t('title'), template: t('titleTemplate') },
+    description: t('description')
+  }
 }
 
-export default function RootLayout({
+// Idioma pelo cookie (src/i18n/request.ts, decisão 0011): `lang`, catálogo do
+// cliente e <title> mudam juntos na resposta da server action do seletor.
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const locale = await getLocale()
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
       className={`${plexSans.variable} ${plexSansItalic.variable} ${plexMono.variable}`}
     >
       <body className="bg-background font-sans text-foreground antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <NuqsAdapter>{children}</NuqsAdapter>
-          <Toaster />
-        </ThemeProvider>
+        <NextIntlClientProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <NuqsAdapter>{children}</NuqsAdapter>
+            <Toaster />
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

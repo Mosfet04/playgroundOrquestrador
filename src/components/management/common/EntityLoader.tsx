@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { CircleAlert } from 'lucide-react'
 
 import { usePageLabel } from '@/components/layout/AppShell'
@@ -38,6 +39,7 @@ export function EntityLoader<T>({
   children: (entity: T) => React.ReactNode
 }) {
   const [state, setState] = useState<LoadState<T>>({ status: 'loading' })
+  const t = useTranslations('common')
 
   useEffect(() => {
     let current = true
@@ -85,7 +87,9 @@ export function EntityLoader<T>({
       </h1>
       <p className="break-all font-mono text-sm text-muted-foreground">{id}</p>
       {state.code && state.code !== 404 && (
-        <p className="text-sm text-muted-foreground">código {state.code}</p>
+        <p className="text-sm text-muted-foreground">
+          {t('code', { status: state.code })}
+        </p>
       )}
       <Link
         href={texts.backHref}

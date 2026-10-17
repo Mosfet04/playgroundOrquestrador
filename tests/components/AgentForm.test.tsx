@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { AgentForm } from '@/components/management/agents/AgentForm'
 
 import { server } from '../msw/server'
+import { renderWithIntl } from '../helpers/intl'
 
 // 101 tools: com limit=100 a última só vem na página 2.
 const tools = Array.from({ length: 101 }, (_, index) => {
@@ -53,7 +54,7 @@ describe('AgentForm', () => {
   it('lista todas as tools, inclusive além da 1ª página', async () => {
     serveToolsPaginated()
 
-    render(<AgentForm onSuccess={() => {}} />)
+    renderWithIntl(<AgentForm onSuccess={() => {}} />)
 
     expect(
       await screen.findByRole('checkbox', { name: /Ferramenta 101/ })
@@ -67,7 +68,7 @@ describe('AgentForm', () => {
   it('dá nome aos switches pelo Label (F-05)', async () => {
     serveToolsPaginated()
 
-    render(<AgentForm onSuccess={() => {}} />)
+    renderWithIntl(<AgentForm onSuccess={() => {}} />)
 
     expect(
       await screen.findByRole('switch', { name: 'Agente ativo' })

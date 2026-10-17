@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 
 import { decodeUrlSegment } from '@/lib/utils'
 import { ToolEditor } from '@/components/management/tools/ToolEditor'
@@ -8,7 +9,8 @@ type Props = { params: Promise<{ id: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = decodeUrlSegment((await params).id)
-  return { title: `${id} · Tools` }
+  const t = await getTranslations('nav')
+  return { title: `${id} · ${t('tools')}` }
 }
 
 export default async function ToolPage({ params }: Props) {

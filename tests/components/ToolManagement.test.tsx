@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { ToolManagement } from '@/components/management/tools/ToolManagement'
 
 import { server } from '../msw/server'
+import { renderWithIntl } from '../helpers/intl'
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -39,7 +40,7 @@ const serveTools = (tools: (typeof tool)[]) =>
 describe('ToolManagement: links da lista (D-P1-03-2)', () => {
   it('o nome e "Editar" levam a /tools/<id> com o id codificado (/, ?, espaço)', async () => {
     serveTools([tool])
-    render(<ToolManagement />)
+    renderWithIntl(<ToolManagement />)
 
     const expected = '/tools/clima%2Fhoje%3Fx%3D1'
     expect(await screen.findByRole('link', { name: 'Clima' })).toHaveAttribute('href', expected)
@@ -47,13 +48,13 @@ describe('ToolManagement: links da lista (D-P1-03-2)', () => {
     expect(screen.getByRole('button', { name: 'Excluir tool' })).toBeInTheDocument()
   })
 
-  it('"Nova Tool" e "Criar primeira tool" levam a /tools/new', async () => {
+  it('"Nova tool" e "Criar primeira tool" levam a /tools/new', async () => {
     serveTools([])
-    render(<ToolManagement />)
+    renderWithIntl(<ToolManagement />)
 
     expect(
       await screen.findByRole('link', { name: 'Criar primeira tool' })
     ).toHaveAttribute('href', '/tools/new')
-    expect(screen.getByRole('link', { name: 'Nova Tool' })).toHaveAttribute('href', '/tools/new')
+    expect(screen.getByRole('link', { name: 'Nova tool' })).toHaveAttribute('href', '/tools/new')
   })
 })

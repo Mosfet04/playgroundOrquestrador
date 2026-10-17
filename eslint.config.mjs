@@ -27,6 +27,42 @@ const eslintConfig = [
         }
       ]
     }
+  },
+  {
+    // P1-04: texto de UI só pelo catálogo (messages/*.json) nas pastas já
+    // migradas; o /playground entra no P1-04b. Props como className ficam de
+    // fora; os atributos lidos pelo usuário são cobertos pela regra abaixo.
+    files: [
+      'src/app/**/*.tsx',
+      'src/components/layout/**/*.tsx',
+      'src/components/management/**/*.tsx'
+    ],
+    rules: {
+      'react/jsx-no-literals': [
+        'error',
+        {
+          noStrings: true,
+          ignoreProps: true,
+          // Separadores (trilha, "chave: valor") e emoji decorativo do GettingStarted.
+          allowedStrings: ['›', ':', '🎉']
+        }
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'JSXAttribute[name.name=/^(aria-label|placeholder|title|alt)$/] > Literal',
+          message: 'Texto de UI vem do catálogo (useTranslations), não literal.'
+        },
+        {
+          // O jsx-no-literals não olha dentro de `?:`, `||` e `&&` nos filhos
+          // JSX (`{x || 'N/A'}`); até dois níveis, fora de atributos.
+          selector:
+            ':matches(JSXElement, JSXFragment) > JSXExpressionContainer > :matches(ConditionalExpression, LogicalExpression) > Literal[value=/\\p{L}/u], :matches(JSXElement, JSXFragment) > JSXExpressionContainer > :matches(ConditionalExpression, LogicalExpression) > :matches(ConditionalExpression, LogicalExpression) > Literal[value=/\\p{L}/u]',
+          message: 'Texto de UI vem do catálogo (useTranslations), não literal.'
+        }
+      ]
+    }
   }
 ]
 

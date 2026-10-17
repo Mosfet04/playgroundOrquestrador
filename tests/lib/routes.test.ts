@@ -29,48 +29,46 @@ describe('activeState', () => {
   })
 })
 
+// Rótulos são chaves do catálogo `nav` (P1-04); o cabeçalho traduz.
 describe('describeRoute', () => {
   it('lista: grupo e seção sem trilha de detalhe', () => {
-    expect(describeRoute('/agents')).toMatchObject({
-      group: 'Configurar',
-      current: 'Agentes',
-      isId: false,
-      subtitle: 'configurar'
+    expect(describeRoute('/agents')).toEqual({
+      group: 'configure',
+      label: 'agents',
+      subtitle: 'configure'
     })
   })
 
   it('/ não tem grupo e usa "playground" como subtítulo', () => {
-    expect(describeRoute('/')).toMatchObject({
-      group: undefined,
-      current: 'Início',
-      subtitle: 'playground'
-    })
+    expect(describeRoute('/')).toEqual({ label: 'home', subtitle: 'playground' })
   })
 
   it.each([
-    ['/agents/new', 'Novo agente', 'Agentes'],
-    ['/tools/new', 'Nova tool', 'Tools']
-  ])('%s: rótulo de criação, não um id', (pathname, current, section) => {
-    expect(describeRoute(pathname)).toMatchObject({
-      current,
-      isId: false,
-      section: { label: section }
+    ['/agents/new', 'newAgent', 'agents'],
+    ['/tools/new', 'newTool', 'tools']
+  ] as const)('%s: rótulo de criação, não um id', (pathname, label, section) => {
+    expect(describeRoute(pathname)).toEqual({
+      group: 'configure',
+      section: { href: `/${section}`, label: section },
+      label,
+      subtitle: section
     })
   })
 
   it('detalhe: o id decodificado aparece como texto, sem interpretação', () => {
-    expect(describeRoute('/agents/%3Cscript%3E%20a%2Fb')).toMatchObject({
-      current: '<script> a/b',
-      isId: true,
-      section: { href: '/agents', label: 'Agentes' }
+    expect(describeRoute('/agents/%3Cscript%3E%20a%2Fb')).toEqual({
+      group: 'configure',
+      section: { href: '/agents', label: 'agents' },
+      id: '<script> a/b',
+      subtitle: 'agents'
     })
   })
 
   it('sequência % inválida volta como veio e não quebra', () => {
-    expect(describeRoute('/tools/%E0%A4%A').current).toBe('%E0%A4%A')
+    expect(describeRoute('/tools/%E0%A4%A').id).toBe('%E0%A4%A')
   })
 
   it('rota fora do mapa devolve trilha vazia', () => {
-    expect(describeRoute('/nao-existe')).toMatchObject({ current: '', isId: false })
+    expect(describeRoute('/nao-existe')).toEqual({})
   })
 })

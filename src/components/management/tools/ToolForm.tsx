@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Tool, CreateToolForm, PARAMETER_TYPES } from '@/types/management'
+import { useRequestError } from '../common/useRequestError'
 
 interface ToolFormProps {
   tool?: Tool | null
@@ -34,6 +36,9 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
   )
 
   const isEditing = !!tool
+  const t = useTranslations('tools')
+  const tc = useTranslations('common')
+  const requestError = useRequestError()
 
   const {
     register,
@@ -109,17 +114,23 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
         body: JSON.stringify(payload)
       })
 
-      const result = await response.json()
+      const result = response.ok ? await response.json() : null
 
-      if (result.success) {
-        toast.success(result.message || 'Tool salva com sucesso')
+      if (result?.success) {
+        toast.success(t('saved'))
         onSuccess()
       } else {
-        toast.error(result.error || 'Erro ao salvar tool')
+        toast.error(
+          requestError(response.status, {
+            failed: t('saveError'),
+            conflict: t('conflict'),
+            notFound: t('notFound')
+          })
+        )
       }
     } catch (error) {
       console.error('Error saving tool:', error)
-      toast.error('Erro interno do servidor')
+      toast.error(requestError(undefined, { failed: t('saveError') }))
     } finally {
       setLoading(false)
     }
@@ -133,18 +144,15 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/tools">
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-              Voltar
+              {tc('back')}
             </Link>
           </Button>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              {isEditing ? 'Editar Tool' : 'Nova Tool'}
+              {isEditing ? t('form.editTitle') : t('form.newTitle')}
             </h1>
             <p className="text-muted-foreground">
-              {isEditing 
-                ? 'Edite as configurações da tool' 
-                : 'Configure uma nova ferramenta HTTP'
-              }
+              {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
         </div>
@@ -153,20 +161,20 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
         {/* Informações Básicas */}
         <Card>
           <CardHeader>
-            <CardTitle>Informações Básicas</CardTitle>
+            <CardTitle>{t('form.basicInfo')}</CardTitle>
             <CardDescription>
-              Configure as informações principais da tool
+              {t('form.basicInfoDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="id">ID da Tool *</Label>
+                <Label htmlFor="id">{t('form.id')}</Label>
                 <Input
                   id="id"
-                  {...register('id', { required: 'ID é obrigatório' })}
+                  {...register('id', { required: tc('idRequired') })}
                   disabled={isEditing}
-                  placeholder="ex: weather-api"
+                  placeholder={tc('example', { value: 'weather-api' })}
                 />
                 {errors.id && (
                   <p className="text-sm text-destructive">{errors.id.message}</p>
@@ -174,11 +182,11 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">Nome *</Label>
+                <Label htmlFor="name">{t('form.name')}</Label>
                 <Input
                   id="name"
-                  {...register('name', { required: 'Nome é obrigatório' })}
-                  placeholder="ex: Weather API"
+                  {...register('name', { required: tc('nameRequired') })}
+                  placeholder={tc('example', { value: 'Weather API' })}
                 />
                 {errors.name && (
                   <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -187,14 +195,14 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descrição *</Label>
+              <Label htmlFor="description">{t('form.description')}</Label>
               <TextArea
                 id="description"
                 {...register('description', {
                   validate: (value) =>
-                    value.trim() !== '' || 'Descrição é obrigatória'
+                    value.trim() !== '' || tc('descriptionRequired')
                 })}
-                placeholder="Descreva o que esta tool faz..."
+                placeholder={t('form.descriptionPlaceholder')}
                 rows={3}
               />
               {errors.description && (
@@ -203,17 +211,17 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="instructions">Instruções</Label>
+              <Label htmlFor="instructions">{t('form.instructions')}</Label>
               <TextArea
                 id="instructions"
                 {...register('instructions')}
-                placeholder="Instruções específicas para uso da tool..."
+                placeholder={t('form.instructionsPlaceholder')}
                 rows={2}
               />
             </div>
 
             <div className="flex items-center space-x-2">
-              <Label htmlFor="active">Tool Ativa</Label>
+              <Label htmlFor="active">{t('form.active')}</Label>
               <Switch
                 id="active"
                 checked={watch('active')}
@@ -226,22 +234,22 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
         {/* Configuração HTTP */}
         <Card>
           <CardHeader>
-            <CardTitle>Configuração HTTP</CardTitle>
+            <CardTitle>{t('form.http')}</CardTitle>
             <CardDescription>
-              Configure os detalhes da requisição HTTP
+              {t('form.httpDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Método HTTP *</Label>
+                <Label>{t('form.method')}</Label>
                 <Select
                   value={watch('http_method')}
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onValueChange={(value) => setValue('http_method', value as any)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o método" />
+                    <SelectValue placeholder={t('form.methodPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {httpMethods.map((method) => (
@@ -254,11 +262,11 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="route">Rota/URL *</Label>
+                <Label htmlFor="route">{t('form.route')}</Label>
                 <Input
                   id="route"
-                  {...register('route', { required: 'Rota é obrigatória' })}
-                  placeholder="https://api.exemplo.com/v1/weather"
+                  {...register('route', { required: t('form.routeRequired') })}
+                  placeholder={t('form.routePlaceholder')}
                 />
                 {errors.route && (
                   <p className="text-sm text-destructive">{errors.route.message}</p>
@@ -294,7 +302,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
 
             {/* Headers */}
             <div className="space-y-4">
-              <Label>Headers HTTP</Label>
+              <Label>{t('form.headers')}</Label>
               
               {Object.entries(headers).length > 0 && (
                 <div className="space-y-2">
@@ -317,13 +325,13 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
 
               <div className="grid grid-cols-2 gap-2">
                 <Input
-                  placeholder="Chave (ex: Authorization)"
+                  placeholder={t('form.headerKeyPlaceholder')}
                   value={newHeaderKey}
                   onChange={(e) => setNewHeaderKey(e.target.value)}
                 />
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Valor (ex: Bearer token)"
+                    placeholder={t('form.headerValuePlaceholder')}
                     value={newHeaderValue}
                     onChange={(e) => setNewHeaderValue(e.target.value)}
                   />
@@ -331,7 +339,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                     type="button"
                     onClick={addHeader}
                     size="sm"
-                    aria-label="Adicionar header"
+                    aria-label={t('form.addHeader')}
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -346,9 +354,9 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Parâmetros</CardTitle>
+                <CardTitle>{t('form.parameters')}</CardTitle>
                 <CardDescription>
-                  Configure os parâmetros aceitos pela API
+                  {t('form.parametersDescription')}
                 </CardDescription>
               </div>
               <Button
@@ -362,31 +370,31 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                 className="gap-2"
               >
                 <Plus className="w-4 h-4" />
-                Adicionar
+                {t('form.addParameter')}
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             {fields.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
-                Nenhum parâmetro configurado
+                {t('form.noParameters')}
               </p>
             ) : (
               <div className="space-y-4">
                 {fields.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
                     <div className="space-y-2">
-                      <Label>Nome *</Label>
+                      <Label>{t('form.parameterName')}</Label>
                       <Input
                         {...register(`parameters.${index}.name` as const, {
-                          required: 'Nome é obrigatório'
+                          required: tc('nameRequired')
                         })}
-                        placeholder="nome_parametro"
+                        placeholder={t('form.parameterNamePlaceholder')}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Tipo *</Label>
+                      <Label>{t('form.parameterType')}</Label>
                       <Select
                         value={watch(`parameters.${index}.type`)}
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -406,17 +414,17 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Descrição *</Label>
+                      <Label>{t('form.parameterDescription')}</Label>
                       <Input
                         {...register(`parameters.${index}.description` as const, {
-                          required: 'Descrição é obrigatória'
+                          required: tc('descriptionRequired')
                         })}
-                        placeholder="Descrição do parâmetro"
+                        placeholder={t('form.parameterDescriptionPlaceholder')}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Obrigatório</Label>
+                      <Label>{t('form.parameterRequired')}</Label>
                       <div className="flex items-center justify-between">
                         <Switch
                           checked={watch(`parameters.${index}.required`)}
@@ -442,11 +450,11 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
         {/* Botões de ação */}
         <div className="flex justify-end gap-4">
           <Button variant="outline" asChild>
-            <Link href="/tools">Cancelar</Link>
+            <Link href="/tools">{tc('cancel')}</Link>
           </Button>
           <Button type="submit" disabled={loading} className="gap-2">
             <Save className="w-4 h-4" />
-            {loading ? 'Salvando...' : 'Salvar Tool'}
+            {loading ? tc('saving') : tc('save')}
           </Button>
         </div>
       </form>

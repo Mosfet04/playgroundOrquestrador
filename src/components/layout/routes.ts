@@ -7,37 +7,42 @@ import {
   type LucideIcon
 } from 'lucide-react'
 
+import type { Messages } from 'next-intl'
+
 import { decodeUrlSegment } from '@/lib/utils'
 
 // Mapa de rotas da P1-03 (docs/design/P1-03.md). /teams e /settings entram
 // quando as telas existirem (P3-04, P4-05); grupo sem item não aparece.
+// Rótulos são chaves do catálogo `nav` (P1-04): quem desenha traduz.
+
+export type NavLabel = keyof Messages['nav']
 
 export type NavItem = {
   href: string
-  label: string
+  label: NavLabel
   icon: LucideIcon
   /** Rótulo de `<href>/new`, para seções com criação em rota própria. */
-  newLabel?: string
+  newLabel?: NavLabel
 }
 
-export type NavGroup = { label?: string; items: NavItem[] }
+export type NavGroup = { label?: NavLabel; items: NavItem[] }
 
 export const NAV_GROUPS: NavGroup[] = [
-  { items: [{ href: '/', label: 'Início', icon: House }] },
+  { items: [{ href: '/', label: 'home', icon: House }] },
   {
-    label: 'Testar',
-    items: [{ href: '/playground', label: 'Playground', icon: MessageSquare }]
+    label: 'test',
+    items: [{ href: '/playground', label: 'playground', icon: MessageSquare }]
   },
   {
-    label: 'Configurar',
+    label: 'configure',
     items: [
-      { href: '/agents', label: 'Agentes', icon: Bot, newLabel: 'Novo agente' },
-      { href: '/tools', label: 'Tools', icon: Wrench, newLabel: 'Nova tool' }
+      { href: '/agents', label: 'agents', icon: Bot, newLabel: 'newAgent' },
+      { href: '/tools', label: 'tools', icon: Wrench, newLabel: 'newTool' }
     ]
   },
   {
-    label: 'Observar',
-    items: [{ href: '/dashboard', label: 'Dashboard', icon: BarChart3 }]
+    label: 'observe',
+    items: [{ href: '/dashboard', label: 'dashboard', icon: BarChart3 }]
   }
 ]
 
@@ -49,15 +54,15 @@ export function activeState(pathname: string, href: string) {
 }
 
 export type RouteInfo = {
-  group?: string
+  group?: NavLabel
   /** Lista da seção, link na trilha quando a página é um detalhe ou a criação. */
-  section?: { href: string; label: string }
-  /** Último nível da trilha e título no celular. */
-  current: string
-  /** `current` é o id da URL (detalhe): mono, trocado pelo nome quando chega. */
-  isId: boolean
-  /** Subtítulo mono do cabeçalho no celular. */
-  subtitle: string
+  section?: { href: string; label: NavLabel }
+  /** Último nível da trilha e título no celular (lista ou criação). */
+  label?: NavLabel
+  /** Num detalhe, o id da URL no lugar do rótulo: mono, trocado pelo nome quando chega. */
+  id?: string
+  /** Subtítulo mono do cabeçalho no celular (em minúsculas). */
+  subtitle?: NavLabel
 }
 
 export function describeRoute(pathname: string): RouteInfo {
@@ -65,24 +70,20 @@ export function describeRoute(pathname: string): RouteInfo {
     for (const item of group.items) {
       const state = activeState(pathname, item.href)
       if (!state) continue
-      const groupLabel = group.label ?? 'playground'
+      const groupInfo = group.label ? { group: group.label } : {}
       if (state === 'page')
         return {
-          group: group.label,
-          current: item.label,
-          isId: false,
-          subtitle: groupLabel.toLowerCase()
+          ...groupInfo,
+          label: item.label,
+          subtitle: group.label ?? 'playground'
         }
       const segment = pathname.slice(item.href.length + 1)
-      const newLabel = segment === 'new' ? item.newLabel : undefined
-      return {
-        group: group.label,
-        section: { href: item.href, label: item.label },
-        current: newLabel ?? decodeUrlSegment(segment),
-        isId: !newLabel,
-        subtitle: item.label.toLowerCase()
-      }
+      const section = { href: item.href, label: item.label }
+      const subtitle = item.label
+      if (segment === 'new' && item.newLabel)
+        return { ...groupInfo, section, label: item.newLabel, subtitle }
+      return { ...groupInfo, section, id: decodeUrlSegment(segment), subtitle }
     }
   }
-  return { current: '', isId: false, subtitle: '' }
+  return {}
 }

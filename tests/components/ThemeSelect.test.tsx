@@ -1,9 +1,11 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ThemeProvider } from 'next-themes'
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { ThemeSelect } from '@/components/layout/ThemeSelect'
+
+import { renderWithIntl } from '../helpers/intl'
 
 // prefers-color-scheme controlável: o next-themes lê `matches` e assina com
 // addListener (next-themes 0.4.4, dist/index.mjs).
@@ -47,7 +49,7 @@ afterEach(() => {
 
 // Mesma configuração do src/app/layout.tsx.
 function renderThemeSelect(variant?: 'icon') {
-  render(
+  renderWithIntl(
     <ThemeProvider
       attribute="class"
       defaultTheme="system"

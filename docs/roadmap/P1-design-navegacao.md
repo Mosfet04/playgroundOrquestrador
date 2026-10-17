@@ -42,7 +42,16 @@ Escopo: escolher a biblioteca (**decisão do usuário** no início do item; reco
 Fora de escopo: traduzir conteúdo gerado pelos agentes ou campos do orquestrador.
 Critérios de aceite: `git grep` de textos literais em JSX vazio (regra de lint, se a biblioteca oferecer); troca de idioma sem recarregar a sessão do chat; nenhuma chave faltando entre os dois catálogos (teste).
 Testes exigidos: teste de paridade dos catálogos; E2E trocando o idioma.
-Riscos e dependências: diff grande (muitos textos); quebrar por área se passar de ~600 linhas.
+Riscos e dependências: diff grande (muitos textos); quebrado em dois pela decisão [0011](../decisions/0011-i18n-next-intl-cookie.md): `next-intl`, idioma em cookie sem prefixo na URL, pt-BR sem cookie. Este item entrega a infraestrutura (lib, provider, seletor, `lang`, formatos, paridade, regra de lint) e migra shell, navegação, `GettingStarted` e gestão (agents, tools, dashboard); o playground fica no P1-04b.
+
+## P1-04b — i18n do playground
+UI: sim            Depende (orq.): —
+Objetivo: o `/playground` (chat, sessões, seletores, hooks e toasts) sem texto fixo, na infraestrutura do P1-04.
+Escopo: `src/components/playground/**`, `src/hooks/**` e mensagens de `src/store.ts` para os catálogos; regra de lint de texto literal estendida a essas pastas.
+Fora de escopo: conteúdo gerado pelos agentes; visual do chat (P1-06).
+Critérios de aceite: os do P1-04 valendo para o playground; trocar de idioma no meio de uma conversa mantém mensagens e stream.
+Testes exigidos: E2E trocando o idioma com sessão aberta; paridade dos catálogos continua verde.
+Riscos e dependências: P1-04. Ao estender a regra de lint, fechar as lacunas que a revisão do P1-04 deixou (R8): template literal com texto em ternário, ternário em `aria-label`/`placeholder`/`title`/`alt` e literal a mais de 2 níveis.
 
 ## P1-05 — Estados e documentação
 UI: sim            Depende (orq.): —
@@ -61,3 +70,13 @@ Fora de escopo: chat via BFF (P2-03); markdown seguro (P2-04).
 Critérios de aceite: V14 e V15 verificados no design QA nos dois temas, desktop e celular; o stream do P0-06 continua passando.
 Testes exigidos: componente do chip de tool call e do indicador de stream; e2e do chat atual verde.
 Riscos e dependências: P1-02 (tokens) e P1-03 (layout). Limitação herdada LIM-P1-03-1 (`tests/components/PlaygroundSessionUrl.test.tsx`, `it.fails`): com o orquestrador fora ao abrir `/playground?agent=&session=`, `initializePlayground` zera `?agent=` e a sessão não recarrega após o refresh; corrigir aqui ou na P2-03 e virar o teste em `it`.
+
+## P1-07 — E2E contra o build de produção
+UI: não            Depende (orq.): —
+Objetivo: e2e estável na CI, sem a classe de instabilidade do `next dev` sob carga (compilação sob demanda, reload por HMR entre abas). Decisão [0011](../decisions/0011-i18n-next-intl-cookie.md) D-P1-04-8.
+Escopo: `playwright.config.ts` com `next build` + `next start` na CI (local pode seguir no dev); ajuste do workflow da CI; remover prazos de 15 s/`test.slow()` que só existem por causa do dev, onde deixarem de ser necessários.
+Fora de escopo: testes novos de produto.
+Critérios de aceite: suíte e2e completa verde 5× seguidas na CI; tempo total da CI medido e registrado antes/depois.
+Testes exigidos: a própria suíte.
+Riscos e dependências: o build passa a ser pré-requisito do e2e (tempo de CI); env de build com o Mongo fake.
+

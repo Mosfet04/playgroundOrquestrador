@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Plus, Search, Filter, Edit, Trash2, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch'
 import { AgentConfig, AgentFilters } from '@/types/management'
 import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
+import { useRequestError } from '../common/useRequestError'
 import { LoadingSpinner, EmptyState } from '@/components/ui/loading'
 import { cn, focusRing } from '@/lib/utils'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -22,6 +24,9 @@ export function AgentManagement() {
   const [filters, setFilters] = useState<AgentFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const t = useTranslations('agents')
+  const tc = useTranslations('common')
+  const requestError = useRequestError()
 
   // Buscar agentes
   const fetchAgents = async () => {
@@ -40,16 +45,16 @@ export function AgentManagement() {
       }
 
       const response = await fetch(`/api/agents?${params.toString()}`)
-      const data = await response.json()
+      const data = response.ok ? await response.json() : null
 
-      if (data.success) {
+      if (data?.success) {
         setAgents(data.data.data)
       } else {
-        toast.error(data.error || 'Erro ao carregar agentes')
+        toast.error(requestError(response.status, { failed: t('listError') }))
       }
     } catch (error) {
       console.error('Error fetching agents:', error)
-      toast.error('Erro ao carregar agentes')
+      toast.error(requestError(undefined, { failed: t('listError') }))
     } finally {
       setLoading(false)
     }
@@ -62,17 +67,22 @@ export function AgentManagement() {
         method: 'DELETE'
       })
       
-      const data = await response.json()
-      
-      if (data.success) {
-        toast.success('Agente deletado com sucesso')
+      const data = response.ok ? await response.json() : null
+
+      if (data?.success) {
+        toast.success(t('deleted'))
         fetchAgents()
       } else {
-        toast.error(data.error || 'Erro ao deletar agente')
+        toast.error(
+          requestError(response.status, {
+            failed: t('deleteError'),
+            notFound: t('notFound')
+          })
+        )
       }
     } catch (error) {
       console.error('Error deleting agent:', error)
-      toast.error('Erro ao deletar agente')
+      toast.error(requestError(undefined, { failed: t('deleteError') }))
     } finally {
       setDeletingAgent(null)
     }
@@ -90,16 +100,16 @@ export function AgentManagement() {
         <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="w-full lg:w-auto">
             <h1 className="text-2xl font-semibold tracking-tight">
-              Gerenciamento de Agentes
+              {t('title')}
             </h1>
             <p className="text-sm text-muted-foreground lg:text-base">
-              Crie e gerencie seus agentes de IA
+              {t('subtitle')}
             </p>
           </div>
           <Button asChild className="w-full gap-2 lg:w-auto">
             <Link href="/agents/new">
               <Plus className="w-4 h-4" aria-hidden="true" />
-              Novo Agente
+              {t('form.newTitle')}
             </Link>
           </Button>
         </div>
@@ -109,7 +119,7 @@ export function AgentManagement() {
         <CardHeader className="p-4 pb-2 lg:p-6">
           <div className="flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:justify-between">
             <CardTitle>
-              Filtros
+              {tc('filters')}
             </CardTitle>
             <Button
               variant="outline"
@@ -118,7 +128,7 @@ export function AgentManagement() {
               className="text-xs lg:hidden"
             >
               <Filter className="w-3 h-3 mr-1" />
-              {showFilters ? 'Ocultar' : 'Mostrar'} Filtros
+              {showFilters ? t('hideFilters') : t('showFilters')}
             </Button>
           </div>
         </CardHeader>
@@ -129,13 +139,13 @@ export function AgentManagement() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="search">
-                Buscar
+                {tc('search')}
               </Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="search"
-                  placeholder="ID, nome ou descrição..."
+                  placeholder={tc('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -144,7 +154,7 @@ export function AgentManagement() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="active-only">Apenas ativos</Label>
+              <Label htmlFor="active-only">{t('activeOnly')}</Label>
               <div className="flex items-center space-x-2">
                 <Switch
                   id="active-only"
@@ -157,7 +167,7 @@ export function AgentManagement() {
                   }
                 />
                 <span className="text-sm text-muted-foreground">
-                  Mostrar apenas agentes ativos
+                  {t('activeOnlyHint')}
                 </span>
               </div>
             </div>
@@ -167,16 +177,16 @@ export function AgentManagement() {
 
       {/* Lista de Agentes */}
       {loading ? (
-        <LoadingSpinner text="Carregando agentes..." />
+        <LoadingSpinner text={t('loadingList')} />
       ) : agents.length === 0 ? (
         <EmptyState
-          title="Nenhum agente encontrado"
-          description="Crie seu primeiro agente para começar a usar o sistema de orquestração de IA"
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
           action={
             <Button asChild className="gap-2">
               <Link href="/agents/new">
                 <Plus className="w-4 h-4" aria-hidden="true" />
-                Criar primeiro agente
+                {t('createFirst')}
               </Link>
             </Button>
           }
@@ -196,7 +206,7 @@ export function AgentManagement() {
                     </CardTitle>
                     <div className="flex flex-wrap gap-2">
                       <StatusBadge active={agent.active}>
-                        {agent.active ? 'Ativo' : 'Inativo'}
+                        {agent.active ? t('active') : t('inactive')}
                       </StatusBadge>
                       <span className="rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">
                         {agent.factoryIaModel}
@@ -210,9 +220,9 @@ export function AgentManagement() {
                       asChild
                       className="flex-1 lg:flex-none"
                     >
-                      <Link href={`/agents/${encodeURIComponent(agent.id)}`} aria-label="Editar agente">
+                      <Link href={`/agents/${encodeURIComponent(agent.id)}`} aria-label={t('editLabel')}>
                         <Edit className="w-4 h-4" aria-hidden="true" />
-                        <span className="text-xs lg:hidden">Editar</span>
+                        <span className="text-xs lg:hidden">{tc('edit')}</span>
                       </Link>
                     </Button>
                     <Button
@@ -220,31 +230,31 @@ export function AgentManagement() {
                       size="sm"
                       onClick={() => setDeletingAgent(agent)}
                       className="flex-1 lg:flex-none"
-                      aria-label="Excluir agente"
+                      aria-label={t('deleteLabel')}
                     >
                       <Trash2 className="w-4 h-4" />
-                      <span className="text-xs lg:hidden">Excluir</span>
+                      <span className="text-xs lg:hidden">{tc('delete')}</span>
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0 lg:p-6 lg:pt-0">
                 <CardDescription className="mb-4 text-xs lg:text-sm">
-                  {agent.descricao || 'Sem descrição'}
+                  {agent.descricao || tc('noDescription')}
                 </CardDescription>
                 <div className="space-y-2 text-xs lg:text-sm">
                   <div className="truncate lg:whitespace-normal">
-                    <span className="font-medium">ID:</span> {agent.id}
+                    <span className="font-medium">{t('idField')}</span> {agent.id}
                   </div>
                   <div>
-                    <span className="font-medium">Modelo:</span> {agent.model}
+                    <span className="font-medium">{t('modelField')}</span> {agent.model}
                   </div>
                   <div>
-                    <span className="font-medium">Tools:</span> {agent.tools_ids.length}
+                    <span className="font-medium">{t('toolsField')}</span> {agent.tools_ids.length}
                   </div>
                   {agent.rag_config?.active && (
                     <div>
-                      <span className="font-medium">RAG:</span> Ativo
+                      <span className="font-medium">{t('ragField')}</span> {t('active')}
                     </div>
                   )}
                 </div>
@@ -258,8 +268,8 @@ export function AgentManagement() {
       <DeleteConfirmDialog
         open={!!deletingAgent}
         onOpenChange={() => setDeletingAgent(null)}
-        title="Deletar Agente"
-        description={`Tem certeza que deseja deletar o agente "${deletingAgent?.nome}"? Esta ação não pode ser desfeita.`}
+        title={t('deleteTitle')}
+        description={t('deleteDescription', { name: deletingAgent?.nome ?? '' })}
         onConfirm={() => deletingAgent && handleDeleteAgent(deletingAgent)}
       />
       </div>

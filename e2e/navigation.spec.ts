@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 
 import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { hydrated } from './hydration'
 
 // P1-03: cada seção tem URL própria (deep link, voltar, recarga). Até a P3,
 // /api/agents*, /api/tools* e /api/dashboard/* leem o Mongo: aqui respondem
@@ -73,15 +74,15 @@ test('deep link /agents/<id> abre o editor; voltar retorna à lista; recarga pre
   page
 }) => {
   await page.goto('/agents')
-  await expect(page.getByRole('heading', { level: 1, name: 'Gerenciamento de Agentes' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Gerenciamento de agentes' })).toBeVisible()
 
   const nameLink = page.getByRole('link', { name: 'Agente Alfa' })
   await expect(nameLink).toHaveAttribute('href', AGENT_PATH)
   await nameLink.click()
 
   await expectNavigation(page).toHaveURL(AGENT_PATH)
-  await expect(page.getByRole('heading', { level: 1, name: 'Editar Agente' })).toBeVisible()
-  await expect(page.getByLabel(/ID do Agente/)).toHaveValue(agent.id)
+  await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeVisible()
+  await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
   await expect(mainNav(page).getByRole('link', { name: 'Agentes' })).toHaveAttribute(
     'aria-current',
     'true'
@@ -92,24 +93,24 @@ test('deep link /agents/<id> abre o editor; voltar retorna à lista; recarga pre
 
   await page.goBack()
   await expect(page).toHaveURL('/agents')
-  await expect(page.getByRole('heading', { level: 1, name: 'Gerenciamento de Agentes' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Gerenciamento de agentes' })).toBeVisible()
 
   await page.goForward()
-  await expect(page.getByLabel(/ID do Agente/)).toHaveValue(agent.id)
+  await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
   await page.reload()
   await expect(page).toHaveURL(AGENT_PATH)
-  await expect(page.getByLabel(/ID do Agente/)).toHaveValue(agent.id)
-  await expect(page.getByRole('heading', { name: 'Gerenciamento de Agentes' })).toHaveCount(0)
+  await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
+  await expect(page.getByRole('heading', { name: 'Gerenciamento de agentes' })).toHaveCount(0)
 })
 
-test('"Voltar" do editor leva à lista; "Novo Agente" abre /agents/new', async ({ page }) => {
+test('"Voltar" do editor leva à lista; "Novo agente" abre /agents/new', async ({ page }) => {
   await page.goto(AGENT_PATH)
   await page.getByRole('link', { name: 'Voltar' }).click()
   await expectNavigation(page).toHaveURL('/agents')
 
-  await page.getByRole('link', { name: 'Novo Agente' }).click()
+  await page.getByRole('link', { name: 'Novo agente' }).click()
   await expectNavigation(page).toHaveURL('/agents/new')
-  await expect(page.getByRole('heading', { level: 1, name: 'Novo Agente' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Novo agente' })).toBeVisible()
   await expect(trail(page).getByText('Novo agente')).toHaveAttribute('aria-current', 'page')
   await expect(page).toHaveTitle(`Novo agente · ${TITLE}`)
 })
@@ -136,7 +137,7 @@ for (const [path, message, back] of [
 
 test('deep link /tools/<id> abre o editor da tool', async ({ page }) => {
   await page.goto('/tools/clima')
-  await expect(page.getByRole('heading', { level: 1, name: 'Editar Tool' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Editar tool' })).toBeVisible()
   await expect(trail(page).getByText('Clima')).toHaveAttribute('aria-current', 'page')
   await expect(page).toHaveTitle(`clima · Tools · ${TITLE}`)
 })
@@ -164,12 +165,16 @@ test('cada rota tem o <title> do mapa e um só item ativo', async ({ page }) => 
 test('/playground?agent=…&session=… sobrevive à recarga com o agente e as mensagens', async ({
   page
 }) => {
+  // A 1ª carga do /playground compila o chunk do chat no `next dev`; com a
+  // suíte em paralelo a hidratação passa dos 30 s padrão.
+  test.slow()
   // Só o app e o fake: o chat também chama rede externa (ipify, FingerprintJS).
   await page.route(
     (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
     (route) => route.abort()
   )
   await page.goto('/playground')
+  await hydrated(page)
   const sidebar = page.locator('aside')
   await sidebar.getByText('http://localhost:7777').click()
   await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { NuqsAdapter } from 'nuqs/adapters/react'
@@ -10,6 +10,7 @@ import { usePlaygroundStore } from '@/store'
 
 import { AGENTOS_URL } from '../msw/handlers'
 import { server } from '../msw/server'
+import { renderWithIntl } from '../helpers/intl'
 
 // R1 (review do P1-03): abaixo de lg o painel do playground monta uma 2ª
 // Sidebar no Sheet. Ela não pode refazer a carga (status, agentes, sessão):
@@ -75,7 +76,7 @@ afterEach(() => {
 describe('/playground: painel no Sheet', () => {
   it('com ?session=, abrir o painel não recarrega a sessão nem o playground', async () => {
     const user = userEvent.setup()
-    render(
+    renderWithIntl(
       <NuqsAdapter>
         <AppShell>
           <PlaygroundPage />

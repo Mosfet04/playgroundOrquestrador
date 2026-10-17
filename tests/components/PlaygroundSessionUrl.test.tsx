@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { NuqsAdapter } from 'nuqs/adapters/react'
@@ -10,6 +10,7 @@ import { usePlaygroundStore } from '@/store'
 
 import { AGENTOS_URL } from '../msw/handlers'
 import { server } from '../msw/server'
+import { renderWithIntl } from '../helpers/intl'
 
 // Critério 3 do P1-03: ?agent= e ?session= continuam valendo em /playground.
 // A carga da sessão da URL mudou de lugar (Sessions -> ChatArea, deps
@@ -62,7 +63,7 @@ afterEach(() => {
 })
 
 const renderPlayground = () =>
-  render(
+  renderWithIntl(
     <NuqsAdapter>
       <AppShell>
         <PlaygroundPage />

@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { AgentManagement } from '@/components/management/agents/AgentManagement'
 
 import { server } from '../msw/server'
+import { renderWithIntl } from '../helpers/intl'
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -41,7 +42,7 @@ const serveAgents = (agents: (typeof agent)[]) =>
 describe('AgentManagement: links da lista (D-P1-03-2)', () => {
   it('o nome e "Editar" levam a /agents/<id> com o id codificado', async () => {
     serveAgents([agent])
-    render(<AgentManagement />)
+    renderWithIntl(<AgentManagement />)
 
     expect(
       await screen.findByRole('link', { name: 'Agente Alfa' })
@@ -54,14 +55,14 @@ describe('AgentManagement: links da lista (D-P1-03-2)', () => {
     ).toBeInTheDocument()
   })
 
-  it('"Novo Agente" e "Criar primeiro agente" levam a /agents/new', async () => {
+  it('"Novo agente" e "Criar primeiro agente" levam a /agents/new', async () => {
     serveAgents([])
-    render(<AgentManagement />)
+    renderWithIntl(<AgentManagement />)
 
     expect(
       await screen.findByRole('link', { name: 'Criar primeiro agente' })
     ).toHaveAttribute('href', '/agents/new')
-    expect(screen.getByRole('link', { name: 'Novo Agente' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Novo agente' })).toHaveAttribute(
       'href',
       '/agents/new'
     )

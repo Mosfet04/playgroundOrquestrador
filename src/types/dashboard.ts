@@ -41,11 +41,6 @@ export interface TokenMetrics {
   sessions: number
 }
 
-export interface TimeFilter {
-  label: string
-  value: string
-}
-
 export interface UserMetrics {
   userId: string
   sessions: number

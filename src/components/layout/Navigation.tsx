@@ -2,12 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 import { cn, focusRing } from '@/lib/utils'
 import { NAV_GROUPS, activeState } from './routes'
 
 // Marca (V1): quadrado de 28 px com o gradiente da marca e o glifo de três nós.
 export function Brand() {
+  const t = useTranslations('nav')
   return (
     <div className="flex items-center gap-2">
       <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br from-primary to-signal text-primary-foreground">
@@ -24,9 +26,9 @@ export function Brand() {
         </svg>
       </span>
       <span className="leading-tight">
-        <span className="block text-sm font-semibold">Orquestrador</span>
+        <span className="block text-sm font-semibold">{t('brandName')}</span>
         <span className="block font-mono text-xs text-muted-foreground">
-          playground
+          {t('brandTag')}
         </span>
       </span>
     </div>
@@ -35,17 +37,18 @@ export function Brand() {
 
 export function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
+  const t = useTranslations('nav')
 
   return (
     <nav
-      aria-label="Navegação principal"
+      aria-label={t('mainNavigation')}
       className="flex-1 space-y-4 overflow-y-auto px-3 py-4"
     >
       {NAV_GROUPS.map((group) => (
         <div key={group.items[0].href} className="space-y-1">
           {group.label && (
             <p className="px-3 pb-1 font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              {group.label}
+              {t(group.label)}
             </p>
           )}
           <ul className="space-y-1">
@@ -78,7 +81,7 @@ export function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                         current ? 'text-primary' : 'text-muted-foreground'
                       )}
                     />
-                    {label}
+                    {t(label)}
                   </Link>
                 </li>
               )
