@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Estados do playground · desktop claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p105.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app" style="padding: 32px 24px; display: flex; flex-direction: column; gap: 40px">
+  <section aria-label="Área da conversa" style="display: flex; flex-direction: column; gap: 16px">
+    <p class="panel-label">1 · Área da conversa: conectando · online sem agentes · agente sem mensagens</p>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+      <div class="mini">
+        <div class="chat-center">
+          <span class="live live-sig" role="status"><span class="pg-dot pg-dot-live" aria-hidden="true"></span>Conectando ao orquestrador…</span>
+        </div>
+        <div class="composer" style="padding: 12px"><div class="composer-box is-off"><label class="sr" for="m1">Mensagem</label><textarea id="m1" rows="1" placeholder="Selecione um agente ou team para conversar" disabled></textarea></div></div>
+      </div>
+      <div class="mini grid-bg">
+        <div class="chat-center">
+          <svg class="nodes" viewBox="0 0 200 96" aria-hidden="true" style="width: 160px; height: 77px">
+            <defs><linearGradient id="g-n2" x1="0" y1="0" x2="1" y2="1"><stop class="st-a" offset="0"></stop><stop class="st-b" offset="1"></stop></linearGradient></defs>
+            <path class="ln ln-on" d="M100 48 L40 20"></path><path class="ln" d="M100 48 L160 20"></path><path class="ln" d="M100 48 L40 76"></path><path class="ln" d="M100 48 L160 76"></path>
+            <circle class="nd" cx="40" cy="20" r="8"></circle><circle class="nd" cx="160" cy="20" r="8"></circle><circle class="nd" cx="40" cy="76" r="8"></circle><circle class="nd" cx="160" cy="76" r="8"></circle>
+            <rect x="84" y="32" width="32" height="32" rx="6" fill="url(#g-n2)"></rect>
+          </svg>
+          <h2>O orquestrador ainda não tem agentes</h2>
+          <p>Crie um agente e volte aqui para conversar com ele.</p>
+          <a class="pg-btn" href="#agents-new"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Criar primeiro agente</a>
+        </div>
+        <div class="composer" style="padding: 12px"><div class="composer-box is-off"><label class="sr" for="m2">Mensagem</label><textarea id="m2" rows="1" placeholder="Selecione um agente ou team para conversar" disabled></textarea></div></div>
+      </div>
+      <div class="mini grid-bg">
+        <div class="chat-center">
+          <span class="pg-avatar pg-grad chat-av" aria-hidden="true">SN</span>
+          <h2>Converse com Suporte N1</h2>
+          <p>Envie uma mensagem para testar. Respostas, tool calls e métricas aparecem aqui.</p>
+        </div>
+        <div class="composer" style="padding: 12px"><div class="composer-box"><label class="sr" for="m3">Mensagem</label><textarea id="m3" rows="1" placeholder="Pergunte qualquer coisa"></textarea></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Painel de sessões" style="display: flex; flex-direction: column; gap: 16px">
+    <p class="panel-label">2 · Caixa de sessões: um texto, na primeira condição verdadeira (ordem da spec)</p>
+    <div class="pp-cases">
+      <div class="pp-case">
+        <p class="ann">1 · sem endpoint</p>
+        <p class="pp-label">Sessões</p>
+        <div class="pp-blank"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-5"></path><path d="M9 8V2"></path><path d="M15 8V2"></path><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"></path></svg><p>Selecione um endpoint para ver o histórico.</p></div>
+      </div>
+      <div class="pp-case">
+        <p class="ann">2 · orquestrador offline</p>
+        <p class="pp-label">Sessões</p>
+        <div class="pp-blank"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m19 5 3-3"></path><path d="m2 22 3-3"></path><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"></path><path d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z"></path></svg><p>Endpoint desconectado. Conecte o endpoint para ver o histórico.</p></div>
+      </div>
+      <div class="pp-case">
+        <p class="ann">3 · nada selecionado (modo Agente; no modo Team: "Selecione um team…")</p>
+        <p class="pp-label">Sessões</p>
+        <div class="pp-blank"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg><p>Selecione um agente para ver o histórico.</p></div>
+      </div>
+      <div class="pp-case">
+        <p class="ann">4 · falha ao carregar sessões (sem toast)</p>
+        <p class="pp-label">Sessões</p>
+        <div class="pp-blank is-err" role="alert"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg><p>Não foi possível carregar as sessões</p><button class="pg-btn pg-btn-link" type="button">Tentar de novo</button></div>
+      </div>
+      <div class="pp-case">
+        <p class="ann">5 · agente sem storage</p>
+        <p class="pp-label">Sessões</p>
+        <div class="pp-blank"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14a9 3 0 0 0 18 0V5"></path><path d="M3 12a9 3 0 0 0 18 0"></path></svg><p>Conecte um <a href="https://docs.agno.com/storage" target="_blank" rel="noopener noreferrer">storage</a> ao agente para ver as sessões.</p></div>
+      </div>
+      <div class="pp-case">
+        <p class="ann">6 · nenhuma sessão</p>
+        <p class="pp-label">Sessões</p>
+        <div class="pp-blank"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg><p>Nenhuma sessão ainda. Envie uma mensagem para criar uma.</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

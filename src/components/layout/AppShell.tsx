@@ -21,10 +21,23 @@ export function usePageLabel(label: string | undefined) {
   }, [label, setPageLabel])
 }
 
+// O 404 de rota avisa a casca: nenhum item da navegação ativo e a trilha só
+// com "Página não encontrada" (V-P1-05-15), também em /agents/x/y.
+const NotFoundContext = createContext<(notFound: boolean) => void>(() => undefined)
+
+export function useNotFoundPage() {
+  const setNotFound = useContext(NotFoundContext)
+  useEffect(() => {
+    setNotFound(true)
+    return () => setNotFound(false)
+  }, [setNotFound])
+}
+
 // Casca das rotas de (app): navegação lateral (lg+), cabeçalho de 56 px e o
 // <main id="conteudo">. Abaixo de lg a navegação vai para o Sheet do cabeçalho.
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [pageLabel, setPageLabel] = useState<string>()
+  const [notFound, setNotFound] = useState(false)
   const t = useTranslations('nav')
 
   return (
@@ -43,16 +56,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex h-14 shrink-0 items-center px-4">
             <Brand />
           </div>
-          <Navigation />
+          <Navigation notFound={notFound} />
         </div>
         <div className="app-main flex min-w-0 flex-1 flex-col">
-          <AppHeader pageLabel={pageLabel} />
+          <AppHeader pageLabel={pageLabel} notFound={notFound} />
           <main
             id="conteudo"
             tabIndex={-1}
             className="min-h-0 flex-1 overflow-y-auto focus:outline-none"
           >
-            {children}
+            <NotFoundContext.Provider value={setNotFound}>
+              {children}
+            </NotFoundContext.Provider>
           </main>
         </div>
       </div>

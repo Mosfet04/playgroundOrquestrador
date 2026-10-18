@@ -105,11 +105,43 @@ describe('AgentEditor', () => {
     renderWithIntl(<AgentEditor id="nao-existe" />)
 
     const alert = await screen.findByRole('alert')
-    expect(within(alert).getByText('Agente não encontrado')).toBeInTheDocument()
+    expect(
+      within(alert).getByRole('heading', { level: 1, name: 'Agente não encontrado' })
+    ).toBeInTheDocument()
+    expect(within(alert).getByText('404')).toBeInTheDocument()
     expect(within(alert).getByText('nao-existe')).toBeInTheDocument()
     expect(
       within(alert).getByRole('link', { name: 'Voltar para agentes' })
     ).toHaveAttribute('href', '/agents')
+    // Não encontrado não é falha do sistema: sem "Tentar de novo".
+    expect(within(alert).queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('503 (V-P1-05-16): "código 503", "Tentar de novo" refaz o GET e abre o editor', async () => {
+    server.use(noTools)
+    let calls = 0
+    server.use(
+      http.get('*/api/agents/:id', () => {
+        calls += 1
+        return calls === 1
+          ? HttpResponse.json({ success: false, error: 'x' }, { status: 503 })
+          : HttpResponse.json({ success: true, data: agent })
+      })
+    )
+    const user = userEvent.setup()
+    renderWithIntl(<AgentEditor id={agent.id} />)
+
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByText('código 503')).toBeInTheDocument()
+    expect(within(alert).getByText(agent.id)).toBeInTheDocument()
+    expect(within(alert).getByRole('link', { name: 'Voltar para agentes' })).toHaveAttribute(
+      'href',
+      '/agents'
+    )
+    await user.click(within(alert).getByRole('button', { name: 'Tentar de novo' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Editar agente' })).toBeInTheDocument()
+    expect(calls).toBe(2)
   })
 
   it('outro erro: "Não foi possível carregar o agente" com o código', async () => {

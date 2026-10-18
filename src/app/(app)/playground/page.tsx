@@ -18,7 +18,9 @@ export default function PlaygroundPage() {
   return (
     <Suspense>
       <div className="flex h-full">
-        <h1 className="sr-only">{t('playground')}</h1>
+        <h1 tabIndex={-1} className="sr-only">
+          {t('playground')}
+        </h1>
         <div className="hidden lg:flex">
           <Sidebar />
         </div>

@@ -21,7 +21,8 @@ const ChatArea = () => {
     mode,
     hasStorage,
     isEndpointLoading,
-    setSessionsData
+    setSessionsData,
+    setSessionsError
   } = usePlaygroundStore()
   const [agentId] = useQueryState('agent')
   const [teamId] = useQueryState('team')
@@ -41,6 +42,8 @@ const ChatArea = () => {
   }, [hydrated])
 
   useEffect(() => {
+    // A falha da entidade anterior não vale para a nova (caixa de sessões).
+    setSessionsError(false)
     if (!selectedEndpoint || !hasStorage || isEndpointLoading) return
     setSessionsData(() => null)
     if (agentId || teamId) getSessions({ entityType: mode, agentId, teamId })
@@ -52,7 +55,8 @@ const ChatArea = () => {
     isEndpointLoading,
     hasStorage,
     getSessions,
-    setSessionsData
+    setSessionsData,
+    setSessionsError
   ])
 
   return (

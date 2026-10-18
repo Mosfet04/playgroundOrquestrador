@@ -17,7 +17,18 @@ const ChatInput = () => {
   const [teamId] = useQueryState('team')
   const [inputMessage, setInputMessage] = useState('')
   const isStreaming = usePlaygroundStore((state) => state.isStreaming)
+  const isEndpointActive = usePlaygroundStore((state) => state.isEndpointActive)
+  const isEndpointLoading = usePlaygroundStore((state) => state.isEndpointLoading)
   const t = useTranslations('playground')
+  // O placeholder diz por que o composer está desabilitado (P1-05).
+  const offline = !isEndpointActive && !isEndpointLoading
+  const hasEntity = !!(selectedAgent || teamId)
+  const disabled = offline || isEndpointLoading || !hasEntity
+  const placeholder = offline
+    ? t('composerOffline')
+    : hasEntity
+      ? t('composerPlaceholder')
+      : t('composerNoEntity')
   const handleSubmit = async () => {
     if (!inputMessage.trim()) return
 
@@ -35,7 +46,7 @@ const ChatInput = () => {
   return (
     <div className="relative mx-auto mb-1 flex w-full max-w-full items-end justify-center gap-x-2 px-2 font-sans lg:max-w-2xl lg:px-0">
       <TextArea
-        placeholder={t('composerPlaceholder')}
+        placeholder={placeholder}
         value={inputMessage}
         onChange={(e) => setInputMessage(e.target.value)}
         onKeyDown={(e) => {
@@ -50,14 +61,12 @@ const ChatInput = () => {
           }
         }}
         className="w-full rounded-lg bg-card px-3 text-foreground lg:px-4"
-        disabled={!(selectedAgent || teamId)}
+        disabled={disabled}
         ref={chatInputRef}
       />
       <Button
         onClick={handleSubmit}
-        disabled={
-          !(selectedAgent || teamId) || !inputMessage.trim() || isStreaming
-        }
+        disabled={disabled || !inputMessage.trim() || isStreaming}
         className="lg:w-9 lg:p-5"
         aria-label={t('send')}
       >

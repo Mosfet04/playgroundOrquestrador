@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LiveStatus, LoadErrorState } from '@/components/ui/loading'
 import { 
   BarChart, 
   Bar, 
@@ -73,71 +74,140 @@ const TIME_FILTERS = ['1h', '24h', '7d', '30d', '90d'] as const
 // timeZone, 2026-10-15 viraria "14 de out." em UTC-3 (P1-04, formatos).
 const DAY_FORMAT = { day: 'numeric', month: 'short', timeZone: 'UTC' } as const
 
+// Falha de carga: status HTTP, ou sem status quando não houve resposta.
+type LoadError = { status?: number }
+
+// Gráfico sem pontos: texto na mesma altura, sem eixos vazios (V-P1-05-9).
+function ChartEmpty({ height }: { height: number }) {
+  const t = useTranslations('dashboard')
+  return (
+    <div
+      style={{ height }}
+      className="flex flex-col items-center justify-center gap-1 text-center"
+    >
+      <p className="text-base font-semibold">{t('noData')}</p>
+      <p className="max-w-[40ch] text-sm text-muted-foreground">{t('noDataHint')}</p>
+    </div>
+  )
+}
+
 export function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [tokenMetrics, setTokenMetrics] = useState<TokenMetrics[]>([])
   const [timeFilter, setTimeFilter] = useState<string>('24h')
   const [loading, setLoading] = useState(true)
+  const [statsError, setStatsError] = useState<LoadError | null>(null)
+  const [tokensError, setTokensError] = useState<LoadError | null>(null)
+  // GET de tokens em curso (carga e troca de período): skeleton, não o falso
+  // "Sem dados no período". O "Tentar de novo" não passa por aqui.
+  const [tokensLoading, setTokensLoading] = useState(true)
   const t = useTranslations('dashboard')
   const format = useFormatter()
   const formatDay = (time: string) => format.dateTime(new Date(time), DAY_FORMAT)
   const formatNumber = (value: number) => format.number(value)
 
-  // Buscar estatísticas gerais
-  const fetchStats = async () => {
+  // Buscar estatísticas gerais; o "Tentar de novo" usa o retorno (deu certo?).
+  const fetchStats = async (): Promise<boolean> => {
     try {
-      setLoading(true)
       const response = await fetch('/api/dashboard/stats')
-      const data = await response.json()
-      
-      if (data.success) {
+      const data = response.ok ? await response.json() : null
+      if (data?.success) {
         setStats(data.data)
+        setStatsError(null)
+        return true
       }
+      setStatsError({ status: response.status })
     } catch (error) {
       console.error('Error fetching stats:', error)
+      setStatsError({})
     } finally {
       setLoading(false)
     }
+    return false
   }
 
-  // Buscar métricas de tokens
-  const fetchTokenMetrics = async () => {
+  // Buscar métricas de tokens (trocar o período com erro tenta de novo)
+  // Só a requisição mais recente escreve (troca rápida de período).
+  const tokensRequestId = useRef(0)
+  const fetchTokenMetrics = useCallback(async (): Promise<boolean> => {
+    const id = ++tokensRequestId.current
+    const isCurrent = () => id === tokensRequestId.current
     try {
       const response = await fetch(`/api/dashboard/tokens?timeFilter=${timeFilter}`)
-      const data = await response.json()
-      
-      if (data.success) {
+      const data = response.ok ? await response.json() : null
+      if (!isCurrent()) return false
+      if (data?.success) {
         setTokenMetrics(data.data)
+        setTokensError(null)
+        return true
       }
+      setTokensError({ status: response.status })
     } catch (error) {
       console.error('Error fetching token metrics:', error)
+      if (isCurrent()) setTokensError({})
+    } finally {
+      if (isCurrent()) setTokensLoading(false)
     }
-  }
+    return false
+  }, [timeFilter])
 
   useEffect(() => {
     fetchStats()
   }, [])
 
   useEffect(() => {
+    setTokensLoading(true)
     fetchTokenMetrics()
-  }, [timeFilter])
+  }, [fetchTokenMetrics])
 
-  if (loading || !stats) {
+  const title = (
+    <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
+      {t('title')}
+    </h1>
+  )
+
+  if (loading) {
     return (
-      <div>
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-1/4" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-32" />
-              ))}
-            </div>
+      <div className="mx-auto max-w-7xl p-6">
+        <div aria-busy="true" className="space-y-4">
+          <LiveStatus>
+            <span className="sr-only">{t('loading')}</span>
+          </LiveStatus>
+          <Skeleton className="h-8 w-1/4" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            {[0, 1, 2, 3].map((key) => (
+              <Skeleton key={key} className="h-32" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Skeleton className="h-[300px]" />
+            <Skeleton className="h-[300px]" />
           </div>
         </div>
       </div>
     )
   }
+
+  if (statsError || !stats) {
+    return (
+      <div className="mx-auto max-w-7xl space-y-6 p-6">
+        <div>
+          {title}
+          <p className="text-muted-foreground">{t('subtitle')}</p>
+        </div>
+        <LoadErrorState
+          title={t('loadError')}
+          status={statsError?.status}
+          onRetry={fetchStats}
+        />
+      </div>
+    )
+  }
+
+  const sessionsByType = [
+    { name: t('agentSessions'), value: stats.totalAgentSessions, fill: CHART.series1 },
+    { name: t('teamSessions'), value: stats.totalTeamSessions, fill: CHART.series2 }
+  ]
 
   return (
     <div>
@@ -145,7 +215,7 @@ export function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+            {title}
             <p className="text-muted-foreground">
               {t('subtitle')}
             </p>
@@ -238,6 +308,9 @@ export function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {stats.models.length === 0 && (
+                <p className="text-muted-foreground">{t('noModels')}</p>
+              )}
               <div className="space-y-3">
                 {stats.models.map((model, index) => (
                   <div key={`${model.name}-${model.provider}-${index}`} className="flex items-center justify-between">
@@ -266,6 +339,9 @@ export function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {stats.embeddingModels.length === 0 && (
+                <p className="text-muted-foreground">{t('noEmbeddings')}</p>
+              )}
               <div className="space-y-3">
                 {stats.embeddingModels.map((model) => (
                   <div key={model.name} className="flex items-center justify-between">
@@ -296,6 +372,19 @@ export function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {tokensLoading ? (
+              <Skeleton className="h-[300px]" />
+            ) : tokensError ? (
+              <LoadErrorState
+                title={t('tokensError')}
+                titleAs="h3"
+                status={tokensError.status}
+                onRetry={fetchTokenMetrics}
+                className="bg-background"
+              />
+            ) : tokenMetrics.length === 0 ? (
+              <ChartEmpty height={300} />
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={tokenMetrics}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
@@ -311,6 +400,7 @@ export function Dashboard() {
                 <Bar dataKey="outputTokens" fill={CHART.series2} name={t('outputTokens')} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -327,6 +417,9 @@ export function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {stats.activityOverTime.length === 0 ? (
+                <ChartEmpty height={250} />
+              ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={stats.activityOverTime}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
@@ -346,6 +439,7 @@ export function Dashboard() {
                   <Area type="monotone" dataKey="teamSessions" stackId="1" stroke={CHART.series2} fill={CHART.series2} fillOpacity={0.6} name={t('teamSessions')} />
                 </AreaChart>
               </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
@@ -360,13 +454,13 @@ export function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {stats.totalAgentSessions + stats.totalTeamSessions === 0 ? (
+                <ChartEmpty height={250} />
+              ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
-                    data={[
-                      { name: t('agentSessions'), value: stats.totalAgentSessions, fill: CHART.series1 },
-                      { name: t('teamSessions'), value: stats.totalTeamSessions, fill: CHART.series2 }
-                    ]}
+                    data={sessionsByType}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -376,10 +470,7 @@ export function Dashboard() {
                     dataKey="value"
                     label={({ name, value }) => `${name}: ${format.number(Number(value))}`}
                   >
-                    {[
-                      { name: t('agentSessions'), value: stats.totalAgentSessions, fill: CHART.series1 },
-                      { name: t('teamSessions'), value: stats.totalTeamSessions, fill: CHART.series2 }
-                    ].map((entry, index) => (
+                    {sessionsByType.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
@@ -387,6 +478,7 @@ export function Dashboard() {
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </div>

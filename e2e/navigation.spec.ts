@@ -263,7 +263,7 @@ test.describe('celular', () => {
 
     await page.getByRole('button', { name: 'Abrir sessões e agente' }).click()
     const panel = page.getByRole('dialog', { name: 'Sessões e agente' })
-    await expect(panel.getByText('Endpoint')).toBeVisible()
+    await expect(panel.getByText('Endpoint', { exact: true })).toBeVisible()
   })
 
   test('o Sheet fecha quando a janela passa de 1024 px', async ({ page }) => {

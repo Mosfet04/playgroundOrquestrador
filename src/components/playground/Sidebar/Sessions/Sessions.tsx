@@ -44,6 +44,8 @@ const SkeletonList: FC<SkeletonListProps> = ({ skeletonCount }) => {
 
 const Sessions = () => {
   const [sessionId] = useQueryState('session')
+  const [agentId] = useQueryState('agent')
+  const [teamId] = useQueryState('team')
   const t = useTranslations('playground')
 
   // A carga das sessões (lista e a de ?session=) fica no ChatArea.
@@ -52,7 +54,9 @@ const Sessions = () => {
     isEndpointLoading,
     hasStorage,
     sessionsData,
-    isSessionsLoading
+    isSessionsLoading,
+    sessionsError,
+    mode
   } = usePlaygroundStore()
 
   const [isScrolling, setIsScrolling] = useState(false)
@@ -100,7 +104,8 @@ const Sessions = () => {
     []
   )
 
-  if (isSessionsLoading || isEndpointLoading) {
+  // Com falha anterior, a nova tentativa fica na caixa de erro ("Tentando…").
+  if ((isSessionsLoading && !sessionsError) || isEndpointLoading) {
     return (
       <div className="w-full">
         <div className="mb-2 text-xs font-medium uppercase">
@@ -129,8 +134,10 @@ const Sessions = () => {
         onMouseLeave={handleScroll}
       >
         {!isEndpointActive ||
+        !(mode === 'team' ? teamId : agentId) ||
+        sessionsError ||
         !hasStorage ||
-        (!isSessionsLoading && (!sessionsData || sessionsData.length === 0)) ? (
+        formattedSessions.length === 0 ? (
           <SessionBlankState />
         ) : (
           <div className="flex flex-col gap-y-1 pr-1">

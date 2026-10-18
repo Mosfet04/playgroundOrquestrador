@@ -21,7 +21,7 @@ import { usePlaygroundStore } from '@/store'
 import { LanguageSelect } from './LanguageSelect'
 import { Brand, Navigation } from './Navigation'
 import { ThemeSelect } from './ThemeSelect'
-import { describeRoute } from './routes'
+import { describeRoute, type RouteInfo } from './routes'
 
 // O painel do playground só existe no Sheet de /playground: fora do chunk
 // das demais rotas.
@@ -49,7 +49,7 @@ const focusFirstLink = (event: Event) => {
   first.focus()
 }
 
-function MenuSheet() {
+function MenuSheet({ notFound }: { notFound: boolean }) {
   const [open, setOpen] = useState(false)
   const t = useTranslations('nav')
   useCloseOnDesktop(open, setOpen)
@@ -86,7 +86,7 @@ function MenuSheet() {
             </Button>
           </SheetClose>
         </div>
-        <Navigation onNavigate={() => setOpen(false)} />
+        <Navigation onNavigate={() => setOpen(false)} notFound={notFound} />
         <div className="space-y-3 border-t border-border p-4">
           <ThemeSelect />
           <LanguageSelect />
@@ -133,19 +133,31 @@ function PlaygroundSubtitle({ fallback }: { fallback: string }) {
   return model ? `${id} · ${model}` : id
 }
 
-export function AppHeader({ pageLabel }: { pageLabel?: string }) {
+export function AppHeader({
+  pageLabel,
+  notFound = false
+}: {
+  pageLabel?: string
+  notFound?: boolean
+}) {
   const pathname = usePathname()
   const t = useTranslations('nav')
-  const route = describeRoute(pathname)
+  const tn = useTranslations('notFound')
+  // 404: trilha só com o título e "404" de subtítulo no celular.
+  const route: RouteInfo = notFound ? {} : describeRoute(pathname)
   const isPlayground = pathname === '/playground'
-  const routeLabel = route.label ? t(route.label) : ''
+  const routeLabel = notFound ? tn('title') : route.label ? t(route.label) : ''
   const current = route.id !== undefined ? pageLabel || route.id : routeLabel
   const currentIsId = route.id !== undefined && !pageLabel
-  const subtitle = route.subtitle ? t(route.subtitle).toLowerCase() : ''
+  const subtitle = notFound
+    ? tn('status')
+    : route.subtitle
+      ? t(route.subtitle).toLowerCase()
+      : ''
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-1 lg:px-6">
-      <MenuSheet />
+      <MenuSheet notFound={notFound} />
       <nav
         aria-label={t('youAreHere')}
         className="hidden min-w-0 flex-1 lg:block"

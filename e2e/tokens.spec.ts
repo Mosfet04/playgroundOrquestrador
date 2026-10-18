@@ -138,7 +138,8 @@ test('V-P1-02-18: prefers-reduced-motion para animações e transições', async
   await page.goto('/')
   const animationOf = () =>
     page.evaluate(() => {
-      const names = ['animate-pulse', 'animate-spin', 'animate-bounce']
+      // O skeleton usa o brilho do DS em motion-safe: (P1-05), não animate-pulse.
+      const names = ['motion-safe:skeleton-shine', 'animate-spin', 'animate-bounce']
       return names.map((cls) => {
         const el = document.createElement('div')
         el.className = `${cls} transition-colors`
@@ -189,7 +190,8 @@ test.describe('celular', () => {
       .getByRole('dialog', { name: 'Menu' })
       .getByRole('link', { name: 'Playground' })
       .click()
-    const chatInput = page.getByPlaceholder('Pergunte qualquer coisa')
+    // Sem orquestrador o placeholder diz o motivo (P1-05): busca pelo elemento.
+    const chatInput = page.locator('textarea')
     await expect(chatInput).toBeVisible()
     expect(
       await chatInput.evaluate((el) => getComputedStyle(el).fontSize)

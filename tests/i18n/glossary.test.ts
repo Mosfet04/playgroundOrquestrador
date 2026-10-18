@@ -34,6 +34,13 @@ describe('glossário (docs/design/P1-04.md)', () => {
     expect(offenders).toEqual([])
   })
 
+  it('P1-05: sem a promessa de mudança aplicada na hora nem nome/navegação antigos', () => {
+    const offenders = [...pt, ...english].filter(([, value]) =>
+      /imediatamente|immediately|hot reload|sincroniza[çc][ãa]o autom[áa]tica|automatic sync|Agno Manager|entre abas|between tabs/i.test(value)
+    )
+    expect(offenders).toEqual([])
+  })
+
   it('pt-BR: títulos de seção e de card em caixa de frase (sem Title Case)', () => {
     // chaves de título/cabeçalho; termos do glossário e nomes próprios podem ter maiúscula
     const allowed = /^(Team|Teams|Tool|Tools|Playground|Dashboard|RAG|HTTP|IA|ID|API|Agno|Manager|Retrieval|Augmented|Generation)$/

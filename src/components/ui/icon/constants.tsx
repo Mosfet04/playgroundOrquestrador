@@ -15,10 +15,6 @@ import {
   UserIcon,
   AgentIcon,
   SheetIcon,
-  NextjsTag,
-  ShadcnTag,
-  TailwindTag,
-  AgnoTag,
   ReasoningIcon,
   ReferencesIcon
 } from './custom-icons'
@@ -57,11 +53,7 @@ export const ICONS: IconTypeMap = {
   user: UserIcon,
   agent: AgentIcon,
   sheet: SheetIcon,
-  nextjs: NextjsTag,
-  shadcn: ShadcnTag,
-  tailwind: TailwindTag,
   reasoning: ReasoningIcon,
-  'agno-tag': AgnoTag,
   refresh: RefreshCw,
   edit: Edit,
   save: Save,

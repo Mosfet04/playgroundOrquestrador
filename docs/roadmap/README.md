@@ -28,7 +28,8 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P1-03 | concluído |
 | P1-04 | concluído |
 | P1-04b | concluído |
-| P1-05 | pendente |
+| P1-05 | concluído (estados, error.tsx, 404 na casca, docs; tabela e contadores no P1-05b) |
+| P1-05b | pendente |
 | P1-06 | pendente |
 | P1-07 | concluído (5× verde e tempos medidos localmente com `CI=true`; confirmar no GitHub Actions após o push, ver docs/qa/P1-07.md) |
 

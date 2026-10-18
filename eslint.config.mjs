@@ -14,9 +14,12 @@ const compat = new FlatCompat({
 // profundidade. Vale nos filhos JSX (o texto direto já é do jsx-no-literals),
 // nos atributos lidos pelo usuário e nos argumentos de toast.*() e de
 // setStreamingErrorMessage(), inclusive valores de chaves de texto em objeto
-// (`{ description }`); as outras chaves (id, kind, position…) e
-// toast.dismiss(id) ficam de fora.
-const TEXT_ATTRIBUTE = /^(aria-label|placeholder|title|alt)$/
+// (`{ description }`), também aninhados (`action.label`); as outras chaves
+// (id, kind, position…) e toast.dismiss(id) ficam de fora. P1-05: as props de
+// texto dos componentes próprios (text, label, description, hint, detail)
+// valem como atributos lidos.
+const TEXT_ATTRIBUTE =
+  /^(aria-label|placeholder|title|alt|text|label|description|hint|detail)$/
 const TEXT_KEY = /^(description|loading|success|error|label|detail|message|title)$/
 const isWrapper = (node, child) =>
   (node.type === 'ConditionalExpression' && node.test !== child) ||
@@ -51,7 +54,8 @@ const uiText = {
               branched ||= parent.type !== 'TemplateLiteral'
               outer = parent
             } else if (parent.type === 'Property' && parent.value === outer) {
-              if (!TEXT_KEY.test(parent.key.name ?? parent.key.value)) return
+              const isTextKey = TEXT_KEY.test(parent.key.name ?? parent.key.value)
+              if (!isTextKey && !inObject) return
               inObject = true
               outer = parent.parent
             } else break
@@ -123,7 +127,7 @@ const eslintConfig = [
         'error',
         {
           selector:
-            'JSXAttribute[name.name=/^(aria-label|placeholder|title|alt)$/] > Literal',
+            'JSXAttribute[name.name=/^(aria-label|placeholder|title|alt|text|label|description|hint|detail)$/] > Literal',
           message: 'Texto de UI vem do catálogo (useTranslations), não literal.'
         }
       ]

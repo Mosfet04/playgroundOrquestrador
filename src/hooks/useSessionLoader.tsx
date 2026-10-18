@@ -6,7 +6,6 @@ import {
   getPlaygroundTeamSessionAPI
 } from '@/api/playground'
 import { usePlaygroundStore } from '../store'
-import { toast } from 'sonner'
 import {
   PlaygroundChatMessage,
   ToolCall,
@@ -14,7 +13,6 @@ import {
   ChatEntry
 } from '@/types/playground'
 import { getJsonMarkdown } from '@/lib/utils'
-import { usePlaygroundTranslationsRef } from './usePlaygroundTranslationsRef'
 
 interface ChatHistoryEntry {
   id?: string
@@ -57,13 +55,15 @@ const useSessionLoader = () => {
     (state) => state.setIsSessionsLoading
   )
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
-  const t = usePlaygroundTranslationsRef()
+  const setSessionsError = usePlaygroundStore((state) => state.setSessionsError)
 
   const getSessions = useCallback(
     async ({ entityType, agentId, teamId }: LoaderArgs) => {
       if (!selectedEndpoint) return
 
       try {
+        // A falha anterior só sai com sucesso: no "Tentar de novo" a caixa de
+        // erro fica no lugar, com o botão em "Tentando…" (P1-05).
         setIsSessionsLoading(true)
 
         const sessions =
@@ -72,15 +72,17 @@ const useSessionLoader = () => {
             : await getAllPlaygroundSessionsAPI(selectedEndpoint, agentId!)
 
         setSessionsData(sessions)
+        setSessionsError(false)
       } catch (error) {
+        // A falha aparece na caixa de sessões, com "Tentar de novo" (P1-05).
         console.error('Error loading sessions:', error)
-        toast.error(t.current('sessionsLoadError'))
+        setSessionsError(true)
         setSessionsData([])
       } finally {
         setIsSessionsLoading(false)
       }
     },
-    [selectedEndpoint, setSessionsData, setIsSessionsLoading, t]
+    [selectedEndpoint, setSessionsData, setIsSessionsLoading, setSessionsError]
   )
 
   const getSession = useCallback(

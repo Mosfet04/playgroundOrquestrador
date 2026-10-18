@@ -114,6 +114,61 @@
   }
 }
 
+/* Estados (P1-05): grade de pontos do vazio e da conversa vazia, brilho do
+   skeleton (1,4 s, só em motion-safe:) e ponto ao vivo (1,6 s, parado pela
+   regra de prefers-reduced-motion acima). */
+@layer utilities {
+  .dot-grid {
+    background-image: radial-gradient(hsl(var(--border)) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+
+  .skeleton-shine {
+    background-image: linear-gradient(
+      90deg,
+      hsl(var(--secondary)) 0%,
+      hsl(var(--accent)) 50%,
+      hsl(var(--secondary)) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.4s linear infinite;
+  }
+
+  .live-dot {
+    position: relative;
+  }
+
+  .live-dot::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    border: 2px solid currentColor;
+    opacity: 0;
+    animation: live-ping 1.6s ease-out infinite;
+  }
+}
+
+@keyframes skeleton-shine {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes live-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
 /* Aurora: brilho azul discreto no topo da coluna de conteúdo, só no escuro. */
 .dark .app-main {
   background-image: radial-gradient(

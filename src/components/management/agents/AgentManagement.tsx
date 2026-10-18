@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Plus, Search, Filter, Edit, Trash2, Bot } from 'lucide-react'
+import { Plus, Search, Filter, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,13 +13,20 @@ import { Switch } from '@/components/ui/switch'
 import { AgentConfig, AgentFilters } from '@/types/management'
 import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
 import { useRequestError } from '../common/useRequestError'
-import { LoadingSpinner, EmptyState } from '@/components/ui/loading'
+import {
+  CardListSkeleton,
+  EmptyState,
+  FilterEmptyState,
+  LoadErrorState
+} from '@/components/ui/loading'
 import { cn, focusRing } from '@/lib/utils'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 export function AgentManagement() {
   const [agents, setAgents] = useState<AgentConfig[]>([])
   const [loading, setLoading] = useState(true)
+  // Falha da carga: status HTTP, ou sem status quando não houve resposta.
+  const [loadError, setLoadError] = useState<{ status?: number } | null>(null)
   const [deletingAgent, setDeletingAgent] = useState<AgentConfig | null>(null)
   const [filters, setFilters] = useState<AgentFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,11 +34,17 @@ export function AgentManagement() {
   const t = useTranslations('agents')
   const tc = useTranslations('common')
   const requestError = useRequestError()
+  const searchRef = useRef<HTMLInputElement>(null)
 
-  // Buscar agentes
-  const fetchAgents = async () => {
+  // Só a requisição mais recente escreve no estado: a resposta lenta de uma
+  // busca anterior (ou de uma falha) não sobrescreve a nova.
+  const requestId = useRef(0)
+
+  // Buscar agentes; o "Tentar de novo" usa o retorno (deu certo?).
+  const fetchAgents = useCallback(async (): Promise<boolean> => {
+    const id = ++requestId.current
+    const isCurrent = () => id === requestId.current
     try {
-      setLoading(true)
       const params = new URLSearchParams()
       
       if (filters.active !== undefined) {
@@ -46,18 +59,27 @@ export function AgentManagement() {
 
       const response = await fetch(`/api/agents?${params.toString()}`)
       const data = response.ok ? await response.json() : null
+      if (!isCurrent()) return false
 
       if (data?.success) {
         setAgents(data.data.data)
-      } else {
-        toast.error(requestError(response.status, { failed: t('listError') }))
+        setLoadError(null)
+        return true
       }
+      setLoadError({ status: response.status })
     } catch (error) {
       console.error('Error fetching agents:', error)
-      toast.error(requestError(undefined, { failed: t('listError') }))
+      if (isCurrent()) setLoadError({})
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
+    return false
+  }, [filters, searchTerm])
+
+  const clearFilters = () => {
+    setSearchTerm('')
+    setFilters({})
+    searchRef.current?.focus()
   }
 
   // Deletar agente
@@ -90,8 +112,10 @@ export function AgentManagement() {
 
   // Efeitos
   useEffect(() => {
+    setLoading(true)
+    setLoadError(null)
     fetchAgents()
-  }, [filters, searchTerm])
+  }, [fetchAgents])
 
   return (
     <div>
@@ -99,7 +123,7 @@ export function AgentManagement() {
         {/* Header */}
         <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="w-full lg:w-auto">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
               {t('title')}
             </h1>
             <p className="text-sm text-muted-foreground lg:text-base">
@@ -144,6 +168,7 @@ export function AgentManagement() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  ref={searchRef}
                   id="search"
                   placeholder={tc('searchPlaceholder')}
                   value={searchTerm}
@@ -177,20 +202,47 @@ export function AgentManagement() {
 
       {/* Lista de Agentes */}
       {loading ? (
-        <LoadingSpinner text={t('loadingList')} />
+        <CardListSkeleton label={t('loadingList')} />
+      ) : loadError ? (
+        <LoadErrorState
+          title={t('listError')}
+          status={loadError.status}
+          onRetry={fetchAgents}
+        />
+      ) : agents.length === 0 && (searchTerm || filters.active) ? (
+        <FilterEmptyState
+          title={
+            searchTerm
+              ? t.rich('searchEmptyTitle', {
+                  query: searchTerm,
+                  term: (chunks) => <span className="font-mono">{chunks}</span>
+                })
+              : t('activeEmptyTitle')
+          }
+          hint={tc('filterEmptyHint')}
+          action={
+            <Button variant="outline" onClick={clearFilters}>
+              {tc('clearFilters')}
+            </Button>
+          }
+        />
       ) : agents.length === 0 ? (
         <EmptyState
           title={t('emptyTitle')}
           description={t('emptyDescription')}
-          action={
-            <Button asChild className="gap-2">
-              <Link href="/agents/new">
-                <Plus className="w-4 h-4" aria-hidden="true" />
-                {t('createFirst')}
-              </Link>
-            </Button>
+          actions={
+            <>
+              <Button asChild>
+                <Link href="/agents/new">
+                  <Plus aria-hidden="true" />
+                  {t('createFirst')}
+                </Link>
+              </Button>
+              <Button asChild variant="ghost">
+                <Link href="/">{tc('gettingStarted')}</Link>
+              </Button>
+            </>
           }
-          icon={<Bot className="w-full h-full" />}
         />
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

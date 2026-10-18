@@ -85,6 +85,9 @@ interface PlaygroundStore {
   ) => void
   isSessionsLoading: boolean
   setIsSessionsLoading: (isSessionsLoading: boolean) => void
+  /** Falha ao carregar a lista de sessões (caixa de sessões, P1-05). */
+  sessionsError: boolean
+  setSessionsError: (sessionsError: boolean) => void
 }
 
 export const usePlaygroundStore = create<PlaygroundStore>()(
@@ -137,7 +140,9 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
         })),
       isSessionsLoading: false,
       setIsSessionsLoading: (isSessionsLoading) =>
-        set(() => ({ isSessionsLoading }))
+        set(() => ({ isSessionsLoading })),
+      sessionsError: false,
+      setSessionsError: (sessionsError) => set(() => ({ sessionsError }))
     }),
     {
       name: 'endpoint-storage',

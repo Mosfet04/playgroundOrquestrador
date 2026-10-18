@@ -1,96 +1,42 @@
-# 🤖 Agno Manager - Frontend para Orquestrador de Agentes IA
+# Playground do Orquestrador
 
-> **[English version below](#english-version) | [Versão em português](#versão-em-português)**
+> **[English version below](#english-version)**
 
-Uma interface web completa para gerenciar agentes de IA e ferramentas HTTP, projetada como frontend para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/orquestradorIAPythonArgo).
+Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/orquestradorIAPythonArgo): configura agentes e tools HTTP, testa no chat e mostra métricas de uso.
 
-> **🙏 Baseado no [agno-agi Agent UI](https://github.com/agno-agi/agent-ui)** - Este projeto estende e adapta o excelente trabalho da equipe Agno para integração específica com o orquestrador Python.
+> **Baseado no [agno-agi Agent UI](https://github.com/agno-agi/agent-ui)**, adaptado para o orquestrador.
 
-![Agno Manager Interface](https://github.com/user-attachments/assets/7765fae5-a813-46cb-993b-904af9bc1672)
+![Interface do playground](https://github.com/user-attachments/assets/7765fae5-a813-46cb-993b-904af9bc1672)
 
-## 📋 Sobre o Projeto
+## O que tem hoje
 
-Este projeto é um **frontend web moderno** que complementa o [Orquestrador IA Python](https://github.com/Mosfet04/orquestradorIAPythonArgo), oferecendo uma interface visual intuitiva para:
+- **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo).
+- **Agentes** (`/agents`, `/agents/new`, `/agents/<id>`): criar, editar, excluir, buscar e filtrar; modelo, prompt, tools associadas e RAG.
+- **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): método, URL, endpoint, headers e parâmetros.
+- **Dashboard** (`/dashboard`): agentes ativos, usuários, sessões de agent e de team, tokens por entidade e atividade no período.
+- **Primeiros passos** (`/`): guia com atalhos para criar agente, tool e testar.
+- Cada seção tem endereço próprio (favoritar, nova aba, voltar do navegador); tema claro/escuro; pt-BR e EN.
+- Estados de carregando, vazio e erro em todas as telas: com o orquestrador ou o MongoDB fora, a tela mostra o erro com "Tentar de novo", e um endereço inexistente mostra o 404 dentro do app.
 
-- **Gerenciar agentes IA** sem editar código Python
-- **Configurar ferramentas HTTP** de forma visual
-- **Testar agentes** em tempo real via chat
-- **Administrar configurações** do orquestrador
+## Como funciona hoje
 
-### **🔄 Diferenças do Projeto Original**
-
-Baseado no [agno-agi Agent UI](https://github.com/agno-agi/agent-ui), este projeto adiciona:
-
-- ✅ **Compatível com Agno 2.5** (nova API de sessões unificada)
-- ✅ **Suporte a Teams e Agents** — gerencie ambos na mesma interface
-- ✅ **Integração direta com MongoDB** (sem necessidade de backend adicional)
-- ✅ **CRUD completo de agentes** via interface web
-- ✅ **Gerenciamento de ferramentas HTTP** personalizadas
-- ✅ **Configuração RAG** visual e simplificada
-- ✅ **Dashboard administrativo** com métricas de Agents e Teams
-- ✅ **Sincronização automática** com orquestrador Python
-- ✅ **Guia de primeiros passos** para novos usuários
-- ✅ **Suporte a múltiplos providers** em uma interface unificada
-
-## ✨ Funcionalidades Principais
-
-### 🎮 **Playground de Chat**
-- Interface moderna para conversar com agentes e teams IA
-- Suporte a streaming em tempo real (agents e teams)
-- Visualização de tool calls e resultados
-- Histórico de conversas (formato v2.5 `chat_history` + legado)
-- Suporte multi-modal (texto, imagem, áudio, vídeo)
-- Identificação estável de usuário via fingerprint
-
-### � **Gerenciamento de Agentes**
-- ➕ **Criar agentes**: Configure novos agentes com modelos, prompts e ferramentas
-- ✏️ **Editar agentes**: Modifique configurações existentes
-- �️ **Deletar agentes**: Remova agentes não utilizados
-- 🔍 **Buscar e filtrar**: Encontre agentes rapidamente
-- 🧠 **Configuração RAG**: Configure Retrieval-Augmented Generation
-- 🛠️ **Associar tools**: Conecte ferramentas aos agentes
-
-### 🛠️ **Gerenciamento de Ferramentas HTTP**
-- ➕ **Criar APIs externas**: Configure endpoints HTTP de forma visual
-- ✏️ **Editar configurações**: Modifique URLs, parâmetros e headers
-- 🗑️ **Deletar ferramentas**: Remova ferramentas não utilizadas
-- 📝 **Parâmetros dinâmicos**: Configure entrada e validação
-- 🔗 **Headers personalizados**: Configure autenticação e metadados
-- 🔍 **Organizar ferramentas**: Busque e filtre por método HTTP
-
-## 🏗️ Arquitetura Técnica
-
-### **Stack Tecnológico**
-- **Frontend**: Next.js 14 + TypeScript + TailwindCSS
-- **Componentes**: Radix UI + shadcn/ui
-- **Estado**: Zustand para gerenciamento global
-- **Formulários**: React Hook Form + Zod validation
-- **Banco de Dados**: MongoDB (compartilhado com o orquestrador)
-- **APIs**: Next.js API Routes (RESTful)
-
-### **Integração com Orquestrador**
 ```mermaid
 graph LR
-    A[Agno Manager<br/>Frontend] --> B[MongoDB<br/>Shared Database]
-    C[Orquestrador Python<br/>Backend] --> B
-    A --> D[Next.js APIs]
-    D --> B
-    C --> E[AI Agents<br/>Execution]
+    B[Navegador] -->|gestão: /api/agents, /api/tools, /api/dashboard| N[Next.js API Routes]
+    N --> M[(MongoDB do orquestrador)]
+    B -->|chat: /agents, /teams, /sessions, runs| O[Orquestrador / AgentOS]
+    O --> M
 ```
 
-- ✅ **Zero configuração**: Usa o mesmo MongoDB do orquestrador
-- ✅ **Sincronização automática**: Mudanças refletidas instantaneamente
-- ✅ **Schema compatível**: 100% compatível com estruturas Python
-- ✅ **Hot reload**: Agentes criados ficam disponíveis imediatamente
+- **Gestão** (agentes, tools, dashboard): as rotas `src/app/api/**` leem e gravam direto no MongoDB do orquestrador, com validação zod na entrada.
+- **Chat**: o navegador fala direto com o AgentOS do orquestrador no endpoint do painel (padrão `http://localhost:7777`, salvo no `localStorage`). O orquestrador libera `http://localhost:3000` no CORS por padrão. Se o orquestrador exigir chave (`API_KEY_RUN`), o chat não funciona ainda: o envio da chave chega com o BFF (fase P2).
+- **Quando a mudança vale**: o orquestrador monta agentes e tools ao iniciar. O que você cria ou edita aqui fica gravado no MongoDB e passa a valer no chat **depois de reiniciar o orquestrador**. A aplicação a quente pela API Admin do orquestrador é o plano das fases P2–P4 ([roadmap](docs/roadmap/README.md)).
 
-## 📊 Estrutura do Banco de Dados
+## Dados no MongoDB
 
-### Collections Gerenciadas
-
-#### **`agents_config`** - Configuração de Agentes
+#### `agents_config`
 ```json
 {
-  "_id": ObjectId("..."),
   "id": "assistant-general",
   "nome": "Assistente Geral",
   "model": "llama3.2:latest",
@@ -98,7 +44,7 @@ graph LR
   "descricao": "Assistente para tarefas gerais",
   "prompt": "Você é um assistente útil...",
   "active": true,
-  "tools_ids": ["weather-api", "github-api"],
+  "tools_ids": ["weather-api"],
   "rag_config": {
     "active": true,
     "doc_name": "knowledge_base",
@@ -110,18 +56,9 @@ graph LR
 }
 ```
 
-#### **`agno_sessions`** - Sessões do Agno (agents e teams)
-> **Nota:** Anteriormente chamada `storage`. Renomeada para `agno_sessions` na v2.5.
-
-Armazena as sessões de interação com agents e teams, incluindo métricas de tokens.
-
-#### **`agno_memories`** - Memórias de Usuário
-> **Nota:** Anteriormente chamada `user_memories`. Renomeada para `agno_memories` na v2.5.
-
-#### **`tools`** - Ferramentas HTTP
+#### `tools`
 ```json
 {
-  "_id": ObjectId("..."),
   "id": "weather-api",
   "name": "Weather API",
   "description": "Obtém informações meteorológicas",
@@ -129,22 +66,10 @@ Armazena as sessões de interação com agents e teams, incluindo métricas de t
     "base_url": "https://api.openweathermap.org",
     "method": "GET",
     "endpoint": "/data/2.5/weather",
-    "headers": {
-      "API-Key": "sua-chave-api"
-    },
+    "headers": { "API-Key": "<valor-do-header>" },
     "parameters": [
-      {
-        "name": "q",
-        "type": "string",
-        "description": "Nome da cidade",
-        "required": true
-      },
-      {
-        "name": "units",
-        "type": "string",
-        "description": "Unidade de temperatura",
-        "required": false
-      }
+      { "name": "q", "type": "string", "description": "Nome da cidade", "required": true },
+      { "name": "units", "type": "string", "description": "Unidade de temperatura", "required": false }
     ]
   },
   "created_at": "2025-08-17T10:00:00.000Z",
@@ -154,701 +79,176 @@ Armazena as sessões de interação com agents e teams, incluindo métricas de t
 
 Tipos de parâmetro aceitos (os do orquestrador): `string`, `integer`, `float`, `boolean`, `object`, `array`. A `description` da tool e de cada parâmetro é obrigatória.
 
-## 🚀 Início Rápido
+> **Atenção:** o valor dos headers fica em texto no MongoDB e aparece no editor da tool. Até a referência a segredo (`env:`/`file:`) chegar (P2+), não guarde ali uma chave que não possa ser lida por quem acessa o banco ou o playground.
 
-### **Para Iniciantes**
+#### `agno_sessions` e `agno_memories`
+Sessões (agents e teams, com as métricas de tokens que o dashboard lê) e memórias de usuário do Agno. Até a v2.4 se chamavam `storage` e `user_memories`.
 
-#### **1. Pré-requisitos**
+## Início rápido
+
+**Pré-requisitos:** Node.js 22.18+ ou 24+, pnpm 10.33.0 (só pnpm) e o orquestrador rodando com o MongoDB dele ([README do orquestrador](https://github.com/Mosfet04/orquestradorIAPythonArgo)).
+
 ```bash
-# Node.js 22.18+ ou 24+ e pnpm 10.33.0 instalados (só pnpm)
-node --version  # v22.18.0+ ou v24+
-pnpm --version  # 10.33.0
-
-# MongoDB rodando (local ou cloud)
-# Docker (opcional, para MongoDB local)
-```
-
-#### **2. Configuração do Orquestrador (Recomendado)**
-```bash
-# Clone e configure o orquestrador Python primeiro
-git clone https://github.com/Mosfet04/orquestradorIAPythonArgo.git
-cd orquestradorIAPythonArgo
-
-# Siga o README do orquestrador para configuração completa
-# Isso garantirá que MongoDB esteja configurado corretamente
-```
-
-#### **3. Configuração do Frontend**
-```bash
-# Clone este repositório
 git clone <este-repositorio>
 cd playgroundOrquestrador
-
-# Instale dependências
 pnpm install
-
-# Configure variáveis de ambiente
-cp .env.example .env.local
 ```
 
-#### **4. Configure o `.env.local`**
+Crie o `.env.local` com o mesmo MongoDB do orquestrador (são as duas únicas variáveis que o playground lê, em `src/lib/mongodb.ts`):
+
 ```env
-# MongoDB (mesmo do orquestrador)
 MONGO_CONNECTION_STRING=mongodb://localhost:27017
 MONGO_DATABASE_NAME=agno
-
-# URLs da aplicação
-NEXT_PUBLIC_API_URL=http://localhost:3000
-
-# Providers de IA (opcional, configure conforme necessário)
-OPENAI_API_KEY=sua-chave-openai
-ANTHROPIC_API_KEY=sua-chave-anthropic
 ```
 
-#### **5. Execute a aplicação**
 ```bash
-# Inicie o servidor de desenvolvimento
-pnpm dev
-
-# Acesse http://localhost:3000
+pnpm dev          # http://localhost:3000
 ```
 
-#### **6. Dados de Exemplo (Opcional)**
+No `/playground`, confira o endpoint do orquestrador no painel (padrão `http://localhost:7777`).
+
+**Dados de exemplo (opcional):** os scripts são do `mongosh` e usam o banco `agno`.
+
 ```bash
-# Insira dados de exemplo para testar
-node sample-data.js
-
-# Para remover depois: node cleanup-sample-data.js
+mongosh "mongodb://localhost:27017" sample-data.js          # 3 agentes e 4 tools de exemplo
+mongosh "mongodb://localhost:27017" cleanup-sample-data.js  # remove os exemplos
 ```
 
-### **Para Desenvolvedores Experientes**
+**Produção:** `pnpm build` e `pnpm start` (as variáveis `MONGO_*` precisam existir também no build). O repositório não tem Dockerfile.
 
-#### **Deploy em Produção**
-```bash
-# Build otimizado
-pnpm build
+## Como usar
 
-# Servir em produção
-pnpm start
+1. Em **Tools → Nova tool**, cadastre a chamada HTTP. Exemplo: ID `weather-api`, método `GET`, URL base `https://api.openweathermap.org`, endpoint `/data/2.5/weather`, header `API-Key` (o valor fica em texto no MongoDB, ver o aviso em "Dados no MongoDB"), parâmetros `q` (string, obrigatório) e `units` (string, opcional).
+2. Em **Agentes → Novo agente**, escolha provedor e modelo (ex.: Ollama, `llama3.2:latest`), escreva o prompt, marque as tools e, se quiser, ligue o RAG.
+3. Reinicie o orquestrador para ele carregar o que mudou.
+4. No **Playground**, escolha o agente e converse.
 
-# Docker (alternativo)
-docker build -t agno-manager .
-docker run -p 3000:3000 agno-manager
-```
+**Provedores no formulário de agente:** Ollama, OpenAI, Anthropic, Google Gemini, Groq e Azure OpenAI; no RAG: Ollama, OpenAI, Google Gemini e Azure OpenAI. As chaves dos provedores ficam no orquestrador, não aqui. Para oferecer outro provedor, inclua-o em `modelProviders` ou `ragProviders` (`src/components/management/agents/AgentForm.tsx`), com um valor que o orquestrador aceite.
 
-#### **Variáveis de Ambiente Completas**
-```env
-# Database
-MONGO_CONNECTION_STRING=mongodb://usuario:senha@host:porta/database
-MONGO_DATABASE_NAME=agno
+## Interface
 
-# App Configuration
-NEXT_PUBLIC_API_URL=https://seu-dominio.com
-NEXTAUTH_SECRET=seu-jwt-secret-super-seguro
-NEXTAUTH_URL=https://seu-dominio.com
+- **Cores e tema:** só tokens do Design System (`docs/design/design-system.md`): canais HSL em `src/app/globals.css` (`:root` = claro, `.dark` = escuro), mapeados no `tailwind.config.ts` (`bg-background`, `text-foreground`, `bg-primary`…). Nada de hex nem paleta crua do Tailwind nos componentes. O tema (Claro, Escuro ou Sistema, padrão Sistema) vem do `next-themes`, no botão do cabeçalho (no celular, também no rodapé do menu), e fica no `localStorage` (`theme`).
+- **Idioma:** pt-BR (padrão) e EN com `next-intl`. Os textos ficam em `messages/pt-BR.json` e `messages/en.json` (mesmas chaves, conferido por `tests/i18n/catalogs.test.ts`); em `src/app`, `src/components/{layout,management,playground}`, `src/hooks` e `src/store.ts` o lint recusa texto literal em JSX, nos atributos e props de texto (`aria-label`, `title`, `label`, `description`…) e em `toast.*()`. O idioma é escolhido no botão `PT`/`EN` do cabeçalho (no celular, na linha "Idioma" do menu), fica no cookie `locale` e não entra na URL; sem cookie, abre em pt-BR. Trocar de idioma não recarrega a página nem perde a conversa. O conteúdo gerado pelos agentes não é traduzido.
 
-# AI Providers
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-GOOGLE_API_KEY=AIza...
-GROQ_API_KEY=gsk_...
+## Desenvolvimento
 
-# Azure OpenAI (se usando)
-AZURE_OPENAI_API_KEY=...
-AZURE_OPENAI_ENDPOINT=https://....openai.azure.com
-AZURE_OPENAI_API_VERSION=2024-02-15-preview
+**Stack:** Next.js 15 (App Router) + React 18 + TypeScript, Tailwind + shadcn/ui (Radix), zustand (sessão do chat), nuqs (estado na URL), next-intl, react-hook-form, zod (validação nas rotas da API), recharts.
 
-# Monitoring (opcional)
-NEXT_PUBLIC_ANALYTICS_ID=G-...
-SENTRY_DSN=https://...
-```
-
-## 💡 Como Usar
-
-### **Fluxo Básico de Configuração**
-
-#### **1. Primeira Execução**
-1. **Acesse** `http://localhost:3000`
-2. **Siga o guia** "Primeiros Passos" na tela inicial (`/`). Cada seção tem endereço próprio (`/playground`, `/agents`, `/agents/<id>`, `/tools`, `/dashboard`): dá para favoritar, abrir em nova aba e usar o voltar do navegador
-3. **Configure** sua primeira ferramenta HTTP
-4. **Crie** seu primeiro agente IA
-5. **Teste** no playground de chat
-
-#### **2. Criando uma Ferramenta HTTP**
-```
-🛠️ Tools → Criar Nova Tool
-
-📝 Exemplo: Weather API
-- ID: weather-api
-- Nome: Weather API
-- Descrição: Obtém dados meteorológicos
-- Método: GET
-- URL Base: https://api.openweathermap.org
-- Endpoint: /data/2.5/weather
-- Headers: API-Key: sua-chave
-- Parâmetros:
-  • q (string, obrigatório): Nome da cidade
-  • units (string, opcional): Unidade temperatura
-```
-
-#### **3. Criando um Agente IA**
-```
-🤖 Agentes → Criar Novo Agente
-
-📝 Exemplo: Assistente Meteorológico
-- ID: weather-assistant
-- Nome: Assistente Meteorológico
-- Modelo: llama3.2:latest (Ollama)
-- Prompt: "Você é um assistente especializado em..."
-- Tools: ✅ weather-api
-- RAG: ❌ (desabilitado)
-- Status: ✅ Ativo
-```
-
-#### **4. Testando no Playground**
-```
-🎮 Playground → Selecionar Agente → weather-assistant
-
-💬 Conversa de exemplo:
-Usuário: "Como está o tempo em São Paulo?"
-Agente: [Chama weather-api] "Em São Paulo está 25°C, ensolarado..."
-```
-
-### **Providers Suportados**
-
-#### **Modelos de IA**
-- **🦙 Ollama**: llama3.2:latest, codellama, mistral, etc.
-- **🤖 OpenAI**: gpt-4, gpt-3.5-turbo, gpt-4-vision, etc.
-- **🧠 Anthropic**: claude-3-sonnet, claude-3-haiku, claude-3-opus
-- **💎 Google**: gemini-pro, gemini-pro-vision
-- **⚡ Groq**: llama3-70b-8192, mixtral-8x7b-32768
-- **☁️ Azure**: Modelos OpenAI via Azure
-
-#### **Modelos de Embedding (RAG)**
-- **🦙 Ollama**: nomic-embed-text, mxbai-embed-large
-- **🤖 OpenAI**: text-embedding-3-small, text-embedding-3-large
-- **💎 Google**: text-embedding-004
-- **☁️ Azure**: text-embedding-ada-002
-
-## 🔧 Desenvolvimento Avançado
-
-### **Estrutura do Projeto**
 ```
 src/
 ├── app/
-│   ├── api/                    # Next.js API Routes
-│   │   ├── agents/            # CRUD agentes
-│   │   ├── tools/             # CRUD ferramentas
-│   │   └── dashboard/         # Métricas e stats
-│   └── (app)/                 # Rotas com a casca (navegação + cabeçalho):
-│                              # /, /playground, /agents[/new|/<id>],
-│                              # /tools[/new|/<id>], /dashboard
+│   ├── api/                 # rotas da API (agents, tools, dashboard), validação zod
+│   └── (app)/               # rotas com a casca (navegação + cabeçalho): /, /playground,
+│                            # /agents[/new|/<id>], /tools[/new|/<id>], /dashboard;
+│                            # error.tsx, not-found.tsx e o catch-all do 404
 ├── components/
-│   ├── layout/                # Navegação e layout
-│   ├── management/            # Telas de gerenciamento
-│   │   ├── agents/           # Componentes de agentes
-│   │   ├── tools/            # Componentes de tools
-│   │   └── dashboard/        # Dashboard e métricas
-│   ├── playground/           # Interface de chat
-│   └── ui/                   # Componentes base (shadcn)
-├── hooks/                     # React hooks customizados
-├── i18n/                      # next-intl: idioma pelo cookie (request.ts)
-├── lib/                      # Utilitários e configurações
-│   ├── mongodb.ts           # Cliente MongoDB
-│   ├── utils.ts             # Funções auxiliares
-│   └── modelProvider.ts     # Configurações de providers
-└── types/                    # Definições TypeScript
-    ├── management.ts        # Tipos de gerenciamento
-    └── playground.ts        # Tipos do playground
+│   ├── layout/              # casca, navegação, cabeçalho, tema e idioma
+│   ├── management/          # agentes, tools, dashboard e primeiros passos
+│   ├── playground/          # chat e painel de sessões
+│   └── ui/                  # componentes base (shadcn) e estados (loading.tsx)
+├── hooks/                   # stream do chat, sessões, ações do playground
+├── i18n/                    # next-intl: idioma pelo cookie (request.ts)
+├── lib/                     # utilitários (mongodb.ts, utils.ts...)
+└── types/
 ```
 
-### **Adicionando Novos Providers**
-
-#### **1. Atualizar tipos TypeScript**
-```typescript
-// src/types/management.ts
-export type ModelProvider = 
-  | 'ollama' 
-  | 'openai' 
-  | 'anthropic' 
-  | 'gemini' 
-  | 'groq' 
-  | 'azure'
-  | 'seu-novo-provider';  // ← Adicionar aqui
-```
-
-#### **2. Configurar no formulário**
-```typescript
-// src/components/management/agents/AgentForm.tsx
-const modelProviders = [
-  // ... providers existentes
-  { 
-    value: 'seu-novo-provider', 
-    label: 'Seu Novo Provider',
-    description: 'Descrição do provider'
-  }
-];
-```
-
-#### **3. Adicionar configuração**
-```typescript
-// src/lib/modelProvider.ts
-export const providerConfigs = {
-  // ... configs existentes
-  'seu-novo-provider': {
-    name: 'Seu Novo Provider',
-    apiKeyRequired: true,
-    supportedModels: ['modelo-1', 'modelo-2'],
-    embeddingModels: ['embedding-1']
-  }
-};
-```
-
-### **Customização da Interface**
-
-#### **Temas e Cores**
-As cores são tokens do Design System (`docs/design/design-system.md`): canais HSL em `src/app/globals.css` (`:root` = claro, `.dark` = escuro) e mapeados no `tailwind.config.ts` (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`...). Nada de hex nem paleta crua do Tailwind nos componentes.
-
-O tema (Claro, Escuro ou Sistema, padrão Sistema) vem do `next-themes` e é escolhido no botão do cabeçalho (no celular, também no rodapé do menu); a escolha fica no `localStorage` (`theme`).
-
-#### **Idioma**
-A UI está em pt-BR (padrão) e EN, com `next-intl`. Os textos ficam nos catálogos `messages/pt-BR.json` e `messages/en.json` (mesmas chaves nos dois, conferido por `tests/i18n/catalogs.test.ts`); em `src/app`, `src/components/{layout,management,playground}`, `src/hooks` e `src/store.ts` o lint recusa texto literal em JSX, em atributos lidos pelo usuário e em `toast.*()`. O idioma é escolhido no botão `PT`/`EN` do cabeçalho (no celular, na linha "Idioma" do menu), fica no cookie `locale` e não entra na URL; sem cookie, a página abre em pt-BR. Trocar de idioma não recarrega a página: no `/playground`, a conversa, o stream em curso e o texto do composer continuam. O conteúdo gerado pelos agentes não é traduzido.
-
-#### **Componentes Personalizados**
-```typescript
-// src/components/ui/custom-button.tsx
-import { Button } from '@/components/ui/button';
-
-export function CustomButton({ children, ...props }) {
-  return (
-    <Button 
-      className="bg-gradient-to-r from-blue-500 to-purple-600" 
-      {...props}
-    >
-      {children}
-    </Button>
-  );
-}
-```
-
-## 🔒 Segurança e Produção
-
-### **Configurações de Segurança**
-```env
-# JWT Secrets (geração segura)
-NEXTAUTH_SECRET=$(openssl rand -base64 32)
-
-# CORS (produção)
-NEXT_PUBLIC_ALLOWED_ORIGINS=https://seu-dominio.com
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000  # 15 minutos
-RATE_LIMIT_MAX_REQUESTS=100  # 100 requests por janela
-```
-
-### **Monitoramento**
-```javascript
-// next.config.ts
-module.exports = {
-  experimental: {
-    instrumentationHook: true  // Habilita telemetria
-  },
-  logging: {
-    fetches: {
-      fullUrl: true  // Log completo de requests
-    }
-  }
-};
-```
-
-### **Deploy Recomendado**
-```yaml
-# docker-compose.prod.yml
-version: '3.8'
-services:
-  agno-manager:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - MONGO_CONNECTION_STRING=mongodb://mongo:27017
-    depends_on:
-      - mongo
-      
-  mongo:
-    image: mongo:7
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-      
-volumes:
-  mongodb_data:
-```
-
-## 📈 Roadmap e Contribuições
-
-### **🎯 Fase Atual (v1.1 — Agno 2.5)**
-- ✅ CRUD completo de agentes e ferramentas
-- ✅ Playground de chat funcional
-- ✅ Integração com orquestrador Python
-- ✅ Interface responsiva e moderna
-- ✅ Suporte a múltiplos providers
-- ✅ **Compatibilidade com Agno 2.5** (nova API de sessões unificada)
-- ✅ **Suporte a Teams** no playground, dashboard e sessões
-- ✅ **Dashboard de métricas** com separação Agent/Team, consumo de tokens por entidade
-- ✅ **Carregamento de sessões** compatível com `chat_history` (v2.5) e formato legado
-- ✅ **Collections renomeadas** (`agno_sessions`, `agno_memories`)
-
-### **🚀 Próximas Funcionalidades (v1.2)**
-- 👥 **Multi-usuário**: Autenticação e controle de acesso
-- 📁 **Organização**: Categorias e tags para agentes
-- 🔄 **Versionamento**: Histórico de mudanças
-- 🌐 **API Externa**: Webhook endpoints para integração
-
-### **🎨 Funcionalidades Futuras (v2.0)**
-- 🧪 **A/B Testing**: Compare versões de agentes
-- 📝 **Templates**: Agentes e tools pré-configurados
-- 🔗 **Workflows**: Cadeia de agentes automatizada
-- 🏢 **Enterprise**: SSO, auditoria, compliance
-- 📱 **Mobile App**: Aplicativo nativo
-
-### **🤝 Como Contribuir**
-
-#### **1. Setup de Desenvolvimento**
 ```bash
-# Fork do repositório
-git clone https://github.com/seu-usuario/agno-manager.git
-cd agno-manager
-
-# Instalar dependências
-pnpm install
-
-# Configurar hooks de desenvolvimento
-pnpm prepare
-
-# Executar testes
-pnpm test
-```
-
-#### **2. Padrões de Código**
-```bash
-# Linting e formatação
-pnpm lint      # ESLint
-pnpm format    # Prettier
-pnpm typecheck # TypeScript
-
-# Testes
-pnpm test           # Unit tests
-pnpm test:watch     # Vitest em modo watch
-pnpm test:e2e       # Playwright (Chromium) contra o orquestrador falso em e2e/fake-orchestrator
-                    # (1ª vez: pnpm exec playwright install chromium)
+pnpm lint          # ESLint
+pnpm typecheck     # TypeScript
+pnpm test          # Vitest + Testing Library + MSW (tests/)
+pnpm test:watch
+pnpm test:e2e      # Playwright (Chromium) contra o orquestrador falso (e2e/fake-orchestrator)
+                   # 1ª vez: pnpm exec playwright install chromium
+pnpm build
+pnpm format        # Prettier (checagem)
 ```
 
 A CI (`.github/workflows/ci.yml`) roda `lint`, `typecheck`, `test`, `build` e `test:e2e` em push na `main` e em todo PR.
 
-Sem `CI`, o `pnpm test:e2e` sobe o app com `next dev` (prazos maiores por causa da compilação sob demanda). Com `CI=true`, ele roda `next build` + `next start` (como na CI). Para reproduzir localmente:
+Sem `CI`, o `pnpm test:e2e` sobe o app com `next dev` (prazos maiores por causa da compilação sob demanda). Com `CI=true`, roda `next build` + `next start`, como na CI:
 
 ```bash
 CI=true MONGO_CONNECTION_STRING=mongodb://127.0.0.1:1/ci-fake MONGO_DATABASE_NAME=ci-fake pnpm test:e2e
 ```
 
-Os valores `MONGO_*` são de mentira (porta 1, sem Mongo): o build só precisa que existam. O build sobrescreve a pasta `.next`: pare qualquer `next dev` do projeto antes e, depois, suba o dev de novo (ele recompila).
+Os valores `MONGO_*` são de mentira (porta 1, sem Mongo): o build só precisa que existam. O build sobrescreve a pasta `.next`: pare qualquer `next dev` do projeto antes e suba o dev de novo depois.
 
-#### **3. Submissão de PRs**
-1. **Crie uma issue** descrevendo a funcionalidade/bug
-2. **Fork e clone** o repositório
-3. **Crie uma branch** feature/nome-da-funcionalidade
-4. **Implemente** seguindo os padrões do projeto
-5. **Adicione testes** para nova funcionalidade
-6. **Submeta PR** com descrição detalhada
+Plano de trabalho em [`docs/roadmap/`](docs/roadmap/README.md), decisões em [`docs/decisions/`](docs/decisions/) e regras do projeto em [`CLAUDE.md`](CLAUDE.md). Para contribuir, veja o [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 📝 Licença e Créditos
+## Solução de problemas
 
-### **Licença**
-Este projeto está licenciado sob [MIT License](./LICENSE).
+- **Listas e dashboard com "Não foi possível carregar…"**: confira o MongoDB e o `.env.local`:
+  ```bash
+  mongosh "mongodb://localhost:27017/agno" --eval "db.getCollectionNames()"
+  mongosh "mongodb://localhost:27017/agno" --eval "db.agents_config.countDocuments()"
+  curl http://localhost:3000/api/agents
+  ```
+- **Playground com "Não foi possível conectar ao orquestrador"**: confira o endpoint no painel e o orquestrador (`curl http://localhost:7777/health`). Com o playground em outra origem que não `http://localhost:3000`, inclua-a em `CORS_ALLOWED_ORIGINS` no orquestrador.
+- **Agente criado não aparece no chat**: reinicie o orquestrador (ver "Quando a mudança vale").
 
-### **Agradecimentos**
-- **[agno-agi Agent UI](https://github.com/agno-agi/agent-ui)** - Projeto base que inspirou e forneceu a fundação para esta interface
-- **[Orquestrador IA Python](https://github.com/Mosfet04/orquestradorIAPythonArgo)** - Backend principal
-- **[Agno Framework](https://agno.link)** - Framework de agentes IA
-- **[Next.js](https://nextjs.org)** - Framework React
-- **[shadcn/ui](https://ui.shadcn.com)** - Componentes UI
-- **[TailwindCSS](https://tailwindcss.com)** - Framework CSS
+## Licença e créditos
 
-### **Comunidade**
-- 💬 **Discord**: [Junte-se à comunidade](https://discord.gg/agno)
-- 📧 **Email**: suporte@agno.link
-- 🐛 **Issues**: [Reporte bugs aqui](https://github.com/seu-repo/issues)
-- 📖 **Docs**: [Documentação completa](https://docs.agno.link)
+[MIT](./LICENSE). Agradecimentos ao [agno-agi Agent UI](https://github.com/agno-agi/agent-ui) (projeto base), ao [Orquestrador IA Python](https://github.com/Mosfet04/orquestradorIAPythonArgo), ao [Agno](https://agno.link), ao [Next.js](https://nextjs.org), ao [shadcn/ui](https://ui.shadcn.com) e ao [Tailwind CSS](https://tailwindcss.com).
 
 ---
 
-## English Version
+## English version
 
-# 🤖 Agno Manager - AI Agent Orchestrator Frontend
+Web UI for the [Agno Python AI Orchestrator](https://github.com/Mosfet04/orquestradorIAPythonArgo): configure agents and HTTP tools, test them in chat and see usage metrics. Based on the [agno-agi Agent UI](https://github.com/agno-agi/agent-ui).
 
-A complete web interface for managing AI agents and HTTP tools, designed as a frontend for the [Python AI Orchestrator Agno](https://github.com/Mosfet04/orquestradorIAPythonArgo).
+### What it does today
 
-> **🙏 Based on [agno-agi Agent UI](https://github.com/agno-agi/agent-ui)** - This project extends and adapts the excellent work from the Agno team for specific integration with the Python orchestrator.
+- **Chat playground** (`/playground`): chat with the orchestrator's agents and teams, with streaming, tool calls, session history (Agno 2.5 `chat_history` and the legacy format) and media.
+- **Agents** (`/agents`, `/agents/new`, `/agents/<id>`) and **HTTP tools** (`/tools`, …): create, edit, delete, search and filter.
+- **Dashboard** (`/dashboard`) and **getting started** guide (`/`).
+- Every section has its own URL; light/dark theme; pt-BR and EN. Loading, empty and error states everywhere: with the orchestrator or MongoDB down you get the error with "Try again", and an unknown address shows the in-app 404.
 
-## 📋 About This Project
+### How it works today
 
-This project is a **modern web frontend** that complements the [Python AI Orchestrator](https://github.com/Mosfet04/orquestradorIAPythonArgo), providing an intuitive visual interface for:
+- **Management** (agents, tools, dashboard): the `src/app/api/**` routes read and write the orchestrator's MongoDB directly, validating input with zod.
+- **Chat**: the browser talks to the orchestrator's AgentOS at the endpoint set in the panel (default `http://localhost:7777`). The orchestrator allows `http://localhost:3000` in CORS by default. If it requires a key (`API_KEY_RUN`), chat doesn't work yet: sending the key comes with the BFF (phase P2).
+- **When changes apply**: the orchestrator builds agents and tools at startup, so what you create or edit here takes effect in chat **after restarting the orchestrator**. Hot apply through the orchestrator's Admin API is planned for phases P2–P4 ([roadmap](docs/roadmap/README.md)).
 
-- **Managing AI agents** without editing Python code
-- **Configuring HTTP tools** visually
-- **Testing agents** in real-time via chat
-- **Administering orchestrator** configurations
+The MongoDB collections (`agents_config`, `tools`, `agno_sessions`, `agno_memories`) are described in the Portuguese section above.
 
-## ✨ Key Features
+### Quick start
 
-### 🎮 **Chat Playground**
-- Modern interface for conversing with AI agents and teams
-- Real-time streaming support (agents and teams)
-- Tool calls and results visualization
-- Conversation history (v2.5 `chat_history` format + legacy)
-- Multi-modal support (text, image, audio, video)
-- Stable user identification via fingerprint
+Requirements: Node.js 22.18+ or 24+, pnpm 10.33.0 (pnpm only) and the orchestrator running with its MongoDB.
 
-### 🤖 **Agent Management**
-- ➕ **Create agents**: Configure new agents with models, prompts, and tools
-- ✏️ **Edit agents**: Modify existing configurations
-- 🗑️ **Delete agents**: Remove unused agents
-- 🔍 **Search and filter**: Find agents quickly
-- 🧠 **RAG configuration**: Configure Retrieval-Augmented Generation
-- 🛠️ **Associate tools**: Connect tools to agents
-
-### 🛠️ **HTTP Tools Management**
-- ➕ **Create external APIs**: Configure HTTP endpoints visually
-- ✏️ **Edit configurations**: Modify URLs, parameters, and headers
-- 🗑️ **Delete tools**: Remove unused tools
-- 📝 **Dynamic parameters**: Configure input and validation
-- 🔗 **Custom headers**: Configure authentication and metadata
-- 🔍 **Organize tools**: Search and filter by HTTP method
-
-## 🏗️ Technical Architecture
-
-### **Technology Stack**
-- **Frontend**: Next.js 14 + TypeScript + TailwindCSS
-- **Components**: Radix UI + shadcn/ui
-- **State**: Zustand for global management
-- **Forms**: React Hook Form + Zod validation
-- **Database**: MongoDB (shared with orchestrator)
-- **APIs**: Next.js API Routes (RESTful)
-
-### **Orchestrator Integration**
-- ✅ **Zero configuration**: Uses the same MongoDB as orchestrator
-- ✅ **Auto synchronization**: Changes reflected instantly
-- ✅ **Compatible schema**: 100% compatible with Python structures
-- ✅ **Hot reload**: Created agents available immediately
-
-## 🚀 Quick Start
-
-### **For Beginners**
-
-#### **1. Prerequisites**
 ```bash
-# Node.js 22.18+ or 24+ and pnpm 10.33.0 installed (pnpm only)
-node --version  # v22.18.0+ or v24+
-pnpm --version  # 10.33.0
-
-# MongoDB running (local or cloud)
-# Docker (optional, for local MongoDB)
-```
-
-#### **2. Orchestrator Setup (Recommended)**
-```bash
-# Clone and configure Python orchestrator first
-git clone https://github.com/Mosfet04/orquestradorIAPythonArgo.git
-cd orquestradorIAPythonArgo
-
-# Follow orchestrator README for complete setup
-# This ensures MongoDB is configured correctly
-```
-
-#### **3. Frontend Configuration**
-```bash
-# Clone this repository
-git clone <this-repository>
-cd playgroundOrquestrador
-
-# Install dependencies
 pnpm install
-
-# Configure environment variables
-cp .env.example .env.local
+# .env.local (the only two variables the playground reads)
+#   MONGO_CONNECTION_STRING=mongodb://localhost:27017
+#   MONGO_DATABASE_NAME=agno
+pnpm dev                                                   # http://localhost:3000
+mongosh "mongodb://localhost:27017" sample-data.js         # optional sample data (database "agno")
+mongosh "mongodb://localhost:27017" cleanup-sample-data.js # removes it
 ```
 
-#### **4. Configure `.env.local`**
-```env
-# MongoDB (same as orchestrator)
-MONGO_CONNECTION_STRING=mongodb://localhost:27017
-MONGO_DATABASE_NAME=agno
+Production: `pnpm build` and `pnpm start` (`MONGO_*` must be set at build time too). There is no Dockerfile.
 
-# Application URLs
-NEXT_PUBLIC_API_URL=http://localhost:3000
+### Usage
 
-# AI Providers (optional, configure as needed)
-OPENAI_API_KEY=your-openai-key
-ANTHROPIC_API_KEY=your-anthropic-key
-```
+1. **Tools → New tool**: register the HTTP call (method, base URL, endpoint, headers, parameters). Header values are stored as plain text in MongoDB and shown in the editor until secret references arrive (P2+).
+2. **Agents → New agent**: pick provider and model, write the prompt, select tools, optionally enable RAG. Provider API keys live in the orchestrator.
+3. Restart the orchestrator so it loads the changes.
+4. **Playground**: pick the agent and chat.
 
-#### **5. Run the application**
-```bash
-# Start development server
-pnpm dev
+### Development
 
-# Access http://localhost:3000
-```
+Stack: Next.js 15 (App Router), React 18, TypeScript, Tailwind + shadcn/ui, zustand, nuqs, next-intl, react-hook-form, zod (API routes), recharts. Commands: `pnpm lint`, `pnpm typecheck`, `pnpm test` (Vitest), `pnpm test:e2e` (Playwright against the fake orchestrator; `CI=true` runs it against a production build), `pnpm build`. Colors only via Design System tokens; UI text only via the `messages/*.json` catalogs. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-#### **6. Sample Data (Optional)**
-```bash
-# Insert sample data for testing
-node sample-data.js
+### Troubleshooting
 
-# To remove later: node cleanup-sample-data.js
-```
+- Lists/dashboard show "Couldn't load…": check MongoDB and `.env.local` (`curl http://localhost:3000/api/agents`).
+- Playground shows "Couldn't connect to the orchestrator": check the endpoint and `curl http://localhost:7777/health`; for an origin other than `http://localhost:3000`, add it to the orchestrator's `CORS_ALLOWED_ORIGINS`.
+- New agent missing in chat: restart the orchestrator.
 
-## 💡 How to Use
-
-### **Basic Configuration Flow**
-
-#### **1. First Run**
-1. **Access** `http://localhost:3000`
-2. **Follow** the "Getting Started" guide on initial screen
-3. **Configure** your first HTTP tool
-4. **Create** your first AI agent
-5. **Test** in chat playground
-
-#### **2. Creating an HTTP Tool**
-```
-🛠️ Tools → Create New Tool
-
-📝 Example: Weather API
-- ID: weather-api
-- Name: Weather API
-- Description: Get weather data
-- Method: GET
-- Base URL: https://api.openweathermap.org
-- Endpoint: /data/2.5/weather
-- Headers: API-Key: your-key
-- Parameters:
-  • q (string, required): City name
-  • units (string, optional): Temperature unit
-```
-
-#### **3. Creating an AI Agent**
-```
-🤖 Agents → Create New Agent
-
-📝 Example: Weather Assistant
-- ID: weather-assistant
-- Name: Weather Assistant
-- Model: llama3.2:latest (Ollama)
-- Prompt: "You are an assistant specialized in..."
-- Tools: ✅ weather-api
-- RAG: ❌ (disabled)
-- Status: ✅ Active
-```
-
-#### **4. Testing in Playground**
-```
-🎮 Playground → Select Agent → weather-assistant
-
-💬 Example conversation:
-User: "How's the weather in São Paulo?"
-Agent: [Calls weather-api] "In São Paulo it's 25°C, sunny..."
-```
-
-## 🔧 Advanced Development
-
-### **Project Structure**
-```
-src/
-├── app/
-│   ├── api/                    # Next.js API Routes
-│   │   ├── agents/            # Agent CRUD
-│   │   ├── tools/             # Tools CRUD
-│   │   └── dashboard/         # Metrics and stats
-│   └── page.tsx               # Main page
-├── components/
-│   ├── layout/                # Navigation and layout
-│   ├── management/            # Management screens
-│   │   ├── agents/           # Agent components
-│   │   ├── tools/            # Tool components
-│   │   └── dashboard/        # Dashboard and metrics
-│   ├── playground/           # Chat interface
-│   └── ui/                   # Base components (shadcn)
-├── hooks/                     # Custom React hooks
-├── lib/                      # Utilities and configurations
-│   ├── mongodb.ts           # MongoDB client
-│   ├── utils.ts             # Helper functions
-│   └── modelProvider.ts     # Provider configurations
-└── types/                    # TypeScript definitions
-    ├── management.ts        # Management types
-    └── playground.ts        # Playground types
-```
-
-## 📈 Roadmap and Contributions
-
-### **🎯 Current Phase (v1.1 — Agno 2.5)**
-- ✅ Complete CRUD for agents and tools
-- ✅ Functional chat playground
-- ✅ Python orchestrator integration
-- ✅ Responsive and modern interface
-- ✅ Multiple provider support
-- ✅ **Agno 2.5 compatibility** (unified session API)
-- ✅ **Teams support** in playground, dashboard, and sessions
-- ✅ **Metrics dashboard** with Agent/Team breakdown, token consumption per entity
-- ✅ **Session loading** compatible with `chat_history` (v2.5) and legacy format
-- ✅ **Renamed collections** (`agno_sessions`, `agno_memories`)
-
-### **🚀 Next Features (v1.2)**
-- 👥 **Multi-user**: Authentication and access control
-- 📁 **Organization**: Categories and tags for agents
-- 🔄 **Versioning**: Change history
-- 🌐 **External API**: Webhook endpoints for integration
-
-### **🤝 How to Contribute**
-
-#### **1. Development Setup**
-```bash
-# Fork the repository
-git clone https://github.com/your-user/agno-manager.git
-cd agno-manager
-
-# Install dependencies
-pnpm install
-
-# Configure development hooks
-pnpm prepare
-
-# Run tests
-pnpm test
-```
-
-## 📝 License and Credits
-
-### **License**
-This project is licensed under [MIT License](./LICENSE).
-
-### **Acknowledgments**
-- **[agno-agi Agent UI](https://github.com/agno-agi/agent-ui)** - Base project that inspired and provided the foundation for this interface
-- **[Python AI Orchestrator](https://github.com/Mosfet04/orquestradorIAPythonArgo)** - Main backend
-- **[Agno Framework](https://agno.link)** - AI agents framework
-- **[Next.js](https://nextjs.org)** - React framework
-- **[shadcn/ui](https://ui.shadcn.com)** - UI components
-- **[TailwindCSS](https://tailwindcss.com)** - CSS framework
+License: [MIT](./LICENSE).
 
 ---
 
-**⚡ This project is in its initial phase and is actively evolving. Perfect for developers who want to test AI agent orchestration with a modern, intuitive interface.**
-
----
-
-## 📋 Changelog
+## Changelog
 
 ### v1.1.0 — Agno 2.5 (2026-02-23)
 

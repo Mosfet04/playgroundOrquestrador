@@ -1,0 +1,35 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-17T15:00:00Z"},
+  "title": "P1-05 Estados",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "Desktop · claro · /agents erro", "expand": "fill"},
+    "Playground-offline-escuro.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Desktop · escuro · /playground orquestrador fora", "expand": "fill"},
+    "NaoEncontrado-claro.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 900, "title": "Desktop · claro · 404 e detalhe", "expand": "fill"},
+    "Erro-pagina-escuro.dc.html": {"x": 4560, "y": 0, "w": 1440, "h": 900, "title": "Desktop · escuro · error.tsx", "expand": "fill"},
+    "Lista-estados-claro.dc.html": {"x": 0, "y": 1020, "w": 1440, "h": 1640, "title": "Desktop · claro · Estados das listas", "expand": "fill"},
+    "Playground-estados-claro.dc.html": {"x": 1520, "y": 1020, "w": 1440, "h": 1240, "title": "Desktop · claro · Estados do playground", "expand": "fill"},
+    "Dashboard-escuro.dc.html": {"x": 3040, "y": 1020, "w": 1440, "h": 1180, "title": "Desktop · escuro · Dashboard sem dados e erro", "expand": "fill"},
+    "Celular-lista-claro.dc.html": {"x": 0, "y": 2780, "w": 390, "h": 844, "title": "Celular · claro · /agents carregando e vazio"},
+    "Celular-playground-offline-claro.dc.html": {"x": 470, "y": 2780, "w": 390, "h": 844, "title": "Celular · claro · /playground fora"},
+    "Celular-404-escuro.dc.html": {"x": 940, "y": 2780, "w": 390, "h": 844, "title": "Celular · escuro · 404"}
+  },
+  "order": [
+    "Main.dc.html",
+    "Playground-offline-escuro.dc.html",
+    "NaoEncontrado-claro.dc.html",
+    "Erro-pagina-escuro.dc.html",
+    "Lista-estados-claro.dc.html",
+    "Playground-estados-claro.dc.html",
+    "Dashboard-escuro.dc.html",
+    "Celular-lista-claro.dc.html",
+    "Celular-playground-offline-claro.dc.html",
+    "Celular-404-escuro.dc.html"
+  ],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "P1-05 · Estados: vazio, carregando, erro, 404", "kind": "title1", "maxW": 6000}
+  },
+  "designSystems": []
+}

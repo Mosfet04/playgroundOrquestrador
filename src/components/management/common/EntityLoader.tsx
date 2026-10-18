@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { CircleAlert } from 'lucide-react'
+import { Compass } from 'lucide-react'
 
 import { usePageLabel } from '@/components/layout/AppShell'
-import { LoadingSpinner } from '@/components/ui/loading'
-import { cn, focusRing } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Chip, EmptyState, LoadErrorState, LoadingSpinner } from '@/components/ui/loading'
 
 type LoadState<T> =
   | { status: 'loading' }
@@ -22,9 +22,9 @@ export type EntityLoaderTexts = {
   backHref: string
 }
 
-// Detalhe de agente/tool (P1-03): spinner com aria-busy até o GET do BFF
-// responder; 404 ou outro erro viram um bloco role="alert" com o id e o link
-// de volta. O P1-05 troca isso pelo padrão de erro/404.
+// Detalhe de agente/tool: spinner com aria-busy até o GET do BFF responder.
+// 404 vira o padrão não encontrado (id em mono, "Voltar"); outro erro, o bloco
+// de erro com "Tentar de novo", que refaz o GET (P1-05, V-P1-05-16).
 export function EntityLoader<T>({
   url,
   id,
@@ -39,31 +39,36 @@ export function EntityLoader<T>({
   children: (entity: T) => React.ReactNode
 }) {
   const [state, setState] = useState<LoadState<T>>({ status: 'loading' })
-  const t = useTranslations('common')
+  const tn = useTranslations('notFound')
+
+  const load = useCallback(
+    async (isCurrent: () => boolean = () => true): Promise<boolean> => {
+      try {
+        const response = await fetch(url)
+        const body = response.ok ? await response.json() : null
+        if (!isCurrent()) return false
+        if (body?.success) {
+          setState({ status: 'ready', entity: body.data as T })
+          return true
+        }
+        setState({ status: 'error', code: response.status })
+      } catch (error) {
+        console.error('Error loading entity:', url, error)
+        if (isCurrent()) setState({ status: 'error' })
+      }
+      return false
+    },
+    [url]
+  )
 
   useEffect(() => {
     let current = true
     setState({ status: 'loading' })
-    const load = async () => {
-      try {
-        const response = await fetch(url)
-        const body = response.ok ? await response.json() : null
-        if (!current) return
-        setState(
-          body?.success
-            ? { status: 'ready', entity: body.data as T }
-            : { status: 'error', code: response.status }
-        )
-      } catch (error) {
-        console.error('Error loading entity:', url, error)
-        if (current) setState({ status: 'error' })
-      }
-    }
-    load()
+    load(() => current)
     return () => {
       current = false
     }
-  }, [url])
+  }, [load])
 
   usePageLabel(state.status === 'ready' ? getLabel(state.entity) : undefined)
 
@@ -76,30 +81,34 @@ export function EntityLoader<T>({
 
   if (state.status === 'ready') return children(state.entity)
 
+  const back = (
+    <Button asChild variant={state.code === 404 ? 'default' : 'ghost'}>
+      <Link href={texts.backHref}>{texts.back}</Link>
+    </Button>
+  )
+
   return (
-    <div
-      role="alert"
-      className="mx-auto flex max-w-md flex-col items-center gap-3 p-8 text-center"
-    >
-      <CircleAlert aria-hidden="true" className="size-8 text-destructive" />
-      <h1 className="text-base font-semibold">
-        {state.code === 404 ? texts.notFound : texts.loadError}
-      </h1>
-      <p className="break-all font-mono text-sm text-muted-foreground">{id}</p>
-      {state.code && state.code !== 404 && (
-        <p className="text-sm text-muted-foreground">
-          {t('code', { status: state.code })}
-        </p>
+    <div className="mx-auto w-full max-w-2xl p-4 lg:p-6">
+      {state.code === 404 ? (
+        <EmptyState
+          role="alert"
+          icon={<Compass className="text-muted-foreground" />}
+          eyebrow={<Chip>{tn('status')}</Chip>}
+          title={texts.notFound}
+          titleAs="h1"
+          detail={id}
+          actions={back}
+        />
+      ) : (
+        <LoadErrorState
+          title={texts.loadError}
+          titleAs="h1"
+          status={state.code}
+          detail={id}
+          onRetry={load}
+          extraAction={back}
+        />
       )}
-      <Link
-        href={texts.backHref}
-        className={cn(
-          'rounded-sm text-sm font-medium text-primary hover:underline',
-          focusRing
-        )}
-      >
-        {texts.back}
-      </Link>
     </div>
   )
 }

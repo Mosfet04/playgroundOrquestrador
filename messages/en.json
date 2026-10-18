@@ -57,6 +57,15 @@
     "descriptionRequired": "Description is required",
     "code": "code {status}",
     "withCode": "{message} (code {status})",
+    "retry": "Try again",
+    "retrying": "Retrying…",
+    "online": "online",
+    "offline": "offline",
+    "loadErrorHint": "The orchestrator didn't respond. Check that it's running and try again.",
+    "clearFilters": "Clear filters",
+    "filterEmptyHint": "Check the spelling or clear the filters.",
+    "gettingStarted": "See getting started",
+    "goHome": "Go to home",
     "notifications": "Notifications",
     "close": "Close"
   },
@@ -68,8 +77,10 @@
     "activeOnly": "Active only",
     "activeOnlyHint": "Show active agents only",
     "loadingList": "Loading agents…",
-    "emptyTitle": "No agents found",
-    "emptyDescription": "Create your first agent to start using the AI orchestration system",
+    "emptyTitle": "The orchestrator has no agents yet",
+    "emptyDescription": "An agent combines a model, instructions and tools. Create the first one and chat with it in the playground.",
+    "searchEmptyTitle": "No agents match <term>“{query}”</term>",
+    "activeEmptyTitle": "No active agents",
     "createFirst": "Create first agent",
     "editLabel": "Edit agent",
     "deleteLabel": "Delete agent",
@@ -127,8 +138,9 @@
     "title": "Tool management",
     "subtitle": "Create and manage HTTP tools for your agents",
     "loadingList": "Loading tools…",
-    "emptyTitle": "No tools found",
-    "emptyDescription": "Create your first HTTP tool to expand your agents' capabilities",
+    "emptyTitle": "The orchestrator has no tools yet",
+    "emptyDescription": "A tool is an HTTP call an agent can make. Create the first one and attach it to an agent.",
+    "searchEmptyTitle": "No tools match <term>“{query}”</term>",
     "createFirst": "Create first tool",
     "editLabel": "Edit tool",
     "deleteLabel": "Delete tool",
@@ -191,6 +203,13 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "System overview and usage metrics",
+    "loading": "Loading dashboard…",
+    "loadError": "Couldn't load the dashboard",
+    "tokensError": "Couldn't load token usage",
+    "noData": "No data in this period",
+    "noDataHint": "Chat with an agent in the playground to generate metrics.",
+    "noModels": "No models in use by active agents.",
+    "noEmbeddings": "No agent uses RAG.",
     "periodPlaceholder": "Select period",
     "period": {
       "1h": "Last hour",
@@ -223,7 +242,7 @@
     "teamSessions": "Team sessions"
   },
   "home": {
-    "title": "Welcome to Agno Manager!",
+    "title": "Welcome to the orchestrator playground!",
     "subtitle": "Configure your first AI agents in a few steps",
     "progress": "{completed} of {total} completed",
     "allDone": "🎊 Congratulations! Setup complete",
@@ -252,10 +271,10 @@
       "providers": "💡 <strong>Supported providers:</strong> Ollama (local), OpenAI, Anthropic, Google, Groq, Azure",
       "tools": "🔧 <strong>HTTP tools:</strong> Configure APIs like Weather, GitHub, any REST API",
       "rag": "🧠 <strong>RAG (optional):</strong> Add a knowledge base for custom context",
-      "sync": "⚡ <strong>Automatic sync:</strong> Agents created here are available in the orchestrator immediately"
+      "sync": "🔄 <strong>When it applies:</strong> agents and tools created here are stored in the orchestrator's MongoDB and take effect in chat after it restarts"
     },
     "mobileTitle": "Optimized for mobile",
-    "mobileText": "✨ This interface was optimized for your mobile device. Move between tabs easily using the top menu.",
+    "mobileText": "✨ This interface is optimized for your mobile device. Open the menu in the header to move between sections.",
     "nextStepsTitle": "🎉 Next steps",
     "nextSteps": {
       "advanced": "✅ Explore advanced features like RAG and custom settings",
@@ -284,10 +303,10 @@
     "noAgents": "No agents available",
     "noTeams": "No teams available",
     "sessions": "Sessions",
-    "sessionsEmptyTitle": "No sessions found",
     "sessionsEndpointOff": "Endpoint not connected. Connect the endpoint to see the history.",
     "sessionsNoEndpoint": "Select an endpoint to see the history.",
     "sessionsNoAgent": "Select an agent to see the history.",
+    "sessionsNoTeam": "Select a team to see the history.",
     "sessionsNoStorage": "Connect <link>storage</link> to your agent to see sessions.",
     "sessionsEmpty": "No sessions yet. Send a message to create one.",
     "deleteSession": "Delete session \"{title}\"",
@@ -297,6 +316,13 @@
     "deleteSessionError": "Couldn't delete the session",
     "sessionsLoadError": "Couldn't load sessions",
     "composerPlaceholder": "Ask anything",
+    "composerOffline": "Connect the orchestrator to chat",
+    "composerNoEntity": "Select an agent or team to chat",
+    "connecting": "Connecting to the orchestrator…",
+    "offlineTitle": "Couldn't connect to the orchestrator",
+    "noEntitiesDescription": "Create an agent and come back to chat with it.",
+    "chatEmptyTitle": "Chat with {name}",
+    "chatEmptyDescription": "Send a message to test it. Replies, tool calls and metrics show up here.",
     "send": "Send",
     "sendError": "Couldn't send the message",
     "scrollToBottom": "Scroll to bottom",
@@ -319,11 +345,16 @@
     "downloadVideo": "Download video",
     "videoDownloading": "Downloading video…",
     "videoDownloaded": "Video downloaded",
-    "videoDownloadError": "Couldn't download the video",
-    "welcomeLabel": "Welcome message",
-    "welcome": "This is an open-source <agno></agno> Agent UI, built with <stack></stack>",
-    "welcomeHint": "For the full experience, visit the Agent Playground.",
-    "goToDocs": "Go to docs",
-    "visitAgentPlayground": "Visit Agent Playground"
+    "videoDownloadError": "Couldn't download the video"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "status": "404",
+    "description": "The address <path></path> doesn't exist in the playground. Check the link or go back home."
+  },
+  "errorBoundary": {
+    "title": "This page hit an error",
+    "description": "Try again. If it keeps happening, reload the page or go back home.",
+    "reference": "ref. {digest}"
   }
 }

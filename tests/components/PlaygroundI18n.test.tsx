@@ -191,15 +191,29 @@ describe('textos do chat', () => {
     expect(screen.getByText('Step 1')).toBeInTheDocument()
   })
 
-  it('chat vazio traduzido, com os links da agno e da documentação', () => {
-    renderWithIntl(<ChatBlankState />)
-
-    const welcome = screen.getByRole('region', { name: 'Mensagem de boas-vindas' })
-    expect(welcome).toHaveTextContent('Esta é uma Agent UI open source da')
-    expect(welcome).toHaveTextContent('Para a experiência completa, acesse o Agent Playground.')
-    expect(within(welcome).getByRole('link', { name: 'Ver a documentação' })).toHaveClass(
-      'uppercase'
+  it('chat vazio traduzido e sem o texto nem os links da Agno (P1-05)', () => {
+    usePlaygroundStore.setState({
+      isEndpointLoading: false,
+      isEndpointActive: true,
+      agents: [{ value: 'agent-1', label: 'Assistente', model: { provider: 'OpenAI' } }]
+    })
+    const { unmount } = renderWithIntl(
+      <NuqsTestingAdapter searchParams="?agent=agent-1">
+        <ChatBlankState />
+      </NuqsTestingAdapter>
     )
+    expect(screen.getByRole('heading', { name: 'Converse com Assistente' })).toBeInTheDocument()
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Agno|Agent UI/)).not.toBeInTheDocument()
+    unmount()
+
+    renderWithIntl(
+      <NuqsTestingAdapter searchParams="?agent=agent-1">
+        <ChatBlankState />
+      </NuqsTestingAdapter>,
+      { locale: 'en' }
+    )
+    expect(screen.getByRole('heading', { name: 'Chat with Assistente' })).toBeInTheDocument()
   })
 
   it('botão de baixar vídeo tem nome acessível', () => {
@@ -223,7 +237,6 @@ describe('sessões', () => {
     usePlaygroundStore.setState({ isEndpointActive: false })
     blank('?agent=agent-1')
 
-    expect(screen.getByText('Nenhuma sessão encontrada')).toBeInTheDocument()
     expect(
       screen.getByText('Endpoint desconectado. Conecte o endpoint para ver o histórico.')
     ).toBeInTheDocument()
@@ -322,8 +335,9 @@ describe('sessões', () => {
   })
 })
 
+// P1-05: a falha vai para a caixa de sessões (com "Tentar de novo"), sem toast.
 describe('falha ao carregar sessões (BUG-P1-04b-1)', () => {
-  it('avisa no idioma da UI e deixa a lista vazia', async () => {
+  it('marca a falha no store, sem toast, e deixa a lista vazia', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     usePlaygroundStore.setState({ selectedEndpoint: AGENTOS_URL })
     server.use(http.get(`${AGENTOS_URL}/sessions`, () => new HttpResponse(null, { status: 500 })))
@@ -337,7 +351,8 @@ describe('falha ao carregar sessões (BUG-P1-04b-1)', () => {
 
     await act(() => result.current.getSessions({ entityType: 'agent', agentId: 'agent-1' }))
 
-    expect(await screen.findByText("Couldn't load sessions")).toBeInTheDocument()
+    expect(usePlaygroundStore.getState().sessionsError).toBe(true)
+    expect(screen.queryByText("Couldn't load sessions")).not.toBeInTheDocument()
     expect(usePlaygroundStore.getState().sessionsData).toEqual([])
   })
 })
@@ -358,9 +373,9 @@ describe('painel', () => {
       screen.getByRole('button', { name: 'Recarregar agentes e sessões' })
     ).toBeInTheDocument()
     // o endpoint abre a edição pelo teclado, com nome acessível (R1) e a URL
-    // como descrição (R8)
+    // como descrição (R8), com o status em palavra (P1-05)
     const edit = screen.getByRole('button', { name: 'Editar endpoint' })
-    expect(edit).toHaveAccessibleDescription('http://localhost:7777')
+    expect(edit).toHaveAccessibleDescription('http://localhost:7777 offline')
     edit.focus()
     await user.keyboard('{Enter}')
     const input = screen.getByRole('textbox')

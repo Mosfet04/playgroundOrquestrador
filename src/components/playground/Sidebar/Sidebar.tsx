@@ -77,6 +77,7 @@ const Endpoint = () => {
   const [, setAgentId] = useQueryState('agent')
   const [, setSessionId] = useQueryState('session')
   const t = useTranslations('playground')
+  const tc = useTranslations('common')
   // A URL descreve o botão "Editar endpoint" (há 2 Sidebars abaixo de lg).
   const endpointUrlId = useId()
 
@@ -197,7 +198,11 @@ const Endpoint = () => {
                   >
                     {isMounted
                       ? truncateText(selectedEndpoint, 21) || t('noEndpoint')
-                      : DEFAULT_ENDPOINT}
+                      : DEFAULT_ENDPOINT}{' '}
+                    {/* O ponto não é o único sinal (P1-05). */}
+                    <span className="sr-only">
+                      {isEndpointActive ? tc('online') : tc('offline')}
+                    </span>
                   </p>
                   <div
                     className={`size-2 shrink-0 rounded-full ${getStatusColor(isEndpointActive)}`}
@@ -289,39 +294,38 @@ const Sidebar = () => {
         {isMounted && (
           <>
             <Endpoint />
-            {isEndpointActive && (
-              <>
-                <motion.div
-                  className="flex w-full flex-col items-start gap-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, ease: 'easeInOut' }}
-                >
-                  <div className="text-xs font-medium uppercase text-foreground">
-                    {t('mode')}
+            {/* Modo só com o orquestrador online; Sessões sempre (P1-05). */}
+            {(isEndpointActive || isEndpointLoading) && (
+              <motion.div
+                className="flex w-full flex-col items-start gap-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
+              >
+                <div className="text-xs font-medium uppercase text-foreground">
+                  {t('mode')}
+                </div>
+                {isEndpointLoading ? (
+                  <div className="flex w-full flex-col gap-2">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <Skeleton
+                        key={index}
+                        className="h-9 w-full rounded-md"
+                      />
+                    ))}
                   </div>
-                  {isEndpointLoading ? (
-                    <div className="flex w-full flex-col gap-2">
-                      {Array.from({ length: 3 }).map((_, index) => (
-                        <Skeleton
-                          key={index}
-                          className="h-9 w-full rounded-md"
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <>
-                      <ModeSelector />
-                      <EntitySelector />
-                      {selectedModel && (agentId || teamId) && (
-                        <ModelDisplay model={selectedModel} />
-                      )}
-                    </>
-                  )}
-                </motion.div>
-                <Sessions />
-              </>
+                ) : (
+                  <>
+                    <ModeSelector />
+                    <EntitySelector />
+                    {selectedModel && (agentId || teamId) && (
+                      <ModelDisplay model={selectedModel} />
+                    )}
+                  </>
+                )}
+              </motion.div>
             )}
+            <Sessions />
           </>
         )}
       </motion.div>

@@ -155,7 +155,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
               {isEditing ? t('form.editTitle') : t('form.newTitle')}
             </h1>
             <p className="text-muted-foreground">

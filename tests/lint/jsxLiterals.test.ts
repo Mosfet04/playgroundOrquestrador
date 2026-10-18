@@ -8,11 +8,10 @@ import { beforeAll, describe, expect, it } from 'vitest'
 // playground, nos hooks e no store, e fecha as lacunas R8 (template literal em
 // ternário, ternário nos atributos lidos, literal a mais de 2 níveis) e o texto
 // fixo em toast.*() e setStreamingErrorMessage() (argumentos e valores de
-// objeto nesses argumentos). Lacuna conhecida: prop de componente próprio com
-// texto (`<ActionButton text="..." />`) passa, por causa do `ignoreProps`.
-// Outra lacuna conhecida (R11): `toast(t('x'), { action: { label: 'Desfazer' } })`
-// passa, porque o laço da regra retorna na primeira chave que não está em
-// `TEXT_KEY` e nunca chega ao `label` do objeto.
+// objeto nesses argumentos). P1-05 fecha as lacunas herdadas: props de texto
+// de componente próprio (`text`, `label`, `description`, `hint`, `detail`, além
+// de `title`) e `action.label`/`cancel.label` de toast (R11). Prop de texto com
+// outro nome continua passando, por causa do `ignoreProps`.
 
 let eslint: ESLint
 beforeAll(() => {
@@ -169,5 +168,40 @@ export const A = ({ t, x, mode }: { t: (k: string) => string; x: boolean; mode: 
   )
 }\n`
     expect(await messages(code, PLAYGROUND)).toEqual([])
+  })
+})
+
+describe('P1-05: lacunas herdadas do P1-04b', () => {
+  it.each(['text', 'label', 'description', 'hint', 'detail'])(
+    'prop %s de componente próprio com texto fixo é erro (literal e ternário)',
+    async (prop) => {
+      const code = `declare const Box: (p: Record<string, unknown>) => null
+export const A = ({ x }: { x: boolean }) => (
+  <><Box ${prop}="Texto fixo" /><Box ${prop}={x ? 'Sim' : 'Não'} /></>
+)\n`
+      const found = await messages(code, MIGRATED[0])
+      expect(found).toContain('no-restricted-syntax')
+      expect(count(found, UI_TEXT)).toBe(2)
+    }
+  )
+
+  it('action.label e cancel.label de toast com texto fixo são erro', async () => {
+    const code = `import { toast } from 'sonner'
+declare const t: (k: string) => string
+export function f() {
+  toast(t('x'), { action: { label: 'Desfazer', onClick: () => undefined } })
+  toast.error(t('y'), { cancel: { label: 'Fechar', onClick: () => undefined } })
+}\n`
+    expect(count(await messages(code, 'src/hooks/useFoo.ts'), UI_TEXT)).toBe(2)
+  })
+
+  it('passam: as mesmas props e o label do toast vindos do catálogo', async () => {
+    const code = `import { toast } from 'sonner'
+declare const Box: (p: Record<string, unknown>) => null
+export const A = ({ t }: { t: (k: string) => string }) => {
+  toast(t('x'), { action: { label: t('undo'), onClick: () => undefined } })
+  return <Box text={t('a')} label={t('b')} description={t('c')} hint={t('d')} detail={t('e')} />
+}\n`
+    expect(await messages(code, MIGRATED[0])).toEqual([])
   })
 })

@@ -223,13 +223,14 @@ test('teclado: Tab até um item da navegação e Enter navega; o item destino fi
   await expect(current).toHaveAccessibleName('Agentes')
 })
 
-test('rota fora do mapa: a página 404 do Next, sem exceção', async ({ page }) => {
+// P1-05: o 404 é o do app, dentro da casca (e2e/states.spec.ts cobre o resto).
+test('rota fora do mapa: a página 404 do app, sem exceção', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   const response = await page.goto('/nao-existe')
 
   expect(response?.status()).toBe(404)
-  await expect(page.getByText('404')).toBeVisible()
+  await expect(page.getByRole('main').getByText('404')).toBeVisible()
   expect(errors).toEqual([])
 })
 

@@ -55,12 +55,22 @@ Riscos e dependências: P1-04. Ao estender a regra de lint, fechar as lacunas qu
 
 ## P1-05 — Estados e documentação
 UI: sim            Depende (orq.): —
+Divisão (D-P1-05-2, [0014](../decisions/0014-estados-escopo-e-contadores.md)): a tabela da lista, o excluir no editor e os contadores (V6/V7 da spec) saem para o P1-05b.
 Objetivo: nenhuma tela em branco ou quebrada; documentação fiel ao que existe.
 Escopo: estados vazio/carregando/erro do Design System nas listas, dashboard e chat; `error.tsx` e `not-found.tsx` no layout; README e `GettingStarted` sem as promessas falsas (hot reload, "disponível imediatamente", Zod, Next 14); `README_EN.md`, `README_AGNO_MANAGER.md` e `INTEGRATION.md` consolidados no README (o que sobrar é decisão do usuário); `CONTRIBUTING.md` apontando para o `/dev-cycle`.
 Fora de escopo: o realtime de verdade (P4).
 Critérios de aceite: orquestrador fora do ar ⇒ mensagem de erro com ação ("tentar de novo"), não tela vazia; rota inexistente ⇒ 404 do app.
 Testes exigidos: componente dos três estados por lista; E2E com o fake orchestrator desligado.
 Riscos e dependências: herdado do P1-04b — os estados "Endpoint desconectado", "sem agente" e "sem storage" do painel de sessões existem no catálogo mas a UI não os alcança (`Sidebar.tsx`: `isEndpointActive &&` esconde Modo e Sessões com o orquestrador fora); lacunas conhecidas da regra de lint (prop de componente próprio e `action.label`/`cancel.label` de toast) registradas em `tests/lint/jsxLiterals.test.ts`.
+
+## P1-05b — Tabela da lista e excluir no editor
+UI: sim            Depende (orq.): —
+Objetivo: as listas de agents e tools no layout aprovado (V11/V12 do P1-01), herdado da decisão [0010](../decisions/0010-rotas-criacao-lista-e-conexao.md) D-P1-03-2.
+Escopo: V6 e V7 de `docs/design/P1-05.md`: tabela no desktop, linhas de 64 px no celular sem editar/excluir na linha; "Excluir" no rodapé do editor `/agents/<id>` e `/tools/<id>`; chips de total e por status com `limit=100` contado no cliente e "Mostrando 100 de N" acima do teto (D-P1-05-1, [0014](../decisions/0014-estados-escopo-e-contadores.md)).
+Fora de escopo: paginação e contagem no servidor (P3).
+Critérios de aceite: V6 e V7 no design QA nos dois temas, desktop e celular; os estados do P1-05 continuam valendo no layout novo.
+Testes exigidos: componente da tabela (chips, nota de teto) e do excluir no editor; e2e de exclusão.
+Riscos e dependências: P1-05. Observações do design QA do P1-05 (cosméticas) a tratar aqui: no celular, bloco de erro/404 com o ícone acima do título e conteúdo na largura do card (`EmptyState`, ramo com ícone); 404 de detalhe com o ícone da entidade em vez de Compass.
 
 ## P1-06 — Chat no visual do Design System
 UI: sim            Depende (orq.): —
@@ -69,7 +79,7 @@ Escopo: critérios V14 e V15 de `docs/design/P1-01.md` em `src/components/playgr
 Fora de escopo: chat via BFF (P2-03); markdown seguro (P2-04).
 Critérios de aceite: V14 e V15 verificados no design QA nos dois temas, desktop e celular; o stream do P0-06 continua passando.
 Testes exigidos: componente do chip de tool call e do indicador de stream; e2e do chat atual verde.
-Riscos e dependências: P1-02 (tokens) e P1-03 (layout). Limitação herdada LIM-P1-03-1 (`tests/components/PlaygroundSessionUrl.test.tsx`, `it.fails`): com o orquestrador fora ao abrir `/playground?agent=&session=`, `initializePlayground` zera `?agent=` e a sessão não recarrega após o refresh; corrigir aqui ou na P2-03 e virar o teste em `it`.
+Riscos e dependências: P1-02 (tokens) e P1-03 (layout). Limitação herdada LIM-P1-03-1 (`tests/components/PlaygroundSessionUrl.test.tsx`, `it.fails`): com o orquestrador fora ao abrir `/playground?agent=&session=`, `initializePlayground` zera `?agent=` e a sessão não recarrega após o refresh; corrigir aqui ou na P2-03 e virar o teste em `it`. Observações do design QA do P1-05 a tratar aqui: ponto do Endpoint neutro/`signal` durante "Conectando…" (hoje já sai `destructive`); ícones distintos na caixa de sessões (tomada, tomada desligada, robô); conteúdo do Sheet a 390 px encostado na borda esquerda (herdado da P1-03); iniciais no avatar da conversa vazia.
 
 ## P1-07 — E2E contra o build de produção
 UI: não            Depende (orq.): —

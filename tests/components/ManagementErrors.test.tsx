@@ -12,7 +12,8 @@ import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 
 // P1-04: o texto que vem do BFF não aparece na UI. O toast usa o catálogo,
-// escolhido pela ação e pelo status (409, 404, outros com o código).
+// escolhido pela ação e pelo status (409, 404, outros com o código). Erro de
+// lista vira o bloco de erro na página, sem toast (P1-05).
 
 const BFF_TEXT = 'mensagem crua do BFF'
 
@@ -72,7 +73,7 @@ describe('erros de gestão pelo catálogo', () => {
     expect(screen.queryByText(BFF_TEXT)).not.toBeInTheDocument()
   })
 
-  it('erro ao carregar a lista de tools: mensagem da ação com o código', async () => {
+  it('erro ao carregar a lista de tools: bloco com a ação e o código, sem toast (P1-05)', async () => {
     server.use(
       http.get('*/api/tools', () =>
         HttpResponse.json({ success: false, error: BFF_TEXT }, { status: 503 })
@@ -85,9 +86,12 @@ describe('erros de gestão pelo catálogo', () => {
       </>
     )
 
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Não foi possível carregar as tools')
+    expect(within(alert).getByText('código 503')).toBeInTheDocument()
     expect(
-      await screen.findByText('Não foi possível carregar as tools (código 503)')
-    ).toBeInTheDocument()
+      screen.queryByText('Não foi possível carregar as tools (código 503)')
+    ).not.toBeInTheDocument()
     expect(screen.queryByText(BFF_TEXT)).not.toBeInTheDocument()
   })
 

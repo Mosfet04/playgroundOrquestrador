@@ -57,6 +57,15 @@
     "descriptionRequired": "Descrição é obrigatória",
     "code": "código {status}",
     "withCode": "{message} (código {status})",
+    "retry": "Tentar de novo",
+    "retrying": "Tentando…",
+    "online": "online",
+    "offline": "offline",
+    "loadErrorHint": "O orquestrador não respondeu. Confira se ele está no ar e tente de novo.",
+    "clearFilters": "Limpar filtros",
+    "filterEmptyHint": "Confira a grafia ou limpe os filtros.",
+    "gettingStarted": "Ver primeiros passos",
+    "goHome": "Ir para o início",
     "notifications": "Notificações",
     "close": "Fechar"
   },
@@ -68,8 +77,10 @@
     "activeOnly": "Apenas ativos",
     "activeOnlyHint": "Mostrar apenas agentes ativos",
     "loadingList": "Carregando agentes…",
-    "emptyTitle": "Nenhum agente encontrado",
-    "emptyDescription": "Crie seu primeiro agente para começar a usar o sistema de orquestração de IA",
+    "emptyTitle": "O orquestrador ainda não tem agentes",
+    "emptyDescription": "Um agente junta modelo, instruções e tools. Crie o primeiro e converse com ele no playground em seguida.",
+    "searchEmptyTitle": "Nenhum agente encontrado para <term>“{query}”</term>",
+    "activeEmptyTitle": "Nenhum agente ativo",
     "createFirst": "Criar primeiro agente",
     "editLabel": "Editar agente",
     "deleteLabel": "Excluir agente",
@@ -127,8 +138,9 @@
     "title": "Gerenciamento de tools",
     "subtitle": "Crie e gerencie tools HTTP para seus agentes",
     "loadingList": "Carregando tools…",
-    "emptyTitle": "Nenhuma tool encontrada",
-    "emptyDescription": "Crie sua primeira tool HTTP para expandir as capacidades dos seus agentes",
+    "emptyTitle": "O orquestrador ainda não tem tools",
+    "emptyDescription": "Uma tool é uma chamada HTTP que o agente pode fazer. Crie a primeira e ligue a um agente.",
+    "searchEmptyTitle": "Nenhuma tool encontrada para <term>“{query}”</term>",
     "createFirst": "Criar primeira tool",
     "editLabel": "Editar tool",
     "deleteLabel": "Excluir tool",
@@ -191,6 +203,13 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Visão geral do sistema e métricas de uso",
+    "loading": "Carregando dashboard…",
+    "loadError": "Não foi possível carregar o dashboard",
+    "tokensError": "Não foi possível carregar o consumo de tokens",
+    "noData": "Sem dados no período",
+    "noDataHint": "Converse com um agente no playground para gerar métricas.",
+    "noModels": "Nenhum modelo em uso pelos agentes ativos.",
+    "noEmbeddings": "Nenhum agente usa RAG.",
     "periodPlaceholder": "Selecionar período",
     "period": {
       "1h": "Última hora",
@@ -223,7 +242,7 @@
     "teamSessions": "Sessões de team"
   },
   "home": {
-    "title": "Bem-vindo ao Agno Manager!",
+    "title": "Bem-vindo ao playground do orquestrador!",
     "subtitle": "Configure seus primeiros agentes IA em poucos passos",
     "progress": "{completed} de {total} concluídos",
     "allDone": "🎊 Parabéns! Setup concluído",
@@ -252,10 +271,10 @@
       "providers": "💡 <strong>Provedores suportados:</strong> Ollama (local), OpenAI, Anthropic, Google, Groq, Azure",
       "tools": "🔧 <strong>Tools HTTP:</strong> Configure APIs como Weather, GitHub, qualquer REST API",
       "rag": "🧠 <strong>RAG (opcional):</strong> Adicione base de conhecimento para contexto personalizado",
-      "sync": "⚡ <strong>Sincronização automática:</strong> Agentes criados aqui ficam disponíveis no orquestrador imediatamente"
+      "sync": "🔄 <strong>Quando vale:</strong> agentes e tools criados aqui ficam no MongoDB do orquestrador e passam a valer no chat depois que ele reinicia"
     },
     "mobileTitle": "Otimizado para mobile",
-    "mobileText": "✨ Esta interface foi otimizada para o seu dispositivo móvel. Navegue facilmente entre abas usando o menu superior.",
+    "mobileText": "✨ Esta interface foi otimizada para o seu dispositivo móvel. Abra o menu no cabeçalho para navegar entre as seções.",
     "nextStepsTitle": "🎉 Próximos passos",
     "nextSteps": {
       "advanced": "✅ Explore recursos avançados como RAG e configurações personalizadas",
@@ -284,10 +303,10 @@
     "noAgents": "Nenhum agente disponível",
     "noTeams": "Nenhum team disponível",
     "sessions": "Sessões",
-    "sessionsEmptyTitle": "Nenhuma sessão encontrada",
     "sessionsEndpointOff": "Endpoint desconectado. Conecte o endpoint para ver o histórico.",
     "sessionsNoEndpoint": "Selecione um endpoint para ver o histórico.",
     "sessionsNoAgent": "Selecione um agente para ver o histórico.",
+    "sessionsNoTeam": "Selecione um team para ver o histórico.",
     "sessionsNoStorage": "Conecte um <link>storage</link> ao agente para ver as sessões.",
     "sessionsEmpty": "Nenhuma sessão ainda. Envie uma mensagem para criar uma.",
     "deleteSession": "Excluir sessão \"{title}\"",
@@ -297,6 +316,13 @@
     "deleteSessionError": "Não foi possível excluir a sessão",
     "sessionsLoadError": "Não foi possível carregar as sessões",
     "composerPlaceholder": "Pergunte qualquer coisa",
+    "composerOffline": "Conecte o orquestrador para conversar",
+    "composerNoEntity": "Selecione um agente ou team para conversar",
+    "connecting": "Conectando ao orquestrador…",
+    "offlineTitle": "Não foi possível conectar ao orquestrador",
+    "noEntitiesDescription": "Crie um agente e volte aqui para conversar com ele.",
+    "chatEmptyTitle": "Converse com {name}",
+    "chatEmptyDescription": "Envie uma mensagem para testar. Respostas, tool calls e métricas aparecem aqui.",
     "send": "Enviar",
     "sendError": "Não foi possível enviar a mensagem",
     "scrollToBottom": "Rolar para o fim",
@@ -319,11 +345,16 @@
     "downloadVideo": "Baixar vídeo",
     "videoDownloading": "Baixando vídeo…",
     "videoDownloaded": "Vídeo baixado",
-    "videoDownloadError": "Não foi possível baixar o vídeo",
-    "welcomeLabel": "Mensagem de boas-vindas",
-    "welcome": "Esta é uma Agent UI open source da <agno>,</agno> feita com <stack></stack>",
-    "welcomeHint": "Para a experiência completa, acesse o Agent Playground.",
-    "goToDocs": "Ver a documentação",
-    "visitAgentPlayground": "Acessar o Agent Playground"
+    "videoDownloadError": "Não foi possível baixar o vídeo"
+  },
+  "notFound": {
+    "title": "Página não encontrada",
+    "status": "404",
+    "description": "O endereço <path></path> não existe no playground. Confira o link ou volte ao início."
+  },
+  "errorBoundary": {
+    "title": "Esta página encontrou um erro",
+    "description": "Tente de novo. Se o erro continuar, recarregue a página ou volte ao início.",
+    "reference": "ref. {digest}"
   }
 }

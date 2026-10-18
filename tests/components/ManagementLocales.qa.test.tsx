@@ -99,7 +99,7 @@ describe('ToolManagement', () => {
     server.use(noTools)
     renderWithIntl(<ToolManagement />, { locale: 'en' })
 
-    expect(await screen.findByText('No tools found')).toBeInTheDocument()
+    expect(await screen.findByText('The orchestrator has no tools yet')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Create first tool' })).toBeInTheDocument()
     expect(body()).not.toMatch(PT_WORDS)
   })
@@ -285,7 +285,7 @@ describe('AgentForm / AgentManagement: casos extras', () => {
     server.use(http.get('*/api/agents', () => HttpResponse.json(page([]))))
     renderWithIntl(<AgentManagement />, { locale: 'en' })
 
-    expect(await screen.findByText('No agents found')).toBeInTheDocument()
+    expect(await screen.findByText('The orchestrator has no agents yet')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Create first agent' })).toBeInTheDocument()
     expect(body()).not.toMatch(PT_WORDS)
   })

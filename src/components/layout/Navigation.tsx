@@ -35,7 +35,14 @@ export function Brand() {
   )
 }
 
-export function Navigation({ onNavigate }: { onNavigate?: () => void }) {
+export function Navigation({
+  onNavigate,
+  notFound = false
+}: {
+  onNavigate?: () => void
+  /** 404 de rota: nenhum item ativo. */
+  notFound?: boolean
+}) {
   const pathname = usePathname()
   const t = useTranslations('nav')
 
@@ -53,7 +60,7 @@ export function Navigation({ onNavigate }: { onNavigate?: () => void }) {
           )}
           <ul className="space-y-1">
             {group.items.map(({ href, label, icon: Icon }) => {
-              const current = activeState(pathname, href)
+              const current = notFound ? undefined : activeState(pathname, href)
               return (
                 <li key={href}>
                   <Link
