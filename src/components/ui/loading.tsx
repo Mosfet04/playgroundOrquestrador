@@ -6,6 +6,7 @@ import { Loader2, RefreshCw, Unplug } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableCell, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
 // Estados do Design System (docs/design/P1-05.md): carregando, vazio, vazio do
@@ -31,6 +32,13 @@ export function LoadingSpinner({ size = 'md', text }: LoadingSpinnerProps) {
   )
 }
 
+// Foco perdido (o elemento focado desmontou): vai para o h1 da página, já o
+// do conteúdo novo quando chamado no cleanup de um efeito (P1-05, P1-05b).
+export function focusHeadingIfLost() {
+  const active = document.activeElement
+  if (!active || active === document.body) document.querySelector<HTMLElement>('h1')?.focus()
+}
+
 /** Texto `role="status"` com o ponto `signal` ao vivo. */
 export function LiveStatus({ children }: { children: ReactNode }) {
   return (
@@ -44,27 +52,65 @@ export function LiveStatus({ children }: { children: ReactNode }) {
   )
 }
 
-/** Skeleton da lista de cards (agentes e tools) com o texto de carregando. */
-export function CardListSkeleton({ label }: { label: string }) {
+/**
+ * Skeleton da lista com o texto de carregando: a partir de md, o cabeçalho
+ * real da tabela (`head`) e 3 linhas; abaixo, 3 linhas de 64 px.
+ */
+export function ListSkeleton({
+  label,
+  head,
+  chipClassName
+}: {
+  label: string
+  head: ReactNode
+  /** Largura do chip da 2ª coluna (modelo ou requisição). */
+  chipClassName: string
+}) {
+  const rows = [0, 1, 2]
   return (
     <div aria-busy="true" className="space-y-4">
       <LiveStatus>{label}</LiveStatus>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {[0, 1, 2].map((key) => (
-          <div key={key} className="space-y-4 rounded-lg border border-border bg-card p-6">
-            <div className="flex items-center gap-3">
-              <Skeleton className="size-7" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-3 w-2/3" />
-                <Skeleton className="h-3 w-1/3" />
-              </div>
+      <div className="hidden md:block">
+        <Table>
+          <thead>{head}</thead>
+          <tbody>
+            {rows.map((key) => (
+              <TableRow key={key}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="size-7 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-3 w-2/3" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className={cn('h-6', chipClassName)} />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="ml-auto h-3 w-6" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-16" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-3 w-20" />
+                </TableCell>
+                <TableCell />
+              </TableRow>
+            ))}
+          </tbody>
+        </Table>
+      </div>
+      <div className="divide-y divide-border rounded-lg border border-border bg-card md:hidden">
+        {rows.map((key) => (
+          <div key={key} className="flex h-16 items-center gap-3 px-3">
+            <Skeleton className="size-7 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-3 w-2/3" />
             </div>
-            <div className="flex gap-2">
-              <Skeleton className="h-6 w-16" />
-              <Skeleton className="h-6 w-20" />
-            </div>
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-1/2" />
           </div>
         ))}
       </div>
@@ -172,7 +218,7 @@ export function EmptyState({
     <div
       role={role}
       className={cn(
-        'flex items-start gap-4 rounded-lg border border-border bg-card px-6 py-8',
+        'flex flex-col items-start gap-3 rounded-lg border border-border bg-card px-4 py-6 sm:flex-row sm:gap-4 sm:px-6 sm:py-8',
         className
       )}
     >
@@ -182,7 +228,7 @@ export function EmptyState({
       >
         {icon}
       </span>
-      <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+      <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-2">
         {eyebrow}
         <Title className={cn('font-semibold', Title === 'h1' ? 'text-lg' : 'text-base')}>
           {title}
@@ -259,9 +305,7 @@ export function LoadErrorState({
 
   useEffect(
     () => () => {
-      const active = document.activeElement
-      if ((pending.current || succeeded.current) && (!active || active === document.body))
-        document.querySelector<HTMLElement>('h1')?.focus()
+      if (pending.current || succeeded.current) focusHeadingIfLost()
     },
     []
   )

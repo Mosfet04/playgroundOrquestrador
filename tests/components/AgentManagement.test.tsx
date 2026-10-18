@@ -40,19 +40,17 @@ const serveAgents = (agents: (typeof agent)[]) =>
   )
 
 describe('AgentManagement: links da lista (D-P1-03-2)', () => {
-  it('o nome e "Editar" levam a /agents/<id> com o id codificado', async () => {
+  it('o nome leva a /agents/<id> com o id codificado, na tabela e na linha do celular; sem editar/excluir na linha (P1-05b)', async () => {
     serveAgents([agent])
     renderWithIntl(<AgentManagement />)
 
-    expect(
-      await screen.findByRole('link', { name: 'Agente Alfa' })
-    ).toHaveAttribute('href', '/agents/agente%20alfa')
-    expect(
-      screen.getByRole('link', { name: 'Editar agente' })
-    ).toHaveAttribute('href', '/agents/agente%20alfa')
-    expect(
-      screen.getByRole('button', { name: 'Excluir agente' })
-    ).toBeInTheDocument()
+    const links = await screen.findAllByRole('link', { name: 'Agente Alfa' })
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/agents/agente%20alfa',
+      '/agents/agente%20alfa'
+    ])
+    expect(screen.queryByRole('link', { name: 'Editar agente' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Excluir agente' })).not.toBeInTheDocument()
   })
 
   it('"Novo agente" e "Criar primeiro agente" levam a /agents/new', async () => {

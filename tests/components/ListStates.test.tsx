@@ -10,8 +10,9 @@ import { ToolManagement } from '@/components/management/tools/ToolManagement'
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 
-// P1-05 (V1–V5): estados das listas no layout atual. Erro > vazio do filtro >
-// vazio > conteúdo; erro de lista não vira toast nem "lista vazia".
+// P1-05 (V1–V5): estados das listas. Erro > vazio do filtro > vazio >
+// conteúdo; erro de lista não vira toast nem "lista vazia". Com conteúdo, cada
+// item tem um link na tabela (md+) e outro na linha do celular (P1-05b).
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -144,7 +145,7 @@ describe.each(LISTS)('lista de $name', (list) => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
 
     release()
-    expect(await screen.findByRole('link', { name: list.itemName })).toBeInTheDocument()
+    expect(await screen.findAllByRole('link', { name: list.itemName })).toHaveLength(2)
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     await waitFor(() =>
       expect(screen.getByRole('heading', { level: 1, name: list.heading })).toHaveFocus()
@@ -213,10 +214,10 @@ describe.each(LISTS)('lista de $name', (list) => {
     renderList(list.ui)
 
     await user.type(screen.getByLabelText('Buscar'), 'a')
-    expect(await screen.findByRole('link', { name: list.itemName })).toBeInTheDocument()
+    expect(await screen.findAllByRole('link', { name: list.itemName })).toHaveLength(2)
     await new Promise((resolve) => setTimeout(resolve, 300))
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: list.itemName })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: list.itemName })).toHaveLength(2)
   })
 
   it('vazio do filtro: o termo da busca e "Limpar filtros" (zera e volta o foco à busca)', async () => {
@@ -227,7 +228,7 @@ describe.each(LISTS)('lista de $name', (list) => {
     )
     const user = userEvent.setup()
     renderList(list.ui)
-    await screen.findByRole('link', { name: list.itemName })
+    await screen.findAllByRole('link', { name: list.itemName })
 
     const search = screen.getByLabelText('Buscar')
     await user.type(search, 'faturamento')
@@ -238,7 +239,7 @@ describe.each(LISTS)('lista de $name', (list) => {
     await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
     expect(search).toHaveValue('')
     expect(search).toHaveFocus()
-    expect(await screen.findByRole('link', { name: list.itemName })).toBeInTheDocument()
+    expect(await screen.findAllByRole('link', { name: list.itemName })).toHaveLength(2)
   })
 })
 
@@ -250,7 +251,7 @@ it('agentes: só com "Apenas ativos", o vazio do filtro é "Nenhum agente ativo"
   )
   const user = userEvent.setup()
   renderList(<AgentManagement />)
-  await screen.findByRole('link', { name: 'Agente Alfa' })
+  await screen.findAllByRole('link', { name: 'Agente Alfa' })
 
   await user.click(screen.getByRole('switch', { name: 'Apenas ativos' }))
 

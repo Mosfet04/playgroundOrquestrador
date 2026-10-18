@@ -3,37 +3,63 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { toast } from 'sonner'
-import { Plus, Search, Filter, Edit, Trash2 } from 'lucide-react'
+import { ChevronRight, Plus, Search, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
+import { Table, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { AgentConfig, AgentFilters } from '@/types/management'
-import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
-import { useRequestError } from '../common/useRequestError'
+import { CountChips, listCounts, rowLinkClass, ShowingOf, UpdatedAt } from '../common/EntityList'
 import {
-  CardListSkeleton,
+  Chip,
   EmptyState,
   FilterEmptyState,
+  ListSkeleton,
   LoadErrorState
 } from '@/components/ui/loading'
-import { cn, focusRing } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { StatusBadge } from '@/components/ui/status-badge'
+
+const SEPARATOR = ' · '
+
+// Avatar de 28 px com as iniciais: gradiente da marca; inativo em `secondary`.
+function AgentAvatar({ agent }: { agent: AgentConfig }) {
+  const initials = agent.nome
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => Array.from(word)[0])
+    .join('')
+    .toUpperCase()
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'flex size-7 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-medium',
+        agent.active
+          ? 'bg-gradient-to-br from-primary to-signal text-primary-foreground'
+          : 'bg-secondary text-secondary-foreground'
+      )}
+    >
+      {initials}
+    </span>
+  )
+}
 
 export function AgentManagement() {
   const [agents, setAgents] = useState<AgentConfig[]>([])
+  // Total do filtro no BFF; a página traz no máximo 100 (decisão 0014).
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   // Falha da carga: status HTTP, ou sem status quando não houve resposta.
   const [loadError, setLoadError] = useState<{ status?: number } | null>(null)
-  const [deletingAgent, setDeletingAgent] = useState<AgentConfig | null>(null)
   const [filters, setFilters] = useState<AgentFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const t = useTranslations('agents')
   const tc = useTranslations('common')
-  const requestError = useRequestError()
   const searchRef = useRef<HTMLInputElement>(null)
 
   // Só a requisição mais recente escreve no estado: a resposta lenta de uma
@@ -45,8 +71,8 @@ export function AgentManagement() {
     const id = ++requestId.current
     const isCurrent = () => id === requestId.current
     try {
-      const params = new URLSearchParams()
-      
+      const params = new URLSearchParams({ limit: '100' })
+
       if (filters.active !== undefined) {
         params.append('active', filters.active.toString())
       }
@@ -63,6 +89,7 @@ export function AgentManagement() {
 
       if (data?.success) {
         setAgents(data.data.data)
+        setTotal(data.data.total)
         setLoadError(null)
         return true
       }
@@ -82,33 +109,21 @@ export function AgentManagement() {
     searchRef.current?.focus()
   }
 
-  // Deletar agente
-  const handleDeleteAgent = async (agent: AgentConfig) => {
-    try {
-      const response = await fetch(`/api/agents/${encodeURIComponent(agent.id)}`, {
-        method: 'DELETE'
-      })
-      
-      const data = response.ok ? await response.json() : null
-
-      if (data?.success) {
-        toast.success(t('deleted'))
-        fetchAgents()
-      } else {
-        toast.error(
-          requestError(response.status, {
-            failed: t('deleteError'),
-            notFound: t('notFound')
-          })
-        )
-      }
-    } catch (error) {
-      console.error('Error deleting agent:', error)
-      toast.error(requestError(undefined, { failed: t('deleteError') }))
-    } finally {
-      setDeletingAgent(null)
-    }
-  }
+  const hasContent = !loading && !loadError && agents.length > 0
+  const agentHref = (agent: AgentConfig) => `/agents/${encodeURIComponent(agent.id)}`
+  const modelOf = (agent: AgentConfig) => `${agent.factoryIaModel}/${agent.model}`
+  const head = (
+    <TableRow>
+      <TableHead>{t('columnAgent')}</TableHead>
+      <TableHead>{t('columnModel')}</TableHead>
+      <TableHead className="text-right">{t('columnTools')}</TableHead>
+      <TableHead>{tc('status')}</TableHead>
+      <TableHead>{tc('updated')}</TableHead>
+      <TableHead className="w-9">
+        <span className="sr-only">{tc('open')}</span>
+      </TableHead>
+    </TableRow>
+  )
 
   // Efeitos
   useEffect(() => {
@@ -129,6 +144,10 @@ export function AgentManagement() {
             <p className="text-sm text-muted-foreground lg:text-base">
               {t('subtitle')}
             </p>
+            <CountChips
+              namespace="agents"
+              counts={hasContent ? listCounts(agents, total, filters.active) : undefined}
+            />
           </div>
           <Button asChild className="w-full gap-2 lg:w-auto">
             <Link href="/agents/new">
@@ -202,7 +221,7 @@ export function AgentManagement() {
 
       {/* Lista de Agentes */}
       {loading ? (
-        <CardListSkeleton label={t('loadingList')} />
+        <ListSkeleton label={t('loadingList')} head={head} chipClassName="w-28" />
       ) : loadError ? (
         <LoadErrorState
           title={t('listError')}
@@ -245,85 +264,81 @@ export function AgentManagement() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {agents.map((agent) => (
-            <Card key={agent.id} className="relative">
-              <CardHeader className="p-4 lg:p-6">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-2 flex-1 min-w-0">
-                    <CardTitle>
-                      <Link href={`/agents/${encodeURIComponent(agent.id)}`} className={cn('rounded-sm hover:underline', focusRing)}>
-                        {agent.nome}
-                      </Link>
-                    </CardTitle>
-                    <div className="flex flex-wrap gap-2">
+        <div className="space-y-2">
+          <div className="hidden md:block">
+            <Table>
+              <thead>{head}</thead>
+              <tbody>
+                {agents.map((agent) => (
+                  <TableRow key={agent.id} className="group relative hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <AgentAvatar agent={agent} />
+                        <div className="flex min-w-0 flex-col">
+                          <Link href={agentHref(agent)} className={rowLinkClass}>
+                            {agent.nome}
+                          </Link>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {agent.id}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Chip>{modelOf(agent)}</Chip>
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {agent.tools_ids.length}
+                    </TableCell>
+                    <TableCell>
                       <StatusBadge active={agent.active}>
                         {agent.active ? t('active') : t('inactive')}
                       </StatusBadge>
-                      <span className="rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">
-                        {agent.factoryIaModel}
-                      </span>
-                    </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      <UpdatedAt value={agent.updated_at} />
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight
+                        aria-hidden="true"
+                        className="ml-auto size-4 text-muted-foreground group-hover:text-primary"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+          <ul className="divide-y divide-border rounded-lg border border-border bg-card md:hidden">
+            {agents.map((agent) => (
+              <li
+                key={agent.id}
+                className="group relative flex h-16 items-center gap-3 px-3 hover:bg-muted/50"
+              >
+                <AgentAvatar agent={agent} />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Link href={agentHref(agent)} className={cn(rowLinkClass, 'truncate')}>
+                      {agent.nome}
+                    </Link>
+                    <StatusBadge active={agent.active}>
+                      {agent.active ? t('active') : t('inactive')}
+                    </StatusBadge>
                   </div>
-                  <div className="flex w-full justify-end gap-1 lg:w-auto lg:shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="flex-1 lg:flex-none"
-                    >
-                      <Link href={`/agents/${encodeURIComponent(agent.id)}`} aria-label={t('editLabel')}>
-                        <Edit className="w-4 h-4" aria-hidden="true" />
-                        <span className="text-xs lg:hidden">{tc('edit')}</span>
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeletingAgent(agent)}
-                      className="flex-1 lg:flex-none"
-                      aria-label={t('deleteLabel')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span className="text-xs lg:hidden">{tc('delete')}</span>
-                    </Button>
-                  </div>
+                  <span className="truncate font-mono text-xs text-muted-foreground">
+                    {agent.id + SEPARATOR + modelOf(agent)}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 lg:p-6 lg:pt-0">
-                <CardDescription className="mb-4 text-xs lg:text-sm">
-                  {agent.descricao || tc('noDescription')}
-                </CardDescription>
-                <div className="space-y-2 text-xs lg:text-sm">
-                  <div className="truncate lg:whitespace-normal">
-                    <span className="font-medium">{t('idField')}</span> {agent.id}
-                  </div>
-                  <div>
-                    <span className="font-medium">{t('modelField')}</span> {agent.model}
-                  </div>
-                  <div>
-                    <span className="font-medium">{t('toolsField')}</span> {agent.tools_ids.length}
-                  </div>
-                  {agent.rag_config?.active && (
-                    <div>
-                      <span className="font-medium">{t('ragField')}</span> {t('active')}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-muted-foreground group-hover:text-primary"
+                />
+              </li>
+            ))}
+          </ul>
+          <ShowingOf shown={agents.length} total={total} />
         </div>
       )}
-
-      {/* Dialog de confirmação de exclusão */}
-      <DeleteConfirmDialog
-        open={!!deletingAgent}
-        onOpenChange={() => setDeletingAgent(null)}
-        title={t('deleteTitle')}
-        description={t('deleteDescription', { name: deletingAgent?.nome ?? '' })}
-        onConfirm={() => deletingAgent && handleDeleteAgent(deletingAgent)}
-      />
       </div>
     </div>
   )

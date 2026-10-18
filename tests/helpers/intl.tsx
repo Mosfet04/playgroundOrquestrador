@@ -8,8 +8,9 @@ import ptBR from '../../messages/pt-BR.json'
 const MESSAGES = { 'pt-BR': ptBR, en }
 
 // Provider mínimo do next-intl para os testes de componente: no app ele vem do
-// layout raiz (src/app/layout.tsx), com o idioma do cookie. Usado direto no
-// `rerender` para trocar o idioma sem desmontar a árvore (P1-04b).
+// layout raiz (src/app/layout.tsx), com o idioma do cookie e o fuso do
+// servidor (aqui UTC, fixo). Usado direto no `rerender` para trocar o idioma
+// sem desmontar a árvore (P1-04b).
 export function IntlProvider({
   locale = 'pt-BR',
   children
@@ -18,7 +19,7 @@ export function IntlProvider({
   children: React.ReactNode
 }) {
   return (
-    <NextIntlClientProvider locale={locale} messages={MESSAGES[locale]}>
+    <NextIntlClientProvider locale={locale} messages={MESSAGES[locale]} timeZone="UTC">
       {children}
     </NextIntlClientProvider>
   )

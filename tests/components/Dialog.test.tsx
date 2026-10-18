@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { renderWithIntl } from '../helpers/intl'
 
 // D-P1-04b-3 (decisão 0012): o botão de fechar dos modais tem nome no idioma
-// da UI (modal de sessão do playground e DeleteConfirmDialog da gestão).
+// da UI (modal de sessão do playground e excluir do editor da gestão).
 describe('DialogContent', () => {
   it.each([
     ['pt-BR', 'Fechar'],

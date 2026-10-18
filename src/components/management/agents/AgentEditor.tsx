@@ -2,12 +2,14 @@
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { Bot } from 'lucide-react'
 
 import { AgentConfig } from '@/types/management'
 import { EntityLoader } from '../common/EntityLoader'
 import { AgentForm } from './AgentForm'
 
-// /agents/new (sem id) e /agents/[id]: salvar com sucesso volta para a lista.
+// /agents/new (sem id) e /agents/[id]: salvar ou excluir com sucesso volta
+// para a lista.
 export function AgentEditor({ id }: { id?: string }) {
   const router = useRouter()
   const t = useTranslations('agents')
@@ -26,6 +28,7 @@ export function AgentEditor({ id }: { id?: string }) {
         back: t('backToList'),
         backHref: '/agents'
       }}
+      icon={Bot}
       getLabel={(agent) => agent.nome}
     >
       {(agent) => <AgentForm agent={agent} onSuccess={backToList} />}

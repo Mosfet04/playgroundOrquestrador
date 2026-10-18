@@ -115,6 +115,9 @@ describe('AgentEditor', () => {
     ).toHaveAttribute('href', '/agents')
     // Não encontrado não é falha do sistema: sem "Tentar de novo".
     expect(within(alert).queryByRole('button')).not.toBeInTheDocument()
+    // V-P1-05b-9: o ícone é o da entidade (robô), não a bússola do 404 de rota.
+    expect(alert.querySelector('svg.lucide-bot')).not.toBeNull()
+    expect(alert.querySelector('svg.lucide-compass')).toBeNull()
   })
 
   it('503 (V-P1-05-16): "código 503", "Tentar de novo" refaz o GET e abre o editor', async () => {
@@ -181,6 +184,7 @@ describe('ToolEditor', () => {
     expect(
       within(alert).getByRole('link', { name: 'Voltar para tools' })
     ).toHaveAttribute('href', '/tools')
+    expect(alert.querySelector('svg.lucide-wrench')).not.toBeNull()
   })
 
   it('carrega a tool e mostra o editor', async () => {

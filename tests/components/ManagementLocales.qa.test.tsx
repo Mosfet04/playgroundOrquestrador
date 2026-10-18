@@ -67,31 +67,20 @@ describe('ToolManagement', () => {
   const serveTool = () =>
     server.use(http.get('*/api/tools', () => HttpResponse.json(page([tool]))))
 
-  it('EN: lista, filtros e dialog de excluir sem português', async () => {
+  it('EN: lista e filtros sem português', async () => {
     serveTool()
-    const user = userEvent.setup()
     renderWithIntl(<ToolManagement />, { locale: 'en' })
 
-    await user.click(await screen.findByRole('button', { name: 'Delete tool' }))
-    const dialog = screen.getByRole('dialog', { name: 'Delete tool' })
-    expect(dialog).toHaveTextContent(
-      'Are you sure you want to delete the tool "Clima"? This action can\'t be undone.'
-    )
-    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    await screen.findAllByRole('link', { name: 'Clima' })
     expect(screen.getByPlaceholderText('ID, name or description…')).toBeInTheDocument()
-    // dados do orquestrador (Previsão) ficam como vieram
-    expect(body().replace('Previsão', '')).not.toMatch(PT_WORDS)
+    expect(body()).not.toMatch(PT_WORDS)
   })
 
-  it('pt-BR: lista, filtros e dialog de excluir sem inglês nem "Deletar"', async () => {
+  it('pt-BR: lista e filtros sem inglês', async () => {
     serveTool()
-    const user = userEvent.setup()
     renderWithIntl(<ToolManagement />)
 
-    await user.click(await screen.findByRole('button', { name: 'Excluir tool' }))
-    const dialog = screen.getByRole('dialog', { name: 'Excluir tool' })
-    expect(within(dialog).getByRole('button', { name: 'Excluir' })).toBeInTheDocument()
+    await screen.findAllByRole('link', { name: 'Clima' })
     expect(body()).not.toMatch(EN_WORDS)
   })
 
@@ -103,6 +92,43 @@ describe('ToolManagement', () => {
     expect(screen.getByRole('link', { name: 'Create first tool' })).toBeInTheDocument()
     expect(body()).not.toMatch(PT_WORDS)
   })
+})
+
+// Excluir fica no editor desde o P1-05b.
+describe('ToolEditor: excluir', () => {
+  async function openDelete(locale: 'pt-BR' | 'en') {
+    server.use(http.get('*/api/tools/:id', () => HttpResponse.json({ success: true, data: tool })))
+    const user = userEvent.setup()
+    renderWithIntl(
+      <>
+        <ToolEditor id="clima" />
+        <Toaster />
+      </>,
+      { locale }
+    )
+    await user.click(await screen.findByRole('button', { name: /^(Excluir|Delete) tool$/ }))
+    return { user, dialog: screen.getByRole('dialog') }
+  }
+
+  it('EN: dialog de excluir sem português', async () => {
+    const { dialog } = await openDelete('en')
+
+    expect(dialog).toHaveAccessibleName('Delete tool')
+    expect(dialog).toHaveTextContent(
+      'Are you sure you want to delete the tool "Clima"? This action can\'t be undone.'
+    )
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect(dialog.textContent).not.toMatch(PT_WORDS)
+  })
+
+  it('pt-BR: dialog de excluir sem inglês nem "Deletar"', async () => {
+    const { dialog } = await openDelete('pt-BR')
+
+    expect(dialog).toHaveAccessibleName('Excluir tool')
+    expect(within(dialog).getByRole('button', { name: 'Excluir' })).toBeInTheDocument()
+    expect(dialog.textContent).not.toMatch(EN_WORDS)
+  })
 
   it.each([
     ['pt-BR', 404, 'Tool não encontrada'],
@@ -112,22 +138,11 @@ describe('ToolManagement', () => {
     ['en', 403, "Couldn't delete the tool (code 403)"]
   ] as const)('excluir (%s) com HTTP %i: "%s", sem o texto do BFF', async (locale, status, text) => {
     server.use(
-      http.get('*/api/tools', () => HttpResponse.json(page([tool]))),
       http.delete('*/api/tools/:id', () =>
         HttpResponse.json({ success: false, error: BFF_TEXT }, { status })
       )
     )
-    const user = userEvent.setup()
-    renderWithIntl(
-      <>
-        <ToolManagement />
-        <Toaster />
-      </>,
-      { locale }
-    )
-
-    await user.click(await screen.findByRole('button', { name: /^(Excluir|Delete) tool$/ }))
-    const dialog = screen.getByRole('dialog')
+    const { user, dialog } = await openDelete(locale)
     await user.click(within(dialog).getByRole('button', { name: /^(Excluir|Delete)$/ }))
 
     expect(await screen.findByText(text)).toBeInTheDocument()
@@ -135,22 +150,10 @@ describe('ToolManagement', () => {
   })
 
   it('falha de rede ao excluir: só a mensagem da ação, sem código', async () => {
-    server.use(
-      http.get('*/api/tools', () => HttpResponse.json(page([tool]))),
-      http.delete('*/api/tools/:id', () => HttpResponse.error())
-    )
+    server.use(http.delete('*/api/tools/:id', () => HttpResponse.error()))
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const user = userEvent.setup()
-    renderWithIntl(
-      <>
-        <ToolManagement />
-        <Toaster />
-      </>,
-      { locale: 'en' }
-    )
-
-    await user.click(await screen.findByRole('button', { name: 'Delete tool' }))
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+    const { user, dialog } = await openDelete('en')
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText("Couldn't delete the tool")).toBeInTheDocument()
     expect(screen.queryByText(/code/)).not.toBeInTheDocument()
@@ -207,7 +210,7 @@ describe('ToolForm: erros do POST pelo catálogo', () => {
   })
 })
 
-describe('AgentForm / AgentManagement: casos extras', () => {
+describe('AgentForm / AgentEditor / AgentManagement: casos extras', () => {
   it('falha de rede ao salvar agente (EN): só a mensagem da ação', async () => {
     server.use(
       noTools,
@@ -267,18 +270,19 @@ describe('AgentForm / AgentManagement: casos extras', () => {
     expect(body()).not.toMatch(EN_WORDS)
   })
 
-  it('EN, estado vazio e dialog de excluir do agente', async () => {
+  it('EN: dialog de excluir do agente (no editor, P1-05b)', async () => {
     server.use(
-      http.get('*/api/agents', () => HttpResponse.json(page([agent])))
+      noTools,
+      http.get('*/api/agents/:id', () => HttpResponse.json({ success: true, data: agent }))
     )
     const user = userEvent.setup()
-    renderWithIntl(<AgentManagement />, { locale: 'en' })
+    renderWithIntl(<AgentEditor id="alfa" />, { locale: 'en' })
 
     await user.click(await screen.findByRole('button', { name: 'Delete agent' }))
     const dialog = screen.getByRole('dialog', { name: 'Delete agent' })
     expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
-    expect(body()).not.toMatch(PT_WORDS)
+    expect(dialog.textContent).not.toMatch(PT_WORDS)
   })
 
   it('EN, lista vazia de agentes', async () => {

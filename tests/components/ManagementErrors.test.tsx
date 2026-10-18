@@ -5,7 +5,6 @@ import { Toaster } from 'sonner'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { AgentForm } from '@/components/management/agents/AgentForm'
-import { AgentManagement } from '@/components/management/agents/AgentManagement'
 import { ToolManagement } from '@/components/management/tools/ToolManagement'
 
 import { server } from '../msw/server'
@@ -13,7 +12,8 @@ import { renderWithIntl } from '../helpers/intl'
 
 // P1-04: o texto que vem do BFF não aparece na UI. O toast usa o catálogo,
 // escolhido pela ação e pelo status (409, 404, outros com o código). Erro de
-// lista vira o bloco de erro na página, sem toast (P1-05).
+// lista vira o bloco de erro na página, sem toast (P1-05). Excluir (no editor
+// desde o P1-05b) em tests/components/EditorDelete.test.tsx.
 
 const BFF_TEXT = 'mensagem crua do BFF'
 
@@ -92,52 +92,6 @@ describe('erros de gestão pelo catálogo', () => {
     expect(
       screen.queryByText('Não foi possível carregar as tools (código 503)')
     ).not.toBeInTheDocument()
-    expect(screen.queryByText(BFF_TEXT)).not.toBeInTheDocument()
-  })
-
-  it('404 ao excluir agente: "Agente não encontrado"; o dialog usa "Excluir"', async () => {
-    server.use(
-      http.get('*/api/agents', () =>
-        HttpResponse.json({
-          success: true,
-          data: {
-            data: [
-              {
-                id: 'alfa',
-                nome: 'Alfa',
-                model: 'llama3.2',
-                factoryIaModel: 'ollama',
-                active: true,
-                tools_ids: []
-              }
-            ],
-            total: 1,
-            page: 1,
-            limit: 10,
-            totalPages: 1
-          }
-        })
-      ),
-      http.delete('*/api/agents/:id', () =>
-        HttpResponse.json({ success: false, error: BFF_TEXT }, { status: 404 })
-      )
-    )
-    const user = userEvent.setup()
-    renderWithIntl(
-      <>
-        <AgentManagement />
-        <Toaster />
-      </>
-    )
-
-    await user.click(await screen.findByRole('button', { name: 'Excluir agente' }))
-    const dialog = screen.getByRole('dialog', { name: 'Excluir agente' })
-    expect(dialog).toHaveTextContent(
-      'Tem certeza que deseja excluir o agente "Alfa"? Esta ação não pode ser desfeita.'
-    )
-    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
-
-    expect(await screen.findByText('Agente não encontrado')).toBeInTheDocument()
     expect(screen.queryByText(BFF_TEXT)).not.toBeInTheDocument()
   })
 })

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Compass } from 'lucide-react'
+import { type LucideIcon } from 'lucide-react'
 
 import { usePageLabel } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
@@ -23,18 +23,22 @@ export type EntityLoaderTexts = {
 }
 
 // Detalhe de agente/tool: spinner com aria-busy até o GET do BFF responder.
-// 404 vira o padrão não encontrado (id em mono, "Voltar"); outro erro, o bloco
-// de erro com "Tentar de novo", que refaz o GET (P1-05, V-P1-05-16).
+// 404 vira o padrão não encontrado (ícone da entidade, id em mono, "Voltar");
+// outro erro, o bloco de erro com "Tentar de novo", que refaz o GET (P1-05,
+// V-P1-05-16; ícone P1-05b, V-P1-05b-9).
 export function EntityLoader<T>({
   url,
   id,
   texts,
+  icon: Icon,
   getLabel,
   children
 }: {
   url: string
   id: string
   texts: EntityLoaderTexts
+  /** Ícone da entidade na navegação (Bot, Wrench). */
+  icon: LucideIcon
   getLabel: (entity: T) => string
   children: (entity: T) => React.ReactNode
 }) {
@@ -92,7 +96,7 @@ export function EntityLoader<T>({
       {state.code === 404 ? (
         <EmptyState
           role="alert"
-          icon={<Compass className="text-muted-foreground" />}
+          icon={<Icon className="text-muted-foreground" />}
           eyebrow={<Chip>{tn('status')}</Chip>}
           title={texts.notFound}
           titleAs="h1"

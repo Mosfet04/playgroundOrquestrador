@@ -183,7 +183,7 @@ test.describe('uma tela, um idioma (V-P1-04-5 e V-P1-04-6)', () => {
     context
   }) => {
     await setLocaleCookie(context, 'en')
-    await page.goto('/agents')
+    await page.goto('/agents/alfa')
     await hydrated(page)
     await page.getByRole('button', { name: 'Delete agent' }).click()
     const dialog = page.getByRole('dialog', { name: 'Delete agent' })
@@ -192,7 +192,7 @@ test.describe('uma tela, um idioma (V-P1-04-5 e V-P1-04-6)', () => {
     expect(await dialog.innerText()).not.toMatch(PORTUGUESE)
     await page.keyboard.press('Escape')
 
-    await page.goto('/tools')
+    await page.goto('/tools/clima')
     await hydrated(page)
     await page.getByRole('button', { name: 'Delete tool' }).click()
     const toolDialog = page.getByRole('dialog', { name: 'Delete tool' })
@@ -204,7 +204,7 @@ test.describe('uma tela, um idioma (V-P1-04-5 e V-P1-04-6)', () => {
   })
 
   test('pt-BR: dialog de excluir usa "Excluir" (nunca "Deletar")', async ({ page }) => {
-    await page.goto('/tools')
+    await page.goto('/tools/clima')
     await hydrated(page)
     await page.getByRole('button', { name: 'Excluir tool' }).click()
     const dialog = page.getByRole('dialog', { name: 'Excluir tool' })

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Tool, CreateToolForm, PARAMETER_TYPES } from '@/types/management'
+import { DeleteEntityButton } from '../common/DeleteEntityButton'
 import { useRequestError } from '../common/useRequestError'
 
 interface ToolFormProps {
@@ -448,14 +449,34 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
         </Card>
 
         {/* Botões de ação */}
-        <div className="flex justify-end gap-4">
-          <Button variant="outline" asChild>
-            <Link href="/tools">{tc('cancel')}</Link>
-          </Button>
-          <Button type="submit" disabled={loading} className="gap-2">
-            <Save className="w-4 h-4" />
-            {loading ? tc('saving') : tc('save')}
-          </Button>
+        {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+        <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {tool && (
+            <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+              <DeleteEntityButton
+                url={`/api/tools/${encodeURIComponent(tool.id)}`}
+                texts={{
+                  label: t('deleteLabel'),
+                  title: t('deleteTitle'),
+                  description: t('deleteDescription', { name: tool.name }),
+                  deleted: t('deleted'),
+                  failed: t('deleteError'),
+                  notFound: t('notFound')
+                }}
+                disabled={loading}
+                onDeleted={onSuccess}
+              />
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+            <Button variant="outline" asChild className="h-10 sm:h-9">
+              <Link href="/tools">{tc('cancel')}</Link>
+            </Button>
+            <Button type="submit" disabled={loading} className="h-10 gap-2 sm:h-9">
+              <Save className="w-4 h-4" />
+              {loading ? tc('saving') : tc('save')}
+            </Button>
+          </div>
         </div>
       </form>
       </div>

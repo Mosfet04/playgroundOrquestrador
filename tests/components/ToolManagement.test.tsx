@@ -38,14 +38,15 @@ const serveTools = (tools: (typeof tool)[]) =>
   )
 
 describe('ToolManagement: links da lista (D-P1-03-2)', () => {
-  it('o nome e "Editar" levam a /tools/<id> com o id codificado (/, ?, espaço)', async () => {
+  it('o nome leva a /tools/<id> com o id codificado (/, ?, espaço); sem editar/excluir na linha (P1-05b)', async () => {
     serveTools([tool])
     renderWithIntl(<ToolManagement />)
 
     const expected = '/tools/clima%2Fhoje%3Fx%3D1'
-    expect(await screen.findByRole('link', { name: 'Clima' })).toHaveAttribute('href', expected)
-    expect(screen.getByRole('link', { name: 'Editar tool' })).toHaveAttribute('href', expected)
-    expect(screen.getByRole('button', { name: 'Excluir tool' })).toBeInTheDocument()
+    const links = await screen.findAllByRole('link', { name: 'Clima' })
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([expected, expected])
+    expect(screen.queryByRole('link', { name: 'Editar tool' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Excluir tool' })).not.toBeInTheDocument()
   })
 
   it('"Nova tool" e "Criar primeira tool" levam a /tools/new', async () => {
