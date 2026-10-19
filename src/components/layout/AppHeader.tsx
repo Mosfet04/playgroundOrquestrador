@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useQueryState } from 'nuqs'
 import { Menu, PanelLeft, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -17,7 +16,7 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet'
 import { cn, focusRing } from '@/lib/utils'
-import { usePlaygroundStore } from '@/store'
+import { useSelectedEntity } from '@/hooks/useSelectedEntity'
 import { LanguageSelect } from './LanguageSelect'
 import { Brand, Navigation } from './Navigation'
 import { ThemeSelect } from './ThemeSelect'
@@ -101,6 +100,7 @@ function MenuSheet({ notFound }: { notFound: boolean }) {
 function PlaygroundPanelSheet() {
   const [open, setOpen] = useState(false)
   const t = useTranslations('nav')
+  const tc = useTranslations('common')
   useCloseOnDesktop(open, setOpen)
 
   return (
@@ -117,20 +117,32 @@ function PlaygroundPanelSheet() {
       </SheetTrigger>
       <SheetContent side="left" className="w-80" aria-describedby={undefined}>
         <SheetTitle className="sr-only">{t('playgroundPanel')}</SheetTitle>
-        <Sidebar />
+        {/* "Fechar" na linha "Conversar com" do painel (P1-06). */}
+        <Sidebar
+          closeAction={
+            <SheetClose asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="-my-2 -mr-2 size-11"
+                aria-label={tc('close')}
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </SheetClose>
+          }
+        />
       </SheetContent>
     </Sheet>
   )
 }
 
-// Sem entidade selecionada, o subtítulo é o grupo ("testar").
+// "id · modelo" (sem provider, P1-06); sem entidade selecionada, o subtítulo
+// é o grupo ("testar").
 function PlaygroundSubtitle({ fallback }: { fallback: string }) {
-  const [agentId] = useQueryState('agent')
-  const [teamId] = useQueryState('team')
-  const model = usePlaygroundStore((state) => state.selectedModel)
-  const id = agentId ?? teamId
-  if (!id) return fallback
-  return model ? `${id} · ${model}` : id
+  const entity = useSelectedEntity()
+  if (!entity) return fallback
+  return entity.model ? `${entity.id} · ${entity.model}` : entity.id
 }
 
 export function AppHeader({

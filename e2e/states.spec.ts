@@ -146,7 +146,7 @@ test('/playground com o fake orchestrator desligado: erro na conversa, composer 
   fakeUp = true
   await alert.getByRole('button', { name: 'Tentar de novo' }).click()
   await expect(page.getByRole('heading', { name: /^Converse com / })).toBeVisible()
-  await expect(page.getByPlaceholder('Pergunte qualquer coisa')).toBeEnabled()
+  await expect(page.getByPlaceholder('Escreva uma mensagem para Agente Alfa')).toBeEnabled()
 })
 
 test('rota inexistente: 404 do app dentro da casca, com o <title> e status 404', async ({ page }) => {

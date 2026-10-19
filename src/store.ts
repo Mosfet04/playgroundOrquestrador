@@ -11,6 +11,7 @@ interface Agent {
   label: string
   model: {
     provider: string
+    model?: string
   }
   storage?: boolean
 }
@@ -20,6 +21,7 @@ export interface Team {
   label: string
   model: {
     provider: string
+    model?: string
   }
   storage?: boolean
 }
@@ -71,8 +73,6 @@ interface PlaygroundStore {
   setAgents: (agents: Agent[]) => void
   teams: Team[]
   setTeams: (teams: Team[]) => void
-  selectedModel: string
-  setSelectedModel: (model: string) => void
   selectedTeamId: string | null
   setSelectedTeamId: (teamId: string | null) => void
   mode: 'agent' | 'team'
@@ -124,8 +124,6 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
       setAgents: (agents) => set({ agents }),
       teams: [],
       setTeams: (teams) => set({ teams }),
-      selectedModel: '',
-      setSelectedModel: (selectedModel) => set(() => ({ selectedModel })),
       selectedTeamId: null,
       setSelectedTeamId: (teamId) => set(() => ({ selectedTeamId: teamId })),
       mode: 'agent',

@@ -10,7 +10,7 @@ Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/o
 
 ## O que tem hoje
 
-- **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo).
+- **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls (tempo e erro de cada uma), tempo e tokens de cada resposta, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo).
 - **Agentes** (`/agents`, `/agents/new`, `/agents/<id>`): criar, editar, excluir, buscar e filtrar; modelo, prompt, tools associadas e RAG.
 - **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): método, URL, endpoint, headers e parâmetros.
 - **Dashboard** (`/dashboard`): agentes ativos, usuários, sessões de agent e de team, tokens por entidade e atividade no período.
@@ -198,7 +198,7 @@ Web UI for the [Agno Python AI Orchestrator](https://github.com/Mosfet04/orquest
 
 ### What it does today
 
-- **Chat playground** (`/playground`): chat with the orchestrator's agents and teams, with streaming, tool calls, session history (Agno 2.5 `chat_history` and the legacy format) and media.
+- **Chat playground** (`/playground`): chat with the orchestrator's agents and teams, with streaming, tool calls (time and error of each), time and tokens of each response, session history (Agno 2.5 `chat_history` and the legacy format) and media.
 - **Agents** (`/agents`, `/agents/new`, `/agents/<id>`) and **HTTP tools** (`/tools`, …): create, edit, delete, search and filter.
 - **Dashboard** (`/dashboard`) and **getting started** guide (`/`).
 - Every section has its own URL; light/dark theme; pt-BR and EN. Loading, empty and error states everywhere: with the orchestrator or MongoDB down you get the error with "Try again", and an unknown address shows the in-app 404.

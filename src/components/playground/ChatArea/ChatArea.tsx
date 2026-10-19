@@ -20,6 +20,7 @@ const ChatArea = () => {
     hydrated,
     mode,
     hasStorage,
+    isEndpointActive,
     isEndpointLoading,
     setSessionsData,
     setSessionsError
@@ -32,14 +33,21 @@ const ChatArea = () => {
     if (hydrated) initializePlayground()
   }, [selectedEndpoint, initializePlayground, hydrated])
 
-  // Sessão da URL (?session=), uma vez ao hidratar o store.
+  // Sessão da URL (?session=) quando o orquestrador responde: ao abrir e ao
+  // voltar depois de fora do ar (LIM-P1-03-1, D-P1-06-4).
   useEffect(() => {
-    if (hydrated && sessionId && selectedEndpoint && (agentId || teamId)) {
+    if (
+      hydrated &&
+      isEndpointActive &&
+      sessionId &&
+      selectedEndpoint &&
+      (agentId || teamId)
+    ) {
       const entityType = agentId ? 'agent' : 'team'
       getSession({ entityType, agentId, teamId }, sessionId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated])
+  }, [hydrated, isEndpointActive])
 
   useEffect(() => {
     // A falha da entidade anterior não vale para a nova (caixa de sessões).
@@ -60,10 +68,10 @@ const ChatArea = () => {
   ])
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-grow flex-col rounded-lg bg-background lg:m-1.5">
+    <div className="relative flex min-h-0 min-w-0 flex-grow flex-col">
       <MessageArea />
 
-      <div className="sticky bottom-0 px-4 pb-2 lg:ml-9">
+      <div className="sticky bottom-0 px-3 pb-4 pt-3 lg:px-6 lg:pb-6 lg:pt-4">
         <ChatInput />
       </div>
     </div>

@@ -1,4 +1,3 @@
-import Icon from '@/components/ui/icon'
 import MarkdownRenderer from '@/components/ui/typography/MarkdownRenderer'
 import { usePlaygroundStore } from '@/store'
 import type { PlaygroundChatMessage } from '@/types/playground'
@@ -7,20 +6,21 @@ import Images from './Multimedia/Images'
 import Audios from './Multimedia/Audios'
 import { memo } from 'react'
 import { useTranslations } from 'next-intl'
-import AgentThinkingLoader from './AgentThinkingLoader'
+import { cn } from '@/lib/utils'
 
 interface MessageProps {
   message: PlaygroundChatMessage
 }
 
-const AgentMessage = ({ message }: MessageProps) => {
+// Texto e mídia da resposta. Em stream, o cursor `signal` fica no fim do
+// markdown (.stream-caret, src/app/globals.css); antes do 1º token, sozinho.
+const AgentMessage = ({ message, streaming }: MessageProps & { streaming: boolean }) => {
   const { streamingErrorMessage } = usePlaygroundStore()
   const t = useTranslations('playground')
-  let messageContent
   if (message.streamingError) {
     // O tipo do erro é traduzido aqui (muda junto com o idioma); o detalhe é
     // o texto do orquestrador, mostrado como dado (P1-04b).
-    messageContent = (
+    return (
       <p className="text-destructive">
         {t('streamError')}{' '}
         {streamingErrorMessage
@@ -29,72 +29,48 @@ const AgentMessage = ({ message }: MessageProps) => {
         {streamingErrorMessage?.detail && <> {streamingErrorMessage.detail}</>}
       </p>
     )
-  } else if (message.content) {
-    messageContent = (
-      <div className="flex w-full flex-col gap-4">
-        <MarkdownRenderer>{message.content}</MarkdownRenderer>
-        {message.videos && message.videos.length > 0 && (
-          <Videos videos={message.videos} />
-        )}
-        {message.images && message.images.length > 0 && (
-          <Images images={message.images} />
-        )}
-        {message.audio && message.audio.length > 0 && (
-          <Audios audio={message.audio} />
-        )}
-      </div>
-    )
-  } else if (message.response_audio) {
-    if (!message.response_audio.transcript) {
-      messageContent = (
-        <div className="mt-2 flex items-start">
-          <AgentThinkingLoader />
-        </div>
-      )
-    } else {
-      messageContent = (
-        <div className="flex w-full flex-col gap-4">
-          <MarkdownRenderer>
-            {message.response_audio.transcript}
-          </MarkdownRenderer>
-          {message.response_audio.content && message.response_audio && (
-            <Audios audio={[message.response_audio]} />
-          )}
-        </div>
-      )
-    }
-  } else {
-    messageContent = (
-      <div className="mt-2">
-        <AgentThinkingLoader />
-      </div>
-    )
   }
 
+  const audio = message.response_audio
+  const text = message.content || audio?.transcript
   return (
-    <div className="flex flex-row items-start gap-4 font-sans">
-      <div className="flex-shrink-0">
-        <Icon type="agent" size="sm" />
-      </div>
-      {messageContent}
-    </div>
+    <>
+      {text ? (
+        <MarkdownRenderer classname={cn(streaming && 'stream-caret')}>
+          {text}
+        </MarkdownRenderer>
+      ) : (
+        streaming && (
+          <p aria-hidden="true" className="stream-caret">
+            <span />
+          </p>
+        )
+      )}
+      {message.content ? (
+        <>
+          {message.videos && message.videos.length > 0 && (
+            <Videos videos={message.videos} />
+          )}
+          {message.images && message.images.length > 0 && (
+            <Images images={message.images} />
+          )}
+          {message.audio && message.audio.length > 0 && (
+            <Audios audio={message.audio} />
+          )}
+        </>
+      ) : (
+        audio?.transcript && audio.content && <Audios audio={[audio]} />
+      )}
+    </>
   )
 }
 
-const UserMessage = memo(({ message }: MessageProps) => {
-  return (
-    <div className="flex items-start pt-4 text-start max-md:break-words">
-      <div className="flex flex-row gap-x-3">
-        <p className="flex items-center gap-x-2 text-sm font-medium text-muted-foreground">
-          <Icon type="user" size="sm" />
-        </p>
-        <div className="text-md rounded-lg py-1 font-sans text-foreground">
-          {message.content}
-        </div>
-      </div>
-    </div>
-  )
-})
+// Bolha do usuário à direita, em primary-soft (docs/design/P1-06.md).
+const UserMessage = memo(({ message }: MessageProps) => (
+  <p className="max-w-[80%] self-end whitespace-pre-wrap break-words rounded-lg rounded-br-sm bg-primary-soft px-4 py-2.5 text-foreground">
+    {message.content}
+  </p>
+))
 
 AgentMessage.displayName = 'AgentMessage'
 UserMessage.displayName = 'UserMessage'

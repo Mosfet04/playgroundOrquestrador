@@ -155,7 +155,11 @@ describe('/playground: área da conversa', () => {
     )
     renderPlayground()
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Conectando ao orquestrador…')
+    // Há outro role="status" na página: o anúncio do stream, vazio (P1-06).
+    expect(await screen.findByText('Conectando ao orquestrador…')).toHaveAttribute(
+      'role',
+      'status'
+    )
   })
 
   it('online sem agentes nem teams: vazio com "Criar primeiro agente"', async () => {
@@ -188,7 +192,7 @@ describe('/playground: área da conversa', () => {
       )
     ).toBeInTheDocument()
     await waitFor(() =>
-      expect(screen.getByPlaceholderText('Pergunte qualquer coisa')).toBeEnabled()
+      expect(screen.getByPlaceholderText('Escreva uma mensagem para Assistente')).toBeEnabled()
     )
   })
 })
@@ -221,7 +225,7 @@ describe('/playground: painel de sessões', () => {
     // O EntitySelector foca o composer (setTimeout + rAF): espera esse foco
     // chegar antes do clique, senão ele rouba o foco do botão sob carga (R8).
     await waitFor(() =>
-      expect(screen.getByPlaceholderText('Pergunte qualquer coisa')).toHaveFocus()
+      expect(screen.getByPlaceholderText('Escreva uma mensagem para Assistente')).toHaveFocus()
     )
     let release: () => void = () => undefined
     server.use(

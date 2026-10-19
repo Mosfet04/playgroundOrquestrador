@@ -62,13 +62,13 @@ describe('getPlaygroundAgentsAPI', () => {
       {
         value: 'agent-1',
         label: 'Assistente',
-        model: { provider: 'OpenAI' },
+        model: { provider: 'OpenAI', model: 'gpt-4o' },
         storage: true
       },
       {
         value: 'agent-2',
         label: 'Pesquisador',
-        model: { provider: 'Ollama' },
+        model: { provider: 'Ollama', model: 'llama3.2' },
         storage: false
       }
     ])
@@ -85,7 +85,7 @@ describe('getPlaygroundAgentsAPI', () => {
       {
         value: 'legado',
         label: 'Legado',
-        model: { provider: '' },
+        model: { provider: '', model: '' },
         storage: false
       }
     ])
@@ -119,7 +119,7 @@ describe('getPlaygroundTeamsAPI', () => {
       {
         value: 'team-1',
         label: 'Time de suporte',
-        model: { provider: 'OpenAI' },
+        model: { provider: 'OpenAI', model: 'gpt-4o' },
         storage: true
       }
     ])

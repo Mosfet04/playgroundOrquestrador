@@ -1,36 +1,52 @@
 'use client'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { toast } from 'sonner'
+import { Send } from 'lucide-react'
 import { TextArea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/loading'
 import { usePlaygroundStore } from '@/store'
 import useAIChatStreamHandler from '@/hooks/useAIStreamHandler'
-import { useQueryState } from 'nuqs'
+import { useSelectedEntity } from '@/hooks/useSelectedEntity'
 import { useTranslations } from 'next-intl'
-import Icon from '@/components/ui/icon'
+import { cn } from '@/lib/utils'
 
+// Composer (docs/design/P1-06.md, § 2): card com o foco no próprio card, chip
+// "para {id}", dica de teclado e Enviar com o motivo no aria-label quando
+// desabilitado.
 const ChatInput = () => {
   const { chatInputRef } = usePlaygroundStore()
 
   const { handleStreamResponse } = useAIChatStreamHandler()
-  const [selectedAgent] = useQueryState('agent')
-  const [teamId] = useQueryState('team')
+  const entity = useSelectedEntity()
   const [inputMessage, setInputMessage] = useState('')
   const isStreaming = usePlaygroundStore((state) => state.isStreaming)
   const isEndpointActive = usePlaygroundStore((state) => state.isEndpointActive)
   const isEndpointLoading = usePlaygroundStore((state) => state.isEndpointLoading)
   const t = useTranslations('playground')
+  const inputId = useId()
   // O placeholder diz por que o composer está desabilitado (P1-05).
   const offline = !isEndpointActive && !isEndpointLoading
-  const hasEntity = !!(selectedAgent || teamId)
-  const disabled = offline || isEndpointLoading || !hasEntity
+  const disabled = offline || isEndpointLoading || !entity
+  const isEmpty = !inputMessage.trim()
   const placeholder = offline
     ? t('composerOffline')
-    : hasEntity
-      ? t('composerPlaceholder')
+    : entity
+      ? t('composerPlaceholder', { name: entity.name })
       : t('composerNoEntity')
+  const sendLabel =
+    offline || isEndpointLoading
+      ? t('sendOffline')
+      : !entity
+        ? t('sendNoEntity')
+        : isStreaming
+          ? t('sendWaitStream')
+          : isEmpty
+            ? t('sendEmpty')
+            : t('sendLabel')
+
   const handleSubmit = async () => {
-    if (!inputMessage.trim()) return
+    if (isEmpty) return
 
     const currentMessage = inputMessage
     setInputMessage('')
@@ -44,8 +60,21 @@ const ChatInput = () => {
   }
 
   return (
-    <div className="relative mx-auto mb-1 flex w-full max-w-full items-end justify-center gap-x-2 px-2 font-sans lg:max-w-2xl lg:px-0">
+    <div
+      className={cn(
+        'mx-auto flex w-full max-w-3xl flex-col gap-2 rounded-lg border bg-card p-3 font-sans',
+        disabled
+          ? 'border-border'
+          : 'border-input has-[textarea:focus]:border-primary has-[textarea:focus]:shadow-glow has-[textarea:focus]:ring-2 has-[textarea:focus]:ring-ring has-[textarea:focus]:ring-offset-2 has-[textarea:focus]:ring-offset-background'
+      )}
+    >
+      {entity && (
+        <label htmlFor={inputId} className="sr-only">
+          {t('composerLabel', { name: entity.name })}
+        </label>
+      )}
       <TextArea
+        id={inputId}
         placeholder={placeholder}
         value={inputMessage}
         onChange={(e) => setInputMessage(e.target.value)}
@@ -60,19 +89,32 @@ const ChatInput = () => {
             handleSubmit()
           }
         }}
-        className="w-full rounded-lg bg-card px-3 text-foreground lg:px-4"
+        className="min-h-8 rounded-none border-0 px-1 py-0.5 text-base leading-6 text-foreground focus-visible:shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 md:!min-h-12 md:text-base"
         disabled={disabled}
         ref={chatInputRef}
       />
-      <Button
-        onClick={handleSubmit}
-        disabled={disabled || !inputMessage.trim() || isStreaming}
-        className="lg:w-9 lg:p-5"
-        aria-label={t('send')}
-      >
-        <Icon type="send" className="text-primary-foreground" />
-        <span className="ml-2 text-xs lg:hidden">{t('send')}</span>
-      </Button>
+      <div className="flex min-w-0 items-center gap-2">
+        {!disabled && entity && (
+          <Chip className="min-w-0 overflow-hidden">
+            {t.rich('composerTarget', {
+              id: entity.id,
+              muted: (chunks) => <span className="text-muted-foreground">{chunks}</span>
+            })}
+          </Chip>
+        )}
+        <span className="hidden font-mono text-xs text-muted-foreground md:inline">
+          {t('composerHint')}
+        </span>
+        <Button
+          onClick={handleSubmit}
+          disabled={disabled || isEmpty || isStreaming}
+          className="ml-auto size-11 shrink-0 md:size-auto md:h-9 md:px-4"
+          aria-label={sendLabel}
+        >
+          <Send aria-hidden="true" />
+          <span className="hidden md:inline">{t('send')}</span>
+        </Button>
+      </div>
     </div>
   )
 }

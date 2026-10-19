@@ -24,7 +24,8 @@ export const getPlaygroundAgentsAPI = async (
       value: item.agent_id || item.id || '',
       label: item.name || '',
       model: {
-        provider: item.model?.provider || ''
+        provider: item.model?.provider || '',
+        model: item.model?.model || ''
       },
       storage: !!(item.storage || item.sessions)
     }))
@@ -134,7 +135,8 @@ export const getPlaygroundTeamsAPI = async (
       value: item.team_id || item.id || '',
       label: item.name || '',
       model: {
-        provider: item.model?.provider || ''
+        provider: item.model?.provider || '',
+        model: item.model?.model || ''
       },
       storage: !!(item.storage || item.sessions)
     }))

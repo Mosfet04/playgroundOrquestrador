@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
 import { Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { EmptyState, LiveStatus, LoadErrorState } from '@/components/ui/loading'
 import useChatActions from '@/hooks/useChatActions'
+import { useSelectedEntity } from '@/hooks/useSelectedEntity'
+import { EntityAvatar } from '@/components/playground/EntityAvatar'
 import { usePlaygroundStore } from '@/store'
 
 // Conversa sem mensagens (docs/design/P1-05.md, /playground): conectando,
@@ -17,8 +18,7 @@ const ChatBlankState = () => {
   const { isEndpointLoading, isEndpointActive, selectedEndpoint, agents, teams } =
     usePlaygroundStore()
   const { initializePlayground } = useChatActions()
-  const [agentId] = useQueryState('agent')
-  const [teamId] = useQueryState('team')
+  const entity = useSelectedEntity()
   const t = useTranslations('playground')
   const ta = useTranslations('agents')
   // "Conectando…" só fora do "Tentar de novo": na nova tentativa o bloco de
@@ -69,17 +69,12 @@ const ChatBlankState = () => {
       />
     )
 
-  const id = agentId ?? teamId
-  const entities = agentId ? agents : teams
-  const name = entities.find((entity) => entity.value === id)?.label || id
+  const name = entity?.name
 
   return (
     <div className="dot-grid flex flex-1 flex-col items-center justify-center gap-3 px-6 py-8 text-center">
-      {name && (
-        <span
-          aria-hidden="true"
-          className="size-10 rounded-md bg-gradient-to-br from-primary to-signal"
-        />
+      {entity && (
+        <EntityAvatar name={entity.name} id={entity.id} className="size-10 rounded-md text-sm" />
       )}
       <h2 className="text-lg font-semibold">
         {name ? t('chatEmptyTitle', { name }) : t('composerNoEntity')}

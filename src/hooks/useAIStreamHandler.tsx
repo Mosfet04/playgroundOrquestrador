@@ -8,6 +8,7 @@ import { usePlaygroundStore } from '../store'
 import {
   RunEvent,
   RunResponseContent,
+  type RunMetrics,
   type RunResponse
 } from '@/types/playground'
 import { constructEndpointUrl } from '@/lib/constructEndpointUrl'
@@ -15,6 +16,16 @@ import useAIResponseStream from './useAIResponseStream'
 import { ToolCall } from '@/types/playground'
 import { useQueryState } from 'nuqs'
 import { getJsonMarkdown } from '@/lib/utils'
+
+// Só os números da resposta (tempo e tokens); o resto do RunMetrics fica de
+// fora. Sem nenhum deles, a mensagem fica sem métricas.
+const pickRunMetrics = (metrics?: RunMetrics): RunMetrics | undefined => {
+  const picked: RunMetrics = {}
+  for (const key of ['duration', 'input_tokens', 'output_tokens'] as const) {
+    if (typeof metrics?.[key] === 'number') picked[key] = metrics[key]
+  }
+  return Object.keys(picked).length > 0 ? picked : undefined
+}
 
 const useAIChatStreamHandler = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
@@ -438,6 +449,11 @@ const processToolCall = useCallback(
                         chunk,
                         message.tool_calls
                       ),
+                      // As métricas do membro não são as da resposta do team
+                      // (D-P1-06-2, decisão 0015)
+                      metrics: isTeamMemberEvent
+                        ? message.metrics
+                        : pickRunMetrics(chunk.metrics),
                       images: chunk.images ?? message.images,
                       videos: chunk.videos ?? message.videos,
                       response_audio: chunk.response_audio,

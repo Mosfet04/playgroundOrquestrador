@@ -101,13 +101,11 @@ describe('/playground com ?agent= e ?session=', () => {
     expect(screen.getByRole('main')).toBeInTheDocument()
   })
 
-  // R6 (review do P1-03, MINOR): refutado como regressão. O mesmo teste contra
-  // o código de 9c58d95 (Sessions carregando a sessão ao montar) também falha:
-  // com o orquestrador fora, initializePlayground limpa ?agent= e, ao voltar,
-  // o painel monta sem agente, então nenhuma versão busca a sessão da URL.
-  // Limitação pré-existente; o it.fails vira vermelho quando alguém corrigir.
-  it.fails(
-    'LIM-P1-03-1 (pré-existente): orquestrador fora ao abrir; ao voltar e atualizar o endpoint, as mensagens da sessão da URL aparecem',
+  // LIM-P1-03-1 (corrigida no P1-06, D-P1-06-4): com o orquestrador fora ao
+  // abrir, ?agent= e ?session= ficam na URL e a sessão carrega quando o
+  // endpoint volta.
+  it(
+    'LIM-P1-03-1: orquestrador fora ao abrir; ao voltar e atualizar o endpoint, as mensagens da sessão da URL aparecem',
     async () => {
       const user = userEvent.setup()
       let online = false

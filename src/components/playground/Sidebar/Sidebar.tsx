@@ -4,65 +4,22 @@ import { ModeSelector } from '@/components/playground/Sidebar/ModeSelector'
 import { EntitySelector } from '@/components/playground/Sidebar/EntitySelector'
 import useChatActions from '@/hooks/useChatActions'
 import { DEFAULT_ENDPOINT, usePlaygroundStore } from '@/store'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect, useId } from 'react'
+import { useState, useEffect, useId, type ReactNode } from 'react'
 import Icon from '@/components/ui/icon'
-import { getProviderIcon } from '@/lib/modelProvider'
 import Sessions from './Sessions'
-import { isValidUrl, cn } from '@/lib/utils'
+import { isValidUrl, cn, focusRing } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
-import { truncateText } from '@/lib/utils'
+import { PanelLeftClose, PanelLeftOpen, Plus, RefreshCw } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-
-const SidebarHeader = () => {
-  const t = useTranslations('playground')
-  return (
-    <div className="flex items-center gap-2">
-      <Icon type="agno" size="xs" />
-      <span className="text-xs font-medium uppercase text-foreground">
-        {t('brand')}
-      </span>
-    </div>
-  )
-}
-
-const NewChatButton = ({
-  disabled,
-  onClick
-}: {
-  disabled: boolean
-  onClick: () => void
-}) => {
-  const t = useTranslations('playground')
-  return (
-    <Button
-      onClick={onClick}
-      disabled={disabled}
-      size="lg"
-      className="h-9 w-full text-xs font-medium"
-    >
-      <Icon type="plus-icon" size="xs" className="text-primary-foreground" />
-      <span className="uppercase">{t('newChat')}</span>
-    </Button>
-  )
-}
-
-const ModelDisplay = ({ model }: { model: string }) => (
-  <div className="flex h-9 w-full items-center gap-3 rounded-md border border-border bg-muted p-3 text-xs font-medium uppercase text-muted-foreground">
-    {(() => {
-      const icon = getProviderIcon(model)
-      return icon ? <Icon type={icon} className="shrink-0" size="xs" /> : null
-    })()}
-    {model}
-  </div>
-)
+import { panelLabelClass } from './panelLabel'
 
 const Endpoint = () => {
   const {
     selectedEndpoint,
     isEndpointActive,
+    isEndpointLoading,
     setSelectedEndpoint,
     setAgents,
     setSessionsData,
@@ -72,12 +29,19 @@ const Endpoint = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [endpointValue, setEndpointValue] = useState('')
   const [isMounted, setIsMounted] = useState(false)
-  const [isHovering, setIsHovering] = useState(false)
   const [isRotating, setIsRotating] = useState(false)
   const [, setAgentId] = useQueryState('agent')
   const [, setSessionId] = useQueryState('session')
   const t = useTranslations('playground')
   const tc = useTranslations('common')
+  // Ponto: `signal` pulsando enquanto conecta (não passa por `destructive`
+  // antes do fim da tentativa), `success` online, `destructive` offline; a
+  // palavra vai para o leitor de tela (V-P1-06-10).
+  const [statusWord, dotClass] = isEndpointLoading
+    ? [t('endpointConnecting'), 'live-dot bg-current text-signal']
+    : isEndpointActive
+      ? [tc('online'), 'bg-success']
+      : [tc('offline'), 'bg-destructive']
   // A URL descreve o botão "Editar endpoint" (há 2 Sidebars abaixo de lg).
   const endpointUrlId = useId()
 
@@ -85,9 +49,6 @@ const Endpoint = () => {
     setEndpointValue(selectedEndpoint)
     setIsMounted(true)
   }, [selectedEndpoint])
-
-  const getStatusColor = (isActive: boolean) =>
-    isActive ? 'bg-success' : 'bg-destructive'
 
   const handleSave = async () => {
     if (!isValidUrl(endpointValue)) {
@@ -99,7 +60,6 @@ const Endpoint = () => {
     setAgentId(null)
     setSessionId(null)
     setIsEditing(false)
-    setIsHovering(false)
     setAgents([])
     setSessionsData([])
     setMessages([])
@@ -108,7 +68,6 @@ const Endpoint = () => {
   const handleCancel = () => {
     setEndpointValue(selectedEndpoint)
     setIsEditing(false)
-    setIsHovering(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -126,10 +85,8 @@ const Endpoint = () => {
   }
 
   return (
-    <div className="flex flex-col items-start gap-2">
-      <div className="text-xs font-medium uppercase text-foreground">
-        {t('endpoint')}
-      </div>
+    <div className="flex flex-col gap-2 border-t border-border pt-4">
+      <p className={panelLabelClass}>{t('endpoint')}</p>
       {isEditing ? (
         <div className="flex w-full items-center gap-1">
           <input
@@ -137,14 +94,18 @@ const Endpoint = () => {
             value={endpointValue}
             onChange={(e) => setEndpointValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex h-9 w-full items-center text-ellipsis rounded-md border border-input bg-muted p-3 text-base font-medium text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:text-xs"
+            aria-label={t('endpoint')}
+            className={cn(
+              'flex h-11 w-full min-w-0 items-center rounded-md border border-input bg-muted px-3 font-mono text-base text-foreground md:text-xs lg:h-9',
+              focusRing
+            )}
             autoFocus
           />
           <Button
             variant="ghost"
             size="icon"
             onClick={handleSave}
-            className="hover:cursor-pointer hover:bg-transparent"
+            className="size-11 shrink-0 lg:size-9"
             aria-label={t('saveEndpoint')}
           >
             <Icon type="save" size="xs" />
@@ -152,79 +113,34 @@ const Endpoint = () => {
         </div>
       ) : (
         <div className="flex w-full items-center gap-1">
-          <motion.div
-            className="relative flex h-9 w-full cursor-pointer items-center justify-between rounded-md border border-border bg-muted p-3 uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             aria-label={t('editEndpoint')}
             aria-describedby={endpointUrlId}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
+            title={t('editEndpoint')}
             onClick={() => setIsEditing(true)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                setIsEditing(true)
-              }
-            }}
-            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+            className={cn(
+              'flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-muted px-3 text-left font-mono text-xs text-muted-foreground lg:h-9',
+              focusRing
+            )}
           >
-            <AnimatePresence mode="wait">
-              {isHovering ? (
-                <motion.div
-                  key="endpoint-display-hover"
-                  className="absolute inset-0 flex items-center justify-center"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <p className="flex items-center gap-2 whitespace-nowrap text-xs font-medium text-foreground">
-                    <Icon type="edit" size="xxs" /> {t('editEndpoint')}
-                  </p>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="endpoint-display"
-                  className="absolute inset-0 flex items-center justify-between px-3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <p
-                    id={endpointUrlId}
-                    className="text-xs font-medium text-muted-foreground"
-                  >
-                    {isMounted
-                      ? truncateText(selectedEndpoint, 21) || t('noEndpoint')
-                      : DEFAULT_ENDPOINT}{' '}
-                    {/* O ponto não é o único sinal (P1-05). */}
-                    <span className="sr-only">
-                      {isEndpointActive ? tc('online') : tc('offline')}
-                    </span>
-                  </p>
-                  <div
-                    className={`size-2 shrink-0 rounded-full ${getStatusColor(isEndpointActive)}`}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+            <span id={endpointUrlId} className="min-w-0 flex-1 truncate">
+              {isMounted ? selectedEndpoint || t('noEndpoint') : DEFAULT_ENDPOINT}{' '}
+              <span className="sr-only">{statusWord}</span>
+            </span>
+            <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-full', dotClass)} />
+          </button>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleRefresh}
-            className="hover:cursor-pointer hover:bg-transparent"
+            className="size-11 shrink-0 lg:size-9"
             aria-label={t('refresh')}
           >
-            <motion.div
-              key={isRotating ? 'rotating' : 'idle'}
-              animate={{ rotate: isRotating ? 360 : 0 }}
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
-            >
-              <Icon type="refresh" size="xs" />
-            </motion.div>
+            <RefreshCw
+              aria-hidden="true"
+              className={cn(isRotating && 'motion-safe:animate-spin')}
+            />
           </Button>
         </div>
       )}
@@ -232,18 +148,17 @@ const Endpoint = () => {
   )
 }
 
-// Painel de sessões e agente. No desktop fica na página do playground; abaixo
-// de lg abre no Sheet do cabeçalho (AppHeader), onde não colapsa. Só
-// renderiza: a carga (status, agentes, sessões) é do ChatArea.
-const Sidebar = () => {
+// Painel de sessões e agente (docs/design/P1-06.md, § 2). No desktop fica na
+// página do playground, com o botão de recolher; abaixo de lg abre no Sheet do
+// cabeçalho (AppHeader), que passa o "Fechar" em `closeAction`. Só renderiza:
+// a carga (status, agentes, sessões) é do ChatArea.
+const Sidebar = ({ closeAction }: { closeAction?: ReactNode }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { clearChat, focusChatInput } = useChatActions()
-  const { messages, isEndpointActive, selectedModel, isEndpointLoading } =
-    usePlaygroundStore()
+  const { messages, isEndpointActive, isEndpointLoading } = usePlaygroundStore()
   const [isMounted, setIsMounted] = useState(false)
-  const [agentId] = useQueryState('agent')
-  const [teamId] = useQueryState('team')
   const t = useTranslations('playground')
+  const labelId = useId()
 
   // A carga do playground fica no ChatArea (montado uma vez): abaixo de lg
   // há uma 2ª Sidebar no Sheet, que só renderiza.
@@ -254,82 +169,78 @@ const Sidebar = () => {
     focusChatInput()
   }
 
+  // Recolhido: trilho de 48 px só com "Expandir". O conteúdo fica montado com
+  // `hidden` (fora do Tab e do leitor de tela): remontar o cartão o faria
+  // focar o composer, e o botão é o mesmo, então o foco fica nele.
   return (
-    <motion.aside
-      className="relative flex h-full shrink-0 grow-0 flex-col overflow-hidden px-2 py-3 font-mono"
-      initial={{ width: '16rem' }}
-      animate={{ width: isCollapsed ? '2.5rem' : '16rem' }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+    <aside
+      className={cn(
+        'flex h-full min-h-0 flex-col gap-3',
+        closeAction
+          ? 'w-full p-4'
+          : 'shrink-0 border-r border-border bg-card',
+        !closeAction && (isCollapsed ? 'w-12 items-center py-4' : 'w-72 p-4')
+      )}
     >
-      <motion.button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute right-2 top-2 z-10 hidden p-1 lg:block"
-        aria-label={isCollapsed ? t('expandPanel') : t('collapsePanel')}
-        type="button"
-        whileTap={{ scale: 0.95 }}
+      <div className="flex items-center justify-between gap-2">
+        <p id={labelId} hidden={isCollapsed} className={panelLabelClass}>
+          {t('chatWith')}
+        </p>
+        {closeAction ?? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label={isCollapsed ? t('expandPanel') : t('collapsePanel')}
+            aria-expanded={!isCollapsed}
+            onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen aria-hidden="true" />
+            ) : (
+              <PanelLeftClose aria-hidden="true" />
+            )}
+          </Button>
+        )}
+      </div>
+      <div
+        hidden={isCollapsed}
+        className={isCollapsed ? undefined : 'flex min-h-0 flex-1 flex-col gap-6'}
       >
-        <Icon
-          type="sheet"
-          size="xs"
-          className={cn(
-            "transform",
-            isCollapsed ? 'rotate-180' : 'rotate-0'
-          )}
-        />
-      </motion.button>
-      <motion.div
-        className="w-60 space-y-5"
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -20 : 0 }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        style={{
-          pointerEvents: isCollapsed ? 'none' : 'auto'
-        }}
-      >
-        <SidebarHeader />
-        <NewChatButton
-          disabled={messages.length === 0}
-          onClick={handleNewChat}
-        />
+        <div className="flex flex-col gap-3">
+          {/* Agente | Team e o cartão só com o orquestrador online (P1-05). */}
+          {isMounted &&
+            (isEndpointLoading ? (
+              <>
+                <Skeleton className="h-10 w-full rounded-md lg:h-9" />
+                <Skeleton className="h-14 w-full rounded-lg" />
+              </>
+            ) : (
+              isEndpointActive && (
+                <>
+                  <ModeSelector labelledBy={labelId} />
+                  <EntitySelector />
+                </>
+              )
+            ))}
+          <Button
+            variant="outline"
+            onClick={handleNewChat}
+            disabled={messages.length === 0}
+            className="h-10 w-full lg:h-9"
+          >
+            <Plus aria-hidden="true" />
+            {t('newChat')}
+          </Button>
+        </div>
         {isMounted && (
           <>
-            <Endpoint />
-            {/* Modo só com o orquestrador online; Sessões sempre (P1-05). */}
-            {(isEndpointActive || isEndpointLoading) && (
-              <motion.div
-                className="flex w-full flex-col items-start gap-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, ease: 'easeInOut' }}
-              >
-                <div className="text-xs font-medium uppercase text-foreground">
-                  {t('mode')}
-                </div>
-                {isEndpointLoading ? (
-                  <div className="flex w-full flex-col gap-2">
-                    {Array.from({ length: 3 }).map((_, index) => (
-                      <Skeleton
-                        key={index}
-                        className="h-9 w-full rounded-md"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <>
-                    <ModeSelector />
-                    <EntitySelector />
-                    {selectedModel && (agentId || teamId) && (
-                      <ModelDisplay model={selectedModel} />
-                    )}
-                  </>
-                )}
-              </motion.div>
-            )}
             <Sessions />
+            <Endpoint />
           </>
         )}
-      </motion.div>
-    </motion.aside>
+      </div>
+    </aside>
   )
 }
 

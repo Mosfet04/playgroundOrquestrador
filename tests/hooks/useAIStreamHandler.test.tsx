@@ -237,3 +237,156 @@ describe('useAIChatStreamHandler: eventos de membro no stream do team', () => {
     expect(lastMessage.content).toBe('a\\\\b\\"c')
   })
 })
+
+// D-P1-06-2 (decisão 0015): o agno 2.5 manda o tempo da tool em
+// `tool.metrics.duration` (ToolCallMetrics) e as métricas da resposta em
+// `metrics` do RunCompleted/TeamRunCompleted (RunMetrics, agno/metrics.py).
+describe('useAIChatStreamHandler: métricas (P1-06)', () => {
+  const tool = (extra: Record<string, unknown>) => ({
+    tool_call_id: 'call-1',
+    tool_name: 'consultar_pedido',
+    tool_args: {},
+    ...extra
+  })
+
+  it('guarda o tempo da tool e o erro do ToolCallCompleted', async () => {
+    server.use(
+      ...externalHandlers,
+      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+        sseStream([
+          { event: 'ToolCallStarted', tool: tool({}), created_at: 1 },
+          {
+            event: 'ToolCallCompleted',
+            tool: tool({ tool_call_error: false, metrics: { duration: 0.18 } }),
+            created_at: 1
+          },
+          ...contentEvents('RunContent', ['ok'])
+        ])
+      )
+    )
+
+    const lastMessage = await sendMessage('agent', '?agent=agent-1')
+
+    expect(lastMessage.tool_calls).toHaveLength(1)
+    expect(lastMessage.tool_calls?.[0]).toMatchObject({
+      tool_name: 'consultar_pedido',
+      tool_call_error: false,
+      metrics: { duration: 0.18 }
+    })
+  })
+
+  it('guarda as métricas do RunCompleted na mensagem', async () => {
+    server.use(
+      ...externalHandlers,
+      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+        sseStream([
+          ...contentEvents('RunContent', ['ok']),
+          {
+            event: 'RunCompleted',
+            content: 'ok',
+            created_at: 2,
+            metrics: { input_tokens: 600, output_tokens: 212, total_tokens: 812, duration: 1.4 }
+          }
+        ])
+      )
+    )
+
+    const lastMessage = await sendMessage('agent', '?agent=agent-1')
+
+    expect(lastMessage.metrics).toEqual({ duration: 1.4, input_tokens: 600, output_tokens: 212 })
+  })
+
+  it('RunCompleted sem metrics: a mensagem fica sem métricas', async () => {
+    server.use(
+      ...externalHandlers,
+      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+        sseStream([{ event: 'RunCompleted', content: 'ok', created_at: 2 }])
+      )
+    )
+
+    const lastMessage = await sendMessage('agent', '?agent=agent-1')
+
+    expect(lastMessage.metrics).toBeUndefined()
+  })
+
+  it('no team, ignora as métricas do RunCompleted de membro (decisão 0007)', async () => {
+    server.use(
+      ...externalHandlers,
+      http.post(`${AGENTOS_URL}/teams/team-1/runs`, () =>
+        sseStream([
+          {
+            event: 'RunCompleted',
+            content: 'membro',
+            created_at: 2,
+            metrics: { input_tokens: 1, output_tokens: 1, duration: 0.1 }
+          },
+          ...contentEvents('TeamRunContent', ['Lider']),
+          {
+            event: 'TeamRunCompleted',
+            content: 'Lider',
+            created_at: 3,
+            metrics: { input_tokens: 900, output_tokens: 304, duration: 2.6 }
+          }
+        ])
+      )
+    )
+
+    const lastMessage = await sendMessage('team', '?team=team-1')
+
+    expect(lastMessage.metrics).toEqual({ duration: 2.6, input_tokens: 900, output_tokens: 304 })
+  })
+
+  it('membro sem TeamRunCompleted: nenhuma métrica do membro', async () => {
+    server.use(
+      ...externalHandlers,
+      http.post(`${AGENTOS_URL}/teams/team-1/runs`, () =>
+        sseStream([
+          {
+            event: 'RunCompleted',
+            content: 'membro',
+            created_at: 2,
+            metrics: { input_tokens: 1, output_tokens: 1, duration: 0.1 }
+          }
+        ])
+      )
+    )
+
+    const lastMessage = await sendMessage('team', '?team=team-1')
+
+    expect(lastMessage.metrics).toBeUndefined()
+  })
+})
+
+// QA P1-06
+describe('useAIChatStreamHandler: métricas hostis (QA P1-06)', () => {
+  const runWith = async (metrics: unknown) => {
+    server.use(
+      ...externalHandlers,
+      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+        sseStream([
+          ...contentEvents('RunContent', ['ok']),
+          { event: 'RunCompleted', content: 'ok', created_at: 2, metrics }
+        ])
+      )
+    )
+    return sendMessage('agent', '?agent=agent-1')
+  }
+
+  it.each([
+    ['strings', { duration: '1.4', input_tokens: '600', output_tokens: '212' }],
+    ['nulos', { duration: null, input_tokens: null, output_tokens: null }],
+    ['objeto vazio', {}],
+    ['não-objeto', 'rápido']
+  ])('métricas %s: a mensagem fica sem métricas e o texto final segue', async (_, metrics) => {
+    const lastMessage = await runWith(metrics)
+
+    expect(lastMessage.metrics).toBeUndefined()
+    expect(lastMessage.content).toBe('ok')
+  })
+
+  it('só os 3 números entram; o resto do RunMetrics (modelo, tokens totais) fica de fora', async () => {
+    const lastMessage = await runWith({ duration: 2, input_tokens: 5, total_tokens: 99, model: 'x', secret: 'y' })
+
+    expect(lastMessage.metrics).toEqual({ duration: 2, input_tokens: 5 })
+  })
+})

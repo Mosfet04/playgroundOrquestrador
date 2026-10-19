@@ -1,0 +1,46 @@
+/* P1-06: delta do chat sobre theme.css (P1-01) e p105.css (P1-05). Só tokens do DS. */
+.chat { flex-wrap: nowrap; min-height: 0; }
+.chat-panel { overflow: hidden; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.panel-head .panel-label { margin: 0; }
+.icon-32 { width: 32px; height: 32px; padding: 0; }
+.entity { font: inherit; color: inherit; cursor: pointer; text-align: left; width: 100%; }
+.sess-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.sess .row { position: relative; }
+.sess .row a { padding-right: var(--space-3); }
+.sess .row .del { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; padding: 0; display: none; color: var(--muted-foreground); }
+.sess .row.is-hover a { background: var(--accent); }
+.sess .row.is-hover a span:last-child { visibility: hidden; }
+.sess .row.is-hover .del { display: inline-flex; }
+.ep { border-top: 1px solid var(--border); padding-top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+.ep-row { display: flex; align-items: center; gap: var(--space-1); }
+.ep-field { flex: 1; min-width: 0; height: 36px; display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); border: 1px solid var(--border); background: var(--muted); border-radius: var(--radius-md); font: inherit; font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--muted-foreground); cursor: pointer; text-align: left; }
+.ep-field span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot-ok { color: var(--success); }
+.dot-sig { color: var(--signal); }
+.dot-err { color: var(--destructive); }
+.msgs { overflow: hidden; justify-content: flex-end; }
+.msg-agent .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.chip-err { border-color: var(--destructive); }
+.chip-err .t-err { color: var(--destructive); }
+.ico-sig { color: var(--signal); }
+.ico-ok { color: var(--success); }
+.ico-err { color: var(--destructive); }
+.err-text { color: var(--destructive); }
+.composer-box.is-off { border-color: var(--border); }
+.composer-box textarea[disabled] { cursor: not-allowed; }
+.chat-av { width: 40px; height: 40px; border-radius: var(--radius-md); font-size: 14px; }
+.ann { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.states { padding: var(--space-8); display: flex; flex-direction: column; gap: var(--space-8); min-height: 1300px; }
+.states h2 { margin: 0; font-size: 18px; line-height: 28px; font-weight: 600; }
+.st-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.st-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.st-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.st-case { display: flex; flex-direction: column; gap: var(--space-3); background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); min-width: 0; }
+.st-case .msgs { padding: 0; max-width: none; overflow: visible; }
+.st-case .composer-box { max-width: none; width: 100%; }
+.st-case .chat-center { padding: var(--space-6) var(--space-4); }
+.sheet.panel-sheet { width: 320px; background: var(--popover); padding: var(--space-4); gap: var(--space-6); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin: -8px -8px 0 0; }
+.scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--background) 80%, transparent); backdrop-filter: blur(4px); }
+@media (max-width: 900px) { .st-grid, .st-grid.two, .st-grid.four { grid-template-columns: minmax(0, 1fr); } }

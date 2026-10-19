@@ -64,13 +64,33 @@ test.describe('fake orchestrator', () => {
         data: JSON.parse(dataLine.replace('data: ', ''))
       }
     })
+    // P1-06: uma tool ok e uma com erro (a 2ª antes do último delta) e as
+    // métricas do RunCompleted, nos campos do agno 2.5.
     expect(events.map((e) => e.name)).toEqual([
       'RunStarted',
+      'ToolCallStarted',
+      'ToolCallCompleted',
       'RunContent',
       'RunContent',
+      'ToolCallStarted',
+      'ToolCallCompleted',
       'RunContent',
       'RunCompleted'
     ])
+    const completed = events.filter((e) => e.name === 'ToolCallCompleted')
+    expect(completed.map((e) => e.data.tool)).toEqual([
+      expect.objectContaining({
+        tool_name: 'consultar_pedido',
+        tool_call_error: false,
+        metrics: { duration: 0.18 }
+      }),
+      expect.objectContaining({ tool_name: 'abrir_troca', tool_call_error: true })
+    ])
+    expect(events.at(-1)?.data.metrics).toMatchObject({
+      duration: 1.4,
+      input_tokens: 600,
+      output_tokens: 212
+    })
     for (const e of events) {
       expect(e.data.event).toBe(e.name)
       expect(e.data.session_id).toBe(sessionId)

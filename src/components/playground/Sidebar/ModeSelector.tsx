@@ -1,26 +1,21 @@
 'use client'
 
 import * as React from 'react'
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem
-} from '@/components/ui/select'
 import { usePlaygroundStore } from '@/store'
 import { useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
 import useChatActions from '@/hooks/useChatActions'
+import { cn, focusRing } from '@/lib/utils'
 
-export function ModeSelector() {
+// Segmentado Agente | Team (docs/design/P1-06.md): o lado sem entidades fica
+// desabilitado; `labelledBy` é o rótulo "Conversar com" do painel.
+export function ModeSelector({ labelledBy }: { labelledBy: string }) {
   const {
     mode,
     setMode,
     teams,
     agents,
     setMessages,
-    setSelectedModel,
     setHasStorage,
     setSelectedTeamId
   } = usePlaygroundStore()
@@ -32,7 +27,6 @@ export function ModeSelector() {
 
   const hasTeams = teams.length > 0
   const hasAgents = agents.length > 0
-  const isDropdownDisabled = !(hasTeams && hasAgents)
 
   const handleModeChange = (newMode: 'agent' | 'team') => {
     if (newMode === mode) return
@@ -42,7 +36,6 @@ export function ModeSelector() {
     setAgentId(null)
     setTeamId(null)
     setSelectedTeamId(null)
-    setSelectedModel('')
     setHasStorage(false)
     setMessages([])
     setSessionId(null)
@@ -57,41 +50,33 @@ export function ModeSelector() {
     }
   }, [hasTeams, hasAgents, mode, setMode])
 
-  if (!hasTeams && !hasAgents) {
-    return (
-      <Select disabled>
-        <SelectTrigger className="h-9 w-full text-xs font-medium uppercase opacity-50">
-          <SelectValue placeholder={t('noMode')} />
-        </SelectTrigger>
-      </Select>
-    )
-  }
+  const options = [
+    { value: 'agent', label: t('modeAgent'), enabled: hasAgents },
+    { value: 'team', label: t('modeTeam'), enabled: hasTeams }
+  ] as const
 
   return (
-    <Select
-      value={mode}
-      onValueChange={(value) => handleModeChange(value as 'agent' | 'team')}
-      disabled={isDropdownDisabled}
+    <div
+      role="group"
+      aria-labelledby={labelledBy}
+      className="grid grid-cols-2 gap-0.5 rounded-md border border-border bg-muted p-0.5"
     >
-      <SelectTrigger className="h-9 w-full text-xs font-medium uppercase">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent className="font-mono">
-        {hasAgents && (
-          <SelectItem value="agent" className="cursor-pointer">
-            <div className="text-xs font-medium uppercase">
-              {t('modeAgent')}
-            </div>
-          </SelectItem>
-        )}
-        {hasTeams && (
-          <SelectItem value="team" className="cursor-pointer">
-            <div className="text-xs font-medium uppercase">
-              {t('modeTeam')}
-            </div>
-          </SelectItem>
-        )}
-      </SelectContent>
-    </Select>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={mode === option.value}
+          disabled={!option.enabled}
+          onClick={() => handleModeChange(option.value)}
+          className={cn(
+            'h-10 rounded-sm text-sm text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 lg:h-[30px]',
+            focusRing,
+            mode === option.value && 'bg-card font-medium text-foreground ring-1 ring-border'
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   )
 }

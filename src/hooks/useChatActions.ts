@@ -29,7 +29,6 @@ const useChatActions = () => {
   )
   const setAgents = usePlaygroundStore((state) => state.setAgents)
   const setTeams = usePlaygroundStore((state) => state.setTeams)
-  const setSelectedModel = usePlaygroundStore((state) => state.setSelectedModel)
   const setHasStorage = usePlaygroundStore((state) => state.setHasStorage)
   const setSelectedTeamId = usePlaygroundStore(
     (state) => state.setSelectedTeamId
@@ -107,14 +106,12 @@ const useChatActions = () => {
           if (currentMode === 'agent' && agents.length > 0) {
             const firstAgent = agents[0]
             setAgentId(firstAgent.value)
-            setSelectedModel(firstAgent.model.provider || '')
             setHasStorage(!!firstAgent.storage)
             setSelectedTeamId(null)
           } else if (currentMode === 'team' && teams.length > 0) {
             const firstTeam = teams[0]
             setTeamId(firstTeam.value)
             setSelectedTeamId(firstTeam.value)
-            setSelectedModel(firstTeam.model.provider || '')
             setHasStorage(!!firstTeam.storage)
           } else {
             // Fallback: prioritize agents over teams
@@ -122,7 +119,6 @@ const useChatActions = () => {
               setMode('agent')
               const firstAgent = agents[0]
               setAgentId(firstAgent.value)
-              setSelectedModel(firstAgent.model.provider || '')
               setHasStorage(!!firstAgent.storage)
               setSelectedTeamId(null)
             } else if (teams.length > 0) {
@@ -130,19 +126,16 @@ const useChatActions = () => {
               const firstTeam = teams[0]
               setTeamId(firstTeam.value)
               setSelectedTeamId(firstTeam.value)
-              setSelectedModel(firstTeam.model.provider || '')
               setHasStorage(!!firstTeam.storage)
             }
           }
         }
       } else {
+        // ?agent=/?team= (e o modo) ficam: a sessão da URL volta com o
+        // orquestrador (LIM-P1-03-1, D-P1-06-4).
         setIsEndpointActive(false)
-        setMode('agent')
-        setSelectedModel('')
         setHasStorage(false)
         setSelectedTeamId(null)
-        setAgentId(null)
-        setTeamId(null)
       }
       setAgents(agents)
       setTeams(teams)
@@ -150,12 +143,8 @@ const useChatActions = () => {
     } catch (error) {
       console.error('Error initializing playground:', error)
       setIsEndpointActive(false)
-      setMode('agent')
-      setSelectedModel('')
       setHasStorage(false)
       setSelectedTeamId(null)
-      setAgentId(null)
-      setTeamId(null)
       setAgents([])
       setTeams([])
     } finally {
@@ -170,7 +159,6 @@ const useChatActions = () => {
     setAgents,
     setTeams,
     setAgentId,
-    setSelectedModel,
     setHasStorage,
     setSelectedTeamId,
     setMode,

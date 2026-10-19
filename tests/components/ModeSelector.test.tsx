@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   NuqsTestingAdapter,
@@ -29,12 +29,18 @@ function renderModeSelector(searchParams = '') {
   render(
     <IntlProvider>
       <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
-        <ModeSelector />
+        <p id="rotulo">Conversar com</p>
+        <ModeSelector labelledBy="rotulo" />
       </NuqsTestingAdapter>
     </IntlProvider>
   )
   return { onUrlUpdate }
 }
+
+// P1-06: segmentado Agente | Team (aria-pressed); o lado sem entidades fica
+// desabilitado.
+const segment = (name: 'Agente' | 'Team') =>
+  within(screen.getByRole('group', { name: 'Conversar com' })).getByRole('button', { name })
 
 beforeAll(() => {
   // O jsdom não implementa estas APIs, que o Select do Radix usa ao abrir.
@@ -48,30 +54,29 @@ beforeEach(() => {
 })
 
 describe('ModeSelector', () => {
-  it('fica desabilitado e avisa quando não há agentes nem times', () => {
+  it('sem agentes nem times: os dois lados desabilitados', () => {
     renderModeSelector()
 
-    const select = screen.getByRole('combobox')
-    expect(select).toBeDisabled()
-    expect(select).toHaveTextContent('Nenhum modo disponível')
+    expect(segment('Agente')).toBeDisabled()
+    expect(segment('Team')).toBeDisabled()
   })
 
-  it('mostra o modo Agente travado quando só há agentes', () => {
+  it('só agentes: Agente pressionado e Team desabilitado', () => {
     usePlaygroundStore.setState({ agents: [agent] })
     renderModeSelector()
 
-    const select = screen.getByRole('combobox')
-    expect(select).toBeDisabled()
-    expect(select).toHaveTextContent('Agente')
+    expect(segment('Agente')).toHaveAttribute('aria-pressed', 'true')
+    expect(segment('Agente')).toBeEnabled()
+    expect(segment('Team')).toHaveAttribute('aria-pressed', 'false')
+    expect(segment('Team')).toBeDisabled()
   })
 
   it('troca sozinho para Team quando só há times', async () => {
     usePlaygroundStore.setState({ teams: [team], mode: 'agent' })
     renderModeSelector()
 
-    await waitFor(() =>
-      expect(screen.getByRole('combobox')).toHaveTextContent('Team')
-    )
+    await waitFor(() => expect(segment('Team')).toHaveAttribute('aria-pressed', 'true'))
+    expect(segment('Agente')).toBeDisabled()
     expect(usePlaygroundStore.getState().mode).toBe('team')
   })
 
@@ -81,25 +86,22 @@ describe('ModeSelector', () => {
       agents: [agent],
       teams: [team],
       mode: 'agent',
-      selectedModel: 'gpt-4o',
       messages: [{ role: 'user', content: 'oi', created_at: 1 }]
     })
     const { onUrlUpdate } = renderModeSelector(
       '?agent=agent-1&session=session-a1'
     )
 
-    const select = screen.getByRole('combobox')
-    expect(select).toBeEnabled()
-    expect(select).toHaveTextContent('Agente')
+    expect(segment('Agente')).toHaveAttribute('aria-pressed', 'true')
+    expect(segment('Team')).toBeEnabled()
 
-    await user.click(select)
-    await user.click(await screen.findByRole('option', { name: 'Team' }))
+    await user.click(segment('Team'))
 
-    expect(screen.getByRole('combobox')).toHaveTextContent('Team')
+    expect(segment('Team')).toHaveAttribute('aria-pressed', 'true')
+    expect(segment('Agente')).toHaveAttribute('aria-pressed', 'false')
     const state = usePlaygroundStore.getState()
     expect(state.mode).toBe('team')
     expect(state.messages).toEqual([])
-    expect(state.selectedModel).toBe('')
     await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled())
     expect(onUrlUpdate.mock.lastCall?.[0].queryString).toBe('')
   })

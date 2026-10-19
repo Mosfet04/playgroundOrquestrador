@@ -4,27 +4,12 @@ import {
   cn,
   decodeUrlSegment,
   getJsonMarkdown,
-  isValidUrl,
-  truncateText
+  isValidUrl
 } from '@/lib/utils'
 
 describe('cn', () => {
   it('junta classes e resolve conflito do tailwind pela última', () => {
     expect(cn('p-2 text-sm', false && 'hidden', 'p-4')).toBe('text-sm p-4')
-  })
-})
-
-describe('truncateText', () => {
-  it('devolve o texto inteiro quando cabe no limite', () => {
-    expect(truncateText('agente', 6)).toBe('agente')
-  })
-
-  it('corta no limite e acrescenta ".."', () => {
-    expect(truncateText('orquestrador', 5)).toBe('orque..')
-  })
-
-  it('devolve string vazia para texto vazio', () => {
-    expect(truncateText('', 5)).toBe('')
   })
 })
 

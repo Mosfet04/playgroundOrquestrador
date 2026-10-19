@@ -1,6 +1,6 @@
 import { useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
-import { CircleAlert, Database, History } from 'lucide-react'
+import { Bot, CircleAlert, Database, History, Plug, Unplug } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import useSessionLoader from '@/hooks/useSessionLoader'
@@ -37,11 +37,11 @@ const SessionBlankState = () => {
   )
   const text = (content: React.ReactNode) => <p className="max-w-[210px]">{content}</p>
 
-  if (!selectedEndpoint) return box(<History />, text(t('sessionsNoEndpoint')))
-  if (!isEndpointActive) return box(<History />, text(t('sessionsEndpointOff')))
+  if (!selectedEndpoint) return box(<Plug />, text(t('sessionsNoEndpoint')))
+  if (!isEndpointActive) return box(<Unplug />, text(t('sessionsEndpointOff')))
   if (mode === 'team' ? !teamId : !agentId)
     return box(
-      <History />,
+      <Bot />,
       text(mode === 'team' ? t('sessionsNoTeam') : t('sessionsNoAgent'))
     )
   if (sessionsError)

@@ -139,12 +139,18 @@ test('V-P1-02-18: prefers-reduced-motion para animações e transições', async
   const animationOf = () =>
     page.evaluate(() => {
       // O skeleton usa o brilho do DS em motion-safe: (P1-05), não animate-pulse.
-      const names = ['motion-safe:skeleton-shine', 'animate-spin', 'animate-bounce']
+      // P1-06: os 3 pontos (animate-bounce) deram lugar ao cursor do stream,
+      // um ::after no último filho de .stream-caret (V-P1-06-7).
+      const names = ['motion-safe:skeleton-shine', 'animate-spin', 'stream-caret']
       return names.map((cls) => {
         const el = document.createElement('div')
         el.className = `${cls} transition-colors`
+        el.innerHTML = cls === 'stream-caret' ? '<p></p>' : ''
         document.body.append(el)
-        const style = getComputedStyle(el)
+        const style =
+          cls === 'stream-caret'
+            ? getComputedStyle(el.firstElementChild as Element, '::after')
+            : getComputedStyle(el)
         const result = {
           cls,
           animation: style.animationName,

@@ -220,7 +220,7 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
   await sidebar.getByText('http://localhost:7777').click()
   await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
   await sidebar.getByRole('textbox').press('Enter')
-  const composer = page.getByPlaceholder('Pergunte qualquer coisa')
+  const composer = page.getByPlaceholder('Escreva uma mensagem para Agente Alfa')
   await expect(composer).toBeEnabled()
 
   await composer.fill('segure até liberar')
@@ -230,7 +230,9 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
   await expect(page).toHaveURL(/[?&]session=/)
   const url = page.url()
   expect(url).toContain('agent=agente-alfa')
-  await expect(page.getByRole('button', { name: 'Enviar' })).toBeDisabled()
+  await expect(
+    page.getByRole('button', { name: 'Enviar mensagem (aguarde a resposta terminar)' })
+  ).toBeDisabled()
   await markPage(page)
 
   await page.getByRole('combobox', { name: /Alterar idioma/ }).click()
@@ -239,19 +241,21 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
 
   await expect(sidebar.getByText('New chat')).toBeVisible()
   await expect(sidebar.getByText('Sessions')).toBeVisible()
-  await expect(page.getByPlaceholder('Ask anything')).toHaveValue('rascunho')
+  await expect(page.getByPlaceholder('Write a message to Agente Alfa')).toHaveValue('rascunho')
   // a mensagem do usuário e a sessão criada na lista do painel
   await expect(page.getByText('segure até liberar', { exact: true })).toHaveCount(2)
   await expect(page.getByText('Agente Alfa recebeu:')).toBeVisible()
   // ainda em stream: o envio segue bloqueado
-  await expect(page.getByRole('button', { name: 'Send' })).toBeDisabled()
+  await expect(
+    page.getByRole('button', { name: 'Send message (wait for the response to finish)' })
+  ).toBeDisabled()
   expect(page.url()).toBe(url)
   expect(await pageMark(page)).toBe('mesma página')
 
-  expect((await request.post(`${FAKE_ORCHESTRATOR_URL}/hold/release`)).ok()).toBe(true)
+  expect((await request.post(`${FAKE_ORCHESTRATOR_URL}/hold/release?agent=agente-alfa`)).ok()).toBe(true)
   await expect(page.getByText('Agente Alfa recebeu: segure até liberar')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Send' })).toBeEnabled()
-  await expect(page.getByPlaceholder('Ask anything')).toHaveValue('rascunho')
+  await expect(page.getByRole('button', { name: 'Send message', exact: true })).toBeEnabled()
+  await expect(page.getByPlaceholder('Write a message to Agente Alfa')).toHaveValue('rascunho')
   await expect(sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' })).toBeVisible()
   expect(page.url()).toBe(url)
 })

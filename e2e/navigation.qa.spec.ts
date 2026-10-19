@@ -249,7 +249,7 @@ test('Playground -> Início -> Voltar devolve ?agent= e ?session= e as mensagens
   await sidebar.getByRole('textbox').press('Enter')
   await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
   await page.getByRole('option', { name: 'Agente Beta' }).click()
-  const chatInput = page.getByPlaceholder('Pergunte qualquer coisa')
+  const chatInput = page.getByPlaceholder('Escreva uma mensagem para Agente Beta')
   await chatInput.fill('Ida e volta')
   await chatInput.press('Enter')
   await expect(page.getByText('Agente Beta recebeu: Ida e volta')).toBeVisible()

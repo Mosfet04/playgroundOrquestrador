@@ -147,6 +147,27 @@
     opacity: 0;
     animation: live-ping 1.6s ease-out infinite;
   }
+
+  /* Cursor do stream (P1-06): no fim do último bloco do markdown; se ele for
+     lista ou código, cai na linha seguinte. Parado pela regra de
+     prefers-reduced-motion acima. */
+  .stream-caret > :last-child::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 18px;
+    margin-left: 2px;
+    vertical-align: -3px;
+    border-radius: 1px;
+    background: hsl(var(--signal));
+    animation: caret-blink 1s steps(2, start) infinite;
+  }
+}
+
+@keyframes caret-blink {
+  to {
+    visibility: hidden;
+  }
 }
 
 @keyframes skeleton-shine {

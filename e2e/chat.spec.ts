@@ -24,8 +24,11 @@ const openPlaygroundOnFake = async (page: Page) => {
   return sidebar
 }
 
+// O rótulo do composer leva o nome do agente (P1-06).
+const composer = (page: Page) => page.getByRole('textbox', { name: /^Mensagem para / })
+
 const sendMessage = async (page: Page, message: string) => {
-  const chatInput = page.getByPlaceholder('Pergunte qualquer coisa')
+  const chatInput = composer(page)
   await chatInput.fill(message)
   await chatInput.press('Enter')
 }
@@ -44,6 +47,15 @@ test('chat: aponta o endpoint para o fake, escolhe o agente e recebe a resposta 
   await sendMessage(page, 'Olá, fake')
 
   await expect(page.getByText('Agente Beta recebeu: Olá, fake')).toBeVisible()
+  // P1-06 (D-P1-06-2): chips com o tempo da tool e o erro, e as métricas do
+  // RunCompleted do fake.
+  const tools = page.getByRole('list', { name: 'Chamadas de tool' })
+  await expect(tools.getByRole('listitem')).toHaveText([
+    'consultar_pedido0,18 sconcluída',
+    'abrir_trocaerro'
+  ])
+  await expect(page.getByText('1,4 s · 812 tokens')).toBeVisible()
+  await expect(page.getByRole('log')).not.toHaveAttribute('aria-busy')
 })
 
 // BUG-P0-03-1 (corrigido no P0-06): o chat anexa os deltas `RunContent` do
@@ -53,7 +65,7 @@ test('chat: mostra o texto parcial em stream antes do RunCompleted (BUG-P0-03-1)
   page
 }) => {
   await openPlaygroundOnFake(page)
-  await expect(page.getByPlaceholder('Pergunte qualquer coisa')).toBeEnabled()
+  await expect(composer(page)).toBeEnabled()
 
   // O prazo de 1,5 s conta da resposta do POST /runs, não do Enter: a
   // navegação e o início da requisição não entram na janela.
@@ -64,4 +76,9 @@ test('chat: mostra o texto parcial em stream antes do RunCompleted (BUG-P0-03-1)
   await expect(
     page.getByText('Agente Alfa recebeu: segure o RunCompleted')
   ).toBeVisible({ timeout: 1500 })
+  // Ainda sem o RunCompleted: "gerando" no lugar das métricas (P1-06).
+  await expect(page.getByText('gerando', { exact: true })).toBeVisible()
+  await expect(page.getByRole('log')).toHaveAttribute('aria-busy', 'true')
+  await expect(page.getByText('1,4 s · 812 tokens')).toBeVisible({ timeout: 5000 })
+  await expect(page.getByText('gerando', { exact: true })).toHaveCount(0)
 })

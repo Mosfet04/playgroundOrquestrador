@@ -163,7 +163,6 @@ const useSessionLoader = () => {
                             tool_name: msg.tool_name ?? '',
                             tool_args: msg.tool_args ?? {},
                             tool_call_error: msg.tool_call_error ?? false,
-                            metrics: msg.metrics ?? { time: 0 },
                             created_at:
                               msg.created_at ?? Math.floor(Date.now() / 1000)
                           })

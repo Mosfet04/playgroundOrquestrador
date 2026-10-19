@@ -9,13 +9,6 @@ export function cn(...inputs: ClassValue[]) {
 export const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 
-export const truncateText = (text: string, limit: number) => {
-  if (text) {
-    return text.length > limit ? `${text.slice(0, limit)}..` : text
-  }
-  return ''
-}
-
 // Sem regex: a antiga tinha backtracking exponencial (BUG-P0-02-1, decisão 0002).
 // Credencial na URL é recusada: o endpoint fica no localStorage (decisão 0006).
 export const isValidUrl = (url: string): boolean => {

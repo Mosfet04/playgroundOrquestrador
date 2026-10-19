@@ -1,0 +1,44 @@
+/* P1-05: classes dos estados, sobre theme.css (tokens + casca da P1-01) e bundle.css (componentes do DS). */
+.st-center { width: 100%; max-width: 640px; margin: 48px auto 0; }
+.nf-ico { color: var(--muted-foreground); }
+.st-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.state-row { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 20px 24px; gap: var(--space-4); }
+.foot-note { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.ann { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+
+/* Painel do playground como existe hoje (o visual novo é do P1-06) */
+.pp { flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--border); padding: var(--space-3) var(--space-2); display: flex; flex-direction: column; gap: 20px; font-family: var(--font-mono); min-width: 0; }
+.pp-brand { display: flex; align-items: center; gap: var(--space-2); font-size: 12px; line-height: 16px; font-weight: 500; text-transform: uppercase; }
+.pp-label { margin: 0 0 var(--space-2); font-size: 12px; line-height: 16px; font-weight: 500; text-transform: uppercase; }
+.pp-field { height: 36px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0 var(--space-3); border: 1px solid var(--border); background: var(--muted); border-radius: var(--radius-md); font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); text-transform: uppercase; }
+.pp-new { width: 100%; font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; }
+.pp-blank { background: var(--muted); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-3); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; font-family: var(--font-sans); font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+.pp-blank p { margin: 0; max-width: 210px; }
+.pp-blank a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+.pp-blank.is-err > .pg-ico { color: var(--destructive); }
+.pp-cases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.pp-case { display: flex; flex-direction: column; gap: var(--space-2); background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); font-family: var(--font-mono); }
+
+/* Área da conversa */
+.chat-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-8) var(--space-6); gap: var(--space-3); text-align: center; }
+.chat-center h2 { margin: 0; font-size: 18px; line-height: 28px; font-weight: 600; }
+.chat-center p { margin: 0; color: var(--muted-foreground); max-width: 48ch; }
+.chat-av { width: 40px; height: 40px; border-radius: var(--radius-md); }
+.composer-box textarea[disabled] { cursor: not-allowed; }
+.composer-box.is-off { border-color: var(--border); }
+.mini { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); min-height: 300px; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Dashboard */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+.dcard { width: auto; }
+.kpi-head { display: flex; align-items: center; justify-content: space-between; font-weight: 500; }
+.kpi-head .pg-ico { color: var(--muted-foreground); }
+.chart-empty { height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); text-align: center; }
+.chart-empty b { font-size: 16px; line-height: 24px; font-weight: 600; }
+.chart-empty span { color: var(--muted-foreground); max-width: 40ch; }
+.empty-line { margin: 0; color: var(--muted-foreground); }
+
+@media (max-width: 960px) {
+  .kpi-grid, .two, .pp-cases { grid-template-columns: minmax(0, 1fr); }
+}

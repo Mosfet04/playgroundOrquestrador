@@ -193,8 +193,9 @@ describe('endpoint pelo teclado', () => {
       </IntlProvider>
     )
 
+    // P1-06: botão nativo (na ordem de foco sem tabindex).
     const edit = screen.getByRole('button', { name: 'Editar endpoint' })
-    expect(edit).toHaveAttribute('tabindex', '0')
+    expect(edit.tagName).toBe('BUTTON')
     edit.focus()
     await user.keyboard(' ')
 

@@ -39,7 +39,7 @@ describe('getPlaygroundAgentsAPI (formatos)', () => {
     )
 
     expect(await getPlaygroundAgentsAPI(AGENTOS_URL)).toEqual([
-      { value: 'novo', label: 'A', model: { provider: '' }, storage: true }
+      { value: 'novo', label: 'A', model: { provider: '', model: '' }, storage: true }
     ])
   })
 })
@@ -69,7 +69,7 @@ describe('getPlaygroundTeamsAPI (falhas e formatos)', () => {
       )
     )
     expect(await getPlaygroundTeamsAPI(AGENTOS_URL)).toEqual([
-      { value: 't9', label: 'Nove', model: { provider: '' }, storage: false }
+      { value: 't9', label: 'Nove', model: { provider: '', model: '' }, storage: false }
     ])
 
     server.use(

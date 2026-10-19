@@ -104,9 +104,9 @@ describe('troca de idioma com a conversa aberta', () => {
 
     expect(await screen.findByText('Resposta do histórico')).toBeInTheDocument()
     await waitFor(() => expect(countOf('/sessions')).toBe(1))
-    expect(screen.getByText('Nova conversa')).toHaveClass('uppercase')
+    expect(screen.getByRole('button', { name: 'Nova conversa' })).toBeInTheDocument()
     expect(screen.getByText('Sessões')).toHaveClass('uppercase')
-    const composer = screen.getByPlaceholderText('Pergunte qualquer coisa')
+    const composer = screen.getByPlaceholderText('Escreva uma mensagem para Assistente')
     await user.type(composer, 'rascunho')
     act(() =>
       usePlaygroundStore.getState().setMessages((messages) => [
@@ -121,9 +121,9 @@ describe('troca de idioma com a conversa aberta', () => {
 
     expect(screen.getByText('New chat')).toBeInTheDocument()
     expect(screen.getByText('Sessions')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Ask anything')).toBe(composer)
+    expect(screen.getByPlaceholderText('Write a message to Assistente')).toBe(composer)
     expect(composer).toHaveValue('rascunho')
-    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument()
     expect(screen.getByText('Resposta parcial')).toBeInTheDocument()
     // Dá vez aos efeitos e ao MSW de uma eventual recarga.
     await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
@@ -368,14 +368,17 @@ describe('painel', () => {
       </NuqsTestingAdapter>
     )
 
-    expect(screen.getByRole('button', { name: 'Recolher painel' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Recolher painel de sessões' })
+    ).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Recarregar agentes e sessões' })
     ).toBeInTheDocument()
     // o endpoint abre a edição pelo teclado, com nome acessível (R1) e a URL
-    // como descrição (R8), com o status em palavra (P1-05)
+    // como descrição (R8), com o status em palavra (P1-05; "conectando" antes
+    // do fim da 1ª tentativa, P1-06)
     const edit = screen.getByRole('button', { name: 'Editar endpoint' })
-    expect(edit).toHaveAccessibleDescription('http://localhost:7777 offline')
+    expect(edit).toHaveAccessibleDescription('http://localhost:7777 conectando')
     edit.focus()
     await user.keyboard('{Enter}')
     const input = screen.getByRole('textbox')

@@ -28,8 +28,10 @@ const HOLD_COMPLETION_MS = 3000
 // prazo máximo evita stream preso se o teste cair antes de liberar.
 const HOLD_UNTIL_RELEASE_MESSAGE = 'segure até liberar'
 const HOLD_MAX_MS = 60_000
-const heldStreams = new Set<() => void>()
-const waitForRelease = () =>
+// POST /hold/release solta tudo; com `?agent=<id>`, só os streams desse agente
+// (testes em paralelo não soltam os retidos uns dos outros).
+const heldStreams = new Map<() => void, string>()
+const waitForRelease = (agentId: string) =>
   new Promise<void>((resolve) => {
     const release = () => {
       clearTimeout(timer)
@@ -37,7 +39,7 @@ const waitForRelease = () =>
       resolve()
     }
     const timer = setTimeout(release, HOLD_MAX_MS)
-    heldStreams.add(release)
+    heldStreams.set(release, agentId)
   })
 
 const agents: FakeAgent[] = [
@@ -117,6 +119,15 @@ const runAgent = async (
     created_at: Math.floor(Date.now() / 1000)
   }
   const deltas = [`${agent.name} `, 'recebeu: ', message]
+  // Tools e métricas no formato do agno 2.5 (ToolExecution e RunMetrics em
+  // agno/metrics.py): uma tool ok e uma com erro por resposta (P1-06).
+  const tool = (name: string) => ({
+    tool_call_id: `${base.run_id}-${name}`,
+    tool_name: name,
+    tool_args: {}
+  })
+  const toolOk = tool('consultar_pedido')
+  const toolError = tool('abrir_troca')
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -124,12 +135,25 @@ const runAgent = async (
     'Access-Control-Allow-Origin': '*'
   })
   writeEvent(res, { ...base, event: 'RunStarted', model: 'fake-model' })
+  writeEvent(res, { ...base, event: 'ToolCallStarted', tool: toolOk })
+  await delay(CHUNK_DELAY_MS)
+  writeEvent(res, {
+    ...base,
+    event: 'ToolCallCompleted',
+    tool: { ...toolOk, tool_call_error: false, metrics: { duration: 0.18 } }
+  })
   for (const [index, delta] of deltas.entries()) {
-    if (
-      message === HOLD_UNTIL_RELEASE_MESSAGE &&
-      index === deltas.length - 1
-    )
-      await waitForRelease()
+    if (index === deltas.length - 1) {
+      // A 2ª tool fica "executando" enquanto o stream está retido.
+      writeEvent(res, { ...base, event: 'ToolCallStarted', tool: toolError })
+      if (message === HOLD_UNTIL_RELEASE_MESSAGE) await waitForRelease(agent.id)
+      await delay(CHUNK_DELAY_MS)
+      writeEvent(res, {
+        ...base,
+        event: 'ToolCallCompleted',
+        tool: { ...toolError, tool_call_error: true, metrics: { duration: 0.05 } }
+      })
+    }
     await delay(CHUNK_DELAY_MS)
     writeEvent(res, {
       ...base,
@@ -145,7 +169,13 @@ const runAgent = async (
     ...base,
     event: 'RunCompleted',
     content: deltas.join(''),
-    content_type: 'str'
+    content_type: 'str',
+    metrics: {
+      input_tokens: 600,
+      output_tokens: 212,
+      total_tokens: 812,
+      duration: 1.4
+    }
   })
   historyBySession.set(sessionId, [
     ...(historyBySession.get(sessionId) ?? []),
@@ -165,7 +195,10 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
     return sendJson(res, 200, agents.map(toAgentResponse))
   if (route === 'GET /teams') return sendJson(res, 200, [])
   if (route === 'POST /hold/release') {
+    const only = url.searchParams.get('agent')
     const released = [...heldStreams]
+      .filter(([, agentId]) => only === null || agentId === only)
+      .map(([release]) => release)
     released.forEach((release) => release())
     return sendJson(res, 200, { released: released.length })
   }
