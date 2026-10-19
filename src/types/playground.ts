@@ -4,11 +4,20 @@ export interface ToolCall {
   tool_call_id: string
   tool_name: string
   tool_args: Record<string, string>
-  tool_call_error: boolean
-  metrics: {
-    time: number
+  tool_call_error?: boolean
+  // agno 2.5: ToolCallMetrics (agno/metrics.py); só no ToolCallCompleted.
+  metrics?: {
+    duration?: number
   }
   created_at: number
+}
+
+// RunMetrics do RunCompleted/TeamRunCompleted (agno/metrics.py), só os campos
+// mostrados na resposta (D-P1-06-2, decisão 0015).
+export interface RunMetrics {
+  duration?: number
+  input_tokens?: number
+  output_tokens?: number
 }
 
 export interface ReasoningSteps {
@@ -27,9 +36,6 @@ export interface ReasoningProps {
   reasoning: ReasoningSteps[]
 }
 
-export type ToolCallProps = {
-  tools: ToolCall
-}
 interface ModelMessage {
   content: string | null
   context?: MessageContext[]
@@ -87,6 +93,8 @@ export enum RunEvent {
   RunStarted = 'RunStarted',
   RunResponse = 'RunResponse',
   RunResponseContent = 'RunResponseContent',
+  // agno 2.5: cada RunContent/TeamRunContent traz só o delta do texto
+  RunContent = 'RunContent',
   RunCompleted = 'RunCompleted',
   RunError = 'RunError',
   ToolCallStarted = 'ToolCallStarted',
@@ -98,6 +106,7 @@ export enum RunEvent {
   // Team Events
   TeamRunStarted = 'TeamRunStarted',
   TeamRunResponseContent = 'TeamRunResponseContent',
+  TeamRunContent = 'TeamRunContent',
   TeamRunCompleted = 'TeamRunCompleted',
   TeamRunError = 'TeamRunError',
   TeamRunCancelled = 'TeamRunCancelled',
@@ -151,7 +160,7 @@ export interface RunResponse {
   event: RunEvent
   event_data?: object
   messages?: ModelMessage[]
-  metrics?: object
+  metrics?: RunMetrics
   model?: string
   run_id?: string
   agent_id?: string
@@ -195,6 +204,7 @@ export interface PlaygroundChatMessage {
   streamingError?: boolean
   created_at: number
   tool_calls?: ToolCall[]
+  metrics?: RunMetrics
   extra_data?: {
     reasoning_steps?: ReasoningSteps[]
     reasoning_messages?: ReasoningMessage[]
@@ -211,6 +221,7 @@ export interface ComboboxAgent {
   label: string
   model: {
     provider: string
+    model?: string
   }
   storage?: boolean
 }
@@ -220,6 +231,7 @@ export interface ComboboxTeam {
   label: string
   model: {
     provider: string
+    model?: string
   }
   storage?: boolean
 }

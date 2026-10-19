@@ -6,7 +6,6 @@ import {
   getPlaygroundTeamSessionAPI
 } from '@/api/playground'
 import { usePlaygroundStore } from '../store'
-import { toast } from 'sonner'
 import {
   PlaygroundChatMessage,
   ToolCall,
@@ -56,12 +55,15 @@ const useSessionLoader = () => {
     (state) => state.setIsSessionsLoading
   )
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
+  const setSessionsError = usePlaygroundStore((state) => state.setSessionsError)
 
   const getSessions = useCallback(
     async ({ entityType, agentId, teamId }: LoaderArgs) => {
       if (!selectedEndpoint) return
 
       try {
+        // A falha anterior só sai com sucesso: no "Tentar de novo" a caixa de
+        // erro fica no lugar, com o botão em "Tentando…" (P1-05).
         setIsSessionsLoading(true)
 
         const sessions =
@@ -70,14 +72,17 @@ const useSessionLoader = () => {
             : await getAllPlaygroundSessionsAPI(selectedEndpoint, agentId!)
 
         setSessionsData(sessions)
-      } catch {
-        toast.error('Error loading sessions')
+        setSessionsError(false)
+      } catch (error) {
+        // A falha aparece na caixa de sessões, com "Tentar de novo" (P1-05).
+        console.error('Error loading sessions:', error)
+        setSessionsError(true)
         setSessionsData([])
       } finally {
         setIsSessionsLoading(false)
       }
     },
-    [selectedEndpoint, setSessionsData, setIsSessionsLoading]
+    [selectedEndpoint, setSessionsData, setIsSessionsLoading, setSessionsError]
   )
 
   const getSession = useCallback(
@@ -158,7 +163,6 @@ const useSessionLoader = () => {
                             tool_name: msg.tool_name ?? '',
                             tool_args: msg.tool_args ?? {},
                             tool_call_error: msg.tool_call_error ?? false,
-                            metrics: msg.metrics ?? { time: 0 },
                             created_at:
                               msg.created_at ?? Math.floor(Date.now() / 1000)
                           })

@@ -1,0 +1,84 @@
+import { expect, test, type Page } from '@playwright/test'
+
+import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+
+// Abre o playground e aponta o endpoint para o fake pela sidebar, como o usuário faz.
+const openPlaygroundOnFake = async (page: Page) => {
+  // Do browser só passam o app e o fake: bloqueia o endpoint padrão
+  // (localhost:7777) e a rede externa que o chat usa (ipify e monitoramento do
+  // FingerprintJS). As fontes são servidas pelo próprio app, de src/app/fonts
+  // (decisões 0004 e 0008).
+  const allowedOrigins = [APP_URL, FAKE_ORCHESTRATOR_URL]
+  await page.route(
+    (url) => !allowedOrigins.includes(url.origin),
+    (route) => route.abort()
+  )
+
+  await page.goto('/playground')
+
+  const sidebar = page.locator('aside')
+  await sidebar.getByText('http://localhost:7777').click()
+  const endpointInput = sidebar.getByRole('textbox')
+  await endpointInput.fill(FAKE_ORCHESTRATOR_URL)
+  await endpointInput.press('Enter')
+  return sidebar
+}
+
+// O rótulo do composer leva o nome do agente (P1-06).
+const composer = (page: Page) => page.getByRole('textbox', { name: /^Mensagem para / })
+
+const sendMessage = async (page: Page, message: string) => {
+  const chatInput = composer(page)
+  await chatInput.fill(message)
+  await chatInput.press('Enter')
+}
+
+test('chat: aponta o endpoint para o fake, escolhe o agente e recebe a resposta final', async ({
+  page
+}) => {
+  const sidebar = await openPlaygroundOnFake(page)
+
+  await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
+  await page.getByRole('option', { name: 'Agente Beta' }).click()
+  await expect(
+    sidebar.getByRole('combobox').filter({ hasText: 'Agente Beta' })
+  ).toBeVisible()
+
+  await sendMessage(page, 'Olá, fake')
+
+  await expect(page.getByText('Agente Beta recebeu: Olá, fake')).toBeVisible()
+  // P1-06 (D-P1-06-2): chips com o tempo da tool e o erro, e as métricas do
+  // RunCompleted do fake.
+  const tools = page.getByRole('list', { name: 'Chamadas de tool' })
+  await expect(tools.getByRole('listitem')).toHaveText([
+    'consultar_pedido0,18 sconcluída',
+    'abrir_trocaerro'
+  ])
+  await expect(page.getByText('1,4 s · 812 tokens')).toBeVisible()
+  await expect(page.getByRole('log')).not.toHaveAttribute('aria-busy')
+})
+
+// BUG-P0-03-1 (corrigido no P0-06): o chat anexa os deltas `RunContent` do
+// agno 2.5. O fake segura o RunCompleted por 3 s para esta mensagem; os deltas
+// chegam em ~100 ms.
+test('chat: mostra o texto parcial em stream antes do RunCompleted (BUG-P0-03-1)', async ({
+  page
+}) => {
+  await openPlaygroundOnFake(page)
+  await expect(composer(page)).toBeEnabled()
+
+  // O prazo de 1,5 s conta da resposta do POST /runs, não do Enter: a
+  // navegação e o início da requisição não entram na janela.
+  const runResponse = page.waitForResponse((r) => r.url().endsWith('/runs'))
+  await sendMessage(page, 'segure o RunCompleted')
+  await runResponse
+
+  await expect(
+    page.getByText('Agente Alfa recebeu: segure o RunCompleted')
+  ).toBeVisible({ timeout: 1500 })
+  // Ainda sem o RunCompleted: "gerando" no lugar das métricas (P1-06).
+  await expect(page.getByText('gerando', { exact: true })).toBeVisible()
+  await expect(page.getByRole('log')).toHaveAttribute('aria-busy', 'true')
+  await expect(page.getByText('1,4 s · 812 tokens')).toBeVisible({ timeout: 5000 })
+  await expect(page.getByText('gerando', { exact: true })).toHaveCount(0)
+})

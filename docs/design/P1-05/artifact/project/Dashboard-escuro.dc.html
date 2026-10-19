@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Dashboard sem dados · desktop escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p105.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7397ff}a:hover{color:#a9beff}
+</style>
+</helmet>
+<div class="pg-app dark shell" style="min-height: 1180px">
+  <div class="side">
+    <div class="side-top"><span class="pg-mark pg-grad" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M8.5 6h7"></path><path d="m7.2 8.2 3.6 7.6"></path><path d="m16.8 8.2-3.6 7.6"></path></svg></span><div class="brand"><b>Orquestrador</b><span>playground</span></div></div>
+    <nav class="side-body" aria-label="Navegação principal">
+      <a class="nav-item" href="#inicio"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>Início</a>
+      <p class="nav-group">Testar</p>
+      <a class="nav-item" href="#playground"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>Playground</a>
+      <p class="nav-group">Configurar</p>
+      <a class="nav-item" href="#agents"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>Agentes</a>
+      <a class="nav-item" href="#tools"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>Tools</a>
+      <p class="nav-group">Observar</p>
+      <a class="nav-item" href="#dashboard" aria-current="page"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg>Dashboard</a>
+    </nav>
+  </div>
+  <div class="main">
+    <header class="hdr">
+      <ol class="crumbs" aria-label="Você está em">
+        <li>Observar</li>
+        <li><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span aria-current="page">Dashboard</span></li>
+      </ol>
+      <div class="hdr-actions">
+        <button class="pg-btn pg-btn-ghost pg-btn-sm" type="button" aria-label="Idioma: Português. Alterar idioma"><span class="pg-mono">PT-BR</span></button>
+        <button class="pg-btn pg-btn-ghost pg-btn-icon" type="button" aria-label="Tema: Escuro. Alterar tema"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button>
+      </div>
+    </header>
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Visão geral do sistema e métricas de uso</p>
+        </div>
+        <button class="pg-select" type="button" role="combobox" aria-label="Selecionar período" aria-expanded="false" style="width: 192px"><span>Últimas 24 h</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      </div>
+      <div class="kpi-grid">
+        <div class="pg-card dcard"><div class="kpi-head">Agentes ativos<svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect></svg></div><div><div class="pg-kpi">0</div><p class="pg-caption pg-muted" style="margin: 0">0 no total</p></div></div>
+        <div class="pg-card dcard"><div class="kpi-head">Usuários únicos<svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg></div><div><div class="pg-kpi">0</div><p class="pg-caption pg-muted" style="margin: 0">No período selecionado</p></div></div>
+        <div class="pg-card dcard"><div class="kpi-head">Sessões criadas<svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></div><div><div class="pg-kpi">0</div><p class="pg-caption pg-muted" style="margin: 0">0 agentes · 0 teams · 0 no período</p></div></div>
+        <div class="pg-card dcard"><div class="kpi-head">Tokens consumidos<svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg></div><div><div class="pg-kpi">0</div><p class="pg-caption pg-muted" style="margin: 0">No período selecionado</p></div></div>
+      </div>
+      <div class="two">
+        <div class="pg-card dcard"><div class="pg-card-head"><h2 class="pg-card-title">Modelos de IA</h2><p class="pg-card-desc">Modelos utilizados pelos agentes ativos</p></div><p class="empty-line">Nenhum modelo em uso pelos agentes ativos.</p></div>
+        <div class="pg-card dcard"><div class="pg-card-head"><h2 class="pg-card-title">Modelos de embedding</h2><p class="pg-card-desc">Modelos de embedding em uso no RAG</p></div><p class="empty-line">Nenhum agente usa RAG.</p></div>
+      </div>
+      <div class="pg-card dcard">
+        <div class="pg-card-head"><h2 class="pg-card-title">Consumo de tokens por entidade</h2><p class="pg-card-desc">Total de tokens consumidos por cada agente ou team no período selecionado</p></div>
+        <div class="state state-err" role="alert" style="background: var(--background)">
+          <span class="err-ico" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24" style="width: 20px; height: 20px"><path d="m19 5 3-3"></path><path d="m2 22 3-3"></path><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"></path><path d="M7.5 13.5 10 11"></path><path d="M10.5 16.5 13 14"></path><path d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z"></path></svg></span>
+          <div class="err-body">
+            <h3 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Não foi possível carregar o consumo de tokens</h3>
+            <p>O orquestrador não respondeu. Confira se ele está no ar e tente de novo.</p>
+            <span class="pg-row"><span class="pg-chip"><span class="pg-muted">código</span>500</span></span>
+            <div class="st-actions"><button class="pg-btn pg-btn-outline" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Tentar de novo</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="two">
+        <div class="pg-card dcard"><div class="pg-card-head"><h2 class="pg-card-title">Atividade por tempo</h2><p class="pg-card-desc">Distribuição de sessões ao longo do tempo</p></div><div class="chart-empty"><b>Sem dados no período</b><span>Converse com um agente no playground para gerar métricas.</span></div></div>
+        <div class="pg-card dcard"><div class="pg-card-head"><h2 class="pg-card-title">Sessões por tipo</h2><p class="pg-card-desc">Distribuição de sessões entre agentes e teams</p></div><div class="chart-empty"><b>Sem dados no período</b><span>Converse com um agente no playground para gerar métricas.</span></div></div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

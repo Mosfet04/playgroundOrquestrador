@@ -17,11 +17,7 @@ export type IconType =
   | 'agent'
   | 'open-ai'
   | 'sheet'
-  | 'nextjs'
-  | 'shadcn'
-  | 'tailwind'
   | 'reasoning'
-  | 'agno-tag'
   | 'refresh'
   | 'edit'
   | 'save'
@@ -41,7 +37,6 @@ export interface IconProps {
   type: IconType
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'dot' | 'xxs' | 'default'
   className?: string
-  color?: string
   disabled?: boolean
 }
 

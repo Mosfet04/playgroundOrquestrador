@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { agentsCollection } from '@/lib/mongodb'
+import { escapeRegExp } from '@/lib/utils'
 import { AgentConfig } from '@/types/management'
+
+import { parseJsonBody } from '../parseJsonBody'
+import { agentBodySchema } from './schema'
 
 // GET - Listar todos os agentes
 export async function GET(request: NextRequest) {
@@ -25,10 +29,11 @@ export async function GET(request: NextRequest) {
     }
     
     if (search) {
+      const pattern = escapeRegExp(search)
       filters.$or = [
-        { nome: { $regex: search, $options: 'i' } },
-        { descricao: { $regex: search, $options: 'i' } },
-        { id: { $regex: search, $options: 'i' } }
+        { nome: { $regex: pattern, $options: 'i' } },
+        { descricao: { $regex: pattern, $options: 'i' } },
+        { id: { $regex: pattern, $options: 'i' } }
       ]
     }
 
@@ -70,18 +75,9 @@ export async function GET(request: NextRequest) {
 // POST - Criar novo agente
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    
-    // Validação básica
-    if (!body.id || !body.nome || !body.model || !body.factoryIaModel) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Campos obrigatórios: id, nome, model, factoryIaModel' 
-        },
-        { status: 400 }
-      )
-    }
+    const parsed = await parseJsonBody(request, agentBodySchema)
+    if (!parsed.success) return parsed.response
+    const body = parsed.data
 
     // Verificar se já existe um agente com o mesmo ID
     const existingAgent = await agentsCollection.findOne({ id: body.id })

@@ -1,6 +1,7 @@
 'use client'
 
 import { memo } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { toast } from 'sonner'
 
@@ -9,10 +10,11 @@ import Icon from '@/components/ui/icon'
 
 const VideoItem = memo(({ video }: { video: VideoData }) => {
   const videoUrl = video.url
+  const t = useTranslations('playground')
 
   const handleDownload = async () => {
     try {
-      toast.loading('Downloading video...')
+      toast.loading(t('videoDownloading'))
       const response = await fetch(videoUrl)
       if (!response.ok) throw new Error('Network response was not ok')
 
@@ -31,10 +33,10 @@ const VideoItem = memo(({ video }: { video: VideoData }) => {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
       toast.dismiss()
-      toast.success('Video downloaded successfully')
+      toast.success(t('videoDownloaded'))
     } catch {
       toast.dismiss()
-      toast.error('Failed to download video')
+      toast.error(t('videoDownloadError'))
     }
   }
 
@@ -54,8 +56,8 @@ const VideoItem = memo(({ video }: { video: VideoData }) => {
         <button
           type="button"
           onClick={handleDownload}
-          className="absolute right-2 top-2 flex items-center justify-center rounded-sm bg-secondary/80 p-1.5 opacity-0 transition-opacity duration-200 hover:bg-secondary group-hover:opacity-100"
-          aria-label="Download GIF"
+          className="absolute right-2 top-2 flex items-center justify-center rounded-sm border border-border bg-popover p-1.5 opacity-0 transition-opacity duration-200 hover:bg-accent group-hover:opacity-100"
+          aria-label={t('downloadVideo')}
         >
           <Icon type="download" size="xs" />
         </button>

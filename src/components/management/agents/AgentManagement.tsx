@@ -1,46 +1,78 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
-import { Plus, Search, Filter, Edit, Trash2, Bot } from 'lucide-react'
+import { useCallback, useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { ChevronRight, Plus, Search, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
+import { Table, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { AgentConfig, AgentFilters } from '@/types/management'
-import { AgentForm } from './AgentForm'
-import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
-import { LoadingSpinner, EmptyState } from '@/components/ui/loading'
+import { CountChips, listCounts, rowLinkClass, ShowingOf, UpdatedAt } from '../common/EntityList'
+import {
+  Chip,
+  EmptyState,
+  FilterEmptyState,
+  ListSkeleton,
+  LoadErrorState
+} from '@/components/ui/loading'
 import { cn } from '@/lib/utils'
+import { StatusBadge } from '@/components/ui/status-badge'
+
+const SEPARATOR = ' · '
+
+// Avatar de 28 px com as iniciais: gradiente da marca; inativo em `secondary`.
+function AgentAvatar({ agent }: { agent: AgentConfig }) {
+  const initials = agent.nome
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => Array.from(word)[0])
+    .join('')
+    .toUpperCase()
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'flex size-7 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-medium',
+        agent.active
+          ? 'bg-gradient-to-br from-primary to-signal text-primary-foreground'
+          : 'bg-secondary text-secondary-foreground'
+      )}
+    >
+      {initials}
+    </span>
+  )
+}
 
 export function AgentManagement() {
   const [agents, setAgents] = useState<AgentConfig[]>([])
+  // Total do filtro no BFF; a página traz no máximo 100 (decisão 0014).
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editingAgent, setEditingAgent] = useState<AgentConfig | null>(null)
-  const [deletingAgent, setDeletingAgent] = useState<AgentConfig | null>(null)
+  // Falha da carga: status HTTP, ou sem status quando não houve resposta.
+  const [loadError, setLoadError] = useState<{ status?: number } | null>(null)
   const [filters, setFilters] = useState<AgentFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
-  const [isMobile, setIsMobile] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const t = useTranslations('agents')
+  const tc = useTranslations('common')
+  const searchRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+  // Só a requisição mais recente escreve no estado: a resposta lenta de uma
+  // busca anterior (ou de uma falha) não sobrescreve a nova.
+  const requestId = useRef(0)
 
-  // Buscar agentes
-  const fetchAgents = async () => {
+  // Buscar agentes; o "Tentar de novo" usa o retorno (deu certo?).
+  const fetchAgents = useCallback(async (): Promise<boolean> => {
+    const id = ++requestId.current
+    const isCurrent = () => id === requestId.current
     try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      
+      const params = new URLSearchParams({ limit: '100' })
+
       if (filters.active !== undefined) {
         params.append('active', filters.active.toString())
       }
@@ -52,168 +84,124 @@ export function AgentManagement() {
       }
 
       const response = await fetch(`/api/agents?${params.toString()}`)
-      const data = await response.json()
+      const data = response.ok ? await response.json() : null
+      if (!isCurrent()) return false
 
-      if (data.success) {
+      if (data?.success) {
         setAgents(data.data.data)
-      } else {
-        toast.error(data.error || 'Erro ao carregar agentes')
+        setTotal(data.data.total)
+        setLoadError(null)
+        return true
       }
+      setLoadError({ status: response.status })
     } catch (error) {
       console.error('Error fetching agents:', error)
-      toast.error('Erro ao carregar agentes')
+      if (isCurrent()) setLoadError({})
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
+    return false
+  }, [filters, searchTerm])
+
+  const clearFilters = () => {
+    setSearchTerm('')
+    setFilters({})
+    searchRef.current?.focus()
   }
 
-  // Deletar agente
-  const handleDeleteAgent = async (agent: AgentConfig) => {
-    try {
-      const response = await fetch(`/api/agents/${agent.id}`, {
-        method: 'DELETE'
-      })
-      
-      const data = await response.json()
-      
-      if (data.success) {
-        toast.success('Agente deletado com sucesso')
-        fetchAgents()
-      } else {
-        toast.error(data.error || 'Erro ao deletar agente')
-      }
-    } catch (error) {
-      console.error('Error deleting agent:', error)
-      toast.error('Erro ao deletar agente')
-    } finally {
-      setDeletingAgent(null)
-    }
-  }
+  const hasContent = !loading && !loadError && agents.length > 0
+  const agentHref = (agent: AgentConfig) => `/agents/${encodeURIComponent(agent.id)}`
+  const modelOf = (agent: AgentConfig) => `${agent.factoryIaModel}/${agent.model}`
+  const head = (
+    <TableRow>
+      <TableHead>{t('columnAgent')}</TableHead>
+      <TableHead>{t('columnModel')}</TableHead>
+      <TableHead className="text-right">{t('columnTools')}</TableHead>
+      <TableHead>{tc('status')}</TableHead>
+      <TableHead>{tc('updated')}</TableHead>
+      <TableHead className="w-9">
+        <span className="sr-only">{tc('open')}</span>
+      </TableHead>
+    </TableRow>
+  )
 
   // Efeitos
   useEffect(() => {
+    setLoading(true)
+    setLoadError(null)
     fetchAgents()
-  }, [filters, searchTerm])
-
-  const handleFormSuccess = () => {
-    setShowForm(false)
-    setEditingAgent(null)
-    fetchAgents()
-  }
-
-  const handleEditAgent = (agent: AgentConfig) => {
-    setEditingAgent(agent)
-    setShowForm(true)
-  }
-
-  if (showForm) {
-    return (
-      <AgentForm
-        agent={editingAgent}
-        onSuccess={handleFormSuccess}
-        onCancel={() => {
-          setShowForm(false)
-          setEditingAgent(null)
-        }}
-      />
-    )
-  }
+  }, [fetchAgents])
 
   return (
-    <div className="management-form">
-      <div className={cn(
-        "mx-auto space-y-6 max-w-7xl",
-        isMobile ? "p-4" : "p-6"
-      )}>
+    <div>
+      <div className="mx-auto max-w-7xl space-y-6 p-4 lg:p-6">
         {/* Header */}
-        <div className={cn(
-          "flex items-center justify-between",
-          isMobile && "flex-col space-y-4 items-start"
-        )}>
-          <div className={isMobile ? "w-full" : ""}>
-            <h1 className={cn(
-              "font-bold",
-              isMobile ? "text-xl" : "text-3xl"
-            )}>
-              Gerenciamento de Agentes
+        <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="w-full lg:w-auto">
+            <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
+              {t('title')}
             </h1>
-            <p className={cn(
-              "text-muted-foreground",
-              isMobile ? "text-sm" : ""
-            )}>
-              Crie e gerencie seus agentes de IA
+            <p className="text-sm text-muted-foreground lg:text-base">
+              {t('subtitle')}
             </p>
+            <CountChips
+              namespace="agents"
+              counts={hasContent ? listCounts(agents, total, filters.active) : undefined}
+            />
           </div>
-          <Button 
-            onClick={() => setShowForm(true)} 
-            className={cn(
-              "gap-2 text-black",
-              isMobile && "w-full"
-            )}
-            size={isMobile ? "sm" : "default"}
-          >
-            <Plus className="w-4 h-4" />
-            Novo Agente
+          <Button asChild className="w-full gap-2 lg:w-auto">
+            <Link href="/agents/new">
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              {t('form.newTitle')}
+            </Link>
           </Button>
         </div>
 
       {/* Filtros e Busca */}
       <Card>
-        <CardHeader className={isMobile ? "p-4 pb-2" : ""}>
-          <div className={cn(
-            "flex items-center justify-between",
-            isMobile && "flex-col items-start space-y-2"
-          )}>
-            <CardTitle className={cn(
-              isMobile ? "text-base" : "text-lg"
-            )}>
-              Filtros
+        <CardHeader className="p-4 pb-2 lg:p-6">
+          <div className="flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <CardTitle>
+              {tc('filters')}
             </CardTitle>
-            {isMobile && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="text-xs"
-              >
-                <Filter className="w-3 h-3 mr-1" />
-                {showFilters ? 'Ocultar' : 'Mostrar'} Filtros
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="text-xs lg:hidden"
+            >
+              <Filter className="w-3 h-3 mr-1" />
+              {showFilters ? t('hideFilters') : t('showFilters')}
+            </Button>
           </div>
         </CardHeader>
         <CardContent className={cn(
-          "space-y-4",
-          isMobile ? "p-4 pt-0" : "",
-          isMobile && !showFilters && "hidden"
+          "space-y-4 p-4 pt-0 lg:block lg:p-6 lg:pt-0",
+          !showFilters && "hidden"
         )}>
-          <div className={cn(
-            "grid gap-4",
-            isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3"
-          )}>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="search" className={isMobile ? "text-sm" : ""}>
-                Buscar
+              <Label htmlFor="search">
+                {tc('search')}
               </Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  ref={searchRef}
                   id="search"
-                  placeholder={isMobile ? "ID, nome..." : "ID, nome ou descrição..."}
+                  placeholder={tc('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={cn(
-                    "pl-10",
-                    isMobile && "text-sm h-9"
-                  )}
+                  className="pl-10"
                 />
               </div>
             </div>
             
             <div className="space-y-2">
-              <Label>Apenas ativos</Label>
+              <Label htmlFor="active-only">{t('activeOnly')}</Label>
               <div className="flex items-center space-x-2">
                 <Switch
+                  id="active-only"
                   checked={filters.active === true}
                   onCheckedChange={(checked) => 
                     setFilters(prev => ({ 
@@ -223,7 +211,7 @@ export function AgentManagement() {
                   }
                 />
                 <span className="text-sm text-muted-foreground">
-                  Mostrar apenas agentes ativos
+                  {t('activeOnlyHint')}
                 </span>
               </div>
             </div>
@@ -233,131 +221,124 @@ export function AgentManagement() {
 
       {/* Lista de Agentes */}
       {loading ? (
-        <LoadingSpinner text="Carregando agentes..." />
-      ) : agents.length === 0 ? (
-        <EmptyState
-          title="Nenhum agente encontrado"
-          description={
-            isMobile 
-              ? "Crie seu primeiro agente" 
-              : "Crie seu primeiro agente para começar a usar o sistema de orquestração de IA"
+        <ListSkeleton label={t('loadingList')} head={head} chipClassName="w-28" />
+      ) : loadError ? (
+        <LoadErrorState
+          title={t('listError')}
+          status={loadError.status}
+          onRetry={fetchAgents}
+        />
+      ) : agents.length === 0 && (searchTerm || filters.active) ? (
+        <FilterEmptyState
+          title={
+            searchTerm
+              ? t.rich('searchEmptyTitle', {
+                  query: searchTerm,
+                  term: (chunks) => <span className="font-mono">{chunks}</span>
+                })
+              : t('activeEmptyTitle')
           }
+          hint={tc('filterEmptyHint')}
           action={
-            <Button 
-              onClick={() => setShowForm(true)} 
-              className="gap-2"
-              size={isMobile ? "sm" : "default"}
-            >
-              <Plus className="w-4 h-4" />
-              Criar primeiro agente
+            <Button variant="outline" onClick={clearFilters}>
+              {tc('clearFilters')}
             </Button>
           }
-          icon={<Bot className="w-full h-full" />}
+        />
+      ) : agents.length === 0 ? (
+        <EmptyState
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
+          actions={
+            <>
+              <Button asChild>
+                <Link href="/agents/new">
+                  <Plus aria-hidden="true" />
+                  {t('createFirst')}
+                </Link>
+              </Button>
+              <Button asChild variant="ghost">
+                <Link href="/">{tc('gettingStarted')}</Link>
+              </Button>
+            </>
+          }
         />
       ) : (
-        <div className={cn(
-          "grid gap-6",
-          isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-        )}>
-          {agents.map((agent) => (
-            <Card key={agent.id} className="relative">
-              <CardHeader className={isMobile ? "p-4" : ""}>
-                <div className={cn(
-                  "flex justify-between",
-                  isMobile ? "flex-col space-y-3" : "items-start"
-                )}>
-                  <div className="space-y-2 flex-1 min-w-0">
-                    <CardTitle className={cn(
-                      isMobile ? "text-base" : "text-lg"
-                    )}>
+        <div className="space-y-2">
+          <div className="hidden md:block">
+            <Table>
+              <thead>{head}</thead>
+              <tbody>
+                {agents.map((agent) => (
+                  <TableRow key={agent.id} className="group relative hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <AgentAvatar agent={agent} />
+                        <div className="flex min-w-0 flex-col">
+                          <Link href={agentHref(agent)} className={rowLinkClass}>
+                            {agent.nome}
+                          </Link>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {agent.id}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Chip>{modelOf(agent)}</Chip>
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {agent.tools_ids.length}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge active={agent.active}>
+                        {agent.active ? t('active') : t('inactive')}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      <UpdatedAt value={agent.updated_at} />
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight
+                        aria-hidden="true"
+                        className="ml-auto size-4 text-muted-foreground group-hover:text-primary"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+          <ul className="divide-y divide-border rounded-lg border border-border bg-card md:hidden">
+            {agents.map((agent) => (
+              <li
+                key={agent.id}
+                className="group relative flex h-16 items-center gap-3 px-3 hover:bg-muted/50"
+              >
+                <AgentAvatar agent={agent} />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Link href={agentHref(agent)} className={cn(rowLinkClass, 'truncate')}>
                       {agent.nome}
-                    </CardTitle>
-                    <div className={cn(
-                      "flex gap-2",
-                      isMobile && "flex-wrap"
-                    )}>
-                      <span className={cn(
-                        "px-2 py-1 rounded-full font-medium",
-                        isMobile ? "text-xs" : "text-xs",
-                        agent.active 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                      )}>
-                        {agent.active ? 'Ativo' : 'Inativo'}
-                      </span>
-                      <span className={cn(
-                        "px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full font-medium",
-                        isMobile ? "text-xs" : "text-xs"
-                      )}>
-                        {isMobile ? agent.factoryIaModel.substring(0, 8) + '...' : agent.factoryIaModel}
-                      </span>
-                    </div>
+                    </Link>
+                    <StatusBadge active={agent.active}>
+                      {agent.active ? t('active') : t('inactive')}
+                    </StatusBadge>
                   </div>
-                  <div className={cn(
-                    "flex gap-1",
-                    isMobile ? "w-full justify-end" : "flex-shrink-0"
-                  )}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditAgent(agent)}
-                      className={isMobile ? "flex-1" : ""}
-                    >
-                      <Edit className="w-4 h-4" />
-                      {isMobile && <span className="ml-1 text-xs">Editar</span>}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeletingAgent(agent)}
-                      className={isMobile ? "flex-1" : ""}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      {isMobile && <span className="ml-1 text-xs">Excluir</span>}
-                    </Button>
-                  </div>
+                  <span className="truncate font-mono text-xs text-muted-foreground">
+                    {agent.id + SEPARATOR + modelOf(agent)}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent className={isMobile ? "p-4 pt-0" : ""}>
-                <CardDescription className={cn(
-                  "mb-4",
-                  isMobile ? "text-xs" : ""
-                )}>
-                  {agent.descricao || 'Sem descrição'}
-                </CardDescription>
-                <div className={cn(
-                  "space-y-2",
-                  isMobile ? "text-xs" : "text-sm"
-                )}>
-                  <div className={isMobile ? "truncate" : ""}>
-                    <span className="font-medium">ID:</span> {agent.id}
-                  </div>
-                  <div>
-                    <span className="font-medium">Modelo:</span> {agent.model}
-                  </div>
-                  <div>
-                    <span className="font-medium">Tools:</span> {agent.tools_ids.length}
-                  </div>
-                  {agent.rag_config?.active && (
-                    <div>
-                      <span className="font-medium">RAG:</span> Ativo
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-muted-foreground group-hover:text-primary"
+                />
+              </li>
+            ))}
+          </ul>
+          <ShowingOf shown={agents.length} total={total} />
         </div>
       )}
-
-      {/* Dialog de confirmação de exclusão */}
-      <DeleteConfirmDialog
-        open={!!deletingAgent}
-        onOpenChange={() => setDeletingAgent(null)}
-        title="Deletar Agente"
-        description={`Tem certeza que deseja deletar o agente "${deletingAgent?.nome}"? Esta ação não pode ser desfeita.`}
-        onConfirm={() => deletingAgent && handleDeleteAgent(deletingAgent)}
-      />
       </div>
     </div>
   )

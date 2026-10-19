@@ -2,7 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { toolsCollection } from '@/lib/mongodb'
 import { Tool } from '@/types/management'
 
+import { parseJsonBody } from '../../parseJsonBody'
+import { toolBodySchema } from '../schema'
+
 type RouteParams = { params: Promise<{ id: string }> }
+
+// `route` de documento legado pode não ser URL http(s) absoluta (ex.:
+// `/v1/x`, `localhost:8080/x`, que o URL lê com protocolo `localhost:`): vira só endpoint.
+function splitRoute(route: string) {
+  const asEndpoint = { base_url: '', endpoint: route }
+  try {
+    const url = new URL(route)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return asEndpoint
+    return { base_url: url.origin, endpoint: url.pathname + url.search }
+  } catch {
+    return asEndpoint
+  }
+}
 
 // GET - Buscar tool por ID
 export async function GET(
@@ -37,9 +53,8 @@ export async function GET(
       
       // Manter http_config para compatibilidade reversa
       http_config: tool.http_config || {
-        base_url: tool.route ? new URL(tool.route).origin : '',
+        ...(tool.route ? splitRoute(tool.route) : { base_url: '', endpoint: '' }),
         method: tool.http_method || 'GET',
-        endpoint: tool.route ? new URL(tool.route).pathname + new URL(tool.route).search : '',
         headers: tool.headers || {},
         parameters: tool.parameters || []
       }
@@ -68,7 +83,9 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, toolBodySchema)
+    if (!parsed.success) return parsed.response
+    const body = parsed.data
 
     // Verificar se a tool existe
     const existingTool = await toolsCollection.findOne({ id })

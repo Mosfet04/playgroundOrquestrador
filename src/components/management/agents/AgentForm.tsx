@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,11 +14,12 @@ import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AgentConfig, CreateAgentForm, Tool } from '@/types/management'
+import { DeleteEntityButton } from '../common/DeleteEntityButton'
+import { useRequestError } from '../common/useRequestError'
 
 interface AgentFormProps {
   agent?: AgentConfig | null
   onSuccess: () => void
-  onCancel: () => void
 }
 
 const modelProviders = [
@@ -35,10 +38,13 @@ const ragProviders = [
   { value: 'azure', label: 'Azure OpenAI' }
 ]
 
-export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
+export function AgentForm({ agent, onSuccess }: AgentFormProps) {
   const [loading, setLoading] = useState(false)
   const [availableTools, setAvailableTools] = useState<Tool[]>([])
   const [selectedToolIds, setSelectedToolIds] = useState<string[]>([])
+  const t = useTranslations('agents')
+  const tc = useTranslations('common')
+  const requestError = useRequestError()
 
   const isEditing = !!agent
 
@@ -68,15 +74,19 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
   const ragActive = watch('rag_active')
   const factoryIaModel = watch('factoryIaModel')
 
-  // Buscar tools disponíveis
+  // Buscar todas as tools disponíveis (a API é paginada)
   useEffect(() => {
     const fetchTools = async () => {
       try {
-        const response = await fetch('/api/tools')
-        const data = await response.json()
-        if (data.success) {
-          setAvailableTools(data.data.data)
+        const tools: Tool[] = []
+        for (let page = 1, totalPages = 1; page <= totalPages; page++) {
+          const response = await fetch(`/api/tools?limit=100&page=${page}`)
+          const data = await response.json()
+          if (!data.success) return
+          tools.push(...data.data.data)
+          totalPages = data.data.totalPages
         }
+        setAvailableTools(tools)
       } catch (error) {
         console.error('Error fetching tools:', error)
       }
@@ -101,7 +111,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         tools_ids: selectedToolIds
       }
 
-      const url = isEditing ? `/api/agents/${agent.id}` : '/api/agents'
+      const url = isEditing ? `/api/agents/${encodeURIComponent(agent.id)}` : '/api/agents'
       const method = isEditing ? 'PUT' : 'POST'
 
       const response = await fetch(url, {
@@ -112,40 +122,45 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         body: JSON.stringify(payload)
       })
 
-      const result = await response.json()
+      const result = response.ok ? await response.json() : null
 
-      if (result.success) {
-        toast.success(result.message || 'Agente salvo com sucesso')
+      if (result?.success) {
+        toast.success(t('saved'))
         onSuccess()
       } else {
-        toast.error(result.error || 'Erro ao salvar agente')
+        toast.error(
+          requestError(response.status, {
+            failed: t('saveError'),
+            conflict: t('conflict'),
+            notFound: t('notFound')
+          })
+        )
       }
     } catch (error) {
       console.error('Error saving agent:', error)
-      toast.error('Erro interno do servidor')
+      toast.error(requestError(undefined, { failed: t('saveError') }))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="management-form">
+    <div>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onCancel} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Voltar
+          <Button variant="ghost" asChild className="gap-2">
+            <Link href="/agents">
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              {tc('back')}
+            </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">
-              {isEditing ? 'Editar Agente' : 'Novo Agente'}
+            <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
+              {isEditing ? t('form.editTitle') : t('form.newTitle')}
             </h1>
             <p className="text-muted-foreground">
-              {isEditing 
-                ? 'Edite as configurações do agente' 
-                : 'Configure um novo agente de IA'
-              }
+              {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
         </div>
@@ -154,20 +169,20 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         {/* Informações Básicas */}
         <Card>
           <CardHeader>
-            <CardTitle>Informações Básicas</CardTitle>
+            <CardTitle>{t('form.basicInfo')}</CardTitle>
             <CardDescription>
-              Configure as informações principais do agente
+              {t('form.basicInfoDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="id">ID do Agente *</Label>
+                <Label htmlFor="id">{t('form.id')}</Label>
                 <Input
                   id="id"
-                  {...register('id', { required: 'ID é obrigatório' })}
+                  {...register('id', { required: tc('idRequired') })}
                   disabled={isEditing}
-                  placeholder="ex: agent-1"
+                  placeholder={tc('example', { value: 'agent-1' })}
                 />
                 {errors.id && (
                   <p className="text-sm text-destructive">{errors.id.message}</p>
@@ -175,11 +190,11 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome *</Label>
+                <Label htmlFor="nome">{t('form.name')}</Label>
                 <Input
                   id="nome"
-                  {...register('nome', { required: 'Nome é obrigatório' })}
-                  placeholder="ex: Assistente Geral"
+                  {...register('nome', { required: tc('nameRequired') })}
+                  placeholder={t('form.namePlaceholder')}
                 />
                 {errors.nome && (
                   <p className="text-sm text-destructive">{errors.nome.message}</p>
@@ -188,21 +203,22 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição</Label>
+              <Label htmlFor="descricao">{t('form.description')}</Label>
               <TextArea
                 id="descricao"
                 {...register('descricao')}
-                placeholder="Breve descrição do agente..."
+                placeholder={t('form.descriptionPlaceholder')}
                 rows={3}
               />
             </div>
 
             <div className="flex items-center space-x-2">
               <Switch
+                id="active"
                 checked={watch('active')}
                 onCheckedChange={(checked) => setValue('active', checked)}
               />
-              <Label>Agente ativo</Label>
+              <Label htmlFor="active">{t('form.active')}</Label>
             </div>
           </CardContent>
         </Card>
@@ -210,30 +226,26 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         {/* Configuração do Modelo */}
         <Card>
           <CardHeader>
-            <CardTitle>Configuração do Modelo</CardTitle>
+            <CardTitle>{t('form.modelSettings')}</CardTitle>
             <CardDescription>
-              Configure o modelo de IA que será utilizado
+              {t('form.modelSettingsDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Provider *</Label>
+                <Label htmlFor="factoryIaModel">{t('form.provider')}</Label>
                 <Select
                 value={factoryIaModel}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onValueChange={(value) => setValue('factoryIaModel', value as any)}
                 >
-                <SelectTrigger className="bg-black border border-white text-white">
-                    <SelectValue placeholder="Selecione o provider" />
+                <SelectTrigger id="factoryIaModel">
+                    <SelectValue placeholder={t('form.providerPlaceholder')} />
                 </SelectTrigger>
-                <SelectContent className="bg-black border border-white text-white">
+                <SelectContent>
                     {modelProviders.map((provider) => (
-                    <SelectItem
-                        key={provider.value}
-                        value={provider.value}
-                        className="text-white hover:bg-white hover:text-black"
-                    >
+                    <SelectItem key={provider.value} value={provider.value}>
                         {provider.label}
                     </SelectItem>
                     ))}
@@ -242,15 +254,16 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="model">Modelo *</Label>
+                <Label htmlFor="model">{t('form.model')}</Label>
                 <Input
                   id="model"
-                  {...register('model', { required: 'Modelo é obrigatório' })}
-                  placeholder={
-                    factoryIaModel === 'ollama' ? 'ex: llama3.2:latest' :
-                    factoryIaModel === 'openai' ? 'ex: gpt-4' :
-                    'ex: claude-3-sonnet'
-                  }
+                  {...register('model', { required: t('form.modelRequired') })}
+                  placeholder={tc('example', {
+                    value:
+                      factoryIaModel === 'ollama' ? 'llama3.2:latest' :
+                      factoryIaModel === 'openai' ? 'gpt-4' :
+                      'claude-3-sonnet'
+                  })}
                 />
                 {errors.model && (
                   <p className="text-sm text-destructive">{errors.model.message}</p>
@@ -259,11 +272,11 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="prompt">Prompt do Sistema</Label>
+              <Label htmlFor="prompt">{t('form.systemPrompt')}</Label>
               <TextArea
                 id="prompt"
                 {...register('prompt')}
-                placeholder="Você é um assistente útil que..."
+                placeholder={t('form.systemPromptPlaceholder')}
                 rows={5}
               />
             </div>
@@ -273,42 +286,43 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         {/* Configuração RAG */}
         <Card>
           <CardHeader>
-            <CardTitle>Configuração RAG</CardTitle>
+            <CardTitle>{t('form.rag')}</CardTitle>
             <CardDescription>
-              Configure o sistema de Retrieval-Augmented Generation
+              {t('form.ragDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-2">
               <Switch
+                id="rag_active"
                 checked={ragActive}
                 onCheckedChange={(checked) => setValue('rag_active', checked)}
               />
-              <Label>Habilitar RAG</Label>
+              <Label htmlFor="rag_active">{t('form.ragEnable')}</Label>
             </div>
 
             {ragActive && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rag_doc_name">Nome do Documento</Label>
+                  <Label htmlFor="rag_doc_name">{t('form.ragDocName')}</Label>
                   <Input
                     id="rag_doc_name"
                     {...register('rag_doc_name')}
-                    placeholder="ex: knowledge_base"
+                    placeholder={tc('example', { value: 'knowledge_base' })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Provider de Embedding</Label>
+                  <Label htmlFor="rag_factoryIaModel">{t('form.ragProvider')}</Label>
                   <Select
                     value={watch('rag_factoryIaModel')}
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onValueChange={(value) => setValue('rag_factoryIaModel', value as any)}
                   >
-                    <SelectTrigger className="bg-black border border-white text-white">
-                      <SelectValue placeholder="Selecione o provider" />
+                    <SelectTrigger id="rag_factoryIaModel">
+                      <SelectValue placeholder={t('form.providerPlaceholder')} />
                     </SelectTrigger>
-                    <SelectContent className="bg-black border border-white text-white">
+                    <SelectContent>
                       {ragProviders.map((provider) => (
                         <SelectItem key={provider.value} value={provider.value}>
                           {provider.label}
@@ -319,11 +333,11 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="rag_model">Modelo de Embedding</Label>
+                  <Label htmlFor="rag_model">{t('form.ragModel')}</Label>
                   <Input
                     id="rag_model"
                     {...register('rag_model')}
-                    placeholder="ex: text-embedding-3-small"
+                    placeholder={tc('example', { value: 'text-embedding-3-small' })}
                   />
                 </div>
               </div>
@@ -334,15 +348,15 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         {/* Tools */}
         <Card>
           <CardHeader>
-            <CardTitle>Tools Disponíveis</CardTitle>
+            <CardTitle>{t('form.tools')}</CardTitle>
             <CardDescription>
-              Selecione as ferramentas que o agente pode utilizar
+              {t('form.toolsDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {availableTools.length === 0 ? (
               <p className="text-muted-foreground">
-                Nenhuma tool disponível. Crie tools primeiro.
+                {t('form.noTools')}
               </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -362,7 +376,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
                           setSelectedToolIds(selectedToolIds.filter(id => id !== tool.id))
                         }
                       }}
-                      className="w-4 h-4"
+                      className="w-4 h-4 accent-primary"
                     />
                     <Label htmlFor={`tool-${tool.id}`} className="flex-1">
                       <div className="font-medium">{tool.name}</div>
@@ -378,14 +392,34 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         </Card>
 
         {/* Botões de ação */}
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={loading} className="gap-2 text-black">
-            <Save className="w-4 h-4" />
-            {loading ? 'Salvando...' : 'Salvar Agente'}
-          </Button>
+        {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+        <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {agent && (
+            <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+              <DeleteEntityButton
+                url={`/api/agents/${encodeURIComponent(agent.id)}`}
+                texts={{
+                  label: t('deleteLabel'),
+                  title: t('deleteTitle'),
+                  description: t('deleteDescription', { name: agent.nome }),
+                  deleted: t('deleted'),
+                  failed: t('deleteError'),
+                  notFound: t('notFound')
+                }}
+                disabled={loading}
+                onDeleted={onSuccess}
+              />
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+            <Button variant="outline" asChild className="h-10 sm:h-9">
+              <Link href="/agents">{tc('cancel')}</Link>
+            </Button>
+            <Button type="submit" disabled={loading} className="h-10 gap-2 sm:h-9">
+              <Save className="w-4 h-4" />
+              {loading ? tc('saving') : tc('save')}
+            </Button>
+          </div>
         </div>
       </form>
       </div>

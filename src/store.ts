@@ -11,6 +11,7 @@ interface Agent {
   label: string
   model: {
     provider: string
+    model?: string
   }
   storage?: boolean
 }
@@ -20,15 +21,27 @@ export interface Team {
   label: string
   model: {
     provider: string
+    model?: string
   }
   storage?: boolean
+}
+
+// Endpoint inicial; o Sidebar o mostra antes da montagem (é dado, não texto).
+export const DEFAULT_ENDPOINT = 'http://localhost:7777'
+
+// Erro do stream (P1-04b): o tipo, traduzido pela bolha ao renderizar, e o
+// texto do orquestrador (content do RunError, detail da resposta HTTP), que é
+// dado e não se traduz. Nulo: erro sem tipo conhecido.
+export interface StreamingError {
+  kind: 'noEntity' | 'cancelled' | 'runError' | 'network'
+  detail?: string
 }
 
 interface PlaygroundStore {
   hydrated: boolean
   setHydrated: () => void
-  streamingErrorMessage: string
-  setStreamingErrorMessage: (streamingErrorMessage: string) => void
+  streamingErrorMessage: StreamingError | null
+  setStreamingErrorMessage: (streamingErrorMessage: StreamingError | null) => void
   endpoints: {
     endpoint: string
     id_playground_endpoint: string
@@ -60,8 +73,6 @@ interface PlaygroundStore {
   setAgents: (agents: Agent[]) => void
   teams: Team[]
   setTeams: (teams: Team[]) => void
-  selectedModel: string
-  setSelectedModel: (model: string) => void
   selectedTeamId: string | null
   setSelectedTeamId: (teamId: string | null) => void
   mode: 'agent' | 'team'
@@ -74,6 +85,9 @@ interface PlaygroundStore {
   ) => void
   isSessionsLoading: boolean
   setIsSessionsLoading: (isSessionsLoading: boolean) => void
+  /** Falha ao carregar a lista de sessões (caixa de sessões, P1-05). */
+  sessionsError: boolean
+  setSessionsError: (sessionsError: boolean) => void
 }
 
 export const usePlaygroundStore = create<PlaygroundStore>()(
@@ -81,7 +95,7 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
     (set) => ({
       hydrated: false,
       setHydrated: () => set({ hydrated: true }),
-      streamingErrorMessage: '',
+      streamingErrorMessage: null,
       setStreamingErrorMessage: (streamingErrorMessage) =>
         set(() => ({ streamingErrorMessage })),
       endpoints: [],
@@ -103,15 +117,13 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
       hasStorage: false,
       setHasStorage: (hasStorage) => set(() => ({ hasStorage })),
       chatInputRef: { current: null },
-      selectedEndpoint: 'http://localhost:7777',
+      selectedEndpoint: DEFAULT_ENDPOINT,
       setSelectedEndpoint: (selectedEndpoint) =>
         set(() => ({ selectedEndpoint })),
       agents: [],
       setAgents: (agents) => set({ agents }),
       teams: [],
       setTeams: (teams) => set({ teams }),
-      selectedModel: '',
-      setSelectedModel: (selectedModel) => set(() => ({ selectedModel })),
       selectedTeamId: null,
       setSelectedTeamId: (teamId) => set(() => ({ selectedTeamId: teamId })),
       mode: 'agent',
@@ -126,7 +138,9 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
         })),
       isSessionsLoading: false,
       setIsSessionsLoading: (isSessionsLoading) =>
-        set(() => ({ isSessionsLoading }))
+        set(() => ({ isSessionsLoading })),
+      sessionsError: false,
+      setSessionsError: (sessionsError) => set(() => ({ sessionsError }))
     }),
     {
       name: 'endpoint-storage',

@@ -1,0 +1,25 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-18T12:00:00Z"},
+  "title": "P1-06 Chat do playground",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "Desktop · claro · Playground em conversa", "expand": "fill"},
+    "Estados-claro.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 1300, "title": "Desktop · claro · Estados do chat", "expand": "fill"},
+    "Estados-escuro.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 1300, "title": "Desktop · escuro · Estados do chat", "expand": "fill"},
+    "Celular-claro.dc.html": {"x": 0, "y": 1420, "w": 390, "h": 844, "title": "Celular · claro · Conversa e stream"},
+    "Celular-sheet-claro.dc.html": {"x": 470, "y": 1420, "w": 390, "h": 844, "title": "Celular · claro · Painel no Sheet"}
+  },
+  "order": [
+    "Main.dc.html",
+    "Estados-claro.dc.html",
+    "Estados-escuro.dc.html",
+    "Celular-claro.dc.html",
+    "Celular-sheet-claro.dc.html"
+  ],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "P1-06 · Chat no visual do Design System (delta do P1-01)", "kind": "title1", "maxW": 4480}
+  },
+  "designSystems": []
+}

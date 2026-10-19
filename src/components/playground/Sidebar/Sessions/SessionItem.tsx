@@ -1,4 +1,5 @@
 import { useQueryState } from 'nuqs'
+import { useFormatter, useTranslations } from 'next-intl'
 import { SessionEntry } from '@/types/playground'
 import { Button } from '../../../ui/button'
 import useSessionLoader from '@/hooks/useSessionLoader'
@@ -12,7 +13,25 @@ import Icon from '@/components/ui/icon'
 import { useState } from 'react'
 import DeleteSessionModal from './DeleteSessionModal'
 import useChatActions from '@/hooks/useChatActions'
-import { truncateText, cn } from '@/lib/utils'
+import { cn, focusRing } from '@/lib/utils'
+
+// Horário da sessão: hoje HH:mm, ontem "ontem", antes dd/MM no idioma. No fuso
+// do navegador: a lista só renderiza no cliente (sem risco de hidratação).
+// Data inválida (created_at ausente ou fora de faixa): sem horário.
+function useSessionTime(createdAt: number) {
+  const format = useFormatter()
+  const t = useTranslations('playground')
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const date = new Date(createdAt * 1000)
+  if (Number.isNaN(date.getTime())) return ''
+  const day = (value: Date) =>
+    format.dateTime(value, { year: 'numeric', month: '2-digit', day: '2-digit', timeZone })
+  const now = Date.now()
+  if (day(date) === day(new Date(now)))
+    return format.dateTime(date, { hour: '2-digit', minute: '2-digit', timeZone })
+  if (day(date) === day(new Date(now - 86_400_000))) return t('yesterday')
+  return format.dateTime(date, { day: '2-digit', month: '2-digit', timeZone })
+}
 
 type SessionItemProps = SessionEntry & {
   isSelected: boolean
@@ -22,6 +41,7 @@ type SessionItemProps = SessionEntry & {
 const SessionItem = ({
   title,
   session_id,
+  created_at,
   isSelected,
   currentSessionId,
   onSessionClick
@@ -35,6 +55,9 @@ const SessionItem = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const { clearChat } = useChatActions()
+  const t = useTranslations('playground')
+  const tc = useTranslations('common')
+  const time = useSessionTime(created_at)
 
   const handleGetSession = async () => {
     if (!(agentId || teamId)) return
@@ -79,48 +102,49 @@ const SessionItem = ({
           setSessionId(null)
           clearChat()
         }
-        toast.success('Session deleted')
+        toast.success(t('sessionDeleted'))
       } else {
-        const errorMsg = await response?.text()
+        // O corpo da resposta não vai à UI: só a frase e o código (P1-04b).
         toast.error(
-          `Failed to delete session: ${response?.statusText || 'Unknown error'} ${errorMsg || ''}`
+          tc('withCode', {
+            message: t('deleteSessionError'),
+            status: response.status
+          })
         )
       }
     } catch (error) {
-      toast.error(
-        `Failed to delete session: ${error instanceof Error ? error.message : String(error)}`
-      )
+      console.error('Error deleting session:', error)
+      toast.error(t('deleteSessionError'))
     } finally {
       setIsDeleteModalOpen(false)
       setIsDeleting(false)
     }
   }
+  // Linha = botão; a lixeira toma o lugar do horário no hover e no foco.
   return (
     <>
-      <div
-        className={cn(
-          'group flex h-11 w-full items-center justify-between rounded-lg px-3 py-2 transition-colors duration-200',
-          isSelected
-            ? 'cursor-default bg-primary/10'
-            : 'cursor-pointer bg-background-secondary hover:bg-background-secondary/80'
-        )}
-        onClick={handleGetSession}
-      >
-        <div className="flex flex-col gap-1">
-          <h4
-            className={cn('text-sm font-medium', isSelected && 'text-primary')}
-          >
-            {truncateText(title, 20)}
-          </h4>
-        </div>
+      <div className="group relative">
+        <button
+          type="button"
+          aria-current={isSelected ? 'true' : undefined}
+          onClick={handleGetSession}
+          className={cn(
+            'flex min-h-11 w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground lg:min-h-9',
+            focusRing,
+            isSelected ? 'bg-primary-soft font-medium' : 'group-hover:bg-accent'
+          )}
+        >
+          <span className="truncate">{title}</span>
+          <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground group-focus-within:invisible group-hover:invisible">
+            {time}
+          </span>
+        </button>
         <Button
           variant="ghost"
           size="icon"
-          className="transform opacity-0 transition-all duration-200 ease-in-out group-hover:opacity-100"
-          onClick={(e) => {
-            e.stopPropagation()
-            setIsDeleteModalOpen(true)
-          }}
+          className="absolute right-1 top-1/2 size-7 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+          onClick={() => setIsDeleteModalOpen(true)}
+          aria-label={t('deleteSession', { title })}
         >
           <Icon type="trash" size="xs" />
         </Button>

@@ -1,33 +1,65 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
-import { Plus, Search, Edit, Trash2, Wrench } from 'lucide-react'
+import { useCallback, useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { ChevronRight, Plus, Search, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { Tool, ToolFilters } from '@/types/management'
-import { ToolForm } from './ToolForm'
-import { DeleteConfirmDialog } from '../common/DeleteConfirmDialog'
-import { LoadingSpinner, EmptyState } from '@/components/ui/loading'
+import { CountChips, listCounts, rowLinkClass, ShowingOf, UpdatedAt } from '../common/EntityList'
+import {
+  Chip,
+  EmptyState,
+  FilterEmptyState,
+  ListSkeleton,
+  LoadErrorState
+} from '@/components/ui/loading'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { cn } from '@/lib/utils'
+
+const SEPARATOR = ' · '
+
+// Ícone de chave em quadrado de 28 px `muted` com borda.
+function ToolIcon() {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex size-7 shrink-0 items-center justify-center rounded-sm border border-border bg-muted text-muted-foreground"
+    >
+      <Wrench className="size-4" />
+    </span>
+  )
+}
 
 export function ToolManagement() {
   const [tools, setTools] = useState<Tool[]>([])
+  // Total do filtro no BFF; a página traz no máximo 100 (decisão 0014).
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editingTool, setEditingTool] = useState<Tool | null>(null)
-  const [deletingTool, setDeletingTool] = useState<Tool | null>(null)
+  // Falha da carga: status HTTP, ou sem status quando não houve resposta.
+  const [loadError, setLoadError] = useState<{ status?: number } | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [filters, _setFilters] = useState<ToolFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
+  const t = useTranslations('tools')
+  const tc = useTranslations('common')
+  const searchRef = useRef<HTMLInputElement>(null)
 
-  // Buscar tools
-  const fetchTools = async () => {
+  // Só a requisição mais recente escreve no estado: a resposta lenta de uma
+  // busca anterior (ou de uma falha) não sobrescreve a nova.
+  const requestId = useRef(0)
+
+  // Buscar tools; o "Tentar de novo" usa o retorno (deu certo?).
+  const fetchTools = useCallback(async (): Promise<boolean> => {
+    const id = ++requestId.current
+    const isCurrent = () => id === requestId.current
     try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      
+      const params = new URLSearchParams({ limit: '100' })
+
       if (filters.method) {
         params.append('method', filters.method)
       }
@@ -36,104 +68,92 @@ export function ToolManagement() {
       }
 
       const response = await fetch(`/api/tools?${params.toString()}`)
-      const data = await response.json()
+      const data = response.ok ? await response.json() : null
+      if (!isCurrent()) return false
 
-      if (data.success) {
+      if (data?.success) {
         setTools(data.data.data)
-      } else {
-        toast.error(data.error || 'Erro ao carregar tools')
+        setTotal(data.data.total)
+        setLoadError(null)
+        return true
       }
+      setLoadError({ status: response.status })
     } catch (error) {
       console.error('Error fetching tools:', error)
-      toast.error('Erro ao carregar tools')
+      if (isCurrent()) setLoadError({})
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
+    return false
+  }, [filters, searchTerm])
+
+  const clearFilters = () => {
+    setSearchTerm('')
+    searchRef.current?.focus()
   }
 
-  // Deletar tool
-  const handleDeleteTool = async (tool: Tool) => {
-    try {
-      const response = await fetch(`/api/tools/${tool.id}`, {
-        method: 'DELETE'
-      })
-      
-      const data = await response.json()
-      
-      if (data.success) {
-        toast.success('Tool deletada com sucesso')
-        fetchTools()
-      } else {
-        toast.error(data.error || 'Erro ao deletar tool')
-      }
-    } catch (error) {
-      console.error('Error deleting tool:', error)
-      toast.error('Erro ao deletar tool')
-    } finally {
-      setDeletingTool(null)
-    }
-  }
+  const hasContent = !loading && !loadError && tools.length > 0
+  const toolHref = (tool: Tool) => `/tools/${encodeURIComponent(tool.id)}`
+  const head = (
+    <TableRow>
+      <TableHead>{t('columnTool')}</TableHead>
+      <TableHead>{t('columnRequest')}</TableHead>
+      <TableHead className="text-right">{t('columnParameters')}</TableHead>
+      <TableHead>{tc('status')}</TableHead>
+      <TableHead>{tc('updated')}</TableHead>
+      <TableHead className="w-9">
+        <span className="sr-only">{tc('open')}</span>
+      </TableHead>
+    </TableRow>
+  )
 
   // Efeitos
   useEffect(() => {
+    setLoading(true)
+    setLoadError(null)
     fetchTools()
-  }, [filters, searchTerm])
-
-  const handleFormSuccess = () => {
-    setShowForm(false)
-    setEditingTool(null)
-    fetchTools()
-  }
-
-  const handleEditTool = (tool: Tool) => {
-    setEditingTool(tool)
-    setShowForm(true)
-  }
-
-  if (showForm) {
-    return (
-      <ToolForm
-        tool={editingTool}
-        onSuccess={handleFormSuccess}
-        onCancel={() => {
-          setShowForm(false)
-          setEditingTool(null)
-        }}
-      />
-    )
-  }
+  }, [fetchTools])
 
   return (
-    <div className="management-form">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div>
+      <div className="mx-auto max-w-7xl space-y-6 p-4 lg:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Gerenciamento de Tools</h1>
-            <p className="text-muted-foreground">
-              Crie e gerencie ferramentas HTTP para seus agentes
+        <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="w-full lg:w-auto">
+            <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
+              {t('title')}
+            </h1>
+            <p className="text-sm text-muted-foreground lg:text-base">
+              {t('subtitle')}
             </p>
+            <CountChips
+              namespace="tools"
+              counts={hasContent ? listCounts(tools, total) : undefined}
+            />
           </div>
-          <Button onClick={() => setShowForm(true)} className="gap-2 text-black">
-            <Plus className="w-4 h-4" />
-            Nova Tool
+          <Button asChild className="w-full gap-2 lg:w-auto">
+            <Link href="/tools/new">
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              {t('form.newTitle')}
+            </Link>
           </Button>
         </div>
 
       {/* Filtros e Busca */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
+          <CardTitle>{tc('filters')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="search">Buscar</Label>
+              <Label htmlFor="search">{tc('search')}</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  ref={searchRef}
                   id="search"
-                  placeholder="ID, nome ou descrição..."
+                  placeholder={tc('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -146,101 +166,125 @@ export function ToolManagement() {
 
       {/* Lista de Tools */}
       {loading ? (
-        <LoadingSpinner text="Carregando tools..." />
-      ) : tools.length === 0 ? (
-        <EmptyState
-          title="Nenhuma tool encontrada"
-          description="Crie sua primeira ferramenta HTTP para expandir as capacidades dos seus agentes"
+        <ListSkeleton label={t('loadingList')} head={head} chipClassName="w-40" />
+      ) : loadError ? (
+        <LoadErrorState
+          title={t('listError')}
+          status={loadError.status}
+          onRetry={fetchTools}
+        />
+      ) : tools.length === 0 && searchTerm ? (
+        <FilterEmptyState
+          title={t.rich('searchEmptyTitle', {
+            query: searchTerm,
+            term: (chunks) => <span className="font-mono">{chunks}</span>
+          })}
+          hint={tc('filterEmptyHint')}
           action={
-            <Button onClick={() => setShowForm(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Criar primeira tool
+            <Button variant="outline" onClick={clearFilters}>
+              {tc('clearFilters')}
             </Button>
           }
-          icon={<Wrench className="w-full h-full" />}
+        />
+      ) : tools.length === 0 ? (
+        <EmptyState
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
+          actions={
+            <>
+              <Button asChild>
+                <Link href="/tools/new">
+                  <Plus aria-hidden="true" />
+                  {t('createFirst')}
+                </Link>
+              </Button>
+              <Button asChild variant="ghost">
+                <Link href="/">{tc('gettingStarted')}</Link>
+              </Button>
+            </>
+          }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool) => (
-            <Card key={tool.id} className="relative">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
-                    <CardTitle className="text-lg">{tool.name}</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs font-medium">
-                        {tool.http_method || tool.http_config?.method || 'N/A'}
-                      </span>
-                      {tool.active !== undefined && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          tool.active 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' 
-                            : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
-                        }`}>
-                          {tool.active ? 'Ativa' : 'Inativa'}
+        <div className="space-y-2">
+          <div className="hidden md:block">
+            <Table>
+              <thead>{head}</thead>
+              <tbody>
+                {tools.map((tool) => (
+                  <TableRow key={tool.id} className="group relative hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <ToolIcon />
+                        <div className="flex min-w-0 flex-col">
+                          <Link href={toolHref(tool)} className={rowLinkClass}>
+                            {tool.name}
+                          </Link>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {tool.id}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Chip className="max-w-xs">
+                        <span className="font-semibold">{tool.http_method}</span>{' '}
+                        <span title={tool.route} className="relative truncate text-muted-foreground">
+                          {tool.route}
                         </span>
-                      )}
-                    </div>
+                      </Chip>
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {tool.parameters?.length || tool.http_config?.parameters?.length || 0}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge active={tool.active}>
+                        {tool.active ? t('active') : t('inactive')}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      <UpdatedAt value={tool.updated_at} />
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight
+                        aria-hidden="true"
+                        className="ml-auto size-4 text-muted-foreground group-hover:text-primary"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+          <ul className="divide-y divide-border rounded-lg border border-border bg-card md:hidden">
+            {tools.map((tool) => (
+              <li
+                key={tool.id}
+                className="group relative flex h-16 items-center gap-3 px-3 hover:bg-muted/50"
+              >
+                <ToolIcon />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Link href={toolHref(tool)} className={cn(rowLinkClass, 'truncate')}>
+                      {tool.name}
+                    </Link>
+                    <StatusBadge active={tool.active}>
+                      {tool.active ? t('active') : t('inactive')}
+                    </StatusBadge>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditTool(tool)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeletingTool(tool)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <span className="truncate font-mono text-xs text-muted-foreground">
+                    {tool.id + SEPARATOR + tool.http_method}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="mb-4">
-                  {tool.description || 'Sem descrição'}
-                </CardDescription>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">ID:</span> {tool.id}
-                  </div>
-                  <div>
-                    <span className="font-medium">Rota:</span> 
-                    <span className="break-all">
-                      {tool.route || (tool.http_config ? `${tool.http_config.base_url}${tool.http_config.endpoint}` : 'N/A')}
-                    </span>
-                  </div>
-                  {tool.instructions && (
-                    <div>
-                      <span className="font-medium">Instruções:</span> 
-                      <span className="text-muted-foreground">{tool.instructions}</span>
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-medium">Parâmetros:</span> {tool.parameters?.length || tool.http_config?.parameters?.length || 0}
-                  </div>
-                  <div>
-                    <span className="font-medium">Headers:</span> {Object.keys(tool.headers || tool.http_config?.headers || {}).length}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-muted-foreground group-hover:text-primary"
+                />
+              </li>
+            ))}
+          </ul>
+          <ShowingOf shown={tools.length} total={total} />
         </div>
       )}
-
-      {/* Dialog de confirmação de exclusão */}
-      <DeleteConfirmDialog
-        open={!!deletingTool}
-        onOpenChange={() => setDeletingTool(null)}
-        title="Deletar Tool"
-        description={`Tem certeza que deseja deletar a tool "${deletingTool?.name}"? Esta ação não pode ser desfeita.`}
-        onConfirm={() => deletingTool && handleDeleteTool(deletingTool)}
-      />
       </div>
     </div>
   )

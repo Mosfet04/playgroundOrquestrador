@@ -1,9 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useFormatter, useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { LiveStatus, LoadErrorState } from '@/components/ui/loading'
 import { 
   BarChart, 
   Bar, 
@@ -30,17 +33,22 @@ import {
   TrendingUp,
   Clock
 } from 'lucide-react'
-import { DashboardStats, TokenMetrics, TimeFilter } from '@/types/dashboard'
+import { DashboardStats, TokenMetrics } from '@/types/dashboard'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, labelFormatter }: any) => {
+  const format = useFormatter()
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black border border-white text-white p-2 rounded shadow-lg">
-        <p className="font-bold">{label}</p>
+      <div className="rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-popover">
+        {label && (
+          <p className="font-semibold">
+            {labelFormatter ? labelFormatter(label, payload) : label}
+          </p>
+        )}
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {payload.map((item: any) => (
           <p key={item.dataKey}>
-            {item.name}: {item.value.toLocaleString()}
+            {item.name}: {format.number(item.value)}
           </p>
         ))}
       </div>
@@ -48,97 +56,178 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   }
   return null;
 }
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1']
+// Gráficos só com tokens (decisão 0009, D-P1-02-1 = A): série 1 primary, série 2
+// muted-foreground; grade em border, eixos em muted-foreground.
+const CHART = {
+  series1: 'hsl(var(--primary))',
+  series2: 'hsl(var(--muted-foreground))',
+  grid: 'hsl(var(--border))',
+  axis: 'hsl(var(--muted-foreground))',
+  surface: 'hsl(var(--card))',
+  cursor: 'hsl(var(--muted))'
+}
+const AXIS_PROPS = { stroke: CHART.grid, tick: { fill: CHART.axis } }
 
-const timeFilters: TimeFilter[] = [
-  { label: 'Última Hora', value: '1h' },
-  { label: 'Últimas 24h', value: '24h' },
-  { label: 'Últimos 7 dias', value: '7d' },
-  { label: 'Últimos 30 dias', value: '30d' },
-  { label: 'Últimos 90 dias', value: '90d' }
-]
+const TIME_FILTERS = ['1h', '24h', '7d', '30d', '90d'] as const
+
+// Eixo de "atividade": a chave do dia vem do BFF como YYYY-MM-DD em UTC; sem o
+// timeZone, 2026-10-15 viraria "14 de out." em UTC-3 (P1-04, formatos).
+const DAY_FORMAT = { day: 'numeric', month: 'short', timeZone: 'UTC' } as const
+
+// Falha de carga: status HTTP, ou sem status quando não houve resposta.
+type LoadError = { status?: number }
+
+// Gráfico sem pontos: texto na mesma altura, sem eixos vazios (V-P1-05-9).
+function ChartEmpty({ height }: { height: number }) {
+  const t = useTranslations('dashboard')
+  return (
+    <div
+      style={{ height }}
+      className="flex flex-col items-center justify-center gap-1 text-center"
+    >
+      <p className="text-base font-semibold">{t('noData')}</p>
+      <p className="max-w-[40ch] text-sm text-muted-foreground">{t('noDataHint')}</p>
+    </div>
+  )
+}
 
 export function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [tokenMetrics, setTokenMetrics] = useState<TokenMetrics[]>([])
   const [timeFilter, setTimeFilter] = useState<string>('24h')
   const [loading, setLoading] = useState(true)
+  const [statsError, setStatsError] = useState<LoadError | null>(null)
+  const [tokensError, setTokensError] = useState<LoadError | null>(null)
+  // GET de tokens em curso (carga e troca de período): skeleton, não o falso
+  // "Sem dados no período". O "Tentar de novo" não passa por aqui.
+  const [tokensLoading, setTokensLoading] = useState(true)
+  const t = useTranslations('dashboard')
+  const format = useFormatter()
+  const formatDay = (time: string) => format.dateTime(new Date(time), DAY_FORMAT)
+  const formatNumber = (value: number) => format.number(value)
 
-  // Buscar estatísticas gerais
-  const fetchStats = async () => {
+  // Buscar estatísticas gerais; o "Tentar de novo" usa o retorno (deu certo?).
+  const fetchStats = async (): Promise<boolean> => {
     try {
-      setLoading(true)
       const response = await fetch('/api/dashboard/stats')
-      const data = await response.json()
-      
-      if (data.success) {
+      const data = response.ok ? await response.json() : null
+      if (data?.success) {
         setStats(data.data)
+        setStatsError(null)
+        return true
       }
+      setStatsError({ status: response.status })
     } catch (error) {
       console.error('Error fetching stats:', error)
+      setStatsError({})
     } finally {
       setLoading(false)
     }
+    return false
   }
 
-  // Buscar métricas de tokens
-  const fetchTokenMetrics = async () => {
+  // Buscar métricas de tokens (trocar o período com erro tenta de novo)
+  // Só a requisição mais recente escreve (troca rápida de período).
+  const tokensRequestId = useRef(0)
+  const fetchTokenMetrics = useCallback(async (): Promise<boolean> => {
+    const id = ++tokensRequestId.current
+    const isCurrent = () => id === tokensRequestId.current
     try {
       const response = await fetch(`/api/dashboard/tokens?timeFilter=${timeFilter}`)
-      const data = await response.json()
-      
-      if (data.success) {
+      const data = response.ok ? await response.json() : null
+      if (!isCurrent()) return false
+      if (data?.success) {
         setTokenMetrics(data.data)
+        setTokensError(null)
+        return true
       }
+      setTokensError({ status: response.status })
     } catch (error) {
       console.error('Error fetching token metrics:', error)
+      if (isCurrent()) setTokensError({})
+    } finally {
+      if (isCurrent()) setTokensLoading(false)
     }
-  }
+    return false
+  }, [timeFilter])
 
   useEffect(() => {
     fetchStats()
   }, [])
 
   useEffect(() => {
+    setTokensLoading(true)
     fetchTokenMetrics()
-  }, [timeFilter])
+  }, [fetchTokenMetrics])
 
-  if (loading || !stats) {
+  const title = (
+    <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
+      {t('title')}
+    </h1>
+  )
+
+  if (loading) {
     return (
-      <div className="management-form">
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
+      <div className="mx-auto max-w-7xl p-6">
+        <div aria-busy="true" className="space-y-4">
+          <LiveStatus>
+            <span className="sr-only">{t('loading')}</span>
+          </LiveStatus>
+          <Skeleton className="h-8 w-1/4" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            {[0, 1, 2, 3].map((key) => (
+              <Skeleton key={key} className="h-32" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Skeleton className="h-[300px]" />
+            <Skeleton className="h-[300px]" />
           </div>
         </div>
       </div>
     )
   }
 
+  if (statsError || !stats) {
+    return (
+      <div className="mx-auto max-w-7xl space-y-6 p-6">
+        <div>
+          {title}
+          <p className="text-muted-foreground">{t('subtitle')}</p>
+        </div>
+        <LoadErrorState
+          title={t('loadError')}
+          status={statsError?.status}
+          onRetry={fetchStats}
+        />
+      </div>
+    )
+  }
+
+  const sessionsByType = [
+    { name: t('agentSessions'), value: stats.totalAgentSessions, fill: CHART.series1 },
+    { name: t('teamSessions'), value: stats.totalTeamSessions, fill: CHART.series2 }
+  ]
+
   return (
-    <div className="management-form">
+    <div>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            {title}
             <p className="text-muted-foreground">
-              Visão geral do sistema e métricas de uso
+              {t('subtitle')}
             </p>
           </div>
           <Select value={timeFilter} onValueChange={setTimeFilter}>
-            <SelectTrigger className="w-48 bg-black border border-white text-white">
-              <SelectValue placeholder="Selecionar período" />
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder={t('periodPlaceholder')} />
             </SelectTrigger>
-            <SelectContent className="bg-black border border-white text-white">
-              {timeFilters.map((filter) => (
-                <SelectItem key={filter.value} value={filter.value}>
-                  {filter.label}
+            <SelectContent>
+              {TIME_FILTERS.map((filter) => (
+                <SelectItem key={filter} value={filter}>
+                  {t(`period.${filter}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -149,54 +238,58 @@ export function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Agentes Ativos</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('activeAgents')}</CardTitle>
               <Bot className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeAgents}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{format.number(stats.activeAgents)}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.totalAgents} total
+                {t('totalAgents', { total: stats.totalAgents })}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuários Únicos</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('uniqueUsers')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.uniqueUsers}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{format.number(stats.uniqueUsers)}</div>
               <p className="text-xs text-muted-foreground">
-                No período selecionado
+                {t('inPeriod')}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sessões Criadas</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('sessionsCreated')}</CardTitle>
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSessions}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{format.number(stats.totalSessions)}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.totalAgentSessions} agents · {stats.totalTeamSessions} teams · {stats.sessionsInPeriod} no período
+                {t('sessionsBreakdown', {
+                  agents: stats.totalAgentSessions,
+                  teams: stats.totalTeamSessions,
+                  period: stats.sessionsInPeriod
+                })}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tokens Consumidos</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('tokensConsumed')}</CardTitle>
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.totalTokens.toLocaleString()}
+              <div className="font-mono text-3xl font-medium tabular-nums">
+                {format.number(stats.totalTokens)}
               </div>
               <p className="text-xs text-muted-foreground">
-                No período selecionado
+                {t('inPeriod')}
               </p>
             </CardContent>
           </Card>
@@ -208,27 +301,27 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5" />
-                Modelos de IA
+                {t('aiModels')}
               </CardTitle>
               <CardDescription>
-                Modelos utilizados pelos agentes ativos
+                {t('aiModelsDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {stats.models.length === 0 && (
+                <p className="text-muted-foreground">{t('noModels')}</p>
+              )}
               <div className="space-y-3">
                 {stats.models.map((model, index) => (
                   <div key={`${model.name}-${model.provider}-${index}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
+                      <div className="w-3 h-3 rounded-full bg-primary" />
                       <div>
                         <p className="font-medium">{model.name}</p>
                         <p className="text-sm text-muted-foreground">{model.provider}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-black">{model.count} uso(s)</Badge>
+                    <Badge variant="secondary">{t('uses', { count: model.count })}</Badge>
                   </div>
                 ))}
               </div>
@@ -239,27 +332,27 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Modelos de Embedding
+                {t('embeddingModels')}
               </CardTitle>
               <CardDescription>
-                Modelos de embedding em uso no RAG
+                {t('embeddingModelsDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {stats.embeddingModels.length === 0 && (
+                <p className="text-muted-foreground">{t('noEmbeddings')}</p>
+              )}
               <div className="space-y-3">
-                {stats.embeddingModels.map((model, index) => (
+                {stats.embeddingModels.map((model) => (
                   <div key={model.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
+                      <div className="w-3 h-3 rounded-full bg-primary" />
                       <div>
                         <p className="font-medium">{model.name}</p>
                         <p className="text-sm text-muted-foreground">{model.provider}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-black">{model.count} uso(s)</Badge>
+                    <Badge variant="secondary">{t('uses', { count: model.count })}</Badge>
                   </div>
                 ))}
               </div>
@@ -272,32 +365,42 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Consumo de Tokens por Entidade
+              {t('tokensByEntity')}
             </CardTitle>
             <CardDescription>
-              Total de tokens consumidos por cada agente/team no período selecionado
+              {t('tokensByEntityDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {tokensLoading ? (
+              <Skeleton className="h-[300px]" />
+            ) : tokensError ? (
+              <LoadErrorState
+                title={t('tokensError')}
+                titleAs="h3"
+                status={tokensError.status}
+                onRetry={fetchTokenMetrics}
+                className="bg-background"
+              />
+            ) : tokenMetrics.length === 0 ? (
+              <ChartEmpty height={300} />
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={tokenMetrics}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="agentName" />
-                <YAxis />
-                <Tooltip
-                    content={<CustomTooltip />}
-                  formatter={(value?: string | number) => [typeof value === 'number' ? value.toLocaleString() : String(value ?? ''), 'Tokens']}
-                  labelFormatter={(label) => {
-                    const item = tokenMetrics.find(m => m.agentName === label)
-                    const type = item?.entityType === 'team' ? 'Team' : 'Agent'
-                    return `${type}: ${label}`
-                  }}
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="agentName" {...AXIS_PROPS} />
+                <YAxis
+                  allowDecimals={false}
+                  tickFormatter={formatNumber}
+                  {...AXIS_PROPS}
                 />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: CHART.cursor }} />
                 <Legend />
-                <Bar dataKey="inputTokens" fill="#8884d8" name="Tokens de Entrada" />
-                <Bar dataKey="outputTokens" fill="#82ca9d" name="Tokens de Saída" />
+                <Bar dataKey="inputTokens" fill={CHART.series1} name={t('inputTokens')} />
+                <Bar dataKey="outputTokens" fill={CHART.series2} name={t('outputTokens')} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -307,24 +410,36 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Atividade por Tempo
+                {t('activity')}
               </CardTitle>
               <CardDescription>
-                Distribuição de sessões ao longo do tempo
+                {t('activityDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {stats.activityOverTime.length === 0 ? (
+                <ChartEmpty height={250} />
+              ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={stats.activityOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
-                  <YAxis />
-                  <Tooltip content={<CustomTooltip />} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                  <XAxis dataKey="time" tickFormatter={formatDay} {...AXIS_PROPS} />
+                  <YAxis
+                    allowDecimals={false}
+                    tickFormatter={formatNumber}
+                    {...AXIS_PROPS}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ stroke: CHART.grid }}
+                    labelFormatter={(time) => formatDay(String(time))}
+                  />
                   <Legend />
-                  <Area type="monotone" dataKey="agentSessions" stackId="1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} name="Agent Sessions" />
-                  <Area type="monotone" dataKey="teamSessions" stackId="1" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Team Sessions" />
+                  <Area type="monotone" dataKey="agentSessions" stackId="1" stroke={CHART.series1} fill={CHART.series1} fillOpacity={0.6} name={t('agentSessions')} />
+                  <Area type="monotone" dataKey="teamSessions" stackId="1" stroke={CHART.series2} fill={CHART.series2} fillOpacity={0.6} name={t('teamSessions')} />
                 </AreaChart>
               </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
@@ -332,39 +447,38 @@ export function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                Sessões por Tipo
+                {t('sessionsByType')}
               </CardTitle>
               <CardDescription>
-                Distribuição de sessões entre Agents e Teams
+                {t('sessionsByTypeDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {stats.totalAgentSessions + stats.totalTeamSessions === 0 ? (
+                <ChartEmpty height={250} />
+              ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
-                    data={[
-                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: '#8884d8' },
-                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: '#82ca9d' }
-                    ]}
+                    data={sessionsByType}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
                     outerRadius={100}
                     paddingAngle={5}
+                    stroke={CHART.surface}
                     dataKey="value"
-                    label={({name, value}) => `${name}: ${value}`}
+                    label={({ name, value }) => `${name}: ${format.number(Number(value))}`}
                   >
-                    {[
-                      { name: 'Agent Sessions', value: stats.totalAgentSessions, fill: '#8884d8' },
-                      { name: 'Team Sessions', value: stats.totalTeamSessions, fill: '#82ca9d' }
-                    ].map((entry, index) => (
+                    {sessionsByType.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip content={<CustomTooltip />} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </div>

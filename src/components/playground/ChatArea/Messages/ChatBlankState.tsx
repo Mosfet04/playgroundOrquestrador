@@ -1,197 +1,88 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { motion, Variants } from 'framer-motion'
-import Icon from '@/components/ui/icon'
-import { IconType } from '@/components/ui/icon/types'
-import React, { useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { Plus } from 'lucide-react'
 
-const EXTERNAL_LINKS = {
-  documentation: 'https://agno.link/agent-ui',
-  playground: 'https://app.agno.com/playground/agents',
-  agno: 'https://agno.com'
-}
+import { Button } from '@/components/ui/button'
+import { EmptyState, LiveStatus, LoadErrorState } from '@/components/ui/loading'
+import useChatActions from '@/hooks/useChatActions'
+import { useSelectedEntity } from '@/hooks/useSelectedEntity'
+import { EntityAvatar } from '@/components/playground/EntityAvatar'
+import { usePlaygroundStore } from '@/store'
 
-const TECH_ICONS = [
-  {
-    type: 'nextjs' as IconType,
-    position: 'left-0',
-    link: 'https://nextjs.org',
-    name: 'Next.js',
-    zIndex: 10
-  },
-  {
-    type: 'shadcn' as IconType,
-    position: 'left-[15px]',
-    link: 'https://ui.shadcn.com',
-    name: 'shadcn/ui',
-    zIndex: 20
-  },
-  {
-    type: 'tailwind' as IconType,
-    position: 'left-[30px]',
-    link: 'https://tailwindcss.com',
-    name: 'Tailwind CSS',
-    zIndex: 30
-  }
-]
-
-interface ActionButtonProps {
-  href: string
-  variant?: 'primary'
-  text: string
-}
-
-const ActionButton = ({ href, variant, text }: ActionButtonProps) => {
-  const baseStyles =
-    'px-4 py-2 text-sm transition-colors font-dmmono tracking-tight'
-  const variantStyles = {
-    primary: 'border border-border hover:bg-neutral-800 rounded-xl'
-  }
-
-  return (
-    <Link
-      href={href}
-      target="_blank"
-      className={`${baseStyles} ${variant ? variantStyles[variant] : ''}`}
-    >
-      {text}
-    </Link>
-  )
-}
-
+// Conversa sem mensagens (docs/design/P1-05.md, /playground): conectando,
+// orquestrador fora, sem entidades, nada selecionado ou a entidade escolhida.
 const ChatBlankState = () => {
-  const [hoveredIcon, setHoveredIcon] = useState<string | null>(null)
+  const { isEndpointLoading, isEndpointActive, selectedEndpoint, agents, teams } =
+    usePlaygroundStore()
+  const { initializePlayground } = useChatActions()
+  const entity = useSelectedEntity()
+  const t = useTranslations('playground')
+  const ta = useTranslations('agents')
+  // "Conectando…" só fora do "Tentar de novo": na nova tentativa o bloco de
+  // erro fica montado, com o botão em "Tentando…" (Fluxo 3 da spec).
+  const [retrying, setRetrying] = useState(false)
 
-  // Animation variants for the icon
-  const iconVariants: Variants = {
-    initial: { y: 0 },
-    hover: {
-      y: -8,
-      transition: {
-        type: 'spring',
-        stiffness: 150,
-        damping: 10,
-        mass: 0.5
-      }
-    },
-    exit: {
-      y: 0,
-      transition: {
-        type: 'spring',
-        stiffness: 200,
-        damping: 15,
-        mass: 0.6
-      }
-    }
-  }
+  if (isEndpointLoading && !retrying)
+    return (
+      <div className="flex flex-1 items-center justify-center p-8">
+        <LiveStatus>{t('connecting')}</LiveStatus>
+      </div>
+    )
 
-  // Animation variants for the tooltip
-  const tooltipVariants: Variants = {
-    hidden: {
-      opacity: 0,
-      transition: {
-        duration: 0.15,
-        ease: 'easeInOut'
-      }
-    },
-    visible: {
-      opacity: 1,
-      transition: {
-        duration: 0.15,
-        ease: 'easeInOut'
-      }
-    }
-  }
+  // Na nova tentativa o bloco fica até ela terminar: no meio dela o endpoint
+  // já pode estar ativo sem os agentes carregados (falso "sem agentes").
+  if (!isEndpointActive || retrying)
+    return (
+      <LoadErrorState
+        title={t('offlineTitle')}
+        detail={selectedEndpoint}
+        onRetry={async () => {
+          setRetrying(true)
+          try {
+            await initializePlayground()
+          } finally {
+            setRetrying(false)
+          }
+          return usePlaygroundStore.getState().isEndpointActive
+        }}
+        className="mx-auto w-full max-w-[640px]"
+      />
+    )
+
+  if (agents.length === 0 && teams.length === 0)
+    return (
+      <EmptyState
+        title={ta('emptyTitle')}
+        description={t('noEntitiesDescription')}
+        actions={
+          <Button asChild>
+            <Link href="/agents/new">
+              <Plus aria-hidden="true" />
+              {ta('createFirst')}
+            </Link>
+          </Button>
+        }
+        className="border-0 bg-transparent"
+      />
+    )
+
+  const name = entity?.name
 
   return (
-    <section
-      className="flex flex-col items-center text-center font-geist"
-      aria-label="Welcome message"
-    >
-      <div className="flex max-w-3xl flex-col gap-y-8">
-        <motion.h1
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-3xl font-[600] tracking-tight"
-        >
-          <div className="flex items-center justify-center gap-x-2 whitespace-nowrap font-medium">
-            <span className="flex items-center font-[600]">
-              This is an open-source
-            </span>
-            <span className="inline-flex translate-y-[10px] scale-125 items-center transition-transform duration-200 hover:rotate-6">
-              <Link
-                href={EXTERNAL_LINKS.agno}
-                target="_blank"
-                rel="noopener"
-                className="cursor-pointer"
-              >
-                <Icon type="agno-tag" size="default" />
-              </Link>
-            </span>
-            <span className="flex items-center font-[600]">
-              Agent UI, built with
-            </span>
-            <span className="inline-flex translate-y-[5px] scale-125 items-center">
-              <div className="relative ml-2 h-[40px] w-[90px]">
-                {TECH_ICONS.map((icon) => (
-                  <motion.div
-                    key={icon.type}
-                    className={`absolute ${icon.position} top-0`}
-                    style={{ zIndex: icon.zIndex }}
-                    variants={iconVariants}
-                    initial="initial"
-                    whileHover="hover"
-                    animate={hoveredIcon === icon.type ? 'hover' : 'exit'}
-                    onHoverStart={() => setHoveredIcon(icon.type)}
-                    onHoverEnd={() => setHoveredIcon(null)}
-                  >
-                    <Link
-                      href={icon.link}
-                      target="_blank"
-                      rel="noopener"
-                      className="relative block cursor-pointer"
-                    >
-                      <div>
-                        <Icon type={icon.type} size="default" />
-                      </div>
-                      <motion.div
-                        className="pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-neutral-800 px-2 py-1 text-xs text-primary"
-                        variants={tooltipVariants}
-                        initial="hidden"
-                        animate={
-                          hoveredIcon === icon.type ? 'visible' : 'hidden'
-                        }
-                      >
-                        {icon.name}
-                      </motion.div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
-            </span>
-          </div>
-          <p>For the full experience, visit the Agent Playground.</p>
-        </motion.h1>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="flex justify-center gap-4"
-        >
-          <ActionButton
-            href={EXTERNAL_LINKS.documentation}
-            variant="primary"
-            text="GO TO DOCS"
-          />
-          <ActionButton
-            href={EXTERNAL_LINKS.playground}
-            text="VISIT AGENT PLAYGROUND"
-          />
-        </motion.div>
-      </div>
-    </section>
+    <div className="dot-grid flex flex-1 flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+      {entity && (
+        <EntityAvatar name={entity.name} id={entity.id} className="size-10 rounded-md text-sm" />
+      )}
+      <h2 className="text-lg font-semibold">
+        {name ? t('chatEmptyTitle', { name }) : t('composerNoEntity')}
+      </h2>
+      {name && (
+        <p className="max-w-[48ch] text-muted-foreground">{t('chatEmptyDescription')}</p>
+      )}
+    </div>
   )
 }
 

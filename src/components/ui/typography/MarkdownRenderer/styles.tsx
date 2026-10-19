@@ -33,6 +33,11 @@ import type {
 import { HEADING_SIZES } from '../Heading/constants'
 import { PARAGRAPH_SIZES } from '../Paragraph/constants'
 
+// Texto corrido do chat em 16/24 (P1-06, V-P1-06-4). O texto inline (ênfase,
+// negrito, link…) herda o tamanho do bloco: dentro de título ou de tabela fica
+// no tamanho deles.
+const BODY = 'text-base leading-6'
+
 const filterProps = (props: object) => {
   const newProps = { ...props }
 
@@ -47,7 +52,7 @@ const UnorderedList = ({ className, ...props }: UnorderedListProps) => (
   <ul
     className={cn(
       className,
-      PARAGRAPH_SIZES.body,
+      BODY,
       'flex list-disc flex-col pl-10'
     )}
     {...filterProps(props)}
@@ -58,7 +63,7 @@ const OrderedList = ({ className, ...props }: OrderedListProps) => (
   <ol
     className={cn(
       className,
-      PARAGRAPH_SIZES.body,
+      BODY,
       'flex list-decimal flex-col pl-10'
     )}
     {...filterProps(props)}
@@ -67,49 +72,49 @@ const OrderedList = ({ className, ...props }: OrderedListProps) => (
 
 const Paragraph = ({ className, ...props }: ParagraphProps) => (
   <div
-    className={cn(className, PARAGRAPH_SIZES.body)}
+    className={cn(className, BODY)}
     {...filterProps(props)}
   />
 )
 
 const EmphasizedText = ({ className, ...props }: EmphasizedTextProps) => (
   <em
-    className={cn(className, 'text-sm font-semibold')}
+    className={cn(className, 'font-semibold')}
     {...filterProps(props)}
   />
 )
 
 const ItalicText = ({ className, ...props }: ItalicTextProps) => (
   <i
-    className={cn(className, 'italic', PARAGRAPH_SIZES.body)}
+    className={cn(className, 'italic')}
     {...filterProps(props)}
   />
 )
 
 const StrongText = ({ className, ...props }: StrongTextProps) => (
   <strong
-    className={cn(className, 'text-sm font-semibold')}
+    className={cn(className, 'font-semibold')}
     {...filterProps(props)}
   />
 )
 
 const BoldText = ({ className, ...props }: BoldTextProps) => (
   <b
-    className={cn(className, 'text-sm font-semibold')}
+    className={cn(className, 'font-semibold')}
     {...filterProps(props)}
   />
 )
 
 const UnderlinedText = ({ className, ...props }: UnderlinedTextProps) => (
   <u
-    className={cn(className, 'underline', PARAGRAPH_SIZES.body)}
+    className={cn(className, 'underline')}
     {...filterProps(props)}
   />
 )
 
 const DeletedText = ({ className, ...props }: DeletedTextProps) => (
   <del
-    className={cn(className, 'text-muted line-through', PARAGRAPH_SIZES.body)}
+    className={cn(className, 'text-muted-foreground line-through')}
     {...filterProps(props)}
   />
 )
@@ -123,7 +128,7 @@ const HorizontalRule = ({ className, ...props }: HorizontalRuleProps) => (
 
 const InlineCode: FC<PreparedTextProps> = ({ children }) => {
   return (
-    <code className="relative whitespace-pre-wrap rounded-sm bg-background-secondary/50 p-1">
+    <code className="relative whitespace-pre-wrap rounded-sm bg-muted p-1">
       {children}
     </code>
   )
@@ -131,14 +136,14 @@ const InlineCode: FC<PreparedTextProps> = ({ children }) => {
 
 const Blockquote = ({ className, ...props }: BlockquoteProps) => (
   <blockquote
-    className={cn(className, 'italic', PARAGRAPH_SIZES.body)}
+    className={cn(className, 'italic', BODY)}
     {...filterProps(props)}
   />
 )
 
 const AnchorLink = ({ className, ...props }: AnchorLinkProps) => (
   <a
-    className={cn(className, 'cursor-pointer text-xs underline')}
+    className={cn(className, 'cursor-pointer underline')}
     target="_blank"
     rel="noopener noreferrer"
     {...filterProps(props)}
@@ -183,8 +188,8 @@ const Img = ({ src, alt }: ImgProps) => {
   return (
     <div className="w-full max-w-xl">
       {error ? (
-        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-md bg-secondary/50 text-muted">
-          <Paragraph className="text-primary">Image unavailable</Paragraph>
+        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-md bg-muted text-muted-foreground">
+          <Paragraph className="text-foreground">Image unavailable</Paragraph>
           <Link
             href={src}
             target="_blank"

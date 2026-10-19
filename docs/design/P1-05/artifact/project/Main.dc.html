@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Agentes com erro · desktop claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p105.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app shell">
+  <div class="side">
+    <div class="side-top"><span class="pg-mark pg-grad" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M8.5 6h7"></path><path d="m7.2 8.2 3.6 7.6"></path><path d="m16.8 8.2-3.6 7.6"></path></svg></span><div class="brand"><b>Orquestrador</b><span>playground</span></div></div>
+    <nav class="side-body" aria-label="Navegação principal">
+      <a class="nav-item" href="#inicio"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>Início</a>
+      <p class="nav-group">Testar</p>
+      <a class="nav-item" href="#playground"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>Playground</a>
+      <p class="nav-group">Configurar</p>
+      <a class="nav-item" href="#agents" aria-current="page"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>Agentes</a>
+      <a class="nav-item" href="#tools"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>Tools</a>
+      <p class="nav-group">Observar</p>
+      <a class="nav-item" href="#dashboard"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg>Dashboard</a>
+    </nav>
+  </div>
+  <div class="main">
+    <header class="hdr">
+      <ol class="crumbs" aria-label="Você está em">
+        <li>Configurar</li>
+        <li><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span aria-current="page">Agentes</span></li>
+      </ol>
+      <div class="hdr-actions">
+        <button class="pg-btn pg-btn-ghost pg-btn-sm" type="button" aria-label="Idioma: Português. Alterar idioma"><span class="pg-mono">PT-BR</span></button>
+        <button class="pg-btn pg-btn-ghost pg-btn-icon" type="button" aria-label="Tema: Claro. Alterar tema"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></button>
+      </div>
+    </header>
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <h1>Gerenciamento de agentes</h1>
+          <p>Crie e gerencie seus agentes de IA</p>
+        </div>
+        <a class="pg-btn" href="#agents-new"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Novo agente</a>
+      </div>
+      <div class="pg-card" style="width: auto">
+        <h2 class="pg-card-title">Filtros</h2>
+        <div class="pg-row" style="gap: 16px; align-items: flex-end">
+          <div class="pg-field" style="width: 320px; max-width: 100%">
+            <label class="pg-label" for="busca">Buscar</label>
+            <input class="pg-input" id="busca" type="search" placeholder="ID, nome ou descrição…">
+          </div>
+          <div class="pg-switch-row">
+            <button class="pg-switch" type="button" role="switch" aria-checked="false" aria-labelledby="ativos-l" id="ativos"></button>
+            <span id="ativos-l">Apenas ativos</span>
+          </div>
+        </div>
+      </div>
+      <div class="state state-err" role="alert">
+        <span class="err-ico" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24" style="width: 20px; height: 20px"><path d="m19 5 3-3"></path><path d="m2 22 3-3"></path><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"></path><path d="M7.5 13.5 10 11"></path><path d="M10.5 16.5 13 14"></path><path d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z"></path></svg></span>
+        <div class="err-body">
+          <h2>Não foi possível carregar os agentes</h2>
+          <p>O orquestrador não respondeu. Confira se ele está no ar e tente de novo.</p>
+          <span class="pg-row"><span class="pg-chip" style="color: var(--destructive)"><span class="pg-dot" aria-hidden="true"></span>offline</span></span>
+          <div class="st-actions"><button class="pg-btn pg-btn-outline" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Tentar de novo</button></div>
+        </div>
+      </div>
+      <div class="state state-err" role="alert" aria-busy="true">
+        <span class="err-ico" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24" style="width: 20px; height: 20px"><path d="m19 5 3-3"></path><path d="m2 22 3-3"></path><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"></path><path d="M7.5 13.5 10 11"></path><path d="M10.5 16.5 13 14"></path><path d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z"></path></svg></span>
+        <div class="err-body">
+          <p class="ann">Mesmo bloco durante a nova tentativa e com resposta 503</p>
+          <h2>Não foi possível carregar os agentes</h2>
+          <p>O orquestrador não respondeu. Confira se ele está no ar e tente de novo.</p>
+          <span class="pg-row"><span class="pg-chip"><span class="pg-muted">código</span>503</span></span>
+          <div class="st-actions"><button class="pg-btn pg-btn-outline" type="button" disabled><svg class="pg-ico pg-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"></path></svg>Tentando…</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

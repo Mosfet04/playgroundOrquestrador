@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { APIRoutes } from '@/api/routes'
 
@@ -7,6 +8,7 @@ import { usePlaygroundStore } from '../store'
 import {
   RunEvent,
   RunResponseContent,
+  type RunMetrics,
   type RunResponse
 } from '@/types/playground'
 import { constructEndpointUrl } from '@/lib/constructEndpointUrl'
@@ -14,6 +16,16 @@ import useAIResponseStream from './useAIResponseStream'
 import { ToolCall } from '@/types/playground'
 import { useQueryState } from 'nuqs'
 import { getJsonMarkdown } from '@/lib/utils'
+
+// Só os números da resposta (tempo e tokens); o resto do RunMetrics fica de
+// fora. Sem nenhum deles, a mensagem fica sem métricas.
+const pickRunMetrics = (metrics?: RunMetrics): RunMetrics | undefined => {
+  const picked: RunMetrics = {}
+  for (const key of ['duration', 'input_tokens', 'output_tokens'] as const) {
+    if (typeof metrics?.[key] === 'number') picked[key] = metrics[key]
+  }
+  return Object.keys(picked).length > 0 ? picked : undefined
+}
 
 const useAIChatStreamHandler = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
@@ -30,6 +42,7 @@ const useAIChatStreamHandler = () => {
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
   const hasStorage = usePlaygroundStore((state) => state.hasStorage)
   const { streamResponse } = useAIResponseStream()
+  const t = useTranslations('playground')
 
   const updateMessagesWithErrorState = useCallback(() => {
     setMessages((prevMessages) => {
@@ -180,7 +193,7 @@ const processToolCall = useCallback(
 
         if (!playgroundRunUrl) {
           updateMessagesWithErrorState()
-          setStreamingErrorMessage('Please select an agent or team first.')
+          setStreamingErrorMessage({ kind: 'noEntity' })
           setIsStreaming(false)
           return
         }
@@ -207,6 +220,18 @@ const processToolCall = useCallback(
           apiUrl: playgroundRunUrl,
           requestBody,
           onChunk: (chunk: RunResponse) => {
+            const isDelta =
+              chunk.event === RunEvent.RunContent ||
+              chunk.event === RunEvent.TeamRunContent
+            // No team, RunContent/RunCompleted vêm dos membros
+            // (stream_member_events do agno) e não escrevem o texto do team
+            const isTeamMemberEvent =
+              mode === 'team' &&
+              (chunk.event === RunEvent.RunContent ||
+                chunk.event === RunEvent.RunCompleted)
+            // Delta de membro ou sem texto (só raciocínio, citação ou mídia; o
+            // agno omite o content None): não altera a mensagem
+            if (isDelta && (isTeamMemberEvent || chunk.content == null)) return
             if (
               chunk.event === RunEvent.RunStarted ||
               chunk.event === RunEvent.TeamRunStarted ||
@@ -255,7 +280,8 @@ const processToolCall = useCallback(
             } else if (
               chunk.event === RunEvent.RunResponse ||
               chunk.event === RunEvent.RunResponseContent ||
-              chunk.event === RunEvent.TeamRunResponseContent
+              chunk.event === RunEvent.TeamRunResponseContent ||
+              isDelta
             ) {
               setMessages((prevMessages) => {
                 const newMessages = [...prevMessages]
@@ -265,9 +291,14 @@ const processToolCall = useCallback(
                   lastMessage.role === 'agent' &&
                   typeof chunk.content === 'string'
                 ) {
-                  const uniqueContent = chunk.content.replace(lastContent, '')
-                  lastMessage.content += uniqueContent
-                  lastContent = chunk.content
+                  if (isDelta) {
+                    lastMessage.content += chunk.content
+                  } else {
+                    // Eventos legados trazem o conteúdo acumulado
+                    const uniqueContent = chunk.content.replace(lastContent, '')
+                    lastMessage.content += uniqueContent
+                    lastContent = chunk.content
+                  }
 
                   // Handle tool calls streaming
                   lastMessage.tool_calls = processChunkToolCalls(
@@ -363,12 +394,16 @@ const processToolCall = useCallback(
               chunk.event === RunEvent.TeamRunCancelled
             ) {
               updateMessagesWithErrorState()
-              const errorContent =
-                (chunk.content as string) ||
-                (chunk.event === RunEvent.TeamRunCancelled
-                  ? 'Run cancelled'
-                  : 'Error during run')
-              setStreamingErrorMessage(errorContent)
+              setStreamingErrorMessage({
+                kind:
+                  chunk.event === RunEvent.TeamRunCancelled
+                    ? 'cancelled'
+                    : 'runError',
+                detail:
+                  typeof chunk.content === 'string' && chunk.content
+                    ? chunk.content
+                    : undefined
+              })
               if (hasStorage && newSessionId) {
                 setSessionsData(
                   (prevSessionsData) =>
@@ -400,16 +435,25 @@ const processToolCall = useCallback(
                       try {
                         updatedContent = JSON.stringify(chunk.content)
                       } catch {
-                        updatedContent = 'Error parsing response'
+                        updatedContent = t('parseError')
                       }
                     }
                     return {
                       ...message,
-                      content: updatedContent,
+                      // Membro de team não sobrescreve o texto, mas a mídia
+                      // dele segue mesclada (decisão 0007)
+                      content: isTeamMemberEvent
+                        ? message.content
+                        : updatedContent,
                       tool_calls: processChunkToolCalls(
                         chunk,
                         message.tool_calls
                       ),
+                      // As métricas do membro não são as da resposta do team
+                      // (D-P1-06-2, decisão 0015)
+                      metrics: isTeamMemberEvent
+                        ? message.metrics
+                        : pickRunMetrics(chunk.metrics),
                       images: chunk.images ?? message.images,
                       videos: chunk.videos ?? message.videos,
                       response_audio: chunk.response_audio,
@@ -432,7 +476,7 @@ const processToolCall = useCallback(
           },
           onError: (error) => {
             updateMessagesWithErrorState()
-            setStreamingErrorMessage(error.message)
+            setStreamingErrorMessage(error)
             if (hasStorage && newSessionId) {
               setSessionsData(
                 (prevSessionsData) =>
@@ -445,10 +489,11 @@ const processToolCall = useCallback(
           onComplete: () => {}
         })
       } catch (error) {
+        // Falha antes do stream (montar a URL ou o user_id): sem tipo, a bolha
+        // mostra só a dica genérica; a exceção fica no console (P1-04b).
+        console.error('Error starting the chat stream:', error)
         updateMessagesWithErrorState()
-        setStreamingErrorMessage(
-          error instanceof Error ? error.message : String(error)
-        )
+        setStreamingErrorMessage(null)
         if (hasStorage && newSessionId) {
           setSessionsData(
             (prevSessionsData) =>
@@ -478,7 +523,8 @@ const processToolCall = useCallback(
       sessionId,
       setSessionId,
       hasStorage,
-      processChunkToolCalls
+      processChunkToolCalls,
+      t
     ]
   )
 

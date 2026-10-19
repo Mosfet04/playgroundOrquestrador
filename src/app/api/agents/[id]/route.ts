@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { agentsCollection } from '@/lib/mongodb'
 import { AgentConfig } from '@/types/management'
 
+import { parseJsonBody } from '../../parseJsonBody'
+import { agentUpdateSchema } from '../schema'
+
 type RouteParams = { params: Promise<{ id: string }> }
 
 // GET - Buscar agente por ID
@@ -47,7 +50,9 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, agentUpdateSchema)
+    if (!parsed.success) return parsed.response
+    const body = parsed.data
 
     // Verificar se o agente existe
     const existingAgent = await agentsCollection.findOne({ id })
