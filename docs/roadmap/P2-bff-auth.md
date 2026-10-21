@@ -1,0 +1,61 @@
+# P2 — BFF e auth
+
+O browser deixa de falar com o orquestrador e com o Mongo: tudo passa pelo BFF (`src/app/api/**` → `src/server/**`), atrás de login. Contrato da API Admin: `../orquestradorIAPythonArgo/docs/roadmap/FA-admin-config.md` (FA-01 a FA-07 concluídos). Decisões da fase: [0001](../decisions/0001-gestao-realtime.md) (jose, openapi-typescript, BFF) e [0016](../decisions/0016-p2-itens-modelos-crud-mongo.md).
+
+Gates (a partir do P2-01): os da P1 + testes de segurança do BFF + nenhum segredo no bundle (`grep -r "<chave de teste>" .next/static` vazio) + snapshot OpenAPI em dia (a partir do P2-02).
+
+Orquestrador, para referência: chave em `Authorization: Bearer` (ou `X-API-Key`); `API_KEY_ADMIN` em `/admin*`, `/metrics*` e `DELETE /sessions*`; `API_KEY_RUN` no resto (runs, sessões, listas do AgentOS). 401 sem chave válida, 403 com a run em rota admin.
+
+## P2-01 — Env validado, login e middleware
+UI: sim            Depende (orq.): —
+Objetivo: o playground só abre com sessão; a base do BFF (env e sessão) existe e é só do servidor.
+Escopo: `src/server/env.ts` (`server-only`, zod, falha no boot com mensagem sem valor): URL do orquestrador, chaves run e admin, segredo da sessão, credencial do usuário único. Login de usuário único: página `/login` (fora da casca `(app)`), rota `POST /api/auth/login` (comparação em tempo constante, rate limit simples em memória por IP) e `POST /api/auth/logout`; cookie de sessão assinado com `jose` (`httpOnly`, `Secure` fora de dev, `SameSite=Lax`, expiração). `middleware.ts` protege as páginas (redireciona para `/login?next=`) e `/api/*` (401 JSON), menos `/login` e `/api/auth/login`. `Origin` obrigatório e igual ao host em mutações de `/api/*` (403). `?next=` só aceita caminho interno (sem open redirect). Sair no menu da casca. e2e passa a logar (fixture/`storageState`); o fake orchestrator não muda aqui.
+Fora de escopo: cliente do orquestrador (P2-02); multiusuário, papéis, troca de senha.
+Critérios de aceite: página e `/api/*` sem cookie ⇒ redirect/401; cookie adulterado ou expirado ⇒ idem; senha errada ⇒ mensagem genérica e, após N tentativas, 429; `?next=//evil.com`, `?next=https://…` e `\\` caem em `/`; mutação sem `Origin` ou de outra origem ⇒ 403; env faltando ⇒ erro claro no boot sem ecoar valores; nenhum valor de env sensível em `.next/static`.
+Testes exigidos: unit de env, sessão (assinar/verificar/expirar), `next` seguro e rate limit; BFF das rotas de auth e do middleware (401/403/redirect); e2e do login, logout e redirect com `next`.
+Riscos e dependências: formato da credencial (senha em claro na env ou hash) e duração da sessão são decisões do item. Todo e2e existente passa a depender do login.
+
+## P2-02 — Cliente do orquestrador e contrato tipado
+UI: não            Depende (orq.): FA-02, FA-03
+Objetivo: um único cliente no servidor, tipado pelo contrato do orquestrador.
+Escopo: `src/server/orchestrator/`: `fetch` com timeout, base URL e chave (run ou admin, escolhida por chamada) do `env`; erro mapeado para código próprio, sem eco do corpo nem da exceção. Tipos gerados por `openapi-typescript` (dev dep) a partir de `docs/contracts/orchestrator-openapi.json`; script `contract:update` (baixa o `/openapi.json` de um orquestrador local em development) e `contract:check` (regenera e falha se divergir), este na CI. zod nas respostas usadas. Fake orchestrator passa a exigir a chave (401/403 como o real).
+Fora de escopo: trocar chamadas do chat (P2-03), do dashboard (P2-05) e do CRUD (P2-06): o item entrega o cliente com testes, sem consumidor de produção além de um health (`GET /api/orchestrator/health`, se útil para a casca).
+Critérios de aceite: chave nunca aparece em resposta, log nem `.next/static`; timeout e 5xx ⇒ erro mapeado; resposta fora do schema ⇒ erro mapeado (não lança cru); `contract:check` falha com snapshot divergente.
+Testes exigidos: unit do cliente com MSW (header da chave certa por chamada, timeout, 401/403/5xx, resposta inválida); teste do `contract:check`.
+Riscos e dependências: o `/openapi.json` do orquestrador só existe em development; o snapshot é versionado aqui.
+
+## P2-03 — Chat via BFF
+UI: sim            Depende (orq.): —
+Objetivo: o chat roda inteiro pelo BFF; o endpoint e as chaves do orquestrador saem do browser.
+Escopo: route handlers `runtime = 'nodejs'` para listar agents/teams, sessões (listar, abrir, excluir com a chave admin) e runs em stream (repasse sem buffer, abort do cliente propagado ao orquestrador), usando o cliente da P2-02. `user_id` vem da sessão (saem `@fingerprintjs/fingerprintjs` e `api.ipify.org`). Sai o bloco Endpoint do painel, o campo de endpoint do store e `src/api/routes.ts` com URL do orquestrador. Eventos do stream validados com zod no servidor ou no cliente (duração/métricas não numéricas descartadas na fronteira, não só na UI). Notas do P1-06: `selectedTeamId` só escrito (remover ou ler); `/playground?team=…` do zero abre em modo team; no modo Team a caixa "sem storage" não diz "ao agente"; composer com 32 px no celular; lixeira da sessão com área de toque adequada abaixo de `lg`.
+Fora de escopo: markdown (P2-04); "testar agora" do editor (P4-03).
+Critérios de aceite: nenhuma requisição do browser ao orquestrador nem a terceiros (e2e verifica); fechar a aba/parar ⇒ o fake registra o abort; excluir sessão sem cookie ⇒ 401; stream com evento malformado não quebra a conversa; estados do painel sem o bloco Endpoint aprovados no design QA.
+Testes exigidos: BFF do stream (repasse, abort, erro do orquestrador mapeado, 401); componente do painel sem Endpoint e do modo team por URL; e2e do chat agent e team pelo BFF.
+Riscos e dependências: buffering do stream em `next start` (teste dedicado); remoção de feature (Endpoint editável) já decidida em D-P1-06-1.
+
+## P2-04 — Markdown seguro
+UI: não            Depende (orq.): —
+Objetivo: resposta do agente não injeta HTML nem link perigoso.
+Escopo: sai `rehype-raw` (dependência removida); `rehype-sanitize` com schema estrito; links só `http(s)` e `mailto`, abrindo com `rel="noopener noreferrer"`; imagens conforme o schema (decisão do item se entram).
+Fora de escopo: mudar o visual do markdown (P1-06).
+Critérios de aceite: `<script>`, `<img onerror>`, `<iframe>`, `javascript:`/`data:` em link e HTML cru aparecem como texto ou somem; tabela, código e listas seguem renderizando.
+Testes exigidos: componente do `MarkdownRenderer` com payloads de XSS e com o markdown suportado.
+Riscos e dependências: conteúdo legítimo que dependia de HTML cru deixa de renderizar.
+
+## P2-05 — Dashboard pelo orquestrador
+UI: não            Depende (orq.): —
+Objetivo: o dashboard lê dados do orquestrador, não do Mongo.
+Escopo: `src/app/api/dashboard/*` passam a usar o cliente da P2-02 (rotas do AgentOS/orquestrador: listas, sessões, `/metrics*` com a chave admin); saem as consultas Mongo do dashboard. Card que a fonte nova não cobre: decisão do item (esconder, marcar indisponível ou esperar a F8 do orquestrador).
+Fora de escopo: remover o pacote `mongodb` (P2-06); métricas novas no orquestrador (F8).
+Critérios de aceite: dashboard abre com o fake orchestrator sem Mongo; orquestrador fora ⇒ estado de erro do P1-05; nenhuma chave no browser.
+Testes exigidos: BFF das rotas de dashboard (dados, erro mapeado, 401); e2e do dashboard com o fake.
+Riscos e dependências: o AgentOS pode não ter equivalente para "usuários únicos" e tokens por período.
+
+## P2-06 — CRUD de agents e tools pela API Admin e fim do Mongo
+UI: não            Depende (orq.): FA-02, FA-06
+Objetivo: escrita de config só pela API Admin (decisão [0016](../decisions/0016-p2-itens-modelos-crud-mongo.md) D-P2-3); o playground deixa de acessar o Mongo.
+Escopo: `src/app/api/agents|tools` (lista, detalhe, criar, alterar, excluir) chamam `/admin/config/*` pelo cliente da P2-02, com a mesma UI de hoje: mapeamento do formulário atual para o contrato snake_case; `version` do GET vai no `If-Match` do PUT/DELETE; 422 com `field` vira erro no campo; 409 (em uso, id existente) e 412 viram mensagem genérica. Removem-se `src/lib/mongodb.ts`, o pacote `mongodb`, o env do Mongo (CI e e2e inclusive) e o que só existia para ele (`$regex`, allowlist de campos do P0-05). Fake orchestrator ganha o `/admin/config` em memória.
+Fora de escopo: formulário dirigido por `/admin/schema` (P3-01), teams (P3-04), UX de conflito e soft/hard delete (P3-06).
+Critérios de aceite: `grep -r mongodb src package.json` vazio; criar/editar/excluir agent e tool no e2e pelo fake; 422 do orquestrador aparece no campo certo sem ecoar valor; header de tool volta mascarado e salvar sem mexer não apaga o segredo.
+Testes exigidos: BFF das rotas de agents/tools (mapeamento, If-Match, 422/409/412/401, Origin); e2e de criar/editar/excluir.
+Riscos e dependências: campos que o formulário atual grava e o modo estrito do orquestrador recusa (camelCase, chave desconhecida) aparecem aqui; diff pode passar de 600 linhas (dividir agents e tools se preciso).

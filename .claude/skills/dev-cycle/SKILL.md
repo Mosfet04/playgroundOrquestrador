@@ -50,6 +50,18 @@ Chame `frontend-dev-specialist` com: id e arquivo do item, spec aprovada, gates 
 
 Chame `ui-ux-designer` em modo **DESIGN_QA** com a spec e os critérios visuais. `FAIL` ⇒ volta ao dev com as divergências, depois revisão do delta e novo design QA. A mesma verificação de `git status` do estágio 2 vale aqui.
 
+## Modelos por estágio (decisão [0016](../../../docs/decisions/0016-p2-itens-modelos-crud-mongo.md) D-P2-2)
+
+O frontmatter dos agentes vale para desenhar, implementar, a 1ª revisão do item e o QA. Nas chamadas abaixo, passe os parâmetros do tool `Agent`:
+
+| Chamada | Parâmetros |
+|---|---|
+| `ui-ux-designer` em DESIGN_QA | `model: "sonnet"` |
+| `frontend-reviewer` na revisão curta dos testes do QA | `model: "sonnet"` |
+| `frontend-reviewer` em revisão de delta (rodada 2+) | `effort: "high"` |
+
+Retomar um subagente com `SendMessage` mantém o modelo da chamada original. Prefira retomar quando o contexto que ele já tem poupa reler o diff.
+
 ## 8. Limite
 
 No máximo **3 rodadas** somando voltas de revisão, QA e design QA (as de aprovação de design contam à parte). Estourou ⇒ pare e escale ao usuário com um resumo (achados em aberto, o que foi tentado).

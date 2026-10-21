@@ -8,7 +8,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 |---|---|---|---|
 | P0 Fundação | só pnpm, typecheck verde, Vitest/MSW, Playwright + fake orchestrator, CI, hardening mínimo das rotas atuais | — | [P0-fundacao.md](P0-fundacao.md) |
 | P1 Design system e navegação | Design System no Claude Design, tokens claro/escuro, rotas por URL, i18n pt-BR/EN, estados de erro | P0 | [P1-design-navegacao.md](P1-design-navegacao.md) |
-| P2 BFF e auth | login, cliente do orquestrador no servidor, chat via BFF, markdown seguro, fim do Mongo | P1, FA-02 | [P2-P5.md](P2-P5.md) |
+| P2 BFF e auth | login, cliente do orquestrador no servidor, chat via BFF, markdown seguro, fim do Mongo | P1, FA-02 | [P2-bff-auth.md](P2-bff-auth.md) |
 | P3 Editores com paridade | formulários dirigidos por `/admin/schema`: agent, tool, team, RAG, segredos, concorrência | P2, FA-02/03/05/06 | [P2-P5.md](P2-P5.md) |
 | P4 UX realtime | status de aplicação, diff, "testar agora", histórico, configurações da plataforma | P3, FA-04/05 | [P2-P5.md](P2-P5.md) |
 | P5 Fase B | campos hoje fixos no orquestrador, tools MCP | P4, FA-07, F4-02 | [P2-P5.md](P2-P5.md) |
@@ -32,6 +32,12 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P1-05b | concluído (tabela/linhas, chips com limit=100, excluir no editor, ajustes do P1-05) |
 | P1-06 | concluído (painel, bolhas, chip de tool, stream, composer, métricas do stream, LIM-P1-03-1 corrigida, ajustes do P1-05) |
 | P1-07 | concluído (5× verde e tempos medidos localmente com `CI=true`; confirmar no GitHub Actions após o push, ver docs/qa/P1-07.md) |
+| P2-01 | pendente |
+| P2-02 | pendente |
+| P2-03 | pendente |
+| P2-04 | pendente |
+| P2-05 | pendente |
+| P2-06 | pendente |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 
