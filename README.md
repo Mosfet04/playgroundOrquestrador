@@ -108,7 +108,7 @@ Crie o `.env.local` com as variáveis abaixo.
 | `AUTH_USERNAME` | usuário do login |
 | `AUTH_PASSWORD_HASH` | hash scrypt da senha do login, gerado por `pnpm auth:hash` (nunca a senha em claro) |
 
-As variáveis do servidor (todas menos `MONGO_*`) são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador ainda não são usadas pelo chat (chegam com o BFF, P2-02/P2-03), mas já são exigidas.
+As variáveis do servidor (todas menos `MONGO_*`) são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas pelo cliente do servidor (`src/server/orchestrator/`, hoje só em `GET /api/orchestrator/health`); o chat ainda chama o orquestrador direto do navegador até a P2-03.
 
 Para gerar o hash, passe a senha pelo stdin (não fica no histórico do shell):
 
@@ -181,7 +181,8 @@ src/
 ├── hooks/                   # stream do chat, sessões, ações do playground
 ├── i18n/                    # next-intl: idioma pelo cookie (request.ts)
 ├── lib/                     # utilitários (mongodb.ts, utils.ts...)
-├── server/                  # só servidor ('server-only'): env validado, sessão, senha, rate limit
+├── server/                  # só servidor ('server-only'): env validado, sessão, senha, rate limit,
+│                            # cliente do orquestrador (orchestrator/)
 ├── middleware.ts            # sessão obrigatória em páginas e /api/*, Origin nas mutações
 └── types/
 ```
@@ -195,9 +196,13 @@ pnpm test:e2e      # Playwright (Chromium) contra o orquestrador falso (e2e/fake
                    # 1ª vez: pnpm exec playwright install chromium
 pnpm build
 pnpm format        # Prettier (checagem)
+pnpm contract:check   # tipos do orquestrador em dia com o snapshot do contrato
+pnpm contract:update  # baixa o snapshot de um orquestrador local e regenera os tipos
 ```
 
-A CI (`.github/workflows/ci.yml`) roda `lint`, `typecheck`, `test`, `build` e `test:e2e` em push na `main` e em todo PR.
+A CI (`.github/workflows/ci.yml`) roda `lint`, `typecheck`, `contract:check`, `test`, `build` e `test:e2e` em push na `main` e em todo PR.
+
+**Contrato do orquestrador.** O BFF fala com o orquestrador só por `src/server/orchestrator/client.ts` (chave `run` ou `admin` por chamada, timeout e erro com código próprio; a resposta é validada com zod). Os tipos (`src/server/orchestrator/openapi.d.ts`, gerado pelo `openapi-typescript`; não edite) vêm do snapshot versionado `docs/contracts/orchestrator-openapi.json`. Quando o orquestrador mudar a API, suba-o local em development (só lá existe o `/openapi.json`) e rode `ORCHESTRATOR_URL=http://127.0.0.1:7777 pnpm contract:update` (sem a variável, usa essa URL). Se o orquestrador estiver com `API_KEY_RUN`/`API_KEY_ADMIN`, a rota pede a chave run: exporte `ORCHESTRATOR_API_KEY_RUN` no shell antes (vai só no header; sem ela, ou com a errada, o script para com HTTP 401 e diz isso); revise o diff do snapshot e commite os dois arquivos. O snapshot atual foi gerado com a config vazia (`CONFIG_STORE=yaml` e um YAML sem agents, teams e tools), que já traz as rotas do AgentOS.
 
 Sem `CI`, o `pnpm test:e2e` sobe o app com `next dev` (prazos maiores por causa da compilação sob demanda). Com `CI=true`, roda `next build` + `next start`, como na CI:
 
@@ -279,7 +284,7 @@ Production: `pnpm build` and `pnpm start` (`MONGO_*` must be set at build time t
 
 ### Development
 
-Stack: Next.js 15 (App Router), React 18, TypeScript, Tailwind + shadcn/ui, zustand, nuqs, next-intl, react-hook-form, zod (API routes), recharts. Commands: `pnpm lint`, `pnpm typecheck`, `pnpm test` (Vitest), `pnpm test:e2e` (Playwright against the fake orchestrator; `CI=true` runs it against a production build), `pnpm build`. Colors only via Design System tokens; UI text only via the `messages/*.json` catalogs. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Stack: Next.js 15 (App Router), React 18, TypeScript, Tailwind + shadcn/ui, zustand, nuqs, next-intl, react-hook-form, zod (API routes), recharts. Commands: `pnpm lint`, `pnpm typecheck`, `pnpm test` (Vitest), `pnpm test:e2e` (Playwright against the fake orchestrator; `CI=true` runs it against a production build), `pnpm build`, `pnpm contract:check` (orchestrator types up to date with the `docs/contracts/orchestrator-openapi.json` snapshot) and `pnpm contract:update` (downloads `/openapi.json` from a local orchestrator in development, `ORCHESTRATOR_URL` or `http://127.0.0.1:7777`, and regenerates the types; if the orchestrator has API keys set, export `ORCHESTRATOR_API_KEY_RUN` first, sent only as the Bearer header). Colors only via Design System tokens; UI text only via the `messages/*.json` catalogs. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Troubleshooting
 

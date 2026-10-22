@@ -17,6 +17,7 @@ type FakeSession = {
 }
 
 const PORT = Number(process.env.FAKE_ORCHESTRATOR_PORT ?? 7790)
+const startedAt = new Date().toISOString()
 const HOST = '127.0.0.1'
 const CHUNK_DELAY_MS = 30
 // Mensagem que segura o RunCompleted, para o e2e enxergar o texto parcial
@@ -191,6 +192,9 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
 
   if (route === 'GET /status')
     return sendJson(res, 200, { status: 'available' })
+  // HealthResponse do AgentOS (docs/contracts/orchestrator-openapi.json).
+  if (route === 'GET /health')
+    return sendJson(res, 200, { status: 'ok', instantiated_at: startedAt })
   if (route === 'GET /agents')
     return sendJson(res, 200, agents.map(toAgentResponse))
   if (route === 'GET /teams') return sendJson(res, 200, [])

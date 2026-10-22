@@ -1,0 +1,2 @@
+# Gerado pelo openapi-typescript a partir de docs/contracts/ (pnpm contract:update)
+src/server/orchestrator/openapi.d.ts

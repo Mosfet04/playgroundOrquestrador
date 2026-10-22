@@ -33,7 +33,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P1-06 | concluído (painel, bolhas, chip de tool, stream, composer, métricas do stream, LIM-P1-03-1 corrigida, ajustes do P1-05) |
 | P1-07 | concluído (5× verde e tempos medidos localmente com `CI=true`; confirmar no GitHub Actions após o push, ver docs/qa/P1-07.md) |
 | P2-01 | concluído (login usuário+senha, sessão jose 12 h, middleware, Origin em mutações, Sair; rate limit em memória exige réplica única e proxy que grave XFF) |
-| P2-02 | pendente |
+| P2-02 | concluído (cliente `src/server/orchestrator`, snapshot OpenAPI + tipos, `contract:update/check` na CI, health pelo BFF; chave no fake na P2-03, decisão 0018) |
 | P2-03 | pendente |
 | P2-04 | pendente |
 | P2-05 | pendente |
