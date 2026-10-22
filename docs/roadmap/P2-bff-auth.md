@@ -14,6 +14,7 @@ Fora de escopo: cliente do orquestrador (P2-02); multiusuário, papéis, troca d
 Critérios de aceite: página e `/api/*` sem cookie ⇒ redirect/401; cookie adulterado ou expirado ⇒ idem; senha errada ⇒ mensagem genérica e, após N tentativas, 429; `?next=//evil.com`, `?next=https://…` e `\\` caem em `/`; mutação sem `Origin` ou de outra origem ⇒ 403; env faltando ⇒ erro claro no boot sem ecoar valores; nenhum valor de env sensível em `.next/static`.
 Testes exigidos: unit de env, sessão (assinar/verificar/expirar), `next` seguro e rate limit; BFF das rotas de auth e do middleware (401/403/redirect); e2e do login, logout e redirect com `next`.
 Riscos e dependências: formato da credencial (senha em claro na env ou hash) e duração da sessão são decisões do item. Todo e2e existente passa a depender do login.
+Resultado: decisão [0017](../decisions/0017-login-credencial-sessao.md). Limites aceitos e documentados no README: rate limit em memória (réplica única), limite por IP exige proxy que grave/anexe `X-Forwarded-For`, JWT sem revogação (trocar `SESSION_SECRET` derruba todas as sessões), env validado no 1º request em `next start`. e2e: logins pela tela dividem o IP (limite 5); spec novo usa o `storageState`. Observações do design QA para decidir depois: o `Input` compartilhado mostra borda `primary` no campo inválido com foco (mudar afeta todos os formulários); toast de falha do logout cobre o "Sair" no Sheet a 390 px.
 
 ## P2-02 — Cliente do orquestrador e contrato tipado
 UI: não            Depende (orq.): FA-02, FA-03

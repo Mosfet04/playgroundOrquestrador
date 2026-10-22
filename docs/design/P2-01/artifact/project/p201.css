@@ -1,0 +1,57 @@
+/* P2-01: login e Sair, sobre theme.css (tokens + casca da P1-01) e bundle.css (componentes do DS). Só tokens. */
+.lg { min-height: 900px; display: flex; flex-direction: column; background: var(--background); }
+.lg-top { height: var(--header-h); display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); padding: 0 var(--space-6); flex: none; }
+.lg-body { flex: 1; display: flex; justify-content: center; padding: 64px var(--space-4) var(--space-8); }
+.lg-col { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: var(--space-6); }
+.lg-card { width: 100%; padding: var(--space-6); gap: var(--space-6); }
+.lg-head h1 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; }
+.lg-head p { margin: var(--space-1) 0 0; color: var(--muted-foreground); }
+.lg-form { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; }
+.lg-form .pg-field { width: 100%; }
+.lg-submit { width: 100%; }
+.lg-foot { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); text-align: center; }
+
+/* Aviso do formulário: um só lugar, entre a descrição e os campos */
+.notice { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--muted); }
+.notice > .pg-ico { margin-top: 2px; color: var(--muted-foreground); }
+.notice-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.notice-txt b { font-weight: 500; }
+.notice-txt span { color: var(--muted-foreground); }
+.notice-txt .pg-chip { align-self: flex-start; margin-top: var(--space-1); }
+.notice-err { border-color: var(--destructive); background: var(--card); }
+.notice-err > .pg-ico { color: var(--destructive); }
+
+/* Celular: controles de 40 px, input 16 px, ícones 44×44 */
+.phone .lg { min-height: 0; height: 100%; }
+.phone .lg-top { padding: 0 var(--space-1); }
+.phone .lg-body { padding: var(--space-4) var(--space-4) var(--space-6); }
+.phone .lg-card { padding: var(--space-4); gap: var(--space-4); }
+.phone .lg-col { gap: var(--space-4); }
+.phone .pg-input { height: var(--control-h-touch); font-size: 16px; }
+.phone .lg-submit { height: var(--control-h-touch); }
+
+/* Sair: mesmo visual de item da navegação, num botão */
+.nav-btn { width: 100%; border: 0; background: transparent; font: inherit; cursor: pointer; text-align: left; }
+.nav-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.nav-btn.is-focus { outline: 2px solid var(--ring); outline-offset: 2px; }
+.side-foot.out { padding: var(--space-3); gap: 0; }
+.sheet-foot { margin-top: auto; border-top: 1px solid var(--border); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.sheet-foot .row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.sheet-foot .row label { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+.sheet-foot .pg-select { width: 176px; height: var(--control-h-touch); }
+.sheet-foot .sep { border-top: 1px solid var(--border); margin: var(--space-1) calc(var(--space-4) * -1) 0; }
+.sheet-foot .nav-btn { height: 44px; padding: 0 var(--space-3); margin: 0 calc(var(--space-3) * -1); width: calc(100% + 24px); }
+
+/* Prancha de estados */
+.states { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-8) var(--space-6); padding: var(--space-8) var(--space-6); }
+.st { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.st .lg-card { max-width: 400px; }
+.cap { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.cap b { color: var(--foreground); font-weight: 500; }
+
+/* Decisão lado a lado */
+.dec { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); padding: var(--space-6); }
+
+@media (max-width: 960px) {
+  .states, .dec { grid-template-columns: minmax(0, 1fr); }
+}

@@ -16,6 +16,7 @@ Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/o
 - **Dashboard** (`/dashboard`): agentes ativos, usuários, sessões de agent e de team, tokens por entidade e atividade no período.
 - **Primeiros passos** (`/`): guia com atalhos para criar agente, tool e testar.
 - Cada seção tem endereço próprio (favoritar, nova aba, voltar do navegador); tema claro/escuro; pt-BR e EN.
+- **Login** (`/login`): o playground inteiro (páginas e `/api/*`) só abre com sessão, de um usuário único configurado no servidor. A sessão dura 12 h, sem renovação; "Sair" fica no fim da navegação (no celular, no rodapé do menu).
 - Estados de carregando, vazio e erro em todas as telas: com o orquestrador ou o MongoDB fora, a tela mostra o erro com "Tentar de novo", e um endereço inexistente mostra o 404 dentro do app.
 
 ## Como funciona hoje
@@ -94,12 +95,42 @@ cd playgroundOrquestrador
 pnpm install
 ```
 
-Crie o `.env.local` com o mesmo MongoDB do orquestrador (são as duas únicas variáveis que o playground lê, em `src/lib/mongodb.ts`):
+Crie o `.env.local` com as variáveis abaixo.
+
+### Variáveis de ambiente
+
+| Variável | O que é |
+|---|---|
+| `MONGO_CONNECTION_STRING`, `MONGO_DATABASE_NAME` | o mesmo MongoDB do orquestrador (`src/lib/mongodb.ts`; também no build) |
+| `ORCHESTRATOR_URL` | URL do orquestrador, `http(s)://` (ex.: `http://localhost:7777`) |
+| `ORCHESTRATOR_API_KEY_RUN`, `ORCHESTRATOR_API_KEY_ADMIN` | as chaves `API_KEY_RUN` e `API_KEY_ADMIN` do orquestrador |
+| `SESSION_SECRET` | segredo que assina o cookie de sessão, com 32 caracteres ou mais (ex.: `openssl rand -base64 48`) |
+| `AUTH_USERNAME` | usuário do login |
+| `AUTH_PASSWORD_HASH` | hash scrypt da senha do login, gerado por `pnpm auth:hash` (nunca a senha em claro) |
+
+As variáveis do servidor (todas menos `MONGO_*`) são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador ainda não são usadas pelo chat (chegam com o BFF, P2-02/P2-03), mas já são exigidas.
+
+Para gerar o hash, passe a senha pelo stdin (não fica no histórico do shell):
+
+```bash
+read -rs PW && printf '%s' "$PW" | pnpm -s auth:hash; unset PW
+# scrypt:<sal>:<hash> -> valor de AUTH_PASSWORD_HASH
+```
 
 ```env
 MONGO_CONNECTION_STRING=mongodb://localhost:27017
 MONGO_DATABASE_NAME=agno
+ORCHESTRATOR_URL=http://localhost:7777
+ORCHESTRATOR_API_KEY_RUN=<API_KEY_RUN do orquestrador>
+ORCHESTRATOR_API_KEY_ADMIN=<API_KEY_ADMIN do orquestrador>
+SESSION_SECRET=<segredo aleatório de 32+ caracteres>
+AUTH_USERNAME=admin
+AUTH_PASSWORD_HASH=<saída do pnpm auth:hash>
 ```
+
+O login aceita 5 tentativas por IP a cada 15 min (a 6ª recebe 429; entrar com a senha certa zera a contagem). O contador fica na memória do processo: vale para uma réplica só e zera ao reiniciar. O IP é o último do `X-Forwarded-For`: **sirva o playground atrás de um proxy que grave ou acrescente esse header** (nginx, Caddy, o balanceador da nuvem). Sem ele, o cliente escolhe o valor e o limite por IP não se sustenta.
+
+A sessão é só o cookie assinado com `SESSION_SECRET`: não há revogação no servidor. Trocar o `SESSION_SECRET` derruba todas as sessões abertas (todos entram de novo).
 
 ```bash
 pnpm dev          # http://localhost:3000
@@ -114,7 +145,7 @@ mongosh "mongodb://localhost:27017" sample-data.js          # 3 agentes e 4 tool
 mongosh "mongodb://localhost:27017" cleanup-sample-data.js  # remove os exemplos
 ```
 
-**Produção:** `pnpm build` e `pnpm start` (as variáveis `MONGO_*` precisam existir também no build). O repositório não tem Dockerfile.
+**Produção:** `pnpm build` e `pnpm start` (as variáveis `MONGO_*` precisam existir também no build; as do servidor, só no `start`). Sirva por HTTPS: fora do `pnpm dev` o cookie de sessão é `Secure`. O repositório não tem Dockerfile.
 
 ## Como usar
 
@@ -137,7 +168,8 @@ mongosh "mongodb://localhost:27017" cleanup-sample-data.js  # remove os exemplos
 ```
 src/
 ├── app/
-│   ├── api/                 # rotas da API (agents, tools, dashboard), validação zod
+│   ├── api/                 # rotas da API (agents, tools, dashboard, auth), validação zod
+│   ├── login/               # tela de login (fora da casca)
 │   └── (app)/               # rotas com a casca (navegação + cabeçalho): /, /playground,
 │                            # /agents[/new|/<id>], /tools[/new|/<id>], /dashboard;
 │                            # error.tsx, not-found.tsx e o catch-all do 404
@@ -149,6 +181,8 @@ src/
 ├── hooks/                   # stream do chat, sessões, ações do playground
 ├── i18n/                    # next-intl: idioma pelo cookie (request.ts)
 ├── lib/                     # utilitários (mongodb.ts, utils.ts...)
+├── server/                  # só servidor ('server-only'): env validado, sessão, senha, rate limit
+├── middleware.ts            # sessão obrigatória em páginas e /api/*, Origin nas mutações
 └── types/
 ```
 
@@ -171,7 +205,7 @@ Sem `CI`, o `pnpm test:e2e` sobe o app com `next dev` (prazos maiores por causa 
 CI=true MONGO_CONNECTION_STRING=mongodb://127.0.0.1:1/ci-fake MONGO_DATABASE_NAME=ci-fake pnpm test:e2e
 ```
 
-Os valores `MONGO_*` são de mentira (porta 1, sem Mongo): o build só precisa que existam. O build sobrescreve a pasta `.next`: pare qualquer `next dev` do projeto antes e suba o dev de novo depois.
+Os valores `MONGO_*` são de mentira (porta 1, sem Mongo): o build só precisa que existam. O env do servidor nos testes (usuário, hash, segredo e chaves de teste, nunca reais) fica em `e2e/test-env.ts`: o Vitest e o Playwright o usam, e o projeto `setup` do Playwright entra uma vez pela tela de login e grava a sessão em `e2e/.auth/` para os demais testes. A CI confere que nenhum desses valores aparece em `.next/static`. O build sobrescreve a pasta `.next`: pare qualquer `next dev` do projeto antes e suba o dev de novo depois.
 
 Plano de trabalho em [`docs/roadmap/`](docs/roadmap/README.md), decisões em [`docs/decisions/`](docs/decisions/) e regras do projeto em [`CLAUDE.md`](CLAUDE.md). Para contribuir, veja o [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -201,6 +235,7 @@ Web UI for the [Agno Python AI Orchestrator](https://github.com/Mosfet04/orquest
 - **Chat playground** (`/playground`): chat with the orchestrator's agents and teams, with streaming, tool calls (time and error of each), time and tokens of each response, session history (Agno 2.5 `chat_history` and the legacy format) and media.
 - **Agents** (`/agents`, `/agents/new`, `/agents/<id>`) and **HTTP tools** (`/tools`, …): create, edit, delete, search and filter.
 - **Dashboard** (`/dashboard`) and **getting started** guide (`/`).
+- **Sign-in** (`/login`): the whole playground (pages and `/api/*`) requires a session for a single user configured on the server; sessions last 12 h, no renewal. "Sign out" is at the end of the navigation.
 - Every section has its own URL; light/dark theme; pt-BR and EN. Loading, empty and error states everywhere: with the orchestrator or MongoDB down you get the error with "Try again", and an unknown address shows the in-app 404.
 
 ### How it works today
@@ -217,15 +252,23 @@ Requirements: Node.js 22.18+ or 24+, pnpm 10.33.0 (pnpm only) and the orchestrat
 
 ```bash
 pnpm install
-# .env.local (the only two variables the playground reads)
+# .env.local (see "Variáveis de ambiente" above for the table)
 #   MONGO_CONNECTION_STRING=mongodb://localhost:27017
 #   MONGO_DATABASE_NAME=agno
+#   ORCHESTRATOR_URL=http://localhost:7777
+#   ORCHESTRATOR_API_KEY_RUN=<orchestrator API_KEY_RUN>
+#   ORCHESTRATOR_API_KEY_ADMIN=<orchestrator API_KEY_ADMIN>
+#   SESSION_SECRET=<random secret, 32+ characters>
+#   AUTH_USERNAME=admin
+#   AUTH_PASSWORD_HASH=<output of: read -rs PW && printf '%s' "$PW" | pnpm -s auth:hash; unset PW>
 pnpm dev                                                   # http://localhost:3000
 mongosh "mongodb://localhost:27017" sample-data.js         # optional sample data (database "agno")
 mongosh "mongodb://localhost:27017" cleanup-sample-data.js # removes it
 ```
 
-Production: `pnpm build` and `pnpm start` (`MONGO_*` must be set at build time too). There is no Dockerfile.
+Server variables are validated in `src/server/env.ts` and never reach the browser; if one is missing, the server refuses requests and the log names the variable, never its value. Sign-in allows 5 attempts per IP every 15 min (in-memory counter: single replica only); the IP is the last `X-Forwarded-For` entry, so serve it behind a proxy that sets that header, otherwise the limit doesn't hold. Server env is checked at startup in `pnpm dev` and from the first request in `pnpm start`. Rotating `SESSION_SECRET` signs everyone out (there is no server-side revocation).
+
+Production: `pnpm build` and `pnpm start` (`MONGO_*` must be set at build time too; server variables only at start). Serve over HTTPS: outside `pnpm dev` the session cookie is `Secure`. There is no Dockerfile.
 
 ### Usage
 

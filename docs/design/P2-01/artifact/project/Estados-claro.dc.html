@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Estados do login · desktop claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p201.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app" style="min-height: 1180px">
+  <div class="states">
+
+    <div class="st">
+      <p class="cap"><b>E1</b> · campos vazios (validação no cliente, sem requisição)</p>
+      <section class="pg-card lg-card">
+        <div class="lg-head"><h1>Entrar</h1><p>Use a credencial configurada no servidor do playground.</p></div>
+        <form class="lg-form" novalidate>
+          <div class="pg-field">
+            <label class="pg-label" for="e1u">Usuário</label>
+            <input class="pg-input is-focus" id="e1u" autocomplete="username" aria-invalid="true" aria-describedby="e1ue" value="">
+            <p class="pg-error" id="e1ue"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>Informe o usuário.</p>
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e1p">Senha</label>
+            <input class="pg-input" id="e1p" type="password" autocomplete="current-password" aria-invalid="true" aria-describedby="e1pe" value="">
+            <p class="pg-error" id="e1pe"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>Informe a senha.</p>
+          </div>
+          <button class="pg-btn lg-submit" type="submit">Entrar</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="st">
+      <p class="cap"><b>E2</b> · enviando (botão ocupado, sem 2º envio)</p>
+      <section class="pg-card lg-card">
+        <div class="lg-head"><h1>Entrar</h1><p>Use a credencial configurada no servidor do playground.</p></div>
+        <form class="lg-form" novalidate aria-busy="true">
+          <div class="pg-field">
+            <label class="pg-label" for="e2u">Usuário</label>
+            <input class="pg-input" id="e2u" autocomplete="username" readonly value="admin">
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e2p">Senha</label>
+            <input class="pg-input" id="e2p" type="password" autocomplete="current-password" readonly value="segredo-de-exemplo">
+          </div>
+          <button class="pg-btn lg-submit" type="submit" aria-disabled="true" style="opacity: .5; cursor: progress"><svg class="pg-ico pg-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>Entrando…</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="st">
+      <p class="cap"><b>E3</b> · credenciais inválidas (401): mensagem genérica, senha limpa e com foco</p>
+      <section class="pg-card lg-card">
+        <div class="lg-head"><h1>Entrar</h1><p>Use a credencial configurada no servidor do playground.</p></div>
+        <form class="lg-form" novalidate>
+          <div class="notice notice-err" role="alert">
+            <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
+            <div class="notice-txt"><b>Usuário ou senha incorretos.</b><span>Confira os dois campos e tente de novo.</span></div>
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e3u">Usuário</label>
+            <input class="pg-input" id="e3u" autocomplete="username" value="admin">
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e3p">Senha</label>
+            <input class="pg-input is-focus" id="e3p" type="password" autocomplete="current-password" value="">
+          </div>
+          <button class="pg-btn lg-submit" type="submit">Entrar</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="st">
+      <p class="cap"><b>E4</b> · muitas tentativas (429) com Retry-After: Entrar bloqueado até o prazo</p>
+      <section class="pg-card lg-card">
+        <div class="lg-head"><h1>Entrar</h1><p>Use a credencial configurada no servidor do playground.</p></div>
+        <form class="lg-form" novalidate>
+          <div class="notice notice-err" role="alert" id="e4n">
+            <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <div class="notice-txt"><b>Muitas tentativas.</b><span>Tente de novo em 5 min.</span></div>
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e4u">Usuário</label>
+            <input class="pg-input" id="e4u" autocomplete="username" value="admin">
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e4p">Senha</label>
+            <input class="pg-input" id="e4p" type="password" autocomplete="current-password" value="">
+          </div>
+          <button class="pg-btn lg-submit" type="submit" disabled aria-describedby="e4n">Entrar</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="st">
+      <p class="cap"><b>E5</b> · muitas tentativas (429) sem Retry-After: Entrar habilitado</p>
+      <section class="pg-card lg-card">
+        <div class="lg-head"><h1>Entrar</h1><p>Use a credencial configurada no servidor do playground.</p></div>
+        <form class="lg-form" novalidate>
+          <div class="notice notice-err" role="alert">
+            <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <div class="notice-txt"><b>Muitas tentativas.</b><span>Aguarde alguns minutos e tente de novo.</span></div>
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e5u">Usuário</label>
+            <input class="pg-input" id="e5u" autocomplete="username" value="admin">
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e5p">Senha</label>
+            <input class="pg-input" id="e5p" type="password" autocomplete="current-password" value="">
+          </div>
+          <button class="pg-btn lg-submit" type="submit">Entrar</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="st">
+      <p class="cap"><b>E6</b> · servidor ou rede (5xx / sem resposta): chip com código ou offline</p>
+      <section class="pg-card lg-card">
+        <div class="lg-head"><h1>Entrar</h1><p>Use a credencial configurada no servidor do playground.</p></div>
+        <form class="lg-form" novalidate>
+          <div class="notice notice-err" role="alert">
+            <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m19 5 3-3"></path><path d="m2 22 3-3"></path><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"></path><path d="M7.5 13.5 10 11"></path><path d="M10.5 16.5 13 14"></path><path d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z"></path></svg>
+            <div class="notice-txt"><b>Não foi possível entrar agora.</b><span>Verifique a conexão e tente de novo.</span><span class="pg-chip">código 503</span></div>
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e6u">Usuário</label>
+            <input class="pg-input" id="e6u" autocomplete="username" value="admin">
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="e6p">Senha</label>
+            <input class="pg-input" id="e6p" type="password" autocomplete="current-password" value="segredo-de-exemplo">
+          </div>
+          <button class="pg-btn lg-submit" type="submit">Entrar</button>
+        </form>
+        <p class="cap">sem resposta: <span class="pg-chip"><span class="pg-dot" style="color: var(--destructive)" aria-hidden="true"></span>offline</span> no lugar do código; a senha fica no campo</p>
+      </section>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

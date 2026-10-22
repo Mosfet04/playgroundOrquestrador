@@ -1,0 +1,33 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-21T12:00:00Z"},
+  "title": "P2-01 Login e Sair",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "Desktop · claro · Login (padrão, foco no usuário)", "expand": "fill"},
+    "Login-escuro.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Desktop · escuro · Login com sessão expirada", "expand": "fill"},
+    "Estados-claro.dc.html": {"x": 0, "y": 1020, "w": 1440, "h": 1180, "title": "Desktop · claro · Estados do formulário", "expand": "fill"},
+    "Celular-claro.dc.html": {"x": 1520, "y": 1020, "w": 390, "h": 844, "title": "Celular · claro · Credenciais inválidas"},
+    "Celular-escuro-429.dc.html": {"x": 1990, "y": 1020, "w": 390, "h": 844, "title": "Celular · escuro · Muitas tentativas"},
+    "Sair-desktop.dc.html": {"x": 0, "y": 2320, "w": 1440, "h": 900, "title": "Desktop · claro · Sair no rodapé da navegação", "expand": "fill"},
+    "Celular-sheet-sair.dc.html": {"x": 1520, "y": 2320, "w": 390, "h": 844, "title": "Celular · escuro · Sair no Sheet do menu"},
+    "Decisao-campos.dc.html": {"x": 1990, "y": 2320, "w": 960, "h": 640, "title": "D-P2-01-1 · Só senha (A) x usuário e senha (B)"}
+  },
+  "order": [
+    "Main.dc.html",
+    "Login-escuro.dc.html",
+    "Estados-claro.dc.html",
+    "Celular-claro.dc.html",
+    "Celular-escuro-429.dc.html",
+    "Sair-desktop.dc.html",
+    "Celular-sheet-sair.dc.html",
+    "Decisao-campos.dc.html"
+  ],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "P2-01 · Login de usuário único e Sair na casca", "kind": "title1", "maxW": 2960}
+  },
+  "designSystems": [
+    {"title": "Playground do Orquestrador", "namespace": "playground", "artifact": "https://claude.ai/artifact/Cy1ufZWym7KDKjgFFb7Bme", "version": null, "copiedAt": "2026-10-21T12:00:00Z"}
+  ]
+}

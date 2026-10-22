@@ -57,3 +57,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# sessão do login nos e2e (P2-01)
+/e2e/.auth/

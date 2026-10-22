@@ -379,5 +379,28 @@
     "title": "This page hit an error",
     "description": "Try again. If it keeps happening, reload the page or go back home.",
     "reference": "ref. {digest}"
+  },
+  "auth": {
+    "title": "Sign in",
+    "description": "Use the credential configured on the playground server.",
+    "username": "Username",
+    "password": "Password",
+    "usernameRequired": "Enter the username.",
+    "passwordRequired": "Enter the password.",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "invalidTitle": "Incorrect username or password.",
+    "invalidHint": "Check both fields and try again.",
+    "tooManyTitle": "Too many attempts.",
+    "retryIn": "Try again in {wait}.",
+    "retryLater": "Wait a few minutes and try again.",
+    "unavailableTitle": "Couldn't sign in right now.",
+    "unavailableHint": "Check your connection and try again.",
+    "expiredTitle": "Your session expired.",
+    "expiredHint": "Sign in again to return to where you were.",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…",
+    "signOutError": "Couldn't sign out.",
+    "signOutErrorHint": "Check your connection and try again."
   }
 }

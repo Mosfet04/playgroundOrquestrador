@@ -379,5 +379,28 @@
     "title": "Esta página encontrou um erro",
     "description": "Tente de novo. Se o erro continuar, recarregue a página ou volte ao início.",
     "reference": "ref. {digest}"
+  },
+  "auth": {
+    "title": "Entrar",
+    "description": "Use a credencial configurada no servidor do playground.",
+    "username": "Usuário",
+    "password": "Senha",
+    "usernameRequired": "Informe o usuário.",
+    "passwordRequired": "Informe a senha.",
+    "submit": "Entrar",
+    "submitting": "Entrando…",
+    "invalidTitle": "Usuário ou senha incorretos.",
+    "invalidHint": "Confira os dois campos e tente de novo.",
+    "tooManyTitle": "Muitas tentativas.",
+    "retryIn": "Tente de novo em {wait}.",
+    "retryLater": "Aguarde alguns minutos e tente de novo.",
+    "unavailableTitle": "Não foi possível entrar agora.",
+    "unavailableHint": "Verifique a conexão e tente de novo.",
+    "expiredTitle": "Sua sessão expirou.",
+    "expiredHint": "Entre de novo para voltar à página em que estava.",
+    "signOut": "Sair",
+    "signingOut": "Saindo…",
+    "signOutError": "Não foi possível sair.",
+    "signOutErrorHint": "Verifique a conexão e tente de novo."
   }
 }

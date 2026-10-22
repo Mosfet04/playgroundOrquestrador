@@ -80,19 +80,38 @@ const uiText = {
   }
 }
 
+// Fontes servidas de src/app/fonts (decisões 0004 e 0008): nada de Google Fonts.
+const noGoogleFonts = {
+  name: 'next/font/google',
+  message: 'Use next/font/local com os arquivos de src/app/fonts (decisão 0008).'
+}
+
 const eslintConfig = [
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
-    // Fontes servidas de src/app/fonts (decisões 0004 e 0008): nada de Google Fonts.
+    rules: {
+      'no-restricted-imports': ['error', { paths: [noGoogleFonts] }]
+    }
+  },
+  {
+    // P2-01: src/server (env, chaves, sessão) só no servidor. Nas pastas do
+    // cliente o lint recusa o import; nas demais, o 'server-only' quebra o build.
+    files: [
+      'src/components/**',
+      'src/hooks/**',
+      'src/lib/**',
+      'src/api/**',
+      'src/store.ts'
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
         {
-          paths: [
+          paths: [noGoogleFonts],
+          patterns: [
             {
-              name: 'next/font/google',
-              message:
-                'Use next/font/local com os arquivos de src/app/fonts (decisão 0008).'
+              group: ['@/server', '@/server/*', '**/server/*'],
+              message: 'src/server é só do servidor (CLAUDE.md, P2-01).'
             }
           ]
         }

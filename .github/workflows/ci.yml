@@ -87,8 +87,20 @@ jobs:
       # Com CI=true (padrão do Actions), o Playwright builda e serve o app com
       # next build + next start (playwright.config.ts, decisão 0013). O build
       # importa src/lib/mongodb.ts: mesmos valores de mentira do job checks,
-      # sem Mongo e sem conexão real.
+      # sem Mongo e sem conexão real. O env do servidor (login, chaves) é o de
+      # teste, de e2e/test-env.ts, passado pelo playwright.config.ts.
       - run: pnpm test:e2e
         env:
           MONGO_CONNECTION_STRING: mongodb://127.0.0.1:1/ci-fake
           MONGO_DATABASE_NAME: ci-fake
+
+      # P2-01: nenhum valor do env de teste no bundle do browser (os segredos
+      # de e2e/test-env.ts têm a marca `e2e-segredo`; o hash começa com `scrypt:`).
+      - name: Nenhum segredo no bundle do browser
+        run: |
+          # Sem o build, o grep sairia com 2 e o passo passaria.
+          test -d .next/static || { echo '::error::.next/static não existe'; exit 1; }
+          if grep -rqE 'e2e-segredo|scrypt:' .next/static; then
+            echo '::error::valor do env do servidor em .next/static'
+            exit 1
+          fi

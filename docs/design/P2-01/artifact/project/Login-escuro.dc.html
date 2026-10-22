@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Login com sessão expirada · desktop escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p201.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7397ff}a:hover{color:#9db4ff}
+</style>
+</helmet>
+<div class="pg-app dark lg">
+  <div class="lg-top">
+    <button class="pg-btn pg-btn-ghost pg-btn-icon" type="button" aria-label="Idioma: Português. Alterar idioma"><span class="pg-mono" style="font-size: 12px">PT</span></button>
+    <button class="pg-btn pg-btn-ghost pg-btn-icon" type="button" aria-label="Tema: Escuro. Alterar tema"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button>
+  </div>
+  <main class="lg-body" id="conteudo">
+    <div class="lg-col">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span class="pg-mark pg-grad" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 16 16" style="stroke-width: 1.25"><path d="M4 4.5 12 8M4 11.5 12 8M4 4.5v7"></path><circle cx="4" cy="4.5" r="2" fill="currentColor"></circle><circle cx="4" cy="11.5" r="2" fill="currentColor"></circle><circle cx="12" cy="8" r="2" fill="currentColor"></circle></svg></span>
+        <div class="brand"><b>Orquestrador</b><span>playground</span></div>
+      </div>
+      <section class="pg-card lg-card" aria-labelledby="t-login">
+        <div class="lg-head">
+          <h1 id="t-login">Entrar</h1>
+          <p>Use a credencial configurada no servidor do playground.</p>
+        </div>
+        <form class="lg-form" novalidate>
+          <div class="notice" role="status">
+            <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <div class="notice-txt"><b>Sua sessão expirou.</b><span>Entre de novo para voltar à página em que estava.</span></div>
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="u2">Usuário</label>
+            <input class="pg-input is-focus" id="u2" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" value="">
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="p2">Senha</label>
+            <input class="pg-input" id="p2" name="password" type="password" autocomplete="current-password" value="">
+          </div>
+          <button class="pg-btn lg-submit" type="submit">Entrar</button>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
