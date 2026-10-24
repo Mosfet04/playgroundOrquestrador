@@ -179,37 +179,6 @@ test('/tools/<id> com 503: "Tentar de novo" e o link de volta; sucesso abre o ed
   await expect(page.getByRole('heading', { level: 1, name: 'Editar tool' })).toBeFocused()
 })
 
-test('/dashboard: só os tokens falham, o erro fica no card e os KPIs aparecem', async ({ page }) => {
-  await page.route(/\/api\/dashboard\/stats/, (route) =>
-    route.fulfill({
-      json: {
-        success: true,
-        data: {
-          activeAgents: 2,
-          totalAgents: 3,
-          uniqueUsers: 0,
-          totalSessions: 0,
-          totalAgentSessions: 0,
-          totalTeamSessions: 0,
-          sessionsInPeriod: 0,
-          totalTokens: 0,
-          models: [],
-          embeddingModels: [],
-          activityOverTime: []
-        }
-      }
-    })
-  )
-  await page.route(/\/api\/dashboard\/tokens/, (route) => route.abort())
-  await page.goto('/dashboard')
-
-  await expect(page.getByText('Agentes ativos', { exact: true })).toBeVisible()
-  const alert = main(page).getByRole('alert')
-  await expect(alert).toHaveCount(1)
-  await expect(alert).toContainText('Não foi possível carregar o consumo de tokens')
-  await expect(page.getByText('Não foi possível carregar o dashboard')).toHaveCount(0)
-})
-
 test.describe('404 de rota', () => {
   test('sub-rota sem página e caminho hostil: 404 na casca, sem executar nada', async ({ page }) => {
     const dialogs: string[] = []

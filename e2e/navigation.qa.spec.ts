@@ -33,7 +33,7 @@ const mainNav = (page: Page) =>
 const trail = (page: Page) =>
   page.getByRole('navigation', { name: 'Você está em' })
 
-/** Mock de /api/agents*, /api/tools* e /api/dashboard/*. `requested` guarda as URLs de detalhe pedidas. */
+/** Mock de /api/agents* e /api/tools*. `requested` guarda as URLs de detalhe pedidas. */
 async function mockApi(
   page: Page,
   agents: (typeof agent)[],
@@ -41,9 +41,6 @@ async function mockApi(
 ) {
   const requested: string[] = []
   await page.route(/\/api\/tools(\?.*)?$/, (route) => route.fulfill({ json: emptyTools }))
-  await page.route(/\/api\/dashboard\//, (route) =>
-    route.fulfill({ status: 503, json: { success: false, error: 'indisponível' } })
-  )
   await page.route(/\/api\/agents(\/[^?]*)?(\?.*)?$/, async (route) => {
     const { pathname } = new URL(route.request().url())
     const raw = pathname.slice('/api/agents/'.length)

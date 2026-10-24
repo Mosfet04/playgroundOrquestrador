@@ -9,7 +9,7 @@ import {
   kindSchema,
   ok,
   orchestratorError
-} from '../respond'
+} from '../../respond'
 
 export const runtime = 'nodejs'
 

@@ -13,7 +13,7 @@ Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/o
 - **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls (tempo e erro de cada uma), tempo e tokens de cada resposta, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo).
 - **Agentes** (`/agents`, `/agents/new`, `/agents/<id>`): criar, editar, excluir, buscar e filtrar; modelo, prompt, tools associadas e RAG.
 - **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): método, URL, endpoint, headers e parâmetros.
-- **Dashboard** (`/dashboard`): agentes ativos, usuários, sessões de agent e de team, tokens por entidade e atividade no período.
+- **Dashboard** (`/dashboard`): agentes ativos, pico diário de usuários, sessões de agent e de team, tokens, modelos e atividade por dia, com filtro de período (Hoje, 7, 30 e 90 dias, em dias UTC).
 - **Primeiros passos** (`/`): guia com atalhos para criar agente, tool e testar.
 - Cada seção tem endereço próprio (favoritar, nova aba, voltar do navegador); tema claro/escuro; pt-BR e EN.
 - **Login** (`/login`): o playground inteiro (páginas e `/api/*`) só abre com sessão, de um usuário único configurado no servidor. A sessão dura 12 h, sem renovação; "Sair" fica no fim da navegação (no celular, no rodapé do menu).
@@ -23,13 +23,16 @@ Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/o
 
 ```mermaid
 graph LR
-    B[Navegador] -->|gestão: /api/agents, /api/tools, /api/dashboard| N[Next.js API Routes]
+    B[Navegador] -->|gestão: /api/agents, /api/tools| N[Next.js API Routes]
     N --> M[(MongoDB do orquestrador)]
+    B -->|dashboard: /api/dashboard| N
+    N -->|/metrics, /admin/config/agents| O
     B -->|chat: /agents, /teams, /sessions, runs| O[Orquestrador / AgentOS]
     O --> M
 ```
 
-- **Gestão** (agentes, tools, dashboard): as rotas `src/app/api/**` leem e gravam direto no MongoDB do orquestrador, com validação zod na entrada.
+- **Dashboard**: `/api/dashboard/stats` chama o `GET /metrics` (agregados por dia, em UTC) e o `GET /admin/config/agents` do orquestrador com a chave admin, sem Mongo. Como o `GET /metrics` só lê agregados prontos, o BFF pede antes o recálculo (`POST /metrics/refresh`), no máximo 1 vez por minuto por processo; se o refresh falhar, a leitura segue com o que houver. Sessões, tokens e modelos somam os dias do período; "Máx. usuários/dia" é o pico diário (o orquestrador não conta usuários únicos no período). O consumo de tokens por agente ou team espera as métricas por agente do orquestrador (F8).
+- **Gestão** (agentes e tools): as rotas `src/app/api/**` leem e gravam direto no MongoDB do orquestrador, com validação zod na entrada.
 - **Chat**: o navegador só fala com o playground. As rotas `src/app/api/playground/**` (BFF) chamam o AgentOS do orquestrador em `ORCHESTRATOR_URL`, com a chave run (excluir sessão usa a admin), e repassam o stream do run sem buffer. O `user_id` das sessões é o usuário do login. Não há endpoint no painel: a URL e as chaves ficam só no servidor.
 - **Quando a mudança vale**: o orquestrador monta agentes e tools ao iniciar. O que você cria ou edita aqui fica gravado no MongoDB e passa a valer no chat **depois de reiniciar o orquestrador**. A aplicação a quente pela API Admin do orquestrador é o plano das fases P2–P4 ([roadmap](docs/roadmap/README.md)).
 
@@ -83,7 +86,7 @@ Tipos de parâmetro aceitos (os do orquestrador): `string`, `integer`, `float`, 
 > **Atenção:** o valor dos headers fica em texto no MongoDB e aparece no editor da tool. Até a referência a segredo (`env:`/`file:`) chegar (P2+), não guarde ali uma chave que não possa ser lida por quem acessa o banco ou o playground.
 
 #### `agno_sessions` e `agno_memories`
-Sessões (agents e teams, com as métricas de tokens que o dashboard lê) e memórias de usuário do Agno. Até a v2.4 se chamavam `storage` e `user_memories`.
+Sessões (agents e teams) e memórias de usuário do Agno. Até a v2.4 se chamavam `storage` e `user_memories`.
 
 ## Início rápido
 
@@ -108,7 +111,7 @@ Crie o `.env.local` com as variáveis abaixo.
 | `AUTH_USERNAME` | usuário do login |
 | `AUTH_PASSWORD_HASH` | hash scrypt da senha do login, gerado por `pnpm auth:hash` (nunca a senha em claro) |
 
-As variáveis do servidor (todas menos `MONGO_*`) são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas só pelo cliente do servidor (`src/server/orchestrator/`): health e o chat (`/api/playground/*`).
+As variáveis do servidor (todas menos `MONGO_*`) são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas só pelo cliente do servidor (`src/server/orchestrator/`): health, o chat (`/api/playground/*`) e o dashboard (`/api/dashboard/*`).
 
 Para gerar o hash, passe a senha pelo stdin (não fica no histórico do shell):
 

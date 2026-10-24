@@ -32,19 +32,15 @@ const tool = {
 const stats = {
   activeAgents: 1,
   totalAgents: 1,
-  uniqueUsers: 2,
+  peakDailyUsers: 2,
   totalSessions: 3,
   totalAgentSessions: 2,
   totalTeamSessions: 1,
-  sessionsInPeriod: 3,
   totalTokens: 1234567,
   models: [{ name: 'llama3.2', provider: 'ollama', count: 2 }],
   embeddingModels: [{ name: 'embed-x', provider: 'openai', count: 1 }],
   activityOverTime: [{ time: '2026-10-15', sessions: 3, agentSessions: 2, teamSessions: 1 }]
 }
-const tokenRows = [
-  { name: 'alfa', type: 'agent', inputTokens: 100, outputTokens: 50, totalTokens: 150 }
-]
 const list = <T,>(data: T[]) => ({
   success: true,
   data: { data, total: data.length, page: 1, limit: 100, totalPages: 1 }
@@ -66,9 +62,6 @@ async function mockApi(page: Page) {
   await serve('tools', [tool])
   await page.route(/\/api\/dashboard\/stats/, (route) =>
     route.fulfill({ json: { success: true, data: stats } })
-  )
-  await page.route(/\/api\/dashboard\/tokens/, (route) =>
-    route.fulfill({ json: { success: true, data: tokenRows } })
   )
 }
 

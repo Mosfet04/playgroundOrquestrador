@@ -32,6 +32,29 @@ test.describe('fake orchestrator: chave', () => {
   })
 })
 
+// P2-05: /metrics (filtrado por starting_date) e /admin/config/agents (paginado).
+test('fake orchestrator: métricas e config dos agents (chave admin)', async ({ request }) => {
+  const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  const today = new Date().toISOString().slice(0, 10)
+
+  // Só leitura de agregados: o refresh (admin) é que inclui o dia de hoje.
+  const run = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_RUN)
+  expect((await request.post(`${FAKE_ORCHESTRATOR_URL}/metrics/refresh`, { headers: run })).status()).toBe(403)
+  expect((await request.post(`${FAKE_ORCHESTRATOR_URL}/metrics/refresh`, { headers })).status()).toBe(200)
+
+  const metrics = await request.get(`${FAKE_ORCHESTRATOR_URL}/metrics?starting_date=${today}`, { headers })
+  expect((await metrics.json()).metrics).toEqual([
+    expect.objectContaining({ agent_sessions_count: 3, team_sessions_count: 1, users_count: 3 })
+  ])
+  const all = await request.get(`${FAKE_ORCHESTRATOR_URL}/metrics`, { headers })
+  expect((await all.json()).metrics).toHaveLength(90)
+
+  const page = await request.get(`${FAKE_ORCHESTRATOR_URL}/admin/config/agents?offset=2&limit=5`, { headers })
+  expect(await page.json()).toEqual(
+    expect.objectContaining({ items: [expect.objectContaining({ active: false })], total: 3, offset: 2 })
+  )
+})
+
 test.describe('fake orchestrator', () => {
   test.use({ extraHTTPHeaders: bearer(TEST_ENV.ORCHESTRATOR_API_KEY_RUN) })
 

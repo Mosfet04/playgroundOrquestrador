@@ -1,6 +1,6 @@
 import { listEntities } from '@/server/orchestrator/chat'
 
-import { ok, orchestratorError } from '../respond'
+import { ok, orchestratorError } from '../../respond'
 
 export const runtime = 'nodejs'
 

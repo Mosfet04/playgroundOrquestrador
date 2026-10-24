@@ -1,5 +1,5 @@
 // Orquestrador falso para os testes E2E: imita só os endpoints do AgentOS
-// (agno 2.5) que o BFF do chat chama (src/server/orchestrator/chat.ts). Exige
+// (agno 2.5) que o BFF chama (src/server/orchestrator/chat.ts e dashboard.ts). Exige
 // a chave como o real (decisão 0018): Bearer run ou admin; 401 sem chave
 // válida, 403 com a run em /admin*, /metrics* e DELETE /sessions*. As rotas de
 // controle do teste (/hold/release, /aborts) não existem no real e não pedem
@@ -74,6 +74,59 @@ const toAgentResponse = (agent: FakeAgent) => ({
   model: { name: 'fake-model', model: 'fake-model', provider: 'Fake' },
   sessions: { session_table: 'agno_sessions' }
 })
+
+// Config dos agents da API Admin (GET /admin/config/agents, snake_case, com
+// `version`): um agent inativo (DELETE lógico) e um com RAG ativo, para o
+// dashboard contar ativos, total e embeddings.
+const agentConfigs = [
+  {
+    id: 'agente-alfa',
+    active: true,
+    version: 1,
+    rag_config: { active: true, model: 'fake-embed', factory_ia_model: 'Fake' }
+  },
+  { id: 'agente-beta', active: true, version: 1 },
+  { id: 'agente-gama', active: false, version: 2 }
+]
+
+// GET /metrics do AgentOS: 90 dias até hoje (UTC), determinísticos. Como no
+// agno, ele só lê agregados prontos: o dia de hoje só aparece depois do primeiro
+// POST /metrics/refresh (`refreshed`). Hoje: 3
+// sessões de agent, 1 de team, 3 usuários, 1000 tokens; cada dia anterior: 1
+// sessão de agent, 1 usuário, 100 tokens. Assim o filtro de período muda os
+// números: today = 4 sessões, 7d = 10 (1600 tokens), 30d = 33 (3900), 90d = 93.
+let refreshed = false
+const DAY_MS = 24 * 60 * 60 * 1000
+const metricsFor = (startingDate: string | null, endingDate: string | null) => {
+  const todayMs = Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`)
+  return Array.from({ length: 90 }, (_, ago) => {
+    const date = new Date(todayMs - ago * DAY_MS).toISOString().slice(0, 10)
+    const today = ago === 0
+    return {
+      id: date,
+      agent_runs_count: 0,
+      agent_sessions_count: today ? 3 : 1,
+      team_runs_count: 0,
+      team_sessions_count: today ? 1 : 0,
+      workflow_runs_count: 0,
+      workflow_sessions_count: 0,
+      users_count: today ? 3 : 1,
+      token_metrics: { total_tokens: today ? 1000 : 100 },
+      model_metrics: [
+        { model_id: 'fake-model', model_provider: 'Fake', count: today ? 4 : 1 }
+      ],
+      date: `${date}T00:00:00Z`,
+      created_at: `${date}T12:00:00Z`,
+      updated_at: `${date}T12:00:00Z`
+    }
+  })
+    .filter(
+      ({ date }) =>
+        (refreshed || date < new Date(todayMs).toISOString().slice(0, 10)) &&
+        (!startingDate || date >= startingDate) && (!endingDate || date <= endingDate)
+    )
+    .reverse()
+}
 
 const sendJson = (res: ServerResponse, status: number, body: unknown) => {
   res.writeHead(status, {
@@ -231,6 +284,28 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
     return sendJson(res, 200, { status: 'ok', instantiated_at: startedAt })
   if (route === 'GET /agents')
     return sendJson(res, 200, agents.map(toAgentResponse))
+  if (route === 'POST /metrics/refresh') {
+    refreshed = true
+    return sendJson(res, 200, metricsFor(null, null))
+  }
+  if (route === 'GET /metrics')
+    return sendJson(res, 200, {
+      metrics: metricsFor(
+        url.searchParams.get('starting_date'),
+        url.searchParams.get('ending_date')
+      ),
+      updated_at: null
+    })
+  if (route === 'GET /admin/config/agents') {
+    const offset = Number(url.searchParams.get('offset') ?? 0)
+    const limit = Number(url.searchParams.get('limit') ?? 50)
+    return sendJson(res, 200, {
+      items: agentConfigs.slice(offset, offset + limit),
+      total: agentConfigs.length,
+      offset,
+      limit
+    })
+  }
   if (route === 'GET /teams') return sendJson(res, 200, teams.map(toAgentResponse))
   if (route === 'POST /hold/release') {
     const only = url.searchParams.get('agent')

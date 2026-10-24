@@ -8,8 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LiveStatus, LoadErrorState } from '@/components/ui/loading'
 import { 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -30,10 +28,9 @@ import {
   Zap,
   Brain,
   Database,
-  TrendingUp,
   Clock
 } from 'lucide-react'
-import { DashboardStats, TokenMetrics } from '@/types/dashboard'
+import { DASHBOARD_PERIODS, DashboardStats } from '@/types/dashboard'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomTooltip = ({ active, payload, label, labelFormatter }: any) => {
   const format = useFormatter()
@@ -68,8 +65,6 @@ const CHART = {
 }
 const AXIS_PROPS = { stroke: CHART.grid, tick: { fill: CHART.axis } }
 
-const TIME_FILTERS = ['1h', '24h', '7d', '30d', '90d'] as const
-
 // Eixo de "atividade": a chave do dia vem do BFF como YYYY-MM-DD em UTC; sem o
 // timeZone, 2026-10-15 viraria "14 de out." em UTC-3 (P1-04, formatos).
 const DAY_FORMAT = { day: 'numeric', month: 'short', timeZone: 'UTC' } as const
@@ -93,24 +88,28 @@ function ChartEmpty({ height }: { height: number }) {
 
 export function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [tokenMetrics, setTokenMetrics] = useState<TokenMetrics[]>([])
-  const [timeFilter, setTimeFilter] = useState<string>('24h')
+  const [period, setPeriod] = useState<(typeof DASHBOARD_PERIODS)[number]>('today')
   const [loading, setLoading] = useState(true)
+  // Pedido em curso (carga e troca de período): marca a área dos cards como ocupada.
+  const [pending, setPending] = useState(true)
   const [statsError, setStatsError] = useState<LoadError | null>(null)
-  const [tokensError, setTokensError] = useState<LoadError | null>(null)
-  // GET de tokens em curso (carga e troca de período): skeleton, não o falso
-  // "Sem dados no período". O "Tentar de novo" não passa por aqui.
-  const [tokensLoading, setTokensLoading] = useState(true)
   const t = useTranslations('dashboard')
   const format = useFormatter()
   const formatDay = (time: string) => format.dateTime(new Date(time), DAY_FORMAT)
   const formatNumber = (value: number) => format.number(value)
 
-  // Buscar estatísticas gerais; o "Tentar de novo" usa o retorno (deu certo?).
-  const fetchStats = async (): Promise<boolean> => {
+  // Só a requisição mais recente escreve (troca rápida de período). Os números
+  // do período anterior ficam na tela até os novos chegarem; o "Tentar de novo"
+  // usa o retorno (deu certo?).
+  const requestId = useRef(0)
+  const fetchStats = useCallback(async (): Promise<boolean> => {
+    const id = ++requestId.current
+    const isCurrent = () => id === requestId.current
+    setPending(true)
     try {
-      const response = await fetch('/api/dashboard/stats')
+      const response = await fetch(`/api/dashboard/stats?period=${period}`)
       const data = response.ok ? await response.json() : null
+      if (!isCurrent()) return false
       if (data?.success) {
         setStats(data.data)
         setStatsError(null)
@@ -119,46 +118,19 @@ export function Dashboard() {
       setStatsError({ status: response.status })
     } catch (error) {
       console.error('Error fetching stats:', error)
-      setStatsError({})
+      if (isCurrent()) setStatsError({})
     } finally {
-      setLoading(false)
-    }
-    return false
-  }
-
-  // Buscar métricas de tokens (trocar o período com erro tenta de novo)
-  // Só a requisição mais recente escreve (troca rápida de período).
-  const tokensRequestId = useRef(0)
-  const fetchTokenMetrics = useCallback(async (): Promise<boolean> => {
-    const id = ++tokensRequestId.current
-    const isCurrent = () => id === tokensRequestId.current
-    try {
-      const response = await fetch(`/api/dashboard/tokens?timeFilter=${timeFilter}`)
-      const data = response.ok ? await response.json() : null
-      if (!isCurrent()) return false
-      if (data?.success) {
-        setTokenMetrics(data.data)
-        setTokensError(null)
-        return true
+      if (isCurrent()) {
+        setLoading(false)
+        setPending(false)
       }
-      setTokensError({ status: response.status })
-    } catch (error) {
-      console.error('Error fetching token metrics:', error)
-      if (isCurrent()) setTokensError({})
-    } finally {
-      if (isCurrent()) setTokensLoading(false)
     }
     return false
-  }, [timeFilter])
+  }, [period])
 
   useEffect(() => {
     fetchStats()
-  }, [])
-
-  useEffect(() => {
-    setTokensLoading(true)
-    fetchTokenMetrics()
-  }, [fetchTokenMetrics])
+  }, [fetchStats])
 
   const title = (
     <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
@@ -188,25 +160,9 @@ export function Dashboard() {
     )
   }
 
-  if (statsError || !stats) {
-    return (
-      <div className="mx-auto max-w-7xl space-y-6 p-6">
-        <div>
-          {title}
-          <p className="text-muted-foreground">{t('subtitle')}</p>
-        </div>
-        <LoadErrorState
-          title={t('loadError')}
-          status={statsError?.status}
-          onRetry={fetchStats}
-        />
-      </div>
-    )
-  }
-
   const sessionsByType = [
-    { name: t('agentSessions'), value: stats.totalAgentSessions, fill: CHART.series1 },
-    { name: t('teamSessions'), value: stats.totalTeamSessions, fill: CHART.series2 }
+    { name: t('agentSessions'), value: stats?.totalAgentSessions ?? 0, fill: CHART.series1 },
+    { name: t('teamSessions'), value: stats?.totalTeamSessions ?? 0, fill: CHART.series2 }
   ]
 
   return (
@@ -220,12 +176,18 @@ export function Dashboard() {
               {t('subtitle')}
             </p>
           </div>
-          <Select value={timeFilter} onValueChange={setTimeFilter}>
+          <Select
+            value={period}
+            onValueChange={(value) => {
+              const next = DASHBOARD_PERIODS.find((option) => option === value)
+              if (next) setPeriod(next)
+            }}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder={t('periodPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              {TIME_FILTERS.map((filter) => (
+              {DASHBOARD_PERIODS.map((filter) => (
                 <SelectItem key={filter} value={filter}>
                   {t(`period.${filter}`)}
                 </SelectItem>
@@ -234,6 +196,17 @@ export function Dashboard() {
           </Select>
         </div>
 
+        {/* Os cards (ou o erro) ocupam a área abaixo do cabeçalho: trocar o
+            período com falha mantém o seletor e o foco. */}
+        <div aria-busy={pending} className="space-y-6">
+        {statsError || !stats ? (
+          <LoadErrorState
+            title={t('loadError')}
+            status={statsError?.status}
+            onRetry={fetchStats}
+          />
+        ) : (
+        <>
         {/* Estatísticas Gerais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
@@ -251,11 +224,11 @@ export function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('uniqueUsers')}</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('peakDailyUsers')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="font-mono text-3xl font-medium tabular-nums">{format.number(stats.uniqueUsers)}</div>
+              <div className="font-mono text-3xl font-medium tabular-nums">{format.number(stats.peakDailyUsers)}</div>
               <p className="text-xs text-muted-foreground">
                 {t('inPeriod')}
               </p>
@@ -272,8 +245,7 @@ export function Dashboard() {
               <p className="text-xs text-muted-foreground">
                 {t('sessionsBreakdown', {
                   agents: stats.totalAgentSessions,
-                  teams: stats.totalTeamSessions,
-                  period: stats.sessionsInPeriod
+                  teams: stats.totalTeamSessions
                 })}
               </p>
             </CardContent>
@@ -344,7 +316,7 @@ export function Dashboard() {
               )}
               <div className="space-y-3">
                 {stats.embeddingModels.map((model) => (
-                  <div key={model.name} className="flex items-center justify-between">
+                  <div key={`${model.name}|${model.provider}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-full bg-primary" />
                       <div>
@@ -359,50 +331,6 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Métricas de Tokens por Entidade */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              {t('tokensByEntity')}
-            </CardTitle>
-            <CardDescription>
-              {t('tokensByEntityDescription')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {tokensLoading ? (
-              <Skeleton className="h-[300px]" />
-            ) : tokensError ? (
-              <LoadErrorState
-                title={t('tokensError')}
-                titleAs="h3"
-                status={tokensError.status}
-                onRetry={fetchTokenMetrics}
-                className="bg-background"
-              />
-            ) : tokenMetrics.length === 0 ? (
-              <ChartEmpty height={300} />
-            ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={tokenMetrics}>
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                <XAxis dataKey="agentName" {...AXIS_PROPS} />
-                <YAxis
-                  allowDecimals={false}
-                  tickFormatter={formatNumber}
-                  {...AXIS_PROPS}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: CHART.cursor }} />
-                <Legend />
-                <Bar dataKey="inputTokens" fill={CHART.series1} name={t('inputTokens')} />
-                <Bar dataKey="outputTokens" fill={CHART.series2} name={t('outputTokens')} />
-              </BarChart>
-            </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Distribuição de Sessões por Usuário */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -481,6 +409,9 @@ export function Dashboard() {
               )}
             </CardContent>
           </Card>
+        </div>
+        </>
+        )}
         </div>
       </div>
     </div>

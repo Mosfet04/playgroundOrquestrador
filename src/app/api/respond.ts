@@ -4,9 +4,9 @@ import { z } from 'zod'
 import type { OrchestratorErrorCode } from '@/server/orchestrator/client'
 import { SESSION_COOKIE, verifySession } from '@/server/session'
 
-// Respostas do BFF do chat (P2-03). Sem resposta do orquestrador (fora do ar,
-// prazo) é 503/504 e a UI mostra "offline"; o resto, o status e o código, sem
-// eco do corpo nem da exceção.
+// Respostas dos route handlers que chamam o orquestrador (chat, dashboard). Sem
+// resposta do orquestrador (fora do ar, prazo) é 503/504 e a UI mostra
+// "offline"; o resto, o status e o código, sem eco do corpo nem da exceção.
 const STATUS: Record<OrchestratorErrorCode, number> = {
   unreachable: 503,
   timeout: 504,

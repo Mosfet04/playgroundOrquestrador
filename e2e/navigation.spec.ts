@@ -4,7 +4,7 @@ import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // P1-03: cada seção tem URL própria (deep link, voltar, recarga). Até a P3,
-// /api/agents*, /api/tools* e /api/dashboard/* leem o Mongo: aqui respondem
+// /api/agents* e /api/tools* leem o Mongo: aqui respondem
 // por page.route.
 
 const agent = {
@@ -51,10 +51,6 @@ const serveCollection = <T extends { id: string }>(kind: string, items: T[]) =>
 const mockManagementApi = async (page: Page) => {
   await page.route(/\/api\/agents(\/[^?]*)?(\?.*)?$/, serveCollection('agents', [agent]))
   await page.route(/\/api\/tools(\/[^?]*)?(\?.*)?$/, serveCollection('tools', [tool]))
-  // O dashboard também lê o Mongo; aqui só importa a casca da rota.
-  await page.route(/\/api\/dashboard\//, (route) =>
-    route.fulfill({ status: 503, json: { success: false, error: 'indisponível' } })
-  )
 }
 
 const mainNav = (page: Page) =>

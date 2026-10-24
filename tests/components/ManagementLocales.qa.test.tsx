@@ -342,11 +342,10 @@ describe('Dashboard: idioma completo', () => {
   const stats = {
     activeAgents: 1,
     totalAgents: 1,
-    uniqueUsers: 1,
+    peakDailyUsers: 1,
     totalSessions: 1,
     totalAgentSessions: 1,
     totalTeamSessions: 0,
-    sessionsInPeriod: 1,
     totalTokens: 1000,
     models: [],
     embeddingModels: [],
@@ -354,8 +353,7 @@ describe('Dashboard: idioma completo', () => {
   }
   const serve = () =>
     server.use(
-      http.get('*/api/dashboard/stats', () => HttpResponse.json({ success: true, data: stats })),
-      http.get('*/api/dashboard/tokens', () => HttpResponse.json({ success: true, data: [] }))
+      http.get('*/api/dashboard/stats', () => HttpResponse.json({ success: true, data: stats }))
     )
 
   it('EN: sem português nos textos fixos (título, cards, período)', async () => {

@@ -64,11 +64,10 @@ test('/dashboard: "Tentar de novo" com sucesso leva o foco ao h1 da página', as
             data: {
               activeAgents: 0,
               totalAgents: 0,
-              uniqueUsers: 0,
+              peakDailyUsers: 0,
               totalSessions: 0,
               totalAgentSessions: 0,
               totalTeamSessions: 0,
-              sessionsInPeriod: 0,
               totalTokens: 0,
               models: [],
               embeddingModels: [],
@@ -77,9 +76,6 @@ test('/dashboard: "Tentar de novo" com sucesso leva o foco ao h1 da página', as
           }
         })
       : route.abort()
-  )
-  await page.route(/\/api\/dashboard\/tokens/, (route) =>
-    route.fulfill({ json: { success: true, data: [] } })
   )
   await page.goto('/dashboard')
 

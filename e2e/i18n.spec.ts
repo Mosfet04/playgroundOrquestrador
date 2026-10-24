@@ -6,8 +6,8 @@ import { hydrated } from './hydration'
 // P1-04: idioma em cookie, sem prefixo na URL (decisão 0011). Sem cookie é
 // pt-BR; trocar pelo seletor chama a server action que grava o cookie e
 // devolve a rota re-renderizada (D-P1-04-5): textos, `lang` e <title> mudam
-// sem recarregar. Até a P3 /api/agents*, /api/tools* e
-// /api/dashboard/* leem o Mongo: aqui respondem por page.route.
+// sem recarregar. Até a P3 /api/agents* e /api/tools* leem o Mongo: aqui
+// respondem por page.route (o dashboard, como os demais, também).
 
 const agent = {
   id: 'agente alfa',
@@ -22,11 +22,10 @@ const agent = {
 const stats = {
   activeAgents: 1,
   totalAgents: 1,
-  uniqueUsers: 2,
+  peakDailyUsers: 2,
   totalSessions: 3,
   totalAgentSessions: 2,
   totalTeamSessions: 1,
-  sessionsInPeriod: 3,
   totalTokens: 1234567,
   models: [],
   embeddingModels: [],
@@ -47,9 +46,6 @@ async function mockApi(page: Page) {
   })
   await page.route(/\/api\/dashboard\/stats/, (route) =>
     route.fulfill({ json: { success: true, data: stats } })
-  )
-  await page.route(/\/api\/dashboard\/tokens/, (route) =>
-    route.fulfill({ json: { success: true, data: [] } })
   )
 }
 

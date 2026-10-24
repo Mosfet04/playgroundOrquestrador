@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import { streamRun, type ChatKind } from '@/server/orchestrator/chat'
 
-import { badRequest, idSchema, orchestratorError, sessionUser } from './respond'
+import { badRequest, idSchema, orchestratorError, sessionUser } from '../respond'
 
 // Teto da mensagem do chat (texto colado grande cabe; corpo abusivo não).
 const MAX_MESSAGE_LENGTH = 32_000
