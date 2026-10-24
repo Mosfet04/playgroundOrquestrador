@@ -59,6 +59,9 @@ O frontmatter dos agentes vale para desenhar, implementar, a 1ª revisão do ite
 | `ui-ux-designer` em DESIGN_QA | `model: "sonnet"` |
 | `frontend-reviewer` na revisão curta dos testes do QA | `model: "sonnet"` |
 | `frontend-reviewer` em revisão de delta (rodada 2+) | `effort: "high"` |
+| `frontend-dev-specialist` em item pequeno com `UI: não` (sem rotas novas nem vários módulos de `src/server`) | `model: "sonnet"` ([0021](../../../docs/decisions/0021-modelos-dev-sonnet-qa-enxuto.md)) |
+
+QA enxuto (0021), sempre no prompt do `qa-engineer`: não duplicar teste do dev; só critério descoberto; um caso por classe de payload; e2e só para o que componente/BFF não alcança.
 
 Retomar um subagente com `SendMessage` mantém o modelo da chamada original. Prefira retomar quando o contexto que ele já tem poupa reler o diff.
 

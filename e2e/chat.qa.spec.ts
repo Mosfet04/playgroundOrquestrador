@@ -299,19 +299,19 @@ test.describe('desktop 1440', () => {
     })
     await open(page)
     await expect(composer(page)).toBeEnabled()
-    await send(page, '<script>window.__pwned=2</script><b>negrito</b>')
+    await send(page, '<script>window.__pwned=2</script><b>negrito</b> **forte**')
 
     await expect(page.getByText('1,4 s · 812 tokens')).toBeVisible()
     await expect(
-      page.getByRole('log').getByText('<script>window.__pwned=2</script><b>negrito</b>', {
+      page.getByRole('log').getByText('<script>window.__pwned=2</script><b>negrito</b> **forte**', {
         exact: true
       })
     ).toBeVisible()
     await expect(page.locator('main img[src="x"], aside img[src="x"], main script')).toHaveCount(0)
-    // O <b> da resposta do agente é do markdown (rehype-raw + sanitize
-    // padrão): P2-04. A bolha do usuário e o resto do chat não interpretam.
-    // Aqui só se confere que o negrito herda 16/24 do bloco.
-    const bold = await page.getByRole('log').locator('b').evaluate((el) => {
+    // P2-04: o HTML cru do eco do agente não vira elemento (sem <b>); o
+    // **forte** é markdown e herda 16/24 do bloco.
+    await expect(page.getByRole('log').locator('b')).toHaveCount(0)
+    const bold = await page.getByRole('log').locator('strong').evaluate((el) => {
       const style = getComputedStyle(el)
       return { fontSize: style.fontSize, lineHeight: style.lineHeight, letterSpacing: style.letterSpacing }
     })
