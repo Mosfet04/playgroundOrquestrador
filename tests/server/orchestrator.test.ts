@@ -3,7 +3,7 @@ import { delay, http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
-import { callOrchestrator } from '@/server/orchestrator/client'
+import { callOrchestrator, streamOrchestrator } from '@/server/orchestrator/client'
 
 import { TEST_ENV } from '../../e2e/test-env'
 import { server } from '../msw/server'
@@ -120,7 +120,11 @@ describe('callOrchestrator: path seguro', () => {
     '/sessions/%5c..',
     '/sessions?type=agent',
     '/sessions#x',
-    '/sessions/%E0%A4%A'
+    '/sessions/%E0%A4%A',
+    // R2 (review P2-03): `/` codificado no segmento; um proxy que normaliza
+    // o caminho o leria como outra rota (e outra chave).
+    '/sessions/a%2Fb',
+    '/sessions/..%2Fadmin%2Fconfig%2Fagents%2Fx'
   ] as const)('recusa %s sem chamar o orquestrador', async (path) => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     let called = false
@@ -144,12 +148,12 @@ describe('callOrchestrator: path seguro', () => {
       )
     )
 
-    const result = await callOrchestrator('/sessions/v1.2%2Fx', {
+    const result = await callOrchestrator('/sessions/v1.2%20x', {
       key: 'run',
       schema: statusSchema
     })
 
-    expect(result).toEqual({ ok: true, data: { status: 'v1.2/x' } })
+    expect(result).toEqual({ ok: true, data: { status: 'v1.2 x' } })
   })
 })
 
@@ -251,5 +255,187 @@ describe('callOrchestrator: erro mapeado', () => {
 
     expect(warn).toHaveBeenCalledTimes(1)
     expectNoLeak(warn.mock.calls)
+  })
+})
+
+// P2-03: query (lista de sessões) e o run em stream, repassado sem buffer.
+describe('callOrchestrator: query', () => {
+  it('monta a query com URLSearchParams (valor codificado)', async () => {
+    let seen: URL | null = null
+    server.use(
+      http.get(`${BASE}/sessions`, ({ request }) => {
+        seen = new URL(request.url)
+        return HttpResponse.json({ status: 'ok' })
+      })
+    )
+
+    await callOrchestrator('/sessions', {
+      key: 'run',
+      schema: statusSchema,
+      query: { type: 'agent', component_id: 'a b&c=1' }
+    })
+
+    expect(seen!.searchParams.get('type')).toBe('agent')
+    expect(seen!.searchParams.get('component_id')).toBe('a b&c=1')
+  })
+})
+
+describe('streamOrchestrator', () => {
+  const RUN = `${BASE}/agents/agent-1/runs`
+
+  it('POST multipart com a chave run; devolve o corpo antes do fim do run', async () => {
+    let authorization: string | null = null
+    let message: FormDataEntryValue | null = null
+    let finish!: () => void
+    server.use(
+      http.post(RUN, async ({ request }) => {
+        authorization = request.headers.get('authorization')
+        message = (await request.formData()).get('message')
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode('event: RunStarted\ndata: {}\n\n'))
+            finish = () => controller.close()
+          }
+        })
+        return new HttpResponse(stream, { headers: { 'Content-Type': 'text/event-stream' } })
+      })
+    )
+    const form = new FormData()
+    form.set('message', 'oi')
+
+    const result = await streamOrchestrator('/agents/agent-1/runs', {
+      form,
+      signal: new AbortController().signal
+    })
+
+    expect(result.ok).toBe(true)
+    expect(authorization).toBe(`Bearer ${TEST_ENV.ORCHESTRATOR_API_KEY_RUN}`)
+    expect(message).toBe('oi')
+    const reader = (result as { ok: true; data: ReadableStream<Uint8Array> }).data.getReader()
+    const first = await reader.read()
+    expect(new TextDecoder().decode(first.value)).toContain('RunStarted')
+    finish()
+    expect((await reader.read()).done).toBe(true)
+  })
+
+  it('o abort do pedido do browser chega ao orquestrador', async () => {
+    let aborted = false
+    server.use(
+      http.post(RUN, ({ request }) => {
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('event: RunStarted\ndata: {}\n\n'))
+            request.signal.addEventListener('abort', () => {
+              aborted = true
+              controller.error(request.signal.reason)
+            })
+          }
+        })
+        return new HttpResponse(stream, { headers: { 'Content-Type': 'text/event-stream' } })
+      })
+    )
+    const browser = new AbortController()
+
+    const result = await streamOrchestrator('/agents/agent-1/runs', {
+      form: new FormData(),
+      signal: browser.signal
+    })
+    browser.abort()
+
+    expect(result.ok).toBe(true)
+    await vi.waitFor(() => expect(aborted).toBe(true))
+  })
+
+  it('o prazo vale só até os cabeçalhos: o corpo lento segue aberto', async () => {
+    server.use(
+      http.post(RUN, async () => {
+        const stream = new ReadableStream<Uint8Array>({
+          async start(controller) {
+            await delay(80)
+            controller.enqueue(new TextEncoder().encode('data: {}\n\n'))
+            controller.close()
+          }
+        })
+        return new HttpResponse(stream, { headers: { 'Content-Type': 'text/event-stream' } })
+      })
+    )
+
+    const result = await streamOrchestrator('/agents/agent-1/runs', {
+      form: new FormData(),
+      signal: new AbortController().signal,
+      timeoutMs: 20
+    })
+
+    expect(result.ok).toBe(true)
+    const text = await new Response((result as { ok: true; data: ReadableStream }).data).text()
+    expect(text).toBe('data: {}\n\n')
+  })
+
+  it.each([
+    ['HTTP 404', () => HttpResponse.json({ detail: LEAK }, { status: 404 }), { error: 'not_found', status: 404 }],
+    ['HTTP 500', () => HttpResponse.json({ detail: LEAK }, { status: 500 }), { error: 'server_error', status: 500 }],
+    ['rede', () => HttpResponse.error(), { error: 'unreachable' }]
+  ])('%s ⇒ erro mapeado, sem eco', async (_, respond, expected) => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    server.use(http.post(RUN, respond))
+
+    const result = await streamOrchestrator('/agents/agent-1/runs', {
+      form: new FormData(),
+      signal: new AbortController().signal
+    })
+
+    expect(result).toEqual({ ok: false, ...expected })
+    expectNoLeak(result)
+  })
+
+  it('browser saiu antes dos cabeçalhos: sem log de falha do orquestrador', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    server.use(
+      http.post(RUN, async () => {
+        await delay(1_000)
+        return new HttpResponse('')
+      })
+    )
+    const browser = new AbortController()
+
+    const pending = streamOrchestrator('/agents/agent-1/runs', {
+      form: new FormData(),
+      signal: browser.signal
+    })
+    browser.abort()
+    const result = await pending
+
+    expect(result.ok).toBe(false)
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('sem cabeçalhos no prazo ⇒ timeout', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    server.use(
+      http.post(RUN, async () => {
+        await delay(1_000)
+        return new HttpResponse('')
+      })
+    )
+
+    const result = await streamOrchestrator('/agents/agent-1/runs', {
+      form: new FormData(),
+      signal: new AbortController().signal,
+      timeoutMs: 20
+    })
+
+    expect(result).toEqual({ ok: false, error: 'timeout' })
+  })
+
+  it('path inseguro ⇒ invalid_path, sem chamar o orquestrador', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const result = await streamOrchestrator('/agents/../admin/runs', {
+      form: new FormData(),
+      signal: new AbortController().signal
+    })
+
+    expect(result).toEqual({ ok: false, error: 'invalid_path' })
   })
 })

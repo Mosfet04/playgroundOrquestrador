@@ -18,16 +18,15 @@ const filesOf = (path: string): string[] =>
       ? [path]
       : []
 
-// O namespace de cada função vem do `useTranslations('ns')` do próprio arquivo
-// (`usePlaygroundTranslationsRef` guarda o `t` de 'playground' num ref).
+// O namespace de cada função vem do `useTranslations('ns')` do próprio arquivo.
 const used = SCOPE.flatMap((entry) => filesOf(join(ROOT, entry))).flatMap((file) => {
   const source = readFileSync(file, 'utf8')
   const namespaces = new Map(
-    [...source.matchAll(/\b(\w+) = (?:useTranslations|usePlaygroundTranslationsRef)\((?:'(\w+)')?\)/g)].map(
+    [...source.matchAll(/\b(\w+) = useTranslations\((?:'(\w+)')?\)/g)].map(
       ([, name, namespace]) => [name, namespace ?? 'playground']
     )
   )
-  return [...source.matchAll(/\b(\w+)(?:\.current|\.rich)?\(\s*(['`])([\w.${}]+)\2/g)]
+  return [...source.matchAll(/\b(\w+)(?:\.rich)?\(\s*(['`])([\w.${}]+)\2/g)]
     .filter(([, name]) => namespaces.has(name))
     .map(([, name, , key]) => ({ file, namespace: namespaces.get(name) as string, key }))
 })

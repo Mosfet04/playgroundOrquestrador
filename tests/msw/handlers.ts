@@ -1,31 +1,31 @@
 import { http, HttpResponse } from 'msw'
 
-// Endpoints do AgentOS (agno 2.5.x) usados hoje por src/api/playground.ts.
-// Formatos conferidos em agno/os/routers/{agents,teams}/schema.py e
-// agno/os/schema.py (SessionSchema, PaginatedResponse).
-export const AGENTOS_URL = 'http://agentos.test'
+// BFF do chat (P2-03, src/app/api/playground): o que o browser vê. Os route
+// handlers e o mapeamento do AgentOS têm testes próprios
+// (tests/app/api/playgroundChat.test.ts), contra o orquestrador no MSW.
+export const BFF = '/api/playground'
 
-const agentsFixture = [
+export const agentsFixture = [
   {
-    id: 'agent-1',
-    name: 'Assistente',
-    model: { name: 'gpt-4o', model: 'gpt-4o', provider: 'OpenAI' },
-    sessions: { session_table: 'agno_sessions' }
+    value: 'agent-1',
+    label: 'Assistente',
+    model: { provider: 'OpenAI', model: 'gpt-4o' },
+    storage: true
   },
   {
-    id: 'agent-2',
-    name: 'Pesquisador',
-    model: { name: 'llama3.2', model: 'llama3.2', provider: 'Ollama' }
+    value: 'agent-2',
+    label: 'Pesquisador',
+    model: { provider: 'Ollama', model: 'llama3.2' },
+    storage: false
   }
 ]
 
-const teamsFixture = [
+export const teamsFixture = [
   {
-    id: 'team-1',
-    name: 'Time de suporte',
-    mode: 'coordinate',
-    model: { name: 'gpt-4o', model: 'gpt-4o', provider: 'OpenAI' },
-    sessions: { session_table: 'agno_sessions' }
+    value: 'team-1',
+    label: 'Time de suporte',
+    model: { provider: 'OpenAI', model: 'gpt-4o' },
+    storage: true
   }
 ]
 
@@ -33,17 +33,15 @@ const sessionsFixture = {
   agent: [
     {
       session_id: 'session-a1',
-      session_name: 'Primeira conversa',
-      created_at: '2026-01-02T03:04:05Z',
-      updated_at: '2026-01-02T03:10:00Z'
+      title: 'Primeira conversa',
+      created_at: Date.UTC(2026, 0, 2, 3, 4, 5) / 1000
     }
   ],
   team: [
     {
       session_id: 'session-t1',
-      session_name: 'Conversa do time',
-      created_at: '2026-02-03T04:05:06Z',
-      updated_at: '2026-02-03T04:15:00Z'
+      title: 'Conversa do time',
+      created_at: Date.UTC(2026, 1, 3, 4, 5, 6) / 1000
     }
   ]
 }
@@ -54,13 +52,13 @@ const sessionOwners: Record<string, keyof typeof sessionsFixture> = {
 }
 
 export const handlers = [
-  http.get(`${AGENTOS_URL}/status`, () =>
-    HttpResponse.json({ status: 'available' })
+  http.get(`${BFF}/agents`, () =>
+    HttpResponse.json({ success: true, data: agentsFixture })
   ),
-  http.get(`${AGENTOS_URL}/health`, () => HttpResponse.json({ status: 'ok' })),
-  http.get(`${AGENTOS_URL}/agents`, () => HttpResponse.json(agentsFixture)),
-  http.get(`${AGENTOS_URL}/teams`, () => HttpResponse.json(teamsFixture)),
-  http.get(`${AGENTOS_URL}/sessions`, ({ request }) => {
+  http.get(`${BFF}/teams`, () =>
+    HttpResponse.json({ success: true, data: teamsFixture })
+  ),
+  http.get(`${BFF}/sessions`, ({ request }) => {
     const params = new URL(request.url).searchParams
     const type = params.get('type')
     const componentId = params.get('component_id') ?? ''
@@ -68,15 +66,6 @@ export const handlers = [
       type !== null && sessionOwners[componentId] === type
         ? sessionsFixture[type]
         : []
-    return HttpResponse.json({
-      data,
-      meta: {
-        page: 1,
-        limit: 20,
-        total_pages: 1,
-        total_count: data.length,
-        search_time_ms: 0
-      }
-    })
+    return HttpResponse.json({ success: true, data })
   })
 ]

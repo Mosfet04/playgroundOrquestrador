@@ -1,46 +1,11 @@
 import { useCallback } from 'react'
 import {
   getPlaygroundSessionAPI,
-  getAllPlaygroundSessionsAPI,
-  getPlaygroundTeamSessionsAPI,
-  getPlaygroundTeamSessionAPI
+  getPlaygroundSessionsAPI
 } from '@/api/playground'
 import { usePlaygroundStore } from '../store'
-import {
-  PlaygroundChatMessage,
-  ToolCall,
-  ReasoningMessage,
-  ChatEntry
-} from '@/types/playground'
+import { PlaygroundChatMessage } from '@/types/playground'
 import { getJsonMarkdown } from '@/lib/utils'
-
-interface ChatHistoryEntry {
-  id?: string
-  content: string
-  role: 'user' | 'assistant' | 'system' | 'tool'
-  created_at: number
-  from_history?: boolean
-  stop_after_tool_call?: boolean
-  metrics?: Record<string, unknown>
-  tool_call_id?: string
-  tool_name?: string
-  tool_args?: Record<string, string>
-  tool_call_error?: boolean
-}
-
-interface SessionResponse {
-  session_id: string
-  agent_id?: string
-  team_id?: string
-  user_id?: string | null
-  chat_history?: ChatHistoryEntry[]
-  runs?: ChatEntry[]
-  memory?: {
-    runs?: ChatEntry[]
-    chats?: ChatEntry[]
-  }
-  agent_data?: Record<string, unknown>
-}
 
 interface LoaderArgs {
   entityType: 'agent' | 'team' | null
@@ -48,9 +13,20 @@ interface LoaderArgs {
   teamId?: string | null
 }
 
+// Conteúdo do histórico: texto, partes `{ type: 'text' }` juntas ou, outro
+// formato, o JSON em bloco de código.
+const toText = (content: unknown): string => {
+  if (typeof content === 'string') return content
+  if (Array.isArray(content))
+    return content
+      .filter((item: { type?: unknown }) => item?.type === 'text')
+      .map((item: { text?: unknown }) => String(item.text ?? ''))
+      .join(' ')
+  return getJsonMarkdown(content as object)
+}
+
 const useSessionLoader = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
-  const selectedEndpoint = usePlaygroundStore((state) => state.selectedEndpoint)
   const setIsSessionsLoading = usePlaygroundStore(
     (state) => state.setIsSessionsLoading
   )
@@ -59,19 +35,14 @@ const useSessionLoader = () => {
 
   const getSessions = useCallback(
     async ({ entityType, agentId, teamId }: LoaderArgs) => {
-      if (!selectedEndpoint) return
-
+      const kind = entityType === 'team' ? 'team' : 'agent'
+      const componentId = kind === 'team' ? teamId : agentId
+      if (!componentId) return
       try {
         // A falha anterior só sai com sucesso: no "Tentar de novo" a caixa de
         // erro fica no lugar, com o botão em "Tentando…" (P1-05).
         setIsSessionsLoading(true)
-
-        const sessions =
-          entityType === 'team'
-            ? await getPlaygroundTeamSessionsAPI(selectedEndpoint, teamId!)
-            : await getAllPlaygroundSessionsAPI(selectedEndpoint, agentId!)
-
-        setSessionsData(sessions)
+        setSessionsData(await getPlaygroundSessionsAPI(kind, componentId))
         setSessionsError(false)
       } catch (error) {
         // A falha aparece na caixa de sessões, com "Tentar de novo" (P1-05).
@@ -82,147 +53,35 @@ const useSessionLoader = () => {
         setIsSessionsLoading(false)
       }
     },
-    [selectedEndpoint, setSessionsData, setIsSessionsLoading, setSessionsError]
+    [setSessionsData, setIsSessionsLoading, setSessionsError]
   )
 
+  // Histórico da sessão: o BFF já devolve só user/assistant.
   const getSession = useCallback(
-    async ({ entityType, agentId, teamId }: LoaderArgs, sessionId: string) => {
-      if (!selectedEndpoint || !sessionId) return
-
+    async ({ entityType }: LoaderArgs, sessionId: string) => {
+      if (!sessionId) return
       try {
-        const response: SessionResponse =
-          entityType === 'team'
-            ? await getPlaygroundTeamSessionAPI(
-                selectedEndpoint,
-                teamId!,
-                sessionId
-              )
-            : await getPlaygroundSessionAPI(
-                selectedEndpoint,
-                agentId!,
-                sessionId
-              )
-
-        if (response) {
-          let messagesForPlayground: PlaygroundChatMessage[] = []
-
-          // v2.5 format: flat chat_history array with { role, content, created_at }
-          if (
-            response.chat_history &&
-            Array.isArray(response.chat_history) &&
-            response.chat_history.length > 0
-          ) {
-            messagesForPlayground = response.chat_history
-              .filter(
-                (entry: ChatHistoryEntry) =>
-                  (entry.role === 'user' || entry.role === 'assistant') &&
-                  entry.content != null &&
-                  entry.content !== ''
-              )
-              .map((entry: ChatHistoryEntry) => ({
-                role:
-                  entry.role === 'user'
-                    ? ('user' as const)
-                    : ('agent' as const),
-                content:
-                  typeof entry.content === 'string'
-                    ? entry.content
-                    : String(entry.content ?? ''),
-                created_at: entry.created_at ?? Math.floor(Date.now() / 1000)
-              }))
-          } else {
-            // Legacy format: runs / memory.runs with ChatEntry objects
-            const sessionHistory = response.runs
-              ? response.runs
-              : response.memory?.runs
-
-            if (sessionHistory && Array.isArray(sessionHistory)) {
-              messagesForPlayground = sessionHistory.flatMap((run) => {
-                const filteredMessages: PlaygroundChatMessage[] = []
-
-                if (run.message) {
-                  filteredMessages.push({
-                    role: 'user',
-                    content: run.message.content ?? '',
-                    created_at: run.message.created_at
-                  })
-                }
-
-                if (run.response) {
-                  const toolCalls = [
-                    ...(run.response.tools ?? []),
-                    ...(
-                      run.response.extra_data?.reasoning_messages ?? []
-                    ).reduce(
-                      (acc: ToolCall[], msg: ReasoningMessage) => {
-                        if (msg.role === 'tool') {
-                          acc.push({
-                            role: msg.role,
-                            content: msg.content,
-                            tool_call_id: msg.tool_call_id ?? '',
-                            tool_name: msg.tool_name ?? '',
-                            tool_args: msg.tool_args ?? {},
-                            tool_call_error: msg.tool_call_error ?? false,
-                            created_at:
-                              msg.created_at ?? Math.floor(Date.now() / 1000)
-                          })
-                        }
-                        return acc
-                      },
-                      []
-                    )
-                  ]
-
-                  filteredMessages.push({
-                    role: 'agent',
-                    content: (run.response.content as string) ?? '',
-                    tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-                    extra_data: run.response.extra_data,
-                    images: run.response.images,
-                    videos: run.response.videos,
-                    audio: run.response.audio,
-                    response_audio: run.response.response_audio,
-                    created_at: run.response.created_at
-                  })
-                }
-                return filteredMessages
-              })
-            }
-          }
-
-          if (messagesForPlayground.length > 0) {
-            const processedMessages = messagesForPlayground.map(
-              (message: PlaygroundChatMessage) => {
-                if (Array.isArray(message.content)) {
-                  const textContent = message.content
-                    .filter((item: { type: string }) => item.type === 'text')
-                    .map((item) => item.text)
-                    .join(' ')
-
-                  return {
-                    ...message,
-                    content: textContent
-                  }
-                }
-                if (typeof message.content !== 'string') {
-                  return {
-                    ...message,
-                    content: getJsonMarkdown(message.content)
-                  }
-                }
-                return message
-              }
-            )
-
-            setMessages(processedMessages)
-            return processedMessages
-          }
+        const { chat_history } = await getPlaygroundSessionAPI(
+          entityType === 'team' ? 'team' : 'agent',
+          sessionId
+        )
+        const messages: PlaygroundChatMessage[] = chat_history
+          .filter((entry) => entry.content != null && entry.content !== '')
+          .map((entry) => ({
+            role: entry.role === 'user' ? 'user' : 'agent',
+            content: toText(entry.content),
+            created_at: entry.created_at ?? Math.floor(Date.now() / 1000)
+          }))
+        if (messages.length > 0) {
+          setMessages(messages)
+          return messages
         }
-      } catch {
+      } catch (error) {
+        console.error('Error loading session:', error)
         return null
       }
     },
-    [selectedEndpoint, setMessages]
+    [setMessages]
   )
 
   return { getSession, getSessions }

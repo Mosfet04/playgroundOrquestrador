@@ -4,14 +4,13 @@ import { useTranslations } from 'next-intl'
 import { APIRoutes } from '@/api/routes'
 
 import useChatActions from '@/hooks/useChatActions'
-import { usePlaygroundStore } from '../store'
+import { usePlaygroundStore, type StreamingError } from '../store'
 import {
   RunEvent,
   RunResponseContent,
   type RunMetrics,
   type RunResponse
 } from '@/types/playground'
-import { constructEndpointUrl } from '@/lib/constructEndpointUrl'
 import useAIResponseStream from './useAIResponseStream'
 import { ToolCall } from '@/types/playground'
 import { useQueryState } from 'nuqs'
@@ -33,12 +32,14 @@ const useAIChatStreamHandler = () => {
   const [agentId] = useQueryState('agent')
   const [teamId] = useQueryState('team')
   const [sessionId, setSessionId] = useQueryState('session')
-  const selectedEndpoint = usePlaygroundStore((state) => state.selectedEndpoint)
   const mode = usePlaygroundStore((state) => state.mode)
   const setStreamingErrorMessage = usePlaygroundStore(
     (state) => state.setStreamingErrorMessage
   )
   const setIsStreaming = usePlaygroundStore((state) => state.setIsStreaming)
+  const setRunAbortController = usePlaygroundStore(
+    (state) => state.setRunAbortController
+  )
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
   const hasStorage = usePlaygroundStore((state) => state.hasStorage)
   const { streamResponse } = useAIResponseStream()
@@ -54,32 +55,6 @@ const useAIChatStreamHandler = () => {
       return newMessages
     })
   }, [setMessages])
-/**
- * Generates a stable client ID by combining browser fingerprint and IP address, then hashing the result.
- * Falls back to fingerprint-only if IP fetch fails.
- * @returns Promise<string> - The stable client ID hash
- */
-const getStableClientId = async (): Promise<string> => {
-  const FingerprintJS = await import('@fingerprintjs/fingerprintjs');
-  const CryptoJS = await import('crypto-js');
-
-  const fp = await FingerprintJS.load();
-  const { visitorId } = await fp.get();
-
-  let ip = 'unknown';
-  try {
-    const ipRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
-    const data = await ipRes.json();
-    ip = data.ip;
-  } catch {
-    // Fallback to fingerprint only if IP fetch fails
-  }
-
-  const raw = `${visitorId}-${ip}`;
-  const hash = CryptoJS.SHA256(raw).toString();
-  return hash;
-}
-
 /**
  * Processes a new tool call and adds it to the message
  * @param toolCall - The tool call to add
@@ -142,12 +117,11 @@ const processToolCall = useCallback(
   )
 
   const handleStreamResponse = useCallback(
-    async (input: string | FormData) => {
+    async (messageText: string) => {
       setIsStreaming(true)
-
-      const messageText = typeof input === 'string'
-        ? input
-        : (input.get('message') as string) || ''
+      // Abortado ao trocar de conversa ou sair da página (decisão 0020).
+      const controller = new AbortController()
+      setRunAbortController(controller)
 
       setMessages((prevMessages) => {
         if (prevMessages.length >= 2) {
@@ -180,16 +154,29 @@ const processToolCall = useCallback(
 
       let lastContent = ''
       let newSessionId = sessionId
-      try {
-        const endpointUrl = constructEndpointUrl(selectedEndpoint)
-
-        let playgroundRunUrl: string | null = null
-
-        if (mode === 'team' && teamId) {
-          playgroundRunUrl = APIRoutes.TeamRun(endpointUrl, teamId)
-        } else if (mode === 'agent' && agentId) {
-          playgroundRunUrl = APIRoutes.AgentRun(endpointUrl, agentId)
+      // Fim do run visto (completo, erro ou cancelado); sem ele, o stream foi
+      // interrompido (docs/design/P2-03.md).
+      let finished = false
+      const failRun = (error: StreamingError | null) => {
+        updateMessagesWithErrorState()
+        setStreamingErrorMessage(error)
+        if (hasStorage && newSessionId) {
+          setSessionsData(
+            (prevSessionsData) =>
+              prevSessionsData?.filter(
+                (session) => session.session_id !== newSessionId
+              ) ?? null
+          )
         }
+      }
+      try {
+        // O user_id vem da sessão do playground, no BFF (P2-03).
+        const playgroundRunUrl =
+          mode === 'team' && teamId
+            ? APIRoutes.Run('team', teamId)
+            : mode === 'agent' && agentId
+              ? APIRoutes.Run('agent', agentId)
+              : null
 
         if (!playgroundRunUrl) {
           updateMessagesWithErrorState()
@@ -198,27 +185,13 @@ const processToolCall = useCallback(
           return
         }
 
-        const userId = await getStableClientId()
-
-        // Backend expects multipart/form-data for all requests
-        const formData = input instanceof FormData ? input : new FormData()
-        if (!(input instanceof FormData)) {
-          formData.append('message', input)
-        }
-        formData.append('stream', 'true')
-        if (sessionId) {
-          formData.append('session_id', sessionId)
-        }
-        formData.append('user_id', userId)
-        // Teams require monitor flag
-        if (mode === 'team') {
-          formData.append('monitor', 'true')
-        }
-        const requestBody = formData
-
         await streamResponse({
           apiUrl: playgroundRunUrl,
-          requestBody,
+          requestBody: {
+            message: messageText,
+            ...(sessionId ? { session_id: sessionId } : {})
+          },
+          signal: controller.signal,
           onChunk: (chunk: RunResponse) => {
             const isDelta =
               chunk.event === RunEvent.RunContent ||
@@ -391,12 +364,14 @@ const processToolCall = useCallback(
             } else if (
               chunk.event === RunEvent.RunError ||
               chunk.event === RunEvent.TeamRunError ||
-              chunk.event === RunEvent.TeamRunCancelled
+              chunk.event === RunEvent.TeamRunCancelled ||
+              chunk.event === RunEvent.RunCancelled
             ) {
-              updateMessagesWithErrorState()
-              setStreamingErrorMessage({
+              finished = true
+              failRun({
                 kind:
-                  chunk.event === RunEvent.TeamRunCancelled
+                  chunk.event === RunEvent.TeamRunCancelled ||
+                  chunk.event === RunEvent.RunCancelled
                     ? 'cancelled'
                     : 'runError',
                 detail:
@@ -404,14 +379,6 @@ const processToolCall = useCallback(
                     ? chunk.content
                     : undefined
               })
-              if (hasStorage && newSessionId) {
-                setSessionsData(
-                  (prevSessionsData) =>
-                    prevSessionsData?.filter(
-                      (session) => session.session_id !== newSessionId
-                    ) ?? null
-                )
-              }
             } else if (
               chunk.event === RunEvent.UpdatingMemory ||
               chunk.event === RunEvent.TeamMemoryUpdateStarted ||
@@ -422,6 +389,7 @@ const processToolCall = useCallback(
               chunk.event === RunEvent.RunCompleted ||
               chunk.event === RunEvent.TeamRunCompleted
             ) {
+              if (!isTeamMemberEvent) finished = true
               setMessages((prevMessages) => {
                 const newMessages = prevMessages.map((message, index) => {
                   if (
@@ -474,50 +442,36 @@ const processToolCall = useCallback(
               })
             }
           },
-          onError: (error) => {
-            updateMessagesWithErrorState()
-            setStreamingErrorMessage(error)
-            if (hasStorage && newSessionId) {
-              setSessionsData(
-                (prevSessionsData) =>
-                  prevSessionsData?.filter(
-                    (session) => session.session_id !== newSessionId
-                  ) ?? null
-              )
-            }
-          },
-          onComplete: () => {}
+          onError: failRun,
+          onComplete: () => {
+            if (!finished) failRun({ kind: 'interrupted' })
+          }
         })
       } catch (error) {
-        // Falha antes do stream (montar a URL ou o user_id): sem tipo, a bolha
-        // mostra só a dica genérica; a exceção fica no console (P1-04b).
-        console.error('Error starting the chat stream:', error)
-        updateMessagesWithErrorState()
-        setStreamingErrorMessage(null)
-        if (hasStorage && newSessionId) {
-          setSessionsData(
-            (prevSessionsData) =>
-              prevSessionsData?.filter(
-                (session) => session.session_id !== newSessionId
-              ) ?? null
-          )
-        }
+        // Falha inesperada no handler: sem tipo, a bolha mostra só a dica
+        // genérica; a exceção fica no console (P1-04b).
+        console.error('Error handling the chat stream:', error)
+        failRun(null)
       } finally {
-        focusChatInput()
-        setIsStreaming(false)
+        // Só o run atual libera o composer (um run novo já pode ter começado).
+        if (usePlaygroundStore.getState().runAbortController === controller) {
+          setRunAbortController(null)
+          focusChatInput()
+          setIsStreaming(false)
+        }
       }
     },
     [
       setMessages,
       addMessage,
       updateMessagesWithErrorState,
-      selectedEndpoint,
       streamResponse,
       agentId,
       teamId,
       mode,
       setStreamingErrorMessage,
       setIsStreaming,
+      setRunAbortController,
       focusChatInput,
       setSessionsData,
       sessionId,

@@ -1,7 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
 
-import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
-
 // P1-05: orquestrador fora ⇒ erro com "Tentar de novo", nunca tela vazia; rota
 // inexistente ⇒ 404 do app, dentro da casca. Até a P3, /api/agents* lê o
 // Mongo: aqui responde por page.route.
@@ -112,41 +110,49 @@ test('/agents/<id>: "Tentar de novo" após 503 abre o editor com o foco no h1', 
   await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeFocused()
 })
 
-test('/playground com o fake orchestrator desligado: erro na conversa, composer desabilitado e "Endpoint desconectado"', async ({
+// P2-03: o browser não fala com o fake; "fake desligado" é o que o BFF
+// devolve sem resposta do orquestrador (503 `unreachable`, coberto em
+// tests/app/api/playgroundChat.test.ts).
+test('/playground com o orquestrador fora (V-P2-03-2): erro sem endereço, composer desabilitado e "Orquestrador desconectado"', async ({
   page
 }) => {
-  // Endpoint salvo = o fake; o fake "desligado" = conexão recusada pelo browser.
-  await page.addInitScript((endpoint) => {
-    window.localStorage.setItem(
-      'endpoint-storage',
-      JSON.stringify({ state: { selectedEndpoint: endpoint }, version: 0 })
-    )
-  }, FAKE_ORCHESTRATOR_URL)
   let fakeUp = false
-  await page.route(
-    (url) => url.origin !== APP_URL,
-    (route) =>
-      fakeUp && new URL(route.request().url()).origin === FAKE_ORCHESTRATOR_URL
-        ? route.continue()
-        : route.abort()
+  await page.route('**/api/playground/agents', (route) =>
+    fakeUp
+      ? route.continue()
+      : route.fulfill({ status: 503, json: { success: false, error: 'unreachable' } })
   )
   await page.goto('/playground')
 
   const alert = page.getByRole('alert').filter({ hasText: 'Não foi possível conectar ao orquestrador' })
   await expect(alert).toBeVisible()
-  await expect(alert.getByText(FAKE_ORCHESTRATOR_URL)).toBeVisible()
   await expect(alert.getByText('offline')).toBeVisible()
+  await expect(alert).not.toContainText(/localhost|7790|7777|http/)
   await expect(page.getByText(/Agent UI open source/)).toHaveCount(0)
   await expect(page.getByPlaceholder('Conecte o orquestrador para conversar')).toBeDisabled()
 
   const panel = page.locator('aside')
-  await expect(panel.getByText('Endpoint desconectado. Conecte o endpoint para ver o histórico.')).toBeVisible()
-  await expect(panel.getByText('Modo')).toHaveCount(0)
+  await expect(
+    panel.getByText('Orquestrador desconectado. O histórico aparece quando ele voltar.')
+  ).toBeVisible()
+  await expect(panel.getByText('Endpoint', { exact: true })).toHaveCount(0)
+  await expect(panel.getByRole('group', { name: 'Conversar com' })).toHaveCount(0)
 
   fakeUp = true
   await alert.getByRole('button', { name: 'Tentar de novo' }).click()
   await expect(page.getByRole('heading', { name: /^Converse com / })).toBeVisible()
   await expect(page.getByPlaceholder('Escreva uma mensagem para Agente Alfa')).toBeEnabled()
+})
+
+test('/playground com a lista do BFF em 502 (V-P2-03-3): chip "código 502"', async ({ page }) => {
+  await page.route('**/api/playground/agents', (route) =>
+    route.fulfill({ status: 502, json: { success: false, error: 'server_error' } })
+  )
+  await page.goto('/playground')
+
+  const alert = page.getByRole('alert').filter({ hasText: 'Não foi possível conectar ao orquestrador' })
+  await expect(alert.getByText('código 502')).toBeVisible()
+  await expect(alert.getByText('offline')).toHaveCount(0)
 })
 
 test('rota inexistente: 404 do app dentro da casca, com o <title> e status 404', async ({ page }) => {

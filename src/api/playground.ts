@@ -1,215 +1,67 @@
-import { APIRoutes } from './routes'
+import { APIRoutes, type ChatKind } from './routes'
 
-import {
-  ComboboxAgent,
-  SessionEntry,
-  ComboboxTeam
-} from '@/types/playground'
+import type { ComboboxAgent, SessionEntry } from '@/types/playground'
 
-export const getPlaygroundAgentsAPI = async (
-  endpoint: string
-): Promise<ComboboxAgent[]> => {
-  const url = APIRoutes.GetPlaygroundAgents(endpoint)
-  try {
-    const response = await fetch(url, { method: 'GET' })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-    const data = await response.json()
-    // Handle both array response and config-style response
-    const agentList = Array.isArray(data) ? data : (data.agents ?? [])
-    // Transform the API response into the expected shape.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const agents: ComboboxAgent[] = agentList.map((item: any) => ({
-      value: item.agent_id || item.id || '',
-      label: item.name || '',
-      model: {
-        provider: item.model?.provider || '',
-        model: item.model?.model || ''
-      },
-      storage: !!(item.storage || item.sessions)
-    }))
-    return agents
-  } catch (error) {
-    // Sem toast aqui: o hook avisa no idioma da UI (BUG-P1-04b-1).
-    throw new Error('Failed to fetch playground agents', { cause: error })
-  }
-}
-
-export const getPlaygroundStatusAPI = async (base: string): Promise<number> => {
-  try {
-    // Try /status first (AGUI interface)
-    const response = await fetch(APIRoutes.PlaygroundStatus(base), {
-      method: 'GET'
-    })
-    if (response.ok) return response.status
-    // Fallback to /health (AgentOS native)
-    const healthResponse = await fetch(`${base}/health`, { method: 'GET' })
-    return healthResponse.ok ? 200 : healthResponse.status
-  } catch {
-    return 503
-  }
-}
-
-export const getAllPlaygroundSessionsAPI = async (
-  base: string,
-  agentId: string
-): Promise<SessionEntry[]> => {
-  try {
-    const response = await fetch(
-      APIRoutes.GetPlaygroundSessions(base, agentId, 'agent'),
-      {
-        method: 'GET'
-      }
+// Falha do BFF do chat. `status` é o HTTP devolvido; sem ele, nada respondeu
+// (rede, orquestrador fora do ar ou fora do prazo) e a UI mostra "offline".
+export class PlaygroundRequestError extends Error {
+  constructor(
+    readonly status?: number,
+    options?: ErrorOptions
+  ) {
+    super(
+      status === undefined ? 'Sem resposta do orquestrador' : `HTTP ${status}`,
+      options
     )
-    if (!response.ok) {
-      if (response.status === 404) {
-        return []
-      }
-      throw new Error(`HTTP ${response.status}`)
-    }
-    const data = await response.json()
-    // Handle paginated response: { data: [...], meta: {...} } or array or { items/sessions: [...] }
-    const sessions = Array.isArray(data) ? data : (data.data ?? data.items ?? data.sessions ?? [])
-    return sessions.map((s: Record<string, unknown>) => ({
-      session_id: (s.session_id ?? s.id ?? '') as string,
-      title: (s.session_name ?? s.title ?? s.name ?? s.session_id ?? '') as string,
-      created_at: typeof s.created_at === 'string'
-        ? Math.floor(new Date(s.created_at as string).getTime() / 1000)
-        : (s.created_at ?? s.updated_at ?? 0) as number
-    }))
-  } catch (error) {
-    // 404 já virou lista vazia; o resto sobe para o hook (BUG-P1-04b-1).
-    throw new Error('Failed to fetch sessions', { cause: error })
   }
 }
 
-export const getPlaygroundSessionAPI = async (
-  base: string,
-  _agentId: string,
-  sessionId: string
-) => {
-  const response = await fetch(
-    APIRoutes.GetPlaygroundSession(base, sessionId),
-    {
-      method: 'GET'
-    }
+const OFFLINE_ERRORS = ['unreachable', 'timeout']
+
+// Sessão do playground expirada (401 do middleware): navegação completa para
+// o login, que volta para esta URL (docs/design/P2-03.md). A promessa não
+// resolve: a página está saindo e nada mais deve reagir.
+export function redirectToLogin(): Promise<never> {
+  const next = `${window.location.pathname}${window.location.search}`
+  window.location.assign(
+    `/login?reason=expired&next=${encodeURIComponent(next)}`
   )
-  if (!response.ok) {
-    throw new Error(`Failed to fetch session: ${response.statusText}`)
-  }
-  return response.json()
+  return new Promise<never>(() => {})
 }
 
-export const deletePlaygroundSessionAPI = async (
-  base: string,
-  _agentId: string,
-  sessionId: string
-) => {
-  const response = await fetch(
-    APIRoutes.DeletePlaygroundSession(base, sessionId),
-    {
-      method: 'DELETE'
-    }
-  )
-  return response
-}
-
-export const getPlaygroundTeamsAPI = async (
-  endpoint: string
-): Promise<ComboboxTeam[]> => {
-  const url = APIRoutes.GetPlayGroundTeams(endpoint)
+async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  let response: Response
   try {
-    const response = await fetch(url, { method: 'GET' })
-    if (!response.ok) {
-      // Silently return empty - teams may not be supported by the backend
-      return []
-    }
-    const data = await response.json()
-    // Handle both array response and config-style response
-    const teamList = Array.isArray(data) ? data : (data.teams ?? data.value ?? [])
-    if (!Array.isArray(teamList)) return []
-    // Transform the API response into the expected shape.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const teams: ComboboxTeam[] = teamList.map((item: any) => ({
-      value: item.team_id || item.id || '',
-      label: item.name || '',
-      model: {
-        provider: item.model?.provider || '',
-        model: item.model?.model || ''
-      },
-      storage: !!(item.storage || item.sessions)
-    }))
-    return teams
-  } catch {
-    // Silently return empty - teams endpoint may not exist
-    return []
-  }
-}
-
-export const getPlaygroundTeamSessionsAPI = async (
-  base: string,
-  teamId: string
-): Promise<SessionEntry[]> => {
-  try {
-    const response = await fetch(
-      APIRoutes.GetPlaygroundTeamSessions(base, teamId),
-      {
-        method: 'GET'
-      }
-    )
-    if (!response.ok) {
-      if (response.status === 404) {
-        return []
-      }
-      throw new Error(`HTTP ${response.status}`)
-    }
-    const data = await response.json()
-    const sessions = Array.isArray(data) ? data : (data.data ?? data.items ?? data.sessions ?? [])
-    return sessions.map((s: Record<string, unknown>) => ({
-      session_id: (s.session_id ?? s.id ?? '') as string,
-      title: (s.session_name ?? s.title ?? s.name ?? s.session_id ?? '') as string,
-      created_at: typeof s.created_at === 'string'
-        ? Math.floor(new Date(s.created_at as string).getTime() / 1000)
-        : (s.created_at ?? s.updated_at ?? 0) as number
-    }))
+    response = await fetch(url, init)
   } catch (error) {
-    // 404 já virou lista vazia; o resto sobe para o hook (BUG-P1-04b-1).
-    throw new Error('Failed to fetch team sessions', { cause: error })
+    throw new PlaygroundRequestError(undefined, { cause: error })
   }
-}
-
-export const getPlaygroundTeamSessionAPI = async (
-  base: string,
-  _teamId: string,
-  sessionId: string
-) => {
-  const response = await fetch(
-    APIRoutes.GetPlaygroundTeamSession(base, sessionId),
-    {
-      method: 'GET'
-    }
-  )
+  if (response.status === 401) return redirectToLogin()
+  const body = (await response.json().catch(() => null)) as {
+    data?: T
+    error?: string
+  } | null
   if (!response.ok) {
-    throw new Error(`Failed to fetch team session: ${response.statusText}`)
+    const offline = OFFLINE_ERRORS.includes(body?.error ?? '')
+    throw new PlaygroundRequestError(offline ? undefined : response.status)
   }
-  return response.json()
+  return body?.data as T
 }
 
-export const deletePlaygroundTeamSessionAPI = async (
-  base: string,
-  _teamId: string,
-  sessionId: string
-) => {
-  const response = await fetch(
-    APIRoutes.DeletePlaygroundTeamSession(base, sessionId),
-    {
-      method: 'DELETE'
-    }
-  )
+export const getPlaygroundEntitiesAPI = (kind: ChatKind) =>
+  request<ComboboxAgent[]>(APIRoutes.Entities(kind))
 
-  if (!response.ok) {
-    throw new Error(`Failed to delete team session: ${response.statusText}`)
-  }
-  return response
-}
+export const getPlaygroundSessionsAPI = (kind: ChatKind, componentId: string) =>
+  request<SessionEntry[]>(APIRoutes.Sessions(kind, componentId))
+
+export const getPlaygroundSessionAPI = (kind: ChatKind, sessionId: string) =>
+  request<{
+    chat_history: {
+      role?: string
+      content: unknown
+      created_at?: number | null
+    }[]
+  }>(APIRoutes.Session(sessionId, kind))
+
+export const deletePlaygroundSessionAPI = (sessionId: string) =>
+  request<undefined>(APIRoutes.Session(sessionId), { method: 'DELETE' })

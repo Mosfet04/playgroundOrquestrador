@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import useAIChatStreamHandler from '@/hooks/useAIStreamHandler'
 import { usePlaygroundStore } from '@/store'
 
-import { AGENTOS_URL } from '../msw/handlers'
+import { BFF } from '../msw/handlers'
 import { server } from '../msw/server'
 import { IntlProvider } from '../helpers/intl'
 
@@ -31,17 +31,8 @@ const contentEvents = (event: string, deltas: string[]) =>
     created_at: 1
   }))
 
-// O handler monta o user_id com o IP (ipify) e o FingerprintJS (monitoramento
-// amostrado em 0,1%): responde aqui para nada sair do MSW.
-const externalHandlers = [
-  http.get('https://api.ipify.org', () =>
-    HttpResponse.json({ ip: '203.0.113.1' })
-  ),
-  http.get('https://m1.openfpcdn.io/*', () => new HttpResponse(null))
-]
-
 const sendMessage = async (mode: 'agent' | 'team', searchParams: string) => {
-  usePlaygroundStore.setState({ mode, selectedEndpoint: AGENTOS_URL })
+  usePlaygroundStore.setState({ mode })
   const wrapper = ({ children }: { children: ReactNode }) => (
     <IntlProvider>
       <NuqsTestingAdapter searchParams={searchParams}>
@@ -62,22 +53,20 @@ beforeEach(() => {
 describe('useAIChatStreamHandler: deltas do agno 2.5', () => {
   it('anexa cada RunContent, inclusive delta igual ao anterior', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream(contentEvents('RunContent', ['a', 'a']))
       )
     )
 
     const lastMessage = await sendMessage('agent', '?agent=agent-1')
 
+    // Sem o fim do run o stream conta como interrompido (P2-03); o texto fica.
     expect(lastMessage).toMatchObject({ role: 'agent', content: 'aa' })
-    expect(lastMessage.streamingError).toBe(false)
   })
 
   it('não corta o delta que contém o anterior', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream(contentEvents('RunContent', ['a', 'ab', 'c']))
       )
     )
@@ -89,22 +78,20 @@ describe('useAIChatStreamHandler: deltas do agno 2.5', () => {
 
   it('anexa cada TeamRunContent, inclusive delta igual ao anterior', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/teams/team-1/runs`, () =>
+      http.post(`${BFF}/teams/team-1/runs`, () =>
         sseStream(contentEvents('TeamRunContent', ['a', 'a']))
       )
     )
 
     const lastMessage = await sendMessage('team', '?team=team-1')
 
+    // Sem o fim do run o stream conta como interrompido (P2-03); o texto fica.
     expect(lastMessage).toMatchObject({ role: 'agent', content: 'aa' })
-    expect(lastMessage.streamingError).toBe(false)
   })
 
   it('mantém o RunResponseContent legado como conteúdo acumulado', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream(contentEvents('RunResponseContent', ['a', 'ab']))
       )
     )
@@ -116,8 +103,7 @@ describe('useAIChatStreamHandler: deltas do agno 2.5', () => {
 
   it('o RunCompleted fixa o texto final', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream([
           ...contentEvents('RunContent', ['a', 'a']),
           { event: 'RunCompleted', content: 'final', created_at: 2 }
@@ -134,8 +120,7 @@ describe('useAIChatStreamHandler: deltas do agno 2.5', () => {
   // raciocínio, citação ou mídia chega sem `content`.
   it('ignora o RunContent sem content', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream([
           {
             event: 'RunContent',
@@ -164,8 +149,7 @@ describe('useAIChatStreamHandler: eventos de membro no stream do team', () => {
 
   it('só os eventos do team escrevem o texto', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/teams/team-1/runs`, () =>
+      http.post(`${BFF}/teams/team-1/runs`, () =>
         sseStream([
           ...memberEvents,
           ...contentEvents('TeamRunContent', ['Lider: ', 'resumo'])
@@ -180,8 +164,7 @@ describe('useAIChatStreamHandler: eventos de membro no stream do team', () => {
 
   it('o TeamRunCompleted fixa o texto final', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/teams/team-1/runs`, () =>
+      http.post(`${BFF}/teams/team-1/runs`, () =>
         sseStream([
           ...memberEvents,
           ...contentEvents('TeamRunContent', ['Lider: ', 'resumo']),
@@ -200,8 +183,7 @@ describe('useAIChatStreamHandler: eventos de membro no stream do team', () => {
   it('mantém as imagens do RunCompleted de membro', async () => {
     const image = { url: 'https://img.test/membro.png', revised_prompt: 'x' }
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/teams/team-1/runs`, () =>
+      http.post(`${BFF}/teams/team-1/runs`, () =>
         sseStream([
           ...contentEvents('RunContent', ['membro diz X']),
           {
@@ -226,8 +208,7 @@ describe('useAIChatStreamHandler: eventos de membro no stream do team', () => {
   // string; o parser do stream não pode tomar essa aspa por escapada.
   it('não perde o stream após delta terminado em barras pares', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream(contentEvents('RunContent', ['a\\\\', 'b', '\\"c']))
       )
     )
@@ -251,8 +232,7 @@ describe('useAIChatStreamHandler: métricas (P1-06)', () => {
 
   it('guarda o tempo da tool e o erro do ToolCallCompleted', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream([
           { event: 'ToolCallStarted', tool: tool({}), created_at: 1 },
           {
@@ -277,8 +257,7 @@ describe('useAIChatStreamHandler: métricas (P1-06)', () => {
 
   it('guarda as métricas do RunCompleted na mensagem', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream([
           ...contentEvents('RunContent', ['ok']),
           {
@@ -298,8 +277,7 @@ describe('useAIChatStreamHandler: métricas (P1-06)', () => {
 
   it('RunCompleted sem metrics: a mensagem fica sem métricas', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream([{ event: 'RunCompleted', content: 'ok', created_at: 2 }])
       )
     )
@@ -311,8 +289,7 @@ describe('useAIChatStreamHandler: métricas (P1-06)', () => {
 
   it('no team, ignora as métricas do RunCompleted de membro (decisão 0007)', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/teams/team-1/runs`, () =>
+      http.post(`${BFF}/teams/team-1/runs`, () =>
         sseStream([
           {
             event: 'RunCompleted',
@@ -338,8 +315,7 @@ describe('useAIChatStreamHandler: métricas (P1-06)', () => {
 
   it('membro sem TeamRunCompleted: nenhuma métrica do membro', async () => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/teams/team-1/runs`, () =>
+      http.post(`${BFF}/teams/team-1/runs`, () =>
         sseStream([
           {
             event: 'RunCompleted',
@@ -361,8 +337,7 @@ describe('useAIChatStreamHandler: métricas (P1-06)', () => {
 describe('useAIChatStreamHandler: métricas hostis (QA P1-06)', () => {
   const runWith = async (metrics: unknown) => {
     server.use(
-      ...externalHandlers,
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () =>
+      http.post(`${BFF}/agents/agent-1/runs`, () =>
         sseStream([
           ...contentEvents('RunContent', ['ok']),
           { event: 'RunCompleted', content: 'ok', created_at: 2, metrics }

@@ -10,12 +10,13 @@ import PlaygroundPage from '@/app/(app)/playground/page'
 import SessionBlankState from '@/components/playground/Sidebar/Sessions/SessionBlankState'
 import { usePlaygroundStore } from '@/store'
 
-import { AGENTOS_URL } from '../msw/handlers'
+import { BFF, agentsFixture } from '../msw/handlers'
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 
 // P1-05 (V-P1-05-10/12/13/14): estados da conversa e do painel de sessões,
-// inclusive com o orquestrador fora (antes escondidos por `isEndpointActive &&`).
+// inclusive com o orquestrador fora (antes escondidos por `isOrchestratorActive &&`).
+// P2-03: a carga vem do BFF (/api/playground), sem endpoint no painel.
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/playground' }))
 
@@ -35,8 +36,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   usePlaygroundStore.setState(initialStoreState, true)
-  usePlaygroundStore.setState({ selectedEndpoint: AGENTOS_URL, hydrated: true })
-})
+  })
 
 afterEach(() => {
   window.history.replaceState(null, '', '/')
@@ -52,14 +52,12 @@ const renderPlayground = (url = '/playground') => {
   )
 }
 
-const offline = () =>
-  server.use(
-    http.get(`${AGENTOS_URL}/status`, () => HttpResponse.error()),
-    http.get(`${AGENTOS_URL}/health`, () => HttpResponse.error())
-  )
+// Orquestrador fora: o BFF responde 503 `unreachable` (P2-03).
+const unreachable = () => HttpResponse.json({ success: false, error: 'unreachable' }, { status: 503 })
+const offline = () => server.use(http.get(`${BFF}/agents`, unreachable))
 
 describe('/playground: área da conversa', () => {
-  it('orquestrador fora: erro com o endpoint, "offline" e "Tentar de novo"; composer desabilitado; painel com "Endpoint desconectado"', async () => {
+  it('orquestrador fora (V-P2-03-2): erro sem endereço, "offline" e "Tentar de novo"; composer desabilitado; painel com "Orquestrador desconectado"', async () => {
     offline()
     renderPlayground()
 
@@ -67,7 +65,8 @@ describe('/playground: área da conversa', () => {
     expect(
       within(alert).getByRole('heading', { name: 'Não foi possível conectar ao orquestrador' })
     ).toBeInTheDocument()
-    expect(within(alert).getByText(AGENTOS_URL)).toHaveClass('font-mono')
+    expect(alert.querySelector('.font-mono.break-all')).toBeNull()
+    expect(alert).not.toHaveTextContent(/localhost|7777|http/)
     expect(within(alert).getByText('offline')).toBeInTheDocument()
     expect(within(alert).getByRole('button', { name: 'Tentar de novo' })).toBeInTheDocument()
 
@@ -78,8 +77,22 @@ describe('/playground: área da conversa', () => {
     expect(screen.queryByText('Modo')).not.toBeInTheDocument()
     expect(screen.getByText('Sessões')).toBeInTheDocument()
     expect(
-      screen.getByText('Endpoint desconectado. Conecte o endpoint para ver o histórico.')
+      screen.getByText('Orquestrador desconectado. O histórico aparece quando ele voltar.')
     ).toBeInTheDocument()
+    expect(screen.queryByText('Endpoint')).not.toBeInTheDocument()
+  })
+
+  it('BFF da lista com 502 (V-P2-03-3): chip "código 502"', async () => {
+    server.use(
+      http.get(`${BFF}/agents`, () =>
+        HttpResponse.json({ success: false, error: 'server_error' }, { status: 502 })
+      )
+    )
+    renderPlayground()
+
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByText('código 502')).toBeInTheDocument()
+    expect(within(alert).queryByText('offline')).not.toBeInTheDocument()
   })
 
   it('"Tentar de novo" com o orquestrador de volta: o erro sai e o agente é selecionado', async () => {
@@ -103,9 +116,9 @@ describe('/playground: área da conversa', () => {
     const retry = await screen.findByRole('button', { name: 'Tentar de novo' })
     let release: () => void = () => undefined
     server.use(
-      http.get(`${AGENTOS_URL}/status`, async () => {
+      http.get(`${BFF}/agents`, async () => {
         await new Promise<void>((resolve) => (release = resolve))
-        return HttpResponse.error()
+        return unreachable()
       })
     )
     await user.click(retry)
@@ -130,15 +143,14 @@ describe('/playground: área da conversa', () => {
     server.resetHandlers()
     let release: () => void = () => undefined
     server.use(
-      http.get(`${AGENTOS_URL}/agents`, async () => {
+      http.get(`${BFF}/agents`, async () => {
         await new Promise<void>((resolve) => (release = resolve))
-        return HttpResponse.json([])
+        return HttpResponse.json({ success: true, data: [] })
       })
     )
     await user.click(retry)
 
     expect(await screen.findByRole('button', { name: 'Tentando…' })).toBeInTheDocument()
-    await waitFor(() => expect(usePlaygroundStore.getState().isEndpointActive).toBe(true))
     expect(screen.queryByText('O orquestrador ainda não tem agentes')).not.toBeInTheDocument()
     expect(screen.getByRole('alert')).toBeInTheDocument()
 
@@ -148,7 +160,7 @@ describe('/playground: área da conversa', () => {
 
   it('conectando: "Conectando ao orquestrador…" em role="status"', async () => {
     server.use(
-      http.get(`${AGENTOS_URL}/status`, async () => {
+      http.get(`${BFF}/agents`, async () => {
         await delay('infinite')
         return HttpResponse.json({})
       })
@@ -164,8 +176,8 @@ describe('/playground: área da conversa', () => {
 
   it('online sem agentes nem teams: vazio com "Criar primeiro agente"', async () => {
     server.use(
-      http.get(`${AGENTOS_URL}/agents`, () => HttpResponse.json([])),
-      http.get(`${AGENTOS_URL}/teams`, () => HttpResponse.json([]))
+      http.get(`${BFF}/agents`, () => HttpResponse.json({ success: true, data: [] })),
+      http.get(`${BFF}/teams`, () => HttpResponse.json({ success: true, data: [] }))
     )
     renderPlayground()
 
@@ -195,12 +207,29 @@ describe('/playground: área da conversa', () => {
       expect(screen.getByPlaceholderText('Escreva uma mensagem para Assistente')).toBeEnabled()
     )
   })
+
+  // V-P2-03-5: ?team= numa aba nova abre em modo Team, com o team e as sessões.
+  it('?team= do zero: modo Team, cartão do team e as sessões dele', async () => {
+    renderPlayground('/playground?team=team-1')
+
+    expect(await screen.findByRole('combobox', { name: 'Team: Time de suporte' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Team' })).toHaveAttribute('aria-pressed', 'true')
+    expect(await screen.findByText('Conversa do time')).toBeInTheDocument()
+    expect(screen.queryByText('Primeira conversa')).not.toBeInTheDocument()
+  })
+
+  it('?agent= e ?team= juntos: vale ?agent=', async () => {
+    renderPlayground('/playground?agent=agent-1&team=team-1')
+
+    expect(await screen.findByRole('combobox', { name: 'Agente: Assistente' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Agente' })).toHaveAttribute('aria-pressed', 'true')
+  })
 })
 
 describe('/playground: painel de sessões', () => {
   it('falha ao carregar sessões: alerta com "Tentar de novo", sem toast; tentar de novo lista', async () => {
     server.use(
-      http.get(`${AGENTOS_URL}/sessions`, () => HttpResponse.json({}, { status: 500 }))
+      http.get(`${BFF}/sessions`, () => HttpResponse.json({}, { status: 500 }))
     )
     const user = userEvent.setup()
     renderPlayground('/playground?agent=agent-1')
@@ -216,7 +245,7 @@ describe('/playground: painel de sessões', () => {
 
   it('"Tentar de novo" das sessões falhando de novo (R1): a caixa fica com "Tentando…" e o foco no botão', async () => {
     server.use(
-      http.get(`${AGENTOS_URL}/sessions`, () => HttpResponse.json({}, { status: 500 }))
+      http.get(`${BFF}/sessions`, () => HttpResponse.json({}, { status: 500 }))
     )
     const user = userEvent.setup()
     renderPlayground('/playground?agent=agent-1')
@@ -229,7 +258,7 @@ describe('/playground: painel de sessões', () => {
     )
     let release: () => void = () => undefined
     server.use(
-      http.get(`${AGENTOS_URL}/sessions`, async () => {
+      http.get(`${BFF}/sessions`, async () => {
         await new Promise<void>((resolve) => (release = resolve))
         return HttpResponse.json({}, { status: 500 })
       })
@@ -254,22 +283,15 @@ describe('/playground: painel de sessões', () => {
       </NuqsTestingAdapter>
     )
 
-  it('sem endpoint vem antes de offline: "Selecione um endpoint…"', () => {
-    usePlaygroundStore.setState({ selectedEndpoint: '', isEndpointActive: false })
-    blank('?agent=agent-1')
-
-    expect(screen.getByText('Selecione um endpoint para ver o histórico.')).toBeInTheDocument()
-  })
-
   it('modo Team sem team: "Selecione um team…"', () => {
-    usePlaygroundStore.setState({ isEndpointActive: true, mode: 'team' })
+    usePlaygroundStore.setState({ isOrchestratorActive: true, mode: 'team' })
     blank('?agent=agent-1')
 
     expect(screen.getByText('Selecione um team para ver o histórico.')).toBeInTheDocument()
   })
 
   it('sem storage: o link "storage" abre em nova aba com rel seguro', () => {
-    usePlaygroundStore.setState({ isEndpointActive: true, hasStorage: false })
+    usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false, agents: agentsFixture })
     blank('?agent=agent-1')
 
     const link = screen.getByRole('link', { name: 'storage' })

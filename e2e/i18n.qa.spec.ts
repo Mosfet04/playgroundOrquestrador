@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { expect, request, test, type BrowserContext, type Page } from '@playwright/test'
 
-import { APP_URL, AUTH_STATE, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { APP_URL, AUTH_STATE } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // QA P1-04. Complementa e2e/i18n.spec.ts: cookie hostil no request, idioma
@@ -399,14 +399,12 @@ test.describe('sessão do chat não recarrega na troca de idioma', () => {
     page
   }) => {
     await page.route(
-      (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
+      (url) => url.origin !== APP_URL,
       (route) => route.abort()
     )
     await page.goto('/playground')
+    await hydrated(page)
     const sidebar = page.locator('aside')
-    await sidebar.getByText('http://localhost:7777').click()
-    await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
-    await sidebar.getByRole('textbox').press('Enter')
     await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
     await page.getByRole('option', { name: 'Agente Beta' }).click()
     // o placeholder muda com o idioma (P1-04b): o composer é o único textarea

@@ -8,7 +8,7 @@ import PlaygroundPage from '@/app/(app)/playground/page'
 import { AppShell } from '@/components/layout/AppShell'
 import { usePlaygroundStore } from '@/store'
 
-import { AGENTOS_URL } from '../msw/handlers'
+import { BFF, agentsFixture } from '../msw/handlers'
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 
@@ -44,18 +44,19 @@ beforeAll(() => {
 })
 
 const history = {
-  session_id: 'session-a1',
-  chat_history: [
-    { role: 'user', content: 'Pergunta do histórico', created_at: 1 },
-    { role: 'assistant', content: 'Resposta do histórico', created_at: 2 }
-  ]
+  success: true,
+  data: {
+    chat_history: [
+      { role: 'user', content: 'Pergunta do histórico', created_at: 1 },
+      { role: 'assistant', content: 'Resposta do histórico', created_at: 2 }
+    ]
+  }
 }
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/playground?agent=agent-1&session=session-a1')
   usePlaygroundStore.setState(initialStoreState, true)
-  usePlaygroundStore.setState({ selectedEndpoint: AGENTOS_URL, hydrated: true })
-  sessionRequests.count = 0
+    sessionRequests.count = 0
 })
 
 afterEach(() => {
@@ -71,15 +72,9 @@ const renderPlayground = () =>
     </NuqsAdapter>
   )
 
-const refreshButton = () => {
-  const row = screen.getByText('Endpoint').parentElement as HTMLElement
-  const buttons = row.querySelectorAll('button')
-  return buttons[buttons.length - 1] as HTMLButtonElement
-}
-
 describe('/playground com ?agent= e ?session=', () => {
   it('abre com o agente selecionado e as mensagens da sessão', async () => {
-    server.use(http.get(`${AGENTOS_URL}/sessions/:id`, () => HttpResponse.json(history)))
+    server.use(http.get(`${BFF}/sessions/:id`, () => HttpResponse.json(history)))
     renderPlayground()
 
     expect(await screen.findByText('Resposta do histórico')).toBeInTheDocument()
@@ -90,7 +85,7 @@ describe('/playground com ?agent= e ?session=', () => {
 
   it('sessão inexistente (404): sem mensagens e sem quebrar a página', async () => {
     server.use(
-      http.get(`${AGENTOS_URL}/sessions/:id`, () =>
+      http.get(`${BFF}/sessions/:id`, () =>
         HttpResponse.json({ detail: 'not found' }, { status: 404 })
       )
     )
@@ -105,18 +100,17 @@ describe('/playground com ?agent= e ?session=', () => {
   // abrir, ?agent= e ?session= ficam na URL e a sessão carrega quando o
   // endpoint volta.
   it(
-    'LIM-P1-03-1: orquestrador fora ao abrir; ao voltar e atualizar o endpoint, as mensagens da sessão da URL aparecem',
+    'LIM-P1-03-1: orquestrador fora ao abrir; ao voltar e tentar de novo, as mensagens da sessão da URL aparecem',
     async () => {
       const user = userEvent.setup()
       let online = false
       server.use(
-        http.get(`${AGENTOS_URL}/status`, () =>
-          online ? HttpResponse.json({ status: 'available' }) : new HttpResponse(null, { status: 500 })
+        http.get(`${BFF}/agents`, () =>
+          online
+            ? HttpResponse.json({ success: true, data: agentsFixture })
+            : HttpResponse.json({ success: false, error: 'unreachable' }, { status: 503 })
         ),
-        http.get(`${AGENTOS_URL}/health`, () =>
-          online ? HttpResponse.json({ status: 'ok' }) : new HttpResponse(null, { status: 500 })
-        ),
-        http.get(`${AGENTOS_URL}/sessions/:id`, () => {
+        http.get(`${BFF}/sessions/:id`, () => {
           sessionRequests.count += 1
           return online
             ? HttpResponse.json(history)
@@ -125,13 +119,13 @@ describe('/playground com ?agent= e ?session=', () => {
       )
       renderPlayground()
       await waitFor(() =>
-        expect(usePlaygroundStore.getState().isEndpointLoading).toBe(false)
+        expect(usePlaygroundStore.getState().isOrchestratorLoading).toBe(false)
       )
       await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
       expect(screen.queryByText('Resposta do histórico')).not.toBeInTheDocument()
 
       online = true
-      await user.click(refreshButton())
+      await user.click(await screen.findByRole('button', { name: 'Tentar de novo' }))
 
       expect(await screen.findByText('Sessões', {}, { timeout: 2000 })).toBeInTheDocument()
       await waitFor(() => expect(window.location.search).toContain('session=session-a1'))

@@ -62,16 +62,16 @@ describe('QA: chave run e admin nunca trocadas', () => {
   })
 })
 
-// `%2F` dentro de um segmento passa por isSafePath e sai literal na URL (o
-// parser WHATWG não o decodifica). Já o uvicorn decodifica o path INTEIRO:
-// `/sessions/..%2Fadmin` chega ao app como `/sessions/../admin`. Ids vindos do
-// usuário precisam ser validados antes do cliente (critério da P2-03).
-describe('QA: %2F dentro do segmento (comportamento documentado)', () => {
-  it('/sessions/..%2Fadmin é aceito e sai literal', async () => {
-    let pathname = ''
+// `%2F` dentro de um segmento: o parser WHATWG não o decodifica, mas o uvicorn
+// (ou um proxy que normaliza) decodifica o path INTEIRO, e `/sessions/..%2Fadmin`
+// viraria `/sessions/../admin`. Desde a review do P2-03 o isSafePath recusa.
+describe('QA: %2F dentro do segmento', () => {
+  it('/sessions/..%2Fadmin ⇒ invalid_path, sem sair', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    let called = false
     server.use(
-      http.all(`${BASE}/*`, ({ request }) => {
-        pathname = new URL(request.url).pathname
+      http.all(`${BASE}/*`, () => {
+        called = true
         return HttpResponse.json({ status: 'ok' })
       })
     )
@@ -81,8 +81,8 @@ describe('QA: %2F dentro do segmento (comportamento documentado)', () => {
       schema: statusSchema
     })
 
-    expect(result.ok).toBe(true)
-    expect(pathname).toBe('/sessions/..%2Fadmin')
+    expect(result).toEqual({ ok: false, error: 'invalid_path' })
+    expect(called).toBe(false)
   })
 })
 

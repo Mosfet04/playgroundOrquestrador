@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import useAIChatStreamHandler from '@/hooks/useAIStreamHandler'
 import { usePlaygroundStore } from '@/store'
 
-import { AGENTOS_URL } from '../msw/handlers'
+import { BFF } from '../msw/handlers'
 import { server } from '../msw/server'
 import { IntlProvider } from '../helpers/intl'
 
@@ -24,20 +24,11 @@ const sse = (events: Record<string, unknown>[]) =>
 const deltas = (event: string, contents: string[]) =>
   contents.map((content) => ({ event, content, created_at: 1 }))
 
-// O handler consulta ipify e FingerprintJS: responde aqui para nada sair do MSW.
-const externalHandlers = [
-  http.get('https://api.ipify.org', () =>
-    HttpResponse.json({ ip: '203.0.113.1' })
-  ),
-  http.get('https://m1.openfpcdn.io/*', () => new HttpResponse(null))
-]
-
 const run = async (events: Record<string, unknown>[]) => {
   server.use(
-    ...externalHandlers,
-    http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () => sse(events))
+    http.post(`${BFF}/agents/agent-1/runs`, () => sse(events))
   )
-  usePlaygroundStore.setState({ mode: 'agent', selectedEndpoint: AGENTOS_URL })
+  usePlaygroundStore.setState({ mode: 'agent' })
   const wrapper = ({ children }: { children: ReactNode }) => (
     <IntlProvider>
       <NuqsTestingAdapter searchParams="?agent=agent-1">

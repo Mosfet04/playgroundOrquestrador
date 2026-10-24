@@ -211,15 +211,12 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
   request
 }) => {
   await page.route(
-    (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
+    (url) => url.origin !== APP_URL,
     (route) => route.abort()
   )
   await page.goto('/playground')
   await hydrated(page)
   const sidebar = page.locator('aside')
-  await sidebar.getByText('http://localhost:7777').click()
-  await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
-  await sidebar.getByRole('textbox').press('Enter')
   const composer = page.getByPlaceholder('Escreva uma mensagem para Agente Alfa')
   await expect(composer).toBeEnabled()
 

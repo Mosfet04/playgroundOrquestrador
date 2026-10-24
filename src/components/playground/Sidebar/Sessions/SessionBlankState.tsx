@@ -1,6 +1,6 @@
 import { useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
-import { Bot, CircleAlert, Database, History, Plug, Unplug } from 'lucide-react'
+import { Bot, CircleAlert, Database, History, Unplug } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import useSessionLoader from '@/hooks/useSessionLoader'
@@ -8,11 +8,12 @@ import { usePlaygroundStore } from '@/store'
 import { cn } from '@/lib/utils'
 
 // Caixa de sessões vazia: um texto, na primeira condição verdadeira da ordem
-// da spec (docs/design/P1-05.md, painel de sessões).
+// da spec (docs/design/P1-05.md, sem o "sem endpoint" desde a P2-03).
 const SessionBlankState = () => {
   const {
-    selectedEndpoint,
-    isEndpointActive,
+    agents,
+    teams,
+    isOrchestratorActive,
     hasStorage,
     sessionsError,
     isSessionsLoading,
@@ -37,9 +38,10 @@ const SessionBlankState = () => {
   )
   const text = (content: React.ReactNode) => <p className="max-w-[210px]">{content}</p>
 
-  if (!selectedEndpoint) return box(<Plug />, text(t('sessionsNoEndpoint')))
-  if (!isEndpointActive) return box(<Unplug />, text(t('sessionsEndpointOff')))
-  if (mode === 'team' ? !teamId : !agentId)
+  if (!isOrchestratorActive) return box(<Unplug />, text(t('sessionsOrchestratorOff')))
+  // Sem entidade na URL ou com uma que a lista não tem (?team= inexistente).
+  const entityId = mode === 'team' ? teamId : agentId
+  if (!(mode === 'team' ? teams : agents).some((entity) => entity.value === entityId))
     return box(
       <Bot />,
       text(mode === 'team' ? t('sessionsNoTeam') : t('sessionsNoAgent'))
@@ -62,24 +64,26 @@ const SessionBlankState = () => {
       </>,
       true
     )
-  if (!hasStorage)
+  if (!hasStorage) {
+    const link = (chunks: React.ReactNode) => (
+      <a
+        className="text-primary underline underline-offset-4"
+        href="https://docs.agno.com/storage"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {chunks}
+      </a>
+    )
     return box(
       <Database />,
       text(
-        t.rich('sessionsNoStorage', {
-          link: (chunks) => (
-            <a
-              className="text-primary underline underline-offset-4"
-              href="https://docs.agno.com/storage"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {chunks}
-            </a>
-          )
-        })
+        mode === 'team'
+          ? t.rich('sessionsNoStorageTeam', { link })
+          : t.rich('sessionsNoStorage', { link })
       )
     )
+  }
   return box(<History />, text(t('sessionsEmpty')))
 }
 

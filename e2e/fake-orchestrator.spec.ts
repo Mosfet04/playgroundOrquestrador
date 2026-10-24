@@ -1,8 +1,40 @@
 import { expect, test } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { TEST_ENV } from './test-env'
+
+const bearer = (key: string) => ({ Authorization: `Bearer ${key}` })
+
+// P2-03 (decisão 0018): o fake exige a chave como o orquestrador real.
+test.describe('fake orchestrator: chave', () => {
+  test('sem chave ou com chave errada: 401', async ({ request }) => {
+    expect((await request.get(`${FAKE_ORCHESTRATOR_URL}/agents`)).status()).toBe(401)
+    const wrong = await request.get(`${FAKE_ORCHESTRATOR_URL}/agents`, { headers: bearer('errada') })
+    expect(wrong.status()).toBe(401)
+  })
+
+  test('chave run em rota admin: 403; a admin vale em tudo', async ({ request }) => {
+    const run = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_RUN)
+    const admin = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+    for (const [method, path] of [
+      ['GET', '/admin/health'],
+      ['GET', '/metrics'],
+      ['DELETE', '/sessions/qualquer']
+    ])
+      expect(
+        (await request.fetch(`${FAKE_ORCHESTRATOR_URL}${path}`, { method, headers: run })).status(),
+        `${method} ${path}`
+      ).toBe(403)
+    expect(
+      (await request.delete(`${FAKE_ORCHESTRATOR_URL}/sessions/qualquer`, { headers: admin })).status()
+    ).toBe(204)
+    expect((await request.get(`${FAKE_ORCHESTRATOR_URL}/agents`, { headers: admin })).status()).toBe(200)
+  })
+})
 
 test.describe('fake orchestrator', () => {
+  test.use({ extraHTTPHeaders: bearer(TEST_ENV.ORCHESTRATOR_API_KEY_RUN) })
+
   test('responde às rotas conhecidas', async ({ request }) => {
     const status = await request.get(`${FAKE_ORCHESTRATOR_URL}/status`)
     expect(status.status()).toBe(200)
@@ -33,10 +65,10 @@ test.describe('fake orchestrator', () => {
     })
   }
 
-  test('lista times vazios e sessões vazias para time', async ({ request }) => {
+  test('lista o team do fake e sessões vazias para time desconhecido', async ({ request }) => {
     const teams = await request.get(`${FAKE_ORCHESTRATOR_URL}/teams`)
     expect(teams.status()).toBe(200)
-    expect(await teams.json()).toEqual([])
+    expect(await teams.json()).toEqual([expect.objectContaining({ id: 'time-suporte' })])
 
     const sessions = await request.get(
       `${FAKE_ORCHESTRATOR_URL}/sessions?type=team&component_id=qualquer`

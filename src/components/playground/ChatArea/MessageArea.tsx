@@ -10,8 +10,8 @@ import Messages from './Messages'
 import ScrollToBottom from '@/components/playground/ChatArea/ScrollToBottom'
 
 // Fora do log: o leitor de tela ouve o início e o fim da resposta, uma vez
-// cada, não token a token (docs/design/P1-06.md, § 6). Sem "concluída" no erro
-// do stream; a `key` da entidade zera o anúncio ao trocar de agente.
+// cada, não token a token (docs/design/P1-06.md, § 6). No erro do stream, "falhou"
+// (P2-03); a `key` da entidade zera o anúncio ao trocar de agente.
 const StreamStatus = ({ name }: { name: string }) => {
   const isStreaming = usePlaygroundStore((state) => state.isStreaming)
   const failed = usePlaygroundStore(
@@ -29,7 +29,8 @@ const StreamStatus = ({ name }: { name: string }) => {
   return (
     <p role="status" className="sr-only">
       {phase === 'responding' && t('respondingStatus', { name })}
-      {phase === 'done' && !failed && t('responseDone', { name })}
+      {phase === 'done' &&
+        (failed ? t('responseFailed', { name }) : t('responseDone', { name }))}
     </p>
   )
 }

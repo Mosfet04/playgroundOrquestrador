@@ -16,8 +16,7 @@ export function ModeSelector({ labelledBy }: { labelledBy: string }) {
     teams,
     agents,
     setMessages,
-    setHasStorage,
-    setSelectedTeamId
+    setHasStorage
   } = usePlaygroundStore()
   const { clearChat } = useChatActions()
   const [, setAgentId] = useQueryState('agent')
@@ -35,7 +34,6 @@ export function ModeSelector({ labelledBy }: { labelledBy: string }) {
 
     setAgentId(null)
     setTeamId(null)
-    setSelectedTeamId(null)
     setHasStorage(false)
     setMessages([])
     setSessionId(null)

@@ -39,8 +39,14 @@ export default defineConfig({
     {
       name: 'fake-orchestrator',
       command: 'node e2e/fake-orchestrator/server.ts',
+      // Sem chave o /status responde 401, que o Playwright já conta como no ar.
       url: `${FAKE_ORCHESTRATOR_URL}/status`,
-      env: { FAKE_ORCHESTRATOR_PORT: String(FAKE_ORCHESTRATOR_PORT) },
+      // O fake exige as mesmas chaves que o BFF manda (decisão 0018).
+      env: {
+        FAKE_ORCHESTRATOR_PORT: String(FAKE_ORCHESTRATOR_PORT),
+        FAKE_API_KEY_RUN: TEST_ENV.ORCHESTRATOR_API_KEY_RUN,
+        FAKE_API_KEY_ADMIN: TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN
+      },
       reuseExistingServer: !isCI
     },
     // Na CI, o build de produção: o `next dev` compila cada rota sob demanda e

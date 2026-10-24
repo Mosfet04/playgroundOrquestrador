@@ -36,18 +36,27 @@ type CallOptions<T> = {
   schema: z.ZodType<T>
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
+  // Vai na URL por URLSearchParams (valores codificados).
+  query?: Record<string, string>
   timeoutMs?: number
 }
 
 // O path vai cru na URL, e o parser WHATWG resolve `.`/`..` (também `%2e`),
 // troca `\` por `/` e lê `?`/`#` como query e fragmento: um id `..` mudaria a
 // rota (e a chave exigida). Path assim, ou mal codificado, nem sai daqui.
+// Nem `/` codificado num segmento (`%2F`): um proxy que normaliza o caminho
+// o leria como outra rota (review P2-03).
 const isSafePath = (path: string) =>
   !/[?#\\]/.test(path) &&
   path.split('/').every((segment) => {
     try {
       const decoded = decodeURIComponent(segment)
-      return decoded !== '.' && decoded !== '..' && !decoded.includes('\\')
+      return (
+        decoded !== '.' &&
+        decoded !== '..' &&
+        !decoded.includes('\\') &&
+        !decoded.includes('/')
+      )
     } catch {
       return false
     }
@@ -60,36 +69,61 @@ const statusError = (status: number): OrchestratorErrorCode => {
   return status >= 500 ? 'server_error' : 'rejected'
 }
 
-export async function callOrchestrator<T>(
-  path: `/${string}`,
-  { key, schema, method = 'GET', body, timeoutMs = ORCHESTRATOR_TIMEOUT_MS }: CallOptions<T>
-): Promise<OrchestratorResult<T>> {
-  const fail = (error: OrchestratorErrorCode, status?: number): OrchestratorResult<T> => {
-    console.warn('[orchestrator] falha', { method, path, error, status })
-    return { ok: false, error, status }
-  }
-  if (!isSafePath(path)) return fail('invalid_path')
+function failure(
+  method: string,
+  path: string,
+  error: OrchestratorErrorCode,
+  status?: number
+): { ok: false; error: OrchestratorErrorCode; status?: number } {
+  console.warn('[orchestrator] falha', { method, path, error, status })
+  return { ok: false, error, status }
+}
+
+// AbortSignal.timeout (e o abort do prazo do stream) rejeita com TimeoutError;
+// o resto é rede (DNS, conexão recusada), cuja mensagem cita o host interno.
+const fetchError = (error: unknown): OrchestratorErrorCode =>
+  error instanceof Error && error.name === 'TimeoutError' ? 'timeout' : 'unreachable'
+
+function target(path: string, key: OrchestratorKey, query?: Record<string, string>) {
   const env = getServerEnv()
   const apiKey =
     key === 'admin' ? env.ORCHESTRATOR_API_KEY_ADMIN : env.ORCHESTRATOR_API_KEY_RUN
+  const search = query ? `?${new URLSearchParams(query)}` : ''
+  return {
+    url: `${env.ORCHESTRATOR_URL.replace(/\/+$/, '')}${path}${search}`,
+    authorization: `Bearer ${apiKey}`
+  }
+}
+
+export async function callOrchestrator<T>(
+  path: `/${string}`,
+  {
+    key,
+    schema,
+    method = 'GET',
+    body,
+    query,
+    timeoutMs = ORCHESTRATOR_TIMEOUT_MS
+  }: CallOptions<T>
+): Promise<OrchestratorResult<T>> {
+  const fail = (error: OrchestratorErrorCode, status?: number) =>
+    failure(method, path, error, status)
+  if (!isSafePath(path)) return fail('invalid_path')
+  const { url, authorization } = target(path, key, query)
 
   let response: Response
   try {
-    response = await fetch(`${env.ORCHESTRATOR_URL.replace(/\/+$/, '')}${path}`, {
+    response = await fetch(url, {
       method,
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: authorization,
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs)
     })
   } catch (error) {
-    // AbortSignal.timeout rejeita com TimeoutError; o resto é rede (DNS,
-    // conexão recusada), cuja mensagem cita o host interno.
-    return fail(
-      error instanceof Error && error.name === 'TimeoutError' ? 'timeout' : 'unreachable'
-    )
+    return fail(fetchError(error))
   }
 
   if (!response.ok) {
@@ -110,4 +144,50 @@ export async function callOrchestrator<T>(
     if (error instanceof Error && error.name === 'TimeoutError') return fail('timeout')
   }
   return fail('invalid_response', response.status)
+}
+
+// Run em stream (P2-03, sempre com a chave run): devolve o corpo cru para o
+// BFF repassar sem buffer. O prazo vale só até os cabeçalhos (um run pode
+// durar minutos); o `signal` do pedido do browser corta o fetch e o corpo, e
+// o orquestrador vê a conexão fechar.
+export async function streamOrchestrator(
+  path: `/${string}`,
+  {
+    form,
+    signal,
+    timeoutMs = ORCHESTRATOR_TIMEOUT_MS
+  }: { form: FormData; signal: AbortSignal; timeoutMs?: number }
+): Promise<OrchestratorResult<ReadableStream<Uint8Array>>> {
+  const fail = (error: OrchestratorErrorCode, status?: number) =>
+    failure('POST', path, error, status)
+  if (!isSafePath(path)) return fail('invalid_path')
+  const { url, authorization } = target(path, 'run')
+  const deadline = new AbortController()
+  const timer = setTimeout(
+    () => deadline.abort(new DOMException('Sem cabeçalhos no prazo', 'TimeoutError')),
+    timeoutMs
+  )
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: authorization },
+      body: form,
+      signal: AbortSignal.any([signal, deadline.signal])
+    })
+  } catch (error) {
+    // O browser saiu antes dos cabeçalhos: ninguém lê a resposta e não é
+    // falha do orquestrador (sem log).
+    if (signal.aborted) return { ok: false, error: 'unreachable' }
+    return fail(fetchError(error))
+  } finally {
+    clearTimeout(timer)
+  }
+  if (!response.ok) {
+    void response.body?.cancel()
+    return fail(statusError(response.status), response.status)
+  }
+  if (!response.body) return fail('invalid_response', response.status)
+  return { ok: true, data: response.body }
 }

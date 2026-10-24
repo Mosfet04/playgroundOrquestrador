@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Sheet com lixeira de 44 px · celular escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p105.css">
+<link rel="stylesheet" href="p106.css">
+<link rel="stylesheet" href="p203.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#8fa8ff}a:hover{color:#b3c4ff}
+</style>
+</helmet>
+<div class="pg-app dark phone">
+  <header class="m-hdr" aria-hidden="true">
+    <span class="tap"></span>
+    <h1>Playground<span class="sub">suporte-n1 · claude-sonnet-4</span></h1>
+    <span class="tap"></span>
+  </header>
+  <div class="chat-center" aria-hidden="true" style="flex: 1"><span class="pg-avatar pg-grad chat-av">SN</span><h2>Converse com Suporte N1</h2></div>
+  <div class="scrim" aria-hidden="true"></div>
+  <div class="sheet panel-sheet" role="dialog" aria-modal="true" aria-label="Sessões e agente">
+    <div class="pg-col" style="gap: 12px">
+      <div class="sheet-head">
+        <p class="panel-label" id="l-tipo-m" style="margin: 0">Conversar com</p>
+        <button class="pg-btn pg-btn-ghost tap" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+      </div>
+      <div class="seg" role="group" aria-labelledby="l-tipo-m"><button type="button" aria-pressed="true" style="height: 40px">Agente</button><button type="button" aria-pressed="false" style="height: 40px">Team</button></div>
+      <button class="entity" type="button" role="combobox" aria-label="Agente: Suporte N1" aria-expanded="false" style="min-height: 56px">
+        <span class="pg-avatar pg-grad" aria-hidden="true">SN</span>
+        <span class="txt"><b>Suporte N1</b><span>anthropic/claude-sonnet-4</span></span>
+        <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--muted-foreground)"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+      </button>
+      <button class="pg-btn pg-btn-outline" type="button" style="width: 100%; height: 40px"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Nova conversa</button>
+    </div>
+    <div class="sess-wrap">
+      <p class="panel-label">Sessões</p>
+      <nav class="sess touch" aria-label="Sessões">
+        <div class="row"><a href="#s1" aria-current="page"><span>Prazo de troca no app</span><span>17:22</span></a><button class="pg-btn pg-btn-ghost del44" type="button" aria-label="Excluir sessão &quot;Prazo de troca no app&quot;"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+        <div class="row"><a href="#s2"><span>Status do pedido 48213</span><span>16:05</span></a><button class="pg-btn pg-btn-ghost del44 is-focus" type="button" aria-label="Excluir sessão &quot;Status do pedido 48213&quot;"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+        <div class="row"><a href="#s3"><span>Cupom não aplicado na finalização do pedido</span><span>ontem</span></a><button class="pg-btn pg-btn-ghost del44" type="button" aria-label="Excluir sessão &quot;Cupom não aplicado na finalização do pedido&quot;"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+        <div class="row"><a href="#s4"><span>Endereço de entrega errado</span><span>12/10</span></a><button class="pg-btn pg-btn-ghost del44" type="button" aria-label="Excluir sessão &quot;Endereço de entrega errado&quot;"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+      </nav>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

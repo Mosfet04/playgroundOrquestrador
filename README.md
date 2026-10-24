@@ -30,7 +30,7 @@ graph LR
 ```
 
 - **Gestão** (agentes, tools, dashboard): as rotas `src/app/api/**` leem e gravam direto no MongoDB do orquestrador, com validação zod na entrada.
-- **Chat**: o navegador fala direto com o AgentOS do orquestrador no endpoint do painel (padrão `http://localhost:7777`, salvo no `localStorage`). O orquestrador libera `http://localhost:3000` no CORS por padrão. Se o orquestrador exigir chave (`API_KEY_RUN`), o chat não funciona ainda: o envio da chave chega com o BFF (fase P2).
+- **Chat**: o navegador só fala com o playground. As rotas `src/app/api/playground/**` (BFF) chamam o AgentOS do orquestrador em `ORCHESTRATOR_URL`, com a chave run (excluir sessão usa a admin), e repassam o stream do run sem buffer. O `user_id` das sessões é o usuário do login. Não há endpoint no painel: a URL e as chaves ficam só no servidor.
 - **Quando a mudança vale**: o orquestrador monta agentes e tools ao iniciar. O que você cria ou edita aqui fica gravado no MongoDB e passa a valer no chat **depois de reiniciar o orquestrador**. A aplicação a quente pela API Admin do orquestrador é o plano das fases P2–P4 ([roadmap](docs/roadmap/README.md)).
 
 ## Dados no MongoDB
@@ -108,7 +108,7 @@ Crie o `.env.local` com as variáveis abaixo.
 | `AUTH_USERNAME` | usuário do login |
 | `AUTH_PASSWORD_HASH` | hash scrypt da senha do login, gerado por `pnpm auth:hash` (nunca a senha em claro) |
 
-As variáveis do servidor (todas menos `MONGO_*`) são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas pelo cliente do servidor (`src/server/orchestrator/`, hoje só em `GET /api/orchestrator/health`); o chat ainda chama o orquestrador direto do navegador até a P2-03.
+As variáveis do servidor (todas menos `MONGO_*`) são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas só pelo cliente do servidor (`src/server/orchestrator/`): health e o chat (`/api/playground/*`).
 
 Para gerar o hash, passe a senha pelo stdin (não fica no histórico do shell):
 
@@ -136,7 +136,7 @@ A sessão é só o cookie assinado com `SESSION_SECRET`: não há revogação no
 pnpm dev          # http://localhost:3000
 ```
 
-No `/playground`, confira o endpoint do orquestrador no painel (padrão `http://localhost:7777`).
+O `/playground` usa o orquestrador de `ORCHESTRATOR_URL`; para trocar, mude a variável e reinicie o playground.
 
 **Dados de exemplo (opcional):** os scripts são do `mongosh` e usam o banco `agno`.
 
@@ -222,7 +222,7 @@ Plano de trabalho em [`docs/roadmap/`](docs/roadmap/README.md), decisões em [`d
   mongosh "mongodb://localhost:27017/agno" --eval "db.agents_config.countDocuments()"
   curl http://localhost:3000/api/agents
   ```
-- **Playground com "Não foi possível conectar ao orquestrador"**: confira o endpoint no painel e o orquestrador (`curl http://localhost:7777/health`). Com o playground em outra origem que não `http://localhost:3000`, inclua-a em `CORS_ALLOWED_ORIGINS` no orquestrador.
+- **Playground com "Não foi possível conectar ao orquestrador"**: confira `ORCHESTRATOR_URL` e o orquestrador (`curl http://localhost:7777/health`). Chip "offline": o orquestrador não respondeu; "código 502": respondeu com erro ou recusou a chave (confira `ORCHESTRATOR_API_KEY_RUN`).
 - **Agente criado não aparece no chat**: reinicie o orquestrador (ver "Quando a mudança vale").
 
 ## Licença e créditos
@@ -246,7 +246,7 @@ Web UI for the [Agno Python AI Orchestrator](https://github.com/Mosfet04/orquest
 ### How it works today
 
 - **Management** (agents, tools, dashboard): the `src/app/api/**` routes read and write the orchestrator's MongoDB directly, validating input with zod.
-- **Chat**: the browser talks to the orchestrator's AgentOS at the endpoint set in the panel (default `http://localhost:7777`). The orchestrator allows `http://localhost:3000` in CORS by default. If it requires a key (`API_KEY_RUN`), chat doesn't work yet: sending the key comes with the BFF (phase P2).
+- **Chat**: the browser only talks to the playground. The `src/app/api/playground/**` routes (BFF) call the orchestrator's AgentOS at `ORCHESTRATOR_URL` with the run key (deleting a session uses the admin key) and pass the run stream through unbuffered. The sessions' `user_id` is the logged-in user. There is no endpoint field in the panel: the URL and keys stay on the server.
 - **When changes apply**: the orchestrator builds agents and tools at startup, so what you create or edit here takes effect in chat **after restarting the orchestrator**. Hot apply through the orchestrator's Admin API is planned for phases P2–P4 ([roadmap](docs/roadmap/README.md)).
 
 The MongoDB collections (`agents_config`, `tools`, `agno_sessions`, `agno_memories`) are described in the Portuguese section above.
@@ -289,7 +289,7 @@ Stack: Next.js 15 (App Router), React 18, TypeScript, Tailwind + shadcn/ui, zust
 ### Troubleshooting
 
 - Lists/dashboard show "Couldn't load…": check MongoDB and `.env.local` (`curl http://localhost:3000/api/agents`).
-- Playground shows "Couldn't connect to the orchestrator": check the endpoint and `curl http://localhost:7777/health`; for an origin other than `http://localhost:3000`, add it to the orchestrator's `CORS_ALLOWED_ORIGINS`.
+- Playground shows "Couldn't connect to the orchestrator": check `ORCHESTRATOR_URL` and `curl http://localhost:7777/health`; "code 502" means the orchestrator answered with an error or refused the key (check `ORCHESTRATOR_API_KEY_RUN`).
 - New agent missing in chat: restart the orchestrator.
 
 License: [MIT](./LICENSE).

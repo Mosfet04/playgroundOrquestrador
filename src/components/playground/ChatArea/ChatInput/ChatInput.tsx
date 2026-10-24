@@ -21,13 +21,13 @@ const ChatInput = () => {
   const entity = useSelectedEntity()
   const [inputMessage, setInputMessage] = useState('')
   const isStreaming = usePlaygroundStore((state) => state.isStreaming)
-  const isEndpointActive = usePlaygroundStore((state) => state.isEndpointActive)
-  const isEndpointLoading = usePlaygroundStore((state) => state.isEndpointLoading)
+  const isOrchestratorActive = usePlaygroundStore((state) => state.isOrchestratorActive)
+  const isOrchestratorLoading = usePlaygroundStore((state) => state.isOrchestratorLoading)
   const t = useTranslations('playground')
   const inputId = useId()
   // O placeholder diz por que o composer está desabilitado (P1-05).
-  const offline = !isEndpointActive && !isEndpointLoading
-  const disabled = offline || isEndpointLoading || !entity
+  const offline = !isOrchestratorActive && !isOrchestratorLoading
+  const disabled = offline || isOrchestratorLoading || !entity
   const isEmpty = !inputMessage.trim()
   const placeholder = offline
     ? t('composerOffline')
@@ -35,7 +35,7 @@ const ChatInput = () => {
       ? t('composerPlaceholder', { name: entity.name })
       : t('composerNoEntity')
   const sendLabel =
-    offline || isEndpointLoading
+    offline || isOrchestratorLoading
       ? t('sendOffline')
       : !entity
         ? t('sendNoEntity')
@@ -89,7 +89,7 @@ const ChatInput = () => {
             handleSubmit()
           }
         }}
-        className="min-h-8 rounded-none border-0 px-1 py-0.5 text-base leading-6 text-foreground focus-visible:shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 md:!min-h-12 md:text-base"
+        className="min-h-8 rounded-none border-0 px-1 py-0.5 text-base leading-6 text-foreground focus-visible:shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 md:min-h-12 md:text-base"
         disabled={disabled}
         ref={chatInputRef}
       />

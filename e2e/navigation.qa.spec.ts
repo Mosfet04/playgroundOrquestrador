@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 
-import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // QA do P1-03: o que o navigation.spec.ts do dev não cobre (id hostil,
@@ -238,15 +238,12 @@ test('Playground -> Início -> Voltar devolve ?agent= e ?session= e as mensagens
   page
 }) => {
   await page.route(
-    (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
+    (url) => url.origin !== APP_URL,
     (route) => route.abort()
   )
   await page.goto('/playground')
   await hydrated(page)
   const sidebar = page.locator('aside')
-  await sidebar.getByText('http://localhost:7777').click()
-  await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
-  await sidebar.getByRole('textbox').press('Enter')
   await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
   await page.getByRole('option', { name: 'Agente Beta' }).click()
   const chatInput = page.getByPlaceholder('Escreva uma mensagem para Agente Beta')

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // QA P1-05: o que o dev não cobriu em e2e/states.spec.ts. /api/agents* e
@@ -249,19 +249,12 @@ test.describe('404 de rota', () => {
   })
 })
 
-test('/playground em 390 px com o fake desligado: o erro aparece sem abrir o Sheet, sem rolagem horizontal', async ({
+test('/playground em 390 px com o orquestrador fora: o erro aparece sem abrir o Sheet, sem rolagem horizontal', async ({
   page
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.addInitScript((endpoint) => {
-    window.localStorage.setItem(
-      'endpoint-storage',
-      JSON.stringify({ state: { selectedEndpoint: endpoint }, version: 0 })
-    )
-  }, FAKE_ORCHESTRATOR_URL)
-  await page.route(
-    (url) => url.origin !== APP_URL,
-    (route) => route.abort()
+  await page.route('**/api/playground/agents', (route) =>
+    route.fulfill({ status: 503, json: { success: false, error: 'unreachable' } })
   )
   await page.goto('/playground')
 

@@ -1,0 +1,34 @@
+/* P2-03: delta do chat sobre theme.css (P1-01), p105.css (P1-05) e p106.css (P1-06). Só tokens do DS. */
+/* Sair no rodapé da navegação (P2-01) */
+.nav-btn { width: 100%; border: 0; background: transparent; font: inherit; cursor: pointer; text-align: left; }
+.nav-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.side-foot.out { padding: var(--space-3); gap: 0; }
+
+/* Painel sem Endpoint: a lista de sessões vai até o fim do painel */
+.chat-panel.no-ep .sess-wrap { flex: 1; min-height: 0; }
+.chat-panel.no-ep .sess { overflow: hidden; }
+
+/* Lixeira abaixo de lg: sempre visível, 44 x 44, depois do horário */
+.sess.touch .row { display: flex; align-items: center; gap: var(--space-1); }
+.sess.touch .row a { flex: 1; min-width: 0; min-height: 44px; align-items: center; }
+.sess.touch .row .del44 { flex: none; width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--muted-foreground); }
+.sess.touch .row .del44.is-focus { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* Composer no celular: textarea de 1 linha (32 px) */
+.composer-box textarea.one-line { min-height: 32px; height: 32px; padding: 4px; }
+
+/* Erro do stream na bolha */
+.msg-agent .err-block { display: flex; flex-direction: column; gap: 2px; }
+.msg-agent .err-block p { margin: 0; }
+
+/* Medidas anotadas (só nos artboards de estados) */
+.measure { display: inline-flex; align-items: center; gap: var(--space-1); font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+
+/* Prancha da decisão */
+.dec { padding: var(--space-6); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); height: 640px; box-sizing: border-box; }
+.dec-opt { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.dec-opt h2 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
+.dec-frame { flex: 1; min-height: 0; display: flex; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--background); }
+.dec-frame .side { flex: 0 0 176px; }
+.dec-frame .chat-panel { flex: 1 1 auto; min-width: 0; }
+.dec-rec { color: var(--primary); font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; }

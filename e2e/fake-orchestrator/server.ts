@@ -1,6 +1,9 @@
 // Orquestrador falso para os testes E2E: imita só os endpoints do AgentOS
-// (agno 2.5) que o chat do playground chama hoje (src/api/playground.ts e
-// src/hooks/useAIStreamHandler.tsx). Estado em memória; rota desconhecida => 404.
+// (agno 2.5) que o BFF do chat chama (src/server/orchestrator/chat.ts). Exige
+// a chave como o real (decisão 0018): Bearer run ou admin; 401 sem chave
+// válida, 403 com a run em /admin*, /metrics* e DELETE /sessions*. As rotas de
+// controle do teste (/hold/release, /aborts) não existem no real e não pedem
+// chave. Estado em memória; rota desconhecida => 404.
 // Roda com `node e2e/fake-orchestrator/server.ts` (type stripping do Node 22.18+):
 // use só sintaxe TypeScript apagável (sem enum, namespace ou parameter properties).
 import { createServer } from 'node:http'
@@ -17,6 +20,14 @@ type FakeSession = {
 }
 
 const PORT = Number(process.env.FAKE_ORCHESTRATOR_PORT ?? 7790)
+const RUN_KEY = process.env.FAKE_API_KEY_RUN
+const ADMIN_KEY = process.env.FAKE_API_KEY_ADMIN
+if (!RUN_KEY || !ADMIN_KEY)
+  throw new Error('FAKE_API_KEY_RUN e FAKE_API_KEY_ADMIN são obrigatórias (playwright.config.ts)')
+const TEST_ROUTES = new Set(['POST /hold/release', 'GET /aborts'])
+// Runs cuja conexão fechou antes do fim (aba fechada, abort do BFF): o e2e
+// confere em GET /aborts que o abort chegou ao orquestrador.
+const abortedRuns: { entity: string; message: string }[] = []
 const startedAt = new Date().toISOString()
 const HOST = '127.0.0.1'
 const CHUNK_DELAY_MS = 30
@@ -47,6 +58,9 @@ const agents: FakeAgent[] = [
   { id: 'agente-alfa', name: 'Agente Alfa' },
   { id: 'agente-beta', name: 'Agente Beta' }
 ]
+// Team com storage (P2-03): o e2e do chat em modo Team pelo BFF.
+const teams: FakeAgent[] = [{ id: 'time-suporte', name: 'Time Suporte' }]
+// Sessões por agente ou team (ids distintos entre os dois).
 const sessionsByAgent = new Map<string, FakeSession[]>()
 // Histórico no formato v2.5 lido por src/hooks/useSessionLoader.tsx
 // (`chat_history` com role, content e created_at).
@@ -93,7 +107,8 @@ const writeEvent = (res: ServerResponse, payload: Record<string, unknown>) =>
 const runAgent = async (
   req: IncomingMessage,
   res: ServerResponse,
-  agent: FakeAgent
+  agent: FakeAgent,
+  kind: 'agent' | 'team' = 'agent'
 ) => {
   const form = await readFormData(req)
   const message = String(form.get('message') ?? '')
@@ -112,9 +127,16 @@ const runAgent = async (
     ])
   }
 
+  // No team os eventos levam o prefixo Team (TeamRunStarted, TeamRunContent…).
+  const event = (name: string) => (kind === 'team' ? `Team${name}` : name)
+  let finished = false
+  res.on('close', () => {
+    if (!finished) abortedRuns.push({ entity: agent.id, message })
+  })
   const base = {
-    agent_id: agent.id,
-    agent_name: agent.name,
+    ...(kind === 'team'
+      ? { team_id: agent.id, team_name: agent.name }
+      : { agent_id: agent.id, agent_name: agent.name }),
     run_id: randomUUID(),
     session_id: sessionId,
     created_at: Math.floor(Date.now() / 1000)
@@ -135,30 +157,30 @@ const runAgent = async (
     'Cache-Control': 'no-cache',
     'Access-Control-Allow-Origin': '*'
   })
-  writeEvent(res, { ...base, event: 'RunStarted', model: 'fake-model' })
-  writeEvent(res, { ...base, event: 'ToolCallStarted', tool: toolOk })
+  writeEvent(res, { ...base, event: event('RunStarted'), model: 'fake-model' })
+  writeEvent(res, { ...base, event: event('ToolCallStarted'), tool: toolOk })
   await delay(CHUNK_DELAY_MS)
   writeEvent(res, {
     ...base,
-    event: 'ToolCallCompleted',
+    event: event('ToolCallCompleted'),
     tool: { ...toolOk, tool_call_error: false, metrics: { duration: 0.18 } }
   })
   for (const [index, delta] of deltas.entries()) {
     if (index === deltas.length - 1) {
       // A 2ª tool fica "executando" enquanto o stream está retido.
-      writeEvent(res, { ...base, event: 'ToolCallStarted', tool: toolError })
+      writeEvent(res, { ...base, event: event('ToolCallStarted'), tool: toolError })
       if (message === HOLD_UNTIL_RELEASE_MESSAGE) await waitForRelease(agent.id)
       await delay(CHUNK_DELAY_MS)
       writeEvent(res, {
         ...base,
-        event: 'ToolCallCompleted',
+        event: event('ToolCallCompleted'),
         tool: { ...toolError, tool_call_error: true, metrics: { duration: 0.05 } }
       })
     }
     await delay(CHUNK_DELAY_MS)
     writeEvent(res, {
       ...base,
-      event: 'RunContent',
+      event: event('RunContent'),
       content: delta,
       content_type: 'str'
     })
@@ -168,7 +190,7 @@ const runAgent = async (
   )
   writeEvent(res, {
     ...base,
-    event: 'RunCompleted',
+    event: event('RunCompleted'),
     content: deltas.join(''),
     content_type: 'str',
     metrics: {
@@ -178,6 +200,7 @@ const runAgent = async (
       duration: 1.4
     }
   })
+  finished = true
   historyBySession.set(sessionId, [
     ...(historyBySession.get(sessionId) ?? []),
     { role: 'user', content: message, created_at: base.created_at },
@@ -190,6 +213,17 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   const url = new URL(req.url ?? '/', `http://${HOST}`)
   const route = `${req.method} ${url.pathname}`
 
+  if (!TEST_ROUTES.has(route)) {
+    const key = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1]
+    if (key !== RUN_KEY && key !== ADMIN_KEY)
+      return sendJson(res, 401, { detail: 'unauthorized' })
+    const adminOnly =
+      /^\/(admin|metrics)(\/|$)/.test(url.pathname) ||
+      (req.method === 'DELETE' && /^\/sessions(\/|$)/.test(url.pathname))
+    if (adminOnly && key !== ADMIN_KEY) return sendJson(res, 403, { detail: 'forbidden' })
+  }
+
+  if (route === 'GET /aborts') return sendJson(res, 200, abortedRuns)
   if (route === 'GET /status')
     return sendJson(res, 200, { status: 'available' })
   // HealthResponse do AgentOS (docs/contracts/orchestrator-openapi.json).
@@ -197,7 +231,7 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
     return sendJson(res, 200, { status: 'ok', instantiated_at: startedAt })
   if (route === 'GET /agents')
     return sendJson(res, 200, agents.map(toAgentResponse))
-  if (route === 'GET /teams') return sendJson(res, 200, [])
+  if (route === 'GET /teams') return sendJson(res, 200, teams.map(toAgentResponse))
   if (route === 'POST /hold/release') {
     const only = url.searchParams.get('agent')
     const released = [...heldStreams]
@@ -208,10 +242,10 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   }
   if (route === 'GET /sessions') {
     const componentId = url.searchParams.get('component_id') ?? ''
-    const data =
-      url.searchParams.get('type') === 'agent'
-        ? (sessionsByAgent.get(componentId) ?? [])
-        : []
+    const owners = url.searchParams.get('type') === 'team' ? teams : agents
+    const data = owners.some((owner) => owner.id === componentId)
+      ? (sessionsByAgent.get(componentId) ?? [])
+      : []
     return sendJson(res, 200, {
       data,
       meta: { page: 1, limit: 20, total_pages: 1, total_count: data.length }
@@ -222,9 +256,21 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   const history = session && historyBySession.get(session[1])
   if (history) return sendJson(res, 200, { chat_history: history })
 
+  const removed = /^DELETE \/sessions\/([^/]+)$/.exec(route)
+  if (removed) {
+    for (const [owner, list] of sessionsByAgent)
+      sessionsByAgent.set(owner, list.filter((s) => s.session_id !== removed[1]))
+    historyBySession.delete(removed[1])
+    res.writeHead(204).end()
+    return
+  }
+
   const run = /^POST \/agents\/([^/]+)\/runs$/.exec(route)
   const agent = run && agents.find((a) => a.id === run[1])
   if (agent) return runAgent(req, res, agent)
+  const teamRun = /^POST \/teams\/([^/]+)\/runs$/.exec(route)
+  const team = teamRun && teams.find((t) => t.id === teamRun[1])
+  if (team) return runAgent(req, res, team, 'team')
 
   return notFound(res)
 }
