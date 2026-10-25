@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -13,24 +13,18 @@ import { TextArea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Tool, CreateToolForm, PARAMETER_TYPES, isToolFormField } from '@/types/management'
+import { Tool, CreateToolForm, isToolFormField } from '@/types/management'
 import { DeleteEntityButton } from '../common/DeleteEntityButton'
 import { FieldError } from '../common/FieldError'
 import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
+import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
+import { useConfigSchema, withCurrent } from '../common/useConfigSchema'
 
 interface ToolFormProps {
   tool?: Tool | null
   onSuccess: () => void
 }
-
-const httpMethods = [
-  { value: 'GET', label: 'GET' },
-  { value: 'POST', label: 'POST' },
-  { value: 'PUT', label: 'PUT' },
-  { value: 'DELETE', label: 'DELETE' },
-  { value: 'PATCH', label: 'PATCH' }
-]
 
 export function ToolForm({ tool, onSuccess }: ToolFormProps) {
   const [loading, setLoading] = useState(false)
@@ -42,11 +36,20 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
   const t = useTranslations('tools')
   const tc = useTranslations('common')
   const requestError = useRequestError()
+  const { state: schemaState, retrying, reload: reloadSchema } = useConfigSchema()
+  // Opções do orquestrador (P3-01): sem schema os selects ficam desabilitados;
+  // config só leitura desabilita o formulário todo.
+  const schema = schemaState.status === 'ready' ? schemaState.schema : undefined
+  const writable = schema?.writable ?? true
+  // O `fieldset disabled` não segura o pointerdown num <button> (Chromium): o
+  // Radix abriria o menu; o Select precisa estar desabilitado por si.
+  const selectsDisabled = !schema || !writable
 
   const {
     register,
     handleSubmit,
     setValue,
+    getValues,
     setError,
     clearErrors,
     watch,
@@ -69,6 +72,16 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
       endpoint: tool?.http_config?.endpoint || ''
     }
   })
+
+  const httpMethod = watch('http_method')
+
+  // Tool nova: método padrão que o orquestrador não oferece vira o 1º das
+  // opções (o gravado fora delas só se preserva na edição).
+  useEffect(() => {
+    if (!schema || isEditing) return
+    if (!schema.httpMethods.includes(getValues('http_method')))
+      setValue('http_method', schema.httpMethods[0] ?? '')
+  }, [schema, isEditing, getValues, setValue])
 
   // Erro da linha do parâmetro (422 em `parameters.<posição>`); o tipo do RHF
   // mistura o erro da linha com os dos campos dela.
@@ -181,6 +194,13 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
           </div>
         </div>
 
+      <ConfigSchemaNotice
+        status={schemaState.status}
+        writable={writable}
+        retrying={retrying}
+        onRetry={reloadSchema}
+      />
+
       {/* O erro do servidor num campo sem regra (Select, Switch, headers) não
           sai na validação: limpo antes, ele não trava o próximo envio. */}
       <form
@@ -188,8 +208,8 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
           clearErrors()
           return handleSubmit(onSubmit)(event)
         }}
-        className="space-y-6"
       >
+        <fieldset disabled={!writable} className="min-w-0 space-y-6">
         {/* Informações Básicas */}
         <Card>
           <CardHeader>
@@ -274,17 +294,17 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
               <div className="space-y-2">
                 <Label>{t('form.method')}</Label>
                 <Select
-                  value={watch('http_method')}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  onValueChange={(value) => setValue('http_method', value as any)}
+                  value={httpMethod}
+                  disabled={selectsDisabled}
+                  onValueChange={(value) => setValue('http_method', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t('form.methodPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {httpMethods.map((method) => (
-                      <SelectItem key={method.value} value={method.value}>
-                        {method.label}
+                    {withCurrent(schema?.httpMethods ?? [], httpMethod).map((method) => (
+                      <SelectItem key={method} value={method}>
+                        {method}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -393,7 +413,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                 type="button"
                 onClick={() => append({
                   name: '',
-                  type: 'string',
+                  type: schema?.parameterTypes[0] ?? 'string',
                   description: '',
                   required: false
                 })}
@@ -438,14 +458,14 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                       <Label>{t('form.parameterType')}</Label>
                       <Select
                         value={watch(`parameters.${index}.type`)}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onValueChange={(value) => setValue(`parameters.${index}.type`, value as any)}
+                        disabled={selectsDisabled}
+                        onValueChange={(value) => setValue(`parameters.${index}.type`, value)}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {PARAMETER_TYPES.map((type) => (
+                          {withCurrent(schema?.parameterTypes ?? [], watch(`parameters.${index}.type`)).map((type) => (
                             <SelectItem key={type} value={type}>
                               {type}
                             </SelectItem>
@@ -513,12 +533,17 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
             <Button variant="outline" asChild className="h-10 sm:h-9">
               <Link href="/tools">{tc('cancel')}</Link>
             </Button>
-            <Button type="submit" disabled={loading} className="h-10 gap-2 sm:h-9">
+            <Button
+              type="submit"
+              disabled={loading || schemaState.status !== 'ready'}
+              className="h-10 gap-2 sm:h-9"
+            >
               <Save className="w-4 h-4" />
               {loading ? tc('saving') : tc('save')}
             </Button>
           </div>
         </div>
+        </fieldset>
       </form>
       </div>
     </div>

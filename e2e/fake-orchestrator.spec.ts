@@ -18,6 +18,7 @@ test.describe('fake orchestrator: chave', () => {
     const admin = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
     for (const [method, path] of [
       ['GET', '/admin/health'],
+      ['GET', '/admin/schema'],
       ['GET', '/metrics'],
       ['DELETE', '/sessions/qualquer']
     ])
@@ -30,6 +31,18 @@ test.describe('fake orchestrator: chave', () => {
     ).toBe(204)
     expect((await request.get(`${FAKE_ORCHESTRATOR_URL}/agents`, { headers: admin })).status()).toBe(200)
   })
+})
+
+// P3-01: /admin/schema (chave admin) com providers que a lista antiga não tinha.
+test('fake orchestrator: /admin/schema com a chave admin', async ({ request }) => {
+  const response = await request.get(`${FAKE_ORCHESTRATOR_URL}/admin/schema`, {
+    headers: bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  })
+
+  expect(response.status()).toBe(200)
+  const schema = await response.json()
+  expect(schema.providers.chat.map((provider: { name: string }) => provider.name)).toContain('fake-llm')
+  expect(schema.config_store).toEqual({ writable: true })
 })
 
 // P2-05: /metrics (filtrado por starting_date) e /admin/config/agents (paginado).

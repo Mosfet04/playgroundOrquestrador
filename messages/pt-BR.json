@@ -62,6 +62,8 @@
     "withCode": "{message} (código {status})",
     "retry": "Tentar de novo",
     "retrying": "Tentando…",
+    "schemaLoadError": "Não foi possível carregar as opções do orquestrador",
+    "schemaReadOnly": "Configuração em modo somente leitura: o orquestrador não aceita alterações.",
     "online": "online",
     "offline": "offline",
     "loadErrorHint": "O orquestrador não respondeu. Confira se ele está no ar e tente de novo.",

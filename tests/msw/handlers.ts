@@ -51,7 +51,21 @@ const sessionOwners: Record<string, keyof typeof sessionsFixture> = {
   'team-1': 'team'
 }
 
+// BFF das opções dos formulários (P3-01, src/app/api/config/schema): o padrão
+// dos testes de AgentForm e ToolForm; cada teste troca por `server.use`.
+export const SCHEMA_URL = '*/api/config/schema'
+export const schemaFixture = {
+  chatProviders: ['ollama', 'openai', 'anthropic', 'fake-llm'],
+  embedderProviders: ['openai', 'ollama', 'fake-embed'],
+  httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  parameterTypes: ['string', 'integer', 'float', 'boolean', 'object', 'array'],
+  writable: true
+}
+
 export const handlers = [
+  http.get(SCHEMA_URL, () =>
+    HttpResponse.json({ success: true, data: schemaFixture })
+  ),
   http.get(`${BFF}/agents`, () =>
     HttpResponse.json({ success: true, data: agentsFixture })
   ),

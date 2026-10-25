@@ -2,7 +2,7 @@ import 'server-only'
 
 import { z } from 'zod'
 
-import { PARAMETER_TYPES, type Tool, type ToolFormField } from '@/types/management'
+import type { Tool, ToolFormField } from '@/types/management'
 
 import {
   createConfig,
@@ -32,7 +32,7 @@ const toolSchema = z.object({
   parameters: z.array(
     z.object({
       name: z.string(),
-      type: z.enum(PARAMETER_TYPES),
+      type: z.string(),
       description: z.string(),
       required: z.boolean(),
       default_value: z.unknown().optional()
@@ -59,7 +59,7 @@ export type ToolInput = {
   headers?: Record<string, string>
   parameters?: {
     name: string
-    type: (typeof PARAMETER_TYPES)[number]
+    type: string
     description: string
     required: boolean
     default_value?: unknown

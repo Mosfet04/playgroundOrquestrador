@@ -18,27 +18,13 @@ import { DeleteEntityButton } from '../common/DeleteEntityButton'
 import { FieldError } from '../common/FieldError'
 import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
+import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
+import { useConfigSchema, withCurrent } from '../common/useConfigSchema'
 
 interface AgentFormProps {
   agent?: AgentConfig | null
   onSuccess: () => void
 }
-
-const modelProviders = [
-  { value: 'ollama', label: 'Ollama' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'gemini', label: 'Google Gemini' },
-  { value: 'groq', label: 'Groq' },
-  { value: 'azure', label: 'Azure OpenAI' }
-]
-
-const ragProviders = [
-  { value: 'ollama', label: 'Ollama' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'gemini', label: 'Google Gemini' },
-  { value: 'azure', label: 'Azure OpenAI' }
-]
 
 export function AgentForm({ agent, onSuccess }: AgentFormProps) {
   const [loading, setLoading] = useState(false)
@@ -47,6 +33,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
   const t = useTranslations('agents')
   const tc = useTranslations('common')
   const requestError = useRequestError()
+  const { state: schemaState, retrying, reload: reloadSchema } = useConfigSchema()
 
   const isEditing = !!agent
 
@@ -54,6 +41,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
     register,
     handleSubmit,
     setValue,
+    getValues,
     setError,
     clearErrors,
     watch,
@@ -77,6 +65,27 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
 
   const ragActive = watch('rag_active')
   const factoryIaModel = watch('factoryIaModel')
+  const ragFactoryIaModel = watch('rag_factoryIaModel')
+
+  // Opções do orquestrador (P3-01): sem schema os selects ficam desabilitados;
+  // config só leitura desabilita o formulário todo.
+  const schema = schemaState.status === 'ready' ? schemaState.schema : undefined
+  const writable = schema?.writable ?? true
+  // O `fieldset disabled` não segura o pointerdown num <button> (Chromium): o
+  // Radix abriria o menu; o Select precisa estar desabilitado por si.
+  const selectsDisabled = !schema || !writable
+
+  // Provider padrão do playground que o orquestrador não oferece vira o 1º das
+  // opções; o gravado fora delas só se preserva na edição (o embedder de um
+  // agent sem RAG gravado também é padrão, não valor gravado).
+  const storedEmbedder = agent?.rag_config?.factoryIaModel
+  useEffect(() => {
+    if (!schema) return
+    if (!isEditing && !schema.chatProviders.includes(getValues('factoryIaModel')))
+      setValue('factoryIaModel', schema.chatProviders[0] ?? '')
+    if (!storedEmbedder && !schema.embedderProviders.includes(getValues('rag_factoryIaModel') ?? ''))
+      setValue('rag_factoryIaModel', schema.embedderProviders[0] ?? '')
+  }, [schema, isEditing, storedEmbedder, getValues, setValue])
 
   // Buscar todas as tools disponíveis (a API é paginada)
   useEffect(() => {
@@ -176,6 +185,13 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
           </div>
         </div>
 
+      <ConfigSchemaNotice
+        status={schemaState.status}
+        writable={writable}
+        retrying={retrying}
+        onRetry={reloadSchema}
+      />
+
       {/* O erro do servidor num campo sem regra (Select, Switch, tools) não
           sai na validação: limpo antes, ele não trava o próximo envio. */}
       <form
@@ -183,8 +199,8 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
           clearErrors()
           return handleSubmit(onSubmit)(event)
         }}
-        className="space-y-6"
       >
+        <fieldset disabled={!writable} className="min-w-0 space-y-6">
         {/* Informações Básicas */}
         <Card>
           <CardHeader>
@@ -256,16 +272,16 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                 <Label htmlFor="factoryIaModel">{t('form.provider')}</Label>
                 <Select
                 value={factoryIaModel}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                onValueChange={(value) => setValue('factoryIaModel', value as any)}
+                disabled={selectsDisabled}
+                onValueChange={(value) => setValue('factoryIaModel', value)}
                 >
                 <SelectTrigger id="factoryIaModel">
                     <SelectValue placeholder={t('form.providerPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                    {modelProviders.map((provider) => (
-                    <SelectItem key={provider.value} value={provider.value}>
-                        {provider.label}
+                    {withCurrent(schema?.chatProviders ?? [], factoryIaModel).map((provider) => (
+                    <SelectItem key={provider} value={provider}>
+                        {provider}
                     </SelectItem>
                     ))}
                 </SelectContent>
@@ -338,17 +354,17 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                 <div className="space-y-2">
                   <Label htmlFor="rag_factoryIaModel">{t('form.ragProvider')}</Label>
                   <Select
-                    value={watch('rag_factoryIaModel')}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    onValueChange={(value) => setValue('rag_factoryIaModel', value as any)}
+                    value={ragFactoryIaModel}
+                    disabled={selectsDisabled}
+                    onValueChange={(value) => setValue('rag_factoryIaModel', value)}
                   >
                     <SelectTrigger id="rag_factoryIaModel">
                       <SelectValue placeholder={t('form.providerPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {ragProviders.map((provider) => (
-                        <SelectItem key={provider.value} value={provider.value}>
-                          {provider.label}
+                      {withCurrent(schema?.embedderProviders ?? [], ragFactoryIaModel).map((provider) => (
+                        <SelectItem key={provider} value={provider}>
+                          {provider}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -442,12 +458,17 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
             <Button variant="outline" asChild className="h-10 sm:h-9">
               <Link href="/agents">{tc('cancel')}</Link>
             </Button>
-            <Button type="submit" disabled={loading} className="h-10 gap-2 sm:h-9">
+            <Button
+              type="submit"
+              disabled={loading || schemaState.status !== 'ready'}
+              className="h-10 gap-2 sm:h-9"
+            >
               <Save className="w-4 h-4" />
               {loading ? tc('saving') : tc('save')}
             </Button>
           </div>
         </div>
+        </fieldset>
       </form>
       </div>
     </div>

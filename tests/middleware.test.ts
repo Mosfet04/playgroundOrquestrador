@@ -158,6 +158,16 @@ describe('middleware: /api', () => {
     })
   })
 
+  it('schema dos formulários (P3-01) sem cookie: 401 JSON', async () => {
+    const response = await middleware(request('/api/config/schema'))
+
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({
+      success: false,
+      error: 'unauthorized'
+    })
+  })
+
   it('sem cookie: 401 JSON', async () => {
     const response = await middleware(request('/api/agents'))
 

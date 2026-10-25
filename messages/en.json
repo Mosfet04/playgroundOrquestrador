@@ -62,6 +62,8 @@
     "withCode": "{message} (code {status})",
     "retry": "Try again",
     "retrying": "Retrying…",
+    "schemaLoadError": "Could not load the orchestrator options",
+    "schemaReadOnly": "Configuration is read-only: the orchestrator does not accept changes.",
     "online": "online",
     "offline": "offline",
     "loadErrorHint": "The orchestrator didn't respond. Check that it's running and try again.",

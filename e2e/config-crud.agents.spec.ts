@@ -85,3 +85,30 @@ test('agent do seed com prompt em lista: abre unido por linha e salvar grava tex
     version: before + 1
   })
 })
+
+// P3-01: o provider vem do /admin/schema do fake (`fake-llm` não estava na lista
+// antiga do playground): escolhido no form, gravado e mostrado na edição.
+test('cria agent com provider que só o schema oferece', async ({ page }) => {
+  const id = 'e2e-agente-schema'
+  await page.goto('/agents/new')
+  await hydrated(page)
+  await page.getByLabel(/^ID do agente/).fill(id)
+  await page.getByLabel(/^Nome/).fill('Agente do schema')
+  await page.getByLabel(/^Modelo \*/).fill('fake-model')
+  const provider = page.getByRole('combobox', { name: /^Provedor \*/ })
+  await expect(provider).toBeEnabled()
+  await provider.click()
+  await expect(page.getByRole('option', { name: 'Google Gemini' })).toHaveCount(0)
+  await page.getByRole('option', { name: 'fake-llm' }).click()
+  await page.getByRole('button', { name: 'Salvar' }).click()
+
+  await expect(page.getByText('Agente salvo').last()).toBeVisible()
+  expect(await (await storedAgent(id)).json()).toMatchObject({ factory_ia_model: 'fake-llm' })
+
+  await page.getByRole('link', { name: 'Agente do schema' }).first().click()
+  await hydrated(page)
+  await expect(page.getByRole('combobox', { name: /^Provedor \*/ })).toHaveText('fake-llm')
+  await page.getByRole('button', { name: 'Excluir agente' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
+  await expect(page.getByText('Agente excluído')).toBeVisible()
+})

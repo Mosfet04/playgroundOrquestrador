@@ -103,7 +103,7 @@ Crie o `.env.local` com as variáveis abaixo.
 | `AUTH_USERNAME` | usuário do login |
 | `AUTH_PASSWORD_HASH` | hash scrypt da senha do login, gerado por `pnpm auth:hash` (nunca a senha em claro) |
 
-As variáveis são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas só pelo cliente do servidor (`src/server/orchestrator/`): health, o chat (`/api/playground/*`), o dashboard (`/api/dashboard/*`) e a gestão (`/api/agents*`, `/api/tools*`).
+As variáveis são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas só pelo cliente do servidor (`src/server/orchestrator/`): health, o chat (`/api/playground/*`), o dashboard (`/api/dashboard/*`) e a gestão (`/api/agents*`, `/api/tools*`) e as opções dos formulários (`/api/config/schema`).
 
 Para gerar o hash, passe a senha pelo stdin (não fica no histórico do shell):
 
@@ -141,7 +141,7 @@ O `/playground` usa o orquestrador de `ORCHESTRATOR_URL`; para trocar, mude a va
 2. Em **Agentes → Novo agente**, escolha provedor e modelo (ex.: Ollama, `llama3.2:latest`), escreva o prompt, marque as tools e, se quiser, ligue o RAG.
 3. No **Playground**, escolha o agente e converse (a mudança vale logo depois de salvar).
 
-**Provedores no formulário de agente:** Ollama, OpenAI, Anthropic, Google Gemini, Groq e Azure OpenAI; no RAG: Ollama, OpenAI, Google Gemini e Azure OpenAI. As chaves dos provedores ficam no orquestrador, não aqui. Para oferecer outro provedor, inclua-o em `modelProviders` ou `ragProviders` (`src/components/management/agents/AgentForm.tsx`), com um valor que o orquestrador aceite.
+**Opções dos formulários:** provedores do modelo e do embedding (RAG), métodos HTTP e tipos de parâmetro vêm do `GET /admin/schema` do orquestrador (via `/api/config/schema`, chave admin, sem cache), não de lista no playground; um provedor novo ou plugin aparece depois que o orquestrador reinicia. O provedor aparece pelo nome que o orquestrador usa. Enquanto o schema carrega, os selects ficam desabilitados; se falhar, o formulário mostra a mensagem com "Tentar de novo" e não deixa salvar. Se o orquestrador diz que a config é só leitura (`config_store.writable = false`), o formulário avisa e desabilita campos, salvar e excluir. Um valor gravado que o orquestrador não oferece mais continua selecionado, e o orquestrador decide ao salvar. As chaves dos provedores ficam no orquestrador, não aqui.
 
 ## Interface
 
@@ -228,6 +228,7 @@ Web UI for the [Agno Python AI Orchestrator](https://github.com/Mosfet04/orquest
 ### How it works today
 
 - **Management** (agents, tools, dashboard): the `src/app/api/**` routes validate input with zod and call the orchestrator's Admin API (`/admin/config/*`) and `/metrics` with the admin key; the playground never touches Mongo. The version read goes back in `If-Match` on save and delete (code 412 if someone changed it meanwhile); a field the orchestrator rejects (422) is shown on the form without the value; "Delete" removes for good (`?hard=true`); tool header values come back masked (`***`) and saving them unchanged keeps the stored value.
+- **Form options**: model and embedding providers, HTTP methods and parameter types come from the orchestrator's `GET /admin/schema` (via `/api/config/schema`, admin key, no cache), not from lists in the playground. While it loads the selects are disabled; if it fails the form shows a message with "Try again" and cannot be saved; a read-only config store (`config_store.writable = false`) disables the whole form. A stored value the orchestrator no longer offers stays selected and the orchestrator decides on save.
 - **Chat**: the browser only talks to the playground. The `src/app/api/playground/**` routes (BFF) call the orchestrator's AgentOS at `ORCHESTRATOR_URL` with the run key (deleting a session uses the admin key) and pass the run stream through unbuffered. The sessions' `user_id` is the logged-in user. There is no endpoint field in the panel: the URL and keys stay on the server.
 - **When changes apply**: what you create or edit here is stored in the orchestrator's config and takes effect in chat **right after saving**.
 

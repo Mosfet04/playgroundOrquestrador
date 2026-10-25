@@ -1,14 +1,15 @@
 import { z } from 'zod'
 
 import type { ToolInput } from '@/server/orchestrator/tools'
-import { PARAMETER_TYPES } from '@/types/management'
 
 // O orquestrador recusa tool e parâmetro sem nome ou descrição.
 const requiredText = z.string().trim().min(1)
 
 const parameterSchema = z.object({
   name: requiredText,
-  type: z.enum(PARAMETER_TYPES),
+  // Só o tipo: os valores válidos são os do /admin/schema; quem valida é o
+  // orquestrador (P3-01).
+  type: requiredText,
   description: requiredText,
   required: z.boolean().default(false),
   default_value: z.unknown().optional()

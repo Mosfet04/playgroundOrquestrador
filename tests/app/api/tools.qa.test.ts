@@ -122,7 +122,7 @@ describe('erro de validação da tool: sem eco de valor', () => {
         ...validTool,
         description: { $where: 'SEGREDO_DESC' },
         headers: { Authorization: { $ne: 'SEGREDO_HEADER' } },
-        parameters: [{ ...floatParameter, type: 'SEGREDO_TIPO' }]
+        parameters: [{ ...floatParameter, type: { $where: 'SEGREDO_TIPO' } }]
       })
     )
 

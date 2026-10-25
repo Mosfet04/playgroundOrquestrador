@@ -164,6 +164,16 @@ describe('GET /api/tools/[id]', () => {
     expect(await response.json()).toEqual({ success: true, data: asForm })
     expect(seen[0]).toMatchObject({ path: '/admin/config/tools/clima', auth: ADMIN })
   })
+
+  it('tipo de parâmetro fora da lista antiga (P3-01) chega ao formulário em vez de derrubar a tool', async () => {
+    const retired = { ...parameter, type: 'number' }
+    serve('get', '/admin/config/tools/:id', () => HttpResponse.json({ ...stored, parameters: [retired] }))
+
+    const response = await GET_BY_ID(new NextRequest(`${API}/clima`), params('clima'))
+
+    expect(response.status).toBe(200)
+    expect((await response.json()).data.parameters).toEqual([retired])
+  })
 })
 
 describe('/api/tools/[id]: id com `%` literal (review P2-06, R1)', () => {
@@ -222,6 +232,16 @@ describe('POST /api/tools', () => {
     expect(seen.map((s) => (s.body as { http_method: string }).http_method)).toEqual(['post', 'GET'])
   })
 
+  it('repassa o tipo do parâmetro sem lista local (quem valida é o orquestrador, P3-01)', async () => {
+    serve('post', '/admin/config/tools', () => HttpResponse.json(stored, { status: 201 }))
+    const typed = { ...formBody.parameters[0], type: 'number' }
+
+    const response = await POST(jsonRequest(API, 'POST', { ...formBody, parameters: [typed] }))
+
+    expect(response.status).toBe(200)
+    expect((seen[0].body as { parameters: unknown[] }).parameters).toEqual([typed])
+  })
+
   it('repassa default_value como dado (a recusa de `$` é do orquestrador)', async () => {
     serve('post', '/admin/config/tools', () => HttpResponse.json(stored, { status: 201 }))
     const withDefault = { ...formBody.parameters[0], type: 'object', default_value: { $ne: null } }
@@ -234,7 +254,7 @@ describe('POST /api/tools', () => {
   it.each([
     ['operador no id', { ...formBody, id: { $ne: null } }],
     ['operador nos headers', { ...formBody, headers: { Authorization: { $ne: '' } } }],
-    ['parâmetro do tipo number', { ...formBody, parameters: [{ ...formBody.parameters[0], type: 'number' }] }],
+    ['parâmetro sem tipo', { ...formBody, parameters: [{ ...formBody.parameters[0], type: ' ' }] }],
     ['description vazia', { ...formBody, description: '  ' }]
   ])('recusa %s com 400 sem chamar o orquestrador', async (_, body) => {
     serve('post', '/admin/config/tools', () => HttpResponse.json(stored, { status: 201 }))

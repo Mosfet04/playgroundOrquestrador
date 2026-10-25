@@ -51,24 +51,23 @@ export interface HttpConfig {
   parameters?: Parameter[]
 }
 
-// Tipos que o orquestrador aceita (ParameterType em src/domain/entities/tool.py);
-// `number` não existe lá e derruba o carregamento da tool.
-export const PARAMETER_TYPES = [
-  'string',
-  'integer',
-  'float',
-  'boolean',
-  'object',
-  'array'
-] as const
-
 export interface Parameter {
   name: string
-  type: (typeof PARAMETER_TYPES)[number]
+  type: string // opções: as do /admin/schema (P3-01); o orquestrador valida
   description: string
   required: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   default_value?: any
+}
+
+// Opções dos formulários lidas do /admin/schema pelo BFF (P3-01).
+export interface ConfigSchema {
+  chatProviders: string[]
+  embedderProviders: string[]
+  httpMethods: string[]
+  parameterTypes: string[]
+  // false: o store de config não aceita escrita (as rotas de escrita recusam).
+  writable: boolean
 }
 
 // Campos do formulário onde o 422 do orquestrador aparece (P2-06,

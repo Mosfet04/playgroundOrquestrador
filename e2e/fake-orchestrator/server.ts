@@ -143,6 +143,26 @@ const TOOL_KEYS = ['id', 'name', 'description', 'route', 'http_method', 'paramet
 const PARAMETER_KEYS = ['name', 'type', 'description', 'required', 'default_value']
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 const PARAMETER_TYPES = ['string', 'integer', 'float', 'boolean', 'object', 'array']
+// GET /admin/schema (FA-03, config_schema.py): só as seções que o playground lê
+// (P3-01), com providers que a lista antiga do playground não tinha
+// (`fake-llm`, `fake-embed`). Agent e tool gravados com outro valor seguem
+// válidos no fake (o seed usa `Fake` no RAG): o e2e confere o que o form oferece.
+const SCHEMA_DOCUMENT = {
+  providers: {
+    chat: ['ollama', 'openai', 'fake-llm'].map((name) => ({
+      name,
+      model_params: [],
+      requires_base_url: false
+    })),
+    embedder: ['openai', 'ollama', 'fake-embed'].map((name) => ({
+      name,
+      model_params: [],
+      requires_base_url: false
+    }))
+  },
+  tool: { http_method: HTTP_METHODS, parameter_type: PARAMETER_TYPES },
+  config_store: { writable: true }
+}
 const MASK = '***'
 const NAMEABLE_KEY = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
 
@@ -569,6 +589,7 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   }
 
   if (route === 'GET /aborts') return sendJson(res, 200, abortedRuns)
+  if (route === 'GET /admin/schema') return sendJson(res, 200, SCHEMA_DOCUMENT)
   const raw = TEST_CONFIG_ROUTE.exec(route)
   if (raw) {
     const doc = configs[raw[1] as ConfigKind].find((item) => item.id === decodeURIComponent(raw[2]))
