@@ -1,8 +1,7 @@
-// Tipos para gerenciamento de agentes e tools
-import type { ObjectId } from 'mongodb'
+// Tipos para gerenciamento de agentes e tools. O BFF traduz a config do
+// orquestrador (snake_case, API Admin) para estes formatos (P2-06).
 
 export interface AgentConfig {
-  _id?: ObjectId
   id: string
   nome: string
   model: string
@@ -12,8 +11,10 @@ export interface AgentConfig {
   active: boolean
   tools_ids: string[]
   rag_config?: RagConfig
-  created_at?: Date
-  updated_at?: Date
+  // Versão lida: volta no If-Match do PUT/DELETE.
+  version: number
+  // O orquestrador não guarda datas: a coluna "Atualizado" mostra "—" (D-P2-06-4).
+  updated_at?: string
 }
 
 export interface RagConfig {
@@ -24,7 +25,6 @@ export interface RagConfig {
 }
 
 export interface Tool {
-  _id?: ObjectId
   id: string
   name: string
   description: string
@@ -32,10 +32,12 @@ export interface Tool {
   http_method: string // idem (decisão 0006)
   parameters?: Parameter[]
   instructions?: string // Instruções de uso da tool
+  // Valor em texto volta mascarado (`***`); reenviado assim, o orquestrador
+  // mantém o gravado. Referência (`env:`/`file:`) volta como está.
   headers?: Record<string, string>
   active: boolean
-  created_at?: Date
-  updated_at?: Date
+  version: number
+  updated_at?: string
   
   // Mantemos http_config para compatibilidade com código existente
   http_config?: HttpConfig
@@ -68,6 +70,44 @@ export interface Parameter {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   default_value?: any
 }
+
+// Campos do formulário onde o 422 do orquestrador aparece (P2-06,
+// D-P2-06-7): o BFF devolve o campo já com o nome do formulário.
+export const AGENT_FORM_FIELDS = [
+  'id',
+  'nome',
+  'model',
+  'factoryIaModel',
+  'descricao',
+  'prompt',
+  'active',
+  'tools_ids',
+  'rag_active',
+  'rag_doc_name',
+  'rag_model',
+  'rag_factoryIaModel'
+] as const
+export type AgentFormField = (typeof AGENT_FORM_FIELDS)[number]
+export const isAgentFormField = (field: string): field is AgentFormField =>
+  (AGENT_FORM_FIELDS as readonly string[]).includes(field)
+
+// Parâmetro recusado: a linha dele (`parameters.<posição>`).
+export const TOOL_FORM_FIELDS = [
+  'id',
+  'name',
+  'description',
+  'route',
+  'http_method',
+  'instructions',
+  'headers',
+  'active'
+] as const
+export type ToolFormField =
+  | (typeof TOOL_FORM_FIELDS)[number]
+  | `parameters.${number}`
+export const isToolFormField = (field: string): field is ToolFormField =>
+  (TOOL_FORM_FIELDS as readonly string[]).includes(field) ||
+  /^parameters\.\d{1,4}$/.test(field)
 
 // Tipos para formulários
 export interface CreateAgentForm {

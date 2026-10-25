@@ -3,9 +3,8 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
-// P1-03: cada seção tem URL própria (deep link, voltar, recarga). Até a P3,
-// /api/agents* e /api/tools* leem o Mongo: aqui respondem
-// por page.route.
+// P1-03: cada seção tem URL própria (deep link, voltar, recarga). Aqui
+// /api/agents* e /api/tools* respondem por page.route.
 
 const agent = {
   id: 'agente alfa',

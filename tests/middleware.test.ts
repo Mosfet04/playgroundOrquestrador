@@ -225,6 +225,21 @@ describe('middleware: /api', () => {
     }
   )
 
+  // P2-06: o CRUD pela API Admin (PUT/DELETE no item) passa pelas mesmas regras.
+  it.each(['/api/agents/assistente', '/api/tools/clima'])(
+    '%s: PUT/DELETE sem cookie ⇒ 401; com sessão e sem Origin ⇒ 403',
+    async (path) => {
+      const cookie = await createSession('playground')
+      for (const method of ['PUT', 'DELETE']) {
+        const anonymous = await middleware(request(path, { method, origin: ORIGIN }))
+        const crossSite = await middleware(request(path, { method, cookie }))
+
+        expect(anonymous.status, `${method} sem cookie`).toBe(401)
+        expect(crossSite.status, `${method} sem Origin`).toBe(403)
+      }
+    }
+  )
+
   it('login de outra origem: 403', async () => {
     const response = await middleware(
       request('/api/auth/login', { method: 'POST', origin: 'http://evil.com' })

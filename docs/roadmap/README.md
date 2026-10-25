@@ -37,7 +37,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P2-03 | concluído (chat pelo BFF `/api/playground/*`, stream sem buffer com abort, `user_id` da sessão, fake exige a chave, Endpoint/FingerprintJS/ipify/crypto-js removidos; limitações no item) |
 | P2-04 | concluído (markdown do agente sem HTML: `rehype-raw` removido, HTML cru vira texto, links só http(s)/mailto com `rel` seguro, imagem vira link sem carregar; decisões 0021 e 0022) |
 | P2-05 | concluído (dashboard pelo `/metrics` do AgentOS e `/admin/config/agents` com chave admin, refresh 1x/min pelo BFF, filtro por dia UTC, pico diário de usuários, card de tokens por agente fora até a F8; decisão 0023) |
-| P2-06 | pendente |
+| P2-06 | concluído (CRUD de agents e tools pela `/admin/config` com chave admin, If-Match e 422 no campo, exclusão hard, pacote `mongodb` e scripts de seed fora; decisão 0024) |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

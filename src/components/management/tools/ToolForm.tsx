@@ -13,8 +13,10 @@ import { TextArea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Tool, CreateToolForm, PARAMETER_TYPES } from '@/types/management'
+import { Tool, CreateToolForm, PARAMETER_TYPES, isToolFormField } from '@/types/management'
 import { DeleteEntityButton } from '../common/DeleteEntityButton'
+import { FieldError } from '../common/FieldError'
+import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
 
 interface ToolFormProps {
@@ -45,6 +47,8 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
     register,
     handleSubmit,
     setValue,
+    setError,
+    clearErrors,
     watch,
     control,
     formState: { errors }
@@ -65,6 +69,17 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
       endpoint: tool?.http_config?.endpoint || ''
     }
   })
+
+  // Erro da linha do parâmetro (422 em `parameters.<posição>`); o tipo do RHF
+  // mistura o erro da linha com os dos campos dela.
+  const parameterError = (index: number) => {
+    const message = errors.parameters?.[index]?.message
+    return typeof message === 'string' ? message : undefined
+  }
+
+  // Idem para os headers (mapa: `message` poderia ser o nome de um header).
+  const headersMessage = errors.headers?.message
+  const headersError = typeof headersMessage === 'string' ? headersMessage : undefined
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -107,10 +122,13 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
       const url = isEditing ? `/api/tools/${encodeURIComponent(tool.id)}` : '/api/tools'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // A versão lida vai no If-Match (P2-06): se mudou, o orquestrador recusa (412).
+      // Header mascarado (`***`) volta como veio: o orquestrador mantém o gravado.
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(isEditing ? { 'If-Match': `"${tool.version}"` } : {})
         },
         body: JSON.stringify(payload)
       })
@@ -121,10 +139,15 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
         toast.success(t('saved'))
         onSuccess()
       } else {
+        // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
+        const field = await rejectedField(response, isToolFormField)
+        if (field)
+          setError(field, { type: 'server', message: tc('rejectedByOrchestrator') }, { shouldFocus: true })
+        // 409 só é "id já existe" na criação.
         toast.error(
           requestError(response.status, {
             failed: t('saveError'),
-            conflict: t('conflict'),
+            conflict: isEditing ? undefined : t('conflict'),
             notFound: t('notFound')
           })
         )
@@ -158,7 +181,15 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
           </div>
         </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* O erro do servidor num campo sem regra (Select, Switch, headers) não
+          sai na validação: limpo antes, ele não trava o próximo envio. */}
+      <form
+        onSubmit={(event) => {
+          clearErrors()
+          return handleSubmit(onSubmit)(event)
+        }}
+        className="space-y-6"
+      >
         {/* Informações Básicas */}
         <Card>
           <CardHeader>
@@ -177,9 +208,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                   disabled={isEditing}
                   placeholder={tc('example', { value: 'weather-api' })}
                 />
-                {errors.id && (
-                  <p className="text-sm text-destructive">{errors.id.message}</p>
-                )}
+                <FieldError message={errors.id?.message} />
               </div>
 
               <div className="space-y-2">
@@ -189,9 +218,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                   {...register('name', { required: tc('nameRequired') })}
                   placeholder={tc('example', { value: 'Weather API' })}
                 />
-                {errors.name && (
-                  <p className="text-sm text-destructive">{errors.name.message}</p>
-                )}
+                <FieldError message={errors.name?.message} />
               </div>
             </div>
 
@@ -206,9 +233,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                 placeholder={t('form.descriptionPlaceholder')}
                 rows={3}
               />
-              {errors.description && (
-                <p className="text-sm text-destructive">{errors.description.message}</p>
-              )}
+              <FieldError message={errors.description?.message} />
             </div>
 
             <div className="space-y-2">
@@ -219,15 +244,19 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                 placeholder={t('form.instructionsPlaceholder')}
                 rows={2}
               />
+              <FieldError message={errors.instructions?.message} />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="active">{t('form.active')}</Label>
-              <Switch
-                id="active"
-                checked={watch('active')}
-                onCheckedChange={(checked) => setValue('active', checked)}
-              />
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="active">{t('form.active')}</Label>
+                <Switch
+                  id="active"
+                  checked={watch('active')}
+                  onCheckedChange={(checked) => setValue('active', checked)}
+                />
+              </div>
+              <FieldError message={errors.active?.message} />
             </div>
           </CardContent>
         </Card>
@@ -260,6 +289,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError message={errors.http_method?.message} />
               </div>
 
               <div className="space-y-2">
@@ -269,9 +299,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                   {...register('route', { required: t('form.routeRequired') })}
                   placeholder={t('form.routePlaceholder')}
                 />
-                {errors.route && (
-                  <p className="text-sm text-destructive">{errors.route.message}</p>
-                )}
+                <FieldError message={errors.route?.message} />
               </div>
             </div>
 
@@ -346,6 +374,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
                   </Button>
                 </div>
               </div>
+              <FieldError message={headersError} />
             </div>
           </CardContent>
         </Card>
@@ -384,12 +413,23 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
               <div className="space-y-4">
                 {fields.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                    {parameterError(index) && (
+                      <div className="md:col-span-4">
+                        <FieldError
+                          id={`parameter-${index}-error`}
+                          message={parameterError(index)}
+                        />
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>{t('form.parameterName')}</Label>
                       <Input
                         {...register(`parameters.${index}.name` as const, {
                           required: tc('nameRequired')
                         })}
+                        aria-describedby={
+                          parameterError(index) ? `parameter-${index}-error` : undefined
+                        }
                         placeholder={t('form.parameterNamePlaceholder')}
                       />
                     </div>
@@ -455,6 +495,7 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
             <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
               <DeleteEntityButton
                 url={`/api/tools/${encodeURIComponent(tool.id)}`}
+                version={tool.version}
                 texts={{
                   label: t('deleteLabel'),
                   title: t('deleteTitle'),

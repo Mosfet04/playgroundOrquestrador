@@ -9,6 +9,7 @@ export const FAKE_ORCHESTRATOR_URL = `http://127.0.0.1:${FAKE_ORCHESTRATOR_PORT}
 const isCI = !!process.env.CI
 // Sessão do usuário de teste, gravada pelo projeto `setup` (e2e/auth.setup.ts).
 export const AUTH_STATE = 'e2e/.auth/session.json'
+const CONFIG_AGENTS_SPEC = /config-crud\.agents\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',
@@ -32,7 +33,15 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE },
-      dependencies: ['setup']
+      dependencies: ['setup'],
+      testIgnore: CONFIG_AGENTS_SPEC
+    },
+    // P2-06: o CRUD de agents muda a config que o dashboard conta; roda depois.
+    {
+      name: 'config-agents',
+      testMatch: CONFIG_AGENTS_SPEC,
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE },
+      dependencies: ['chromium']
     }
   ],
   webServer: [
@@ -51,8 +60,8 @@ export default defineConfig({
     },
     // Na CI, o build de produção: o `next dev` compila cada rota sob demanda e
     // recarrega por HMR, o que deixa a suíte instável sob carga (decisão 0013).
-    // O build precisa de MONGO_* no ambiente (src/lib/mongodb.ts); o env do
-    // servidor (src/server/env.ts) é o de teste. O timeout cobre build + start.
+    // O env do servidor (src/server/env.ts) é o de teste. O timeout cobre
+    // build + start.
     {
       name: 'app',
       command: isCI

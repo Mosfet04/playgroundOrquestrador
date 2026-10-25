@@ -280,6 +280,80 @@ describe('callOrchestrator: query', () => {
   })
 })
 
+// P2-06: a API Admin pede a versão lida no If-Match e devolve o 422 com o
+// campo recusado (e as posições, nas listas), sem o valor.
+describe('callOrchestrator: API Admin', () => {
+  it('ifMatch vai no header If-Match entre aspas', async () => {
+    let ifMatch: string | null = null
+    server.use(
+      http.put(`${BASE}/admin/config/agents/a`, ({ request }) => {
+        ifMatch = request.headers.get('if-match')
+        return HttpResponse.json({ status: 'ok' })
+      })
+    )
+
+    await callOrchestrator('/admin/config/agents/a', {
+      key: 'admin',
+      method: 'PUT',
+      body: {},
+      ifMatch: 3,
+      schema: statusSchema
+    })
+
+    expect(ifMatch).toBe('"3"')
+  })
+
+  it('422 traz só o campo e as posições do corpo, nunca o detalhe', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    server.use(
+      http.post(`${BASE}/admin/config/tools`, () =>
+        HttpResponse.json(
+          { detail: LEAK, field: 'parameters', indexes: [1], input: LEAK },
+          { status: 422 }
+        )
+      )
+    )
+
+    const result = await callOrchestrator('/admin/config/tools', {
+      key: 'admin',
+      method: 'POST',
+      body: {},
+      schema: statusSchema
+    })
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'rejected',
+      status: 422,
+      field: 'parameters',
+      indexes: [1]
+    })
+    expectNoLeak(result)
+  })
+
+  it.each([
+    ['campo com espaço e quebra de linha', { field: 'a b\nlog' }],
+    ['campo enorme', { field: 'a'.repeat(300) }],
+    ['corpo que não é objeto', [LEAK]]
+  ])('422 com %s: sem campo', async (_, body) => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    server.use(
+      http.post(`${BASE}/admin/config/tools`, () =>
+        HttpResponse.json(body, { status: 422 })
+      )
+    )
+
+    const result = await callOrchestrator('/admin/config/tools', {
+      key: 'admin',
+      method: 'POST',
+      body: {},
+      schema: statusSchema
+    })
+
+    expect(result).toEqual({ ok: false, error: 'rejected', status: 422 })
+  })
+})
+
 describe('streamOrchestrator', () => {
   const RUN = `${BASE}/agents/agent-1/runs`
 

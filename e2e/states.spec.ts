@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 
 // P1-05: orquestrador fora ⇒ erro com "Tentar de novo", nunca tela vazia; rota
-// inexistente ⇒ 404 do app, dentro da casca. Até a P3, /api/agents* lê o
-// Mongo: aqui responde por page.route.
+// inexistente ⇒ 404 do app, dentro da casca. Aqui /api/agents* responde
+// por page.route.
 
 const TITLE = 'Playground do Orquestrador'
 const page1 = <T,>(data: T[]) => ({

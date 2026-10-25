@@ -1,6 +1,6 @@
 import 'server-only'
 
-import type { z } from 'zod'
+import { z } from 'zod'
 
 import { getServerEnv } from '@/server/env'
 
@@ -23,9 +23,16 @@ export type OrchestratorErrorCode =
   | 'invalid_response'
   | 'invalid_path'
 
-export type OrchestratorResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: OrchestratorErrorCode; status?: number }
+// `field`/`indexes`: onde a API Admin recusou o corpo (422), sem o valor.
+export type OrchestratorFailure = {
+  ok: false
+  error: OrchestratorErrorCode
+  status?: number
+  field?: string
+  indexes?: number[]
+}
+
+export type OrchestratorResult<T> = { ok: true; data: T } | OrchestratorFailure
 
 const ORCHESTRATOR_TIMEOUT_MS = 10_000
 
@@ -38,6 +45,8 @@ type CallOptions<T> = {
   body?: unknown
   // Vai na URL por URLSearchParams (valores codificados).
   query?: Record<string, string>
+  // Versão lida da config (API Admin): vai no If-Match do PUT/DELETE.
+  ifMatch?: number
   timeoutMs?: number
 }
 
@@ -74,9 +83,40 @@ function failure(
   path: string,
   error: OrchestratorErrorCode,
   status?: number
-): { ok: false; error: OrchestratorErrorCode; status?: number } {
+): OrchestratorFailure {
   console.warn('[orchestrator] falha', { method, path, error, status })
   return { ok: false, error, status }
+}
+
+// 422 da API Admin (admin_config.py): `{detail, field?, indexes?}`. Só o nome
+// do campo (identificador curto, com `.` no aninhado) e as posições saem
+// daqui; o resto do corpo, nunca.
+const invalidFieldSchema = z.object({
+  field: z
+    .string()
+    .regex(/^[A-Za-z_][A-Za-z0-9_]{0,63}(\.[A-Za-z_][A-Za-z0-9_]{0,63})?$/)
+    .optional()
+    .catch(undefined),
+  indexes: z
+    .array(z.number().int().nonnegative())
+    .max(100)
+    .optional()
+    .catch(undefined)
+})
+
+async function invalidField(response: Response) {
+  try {
+    const parsed = invalidFieldSchema.safeParse(JSON.parse(await response.text()))
+    if (!parsed.success) return {}
+    const { field, indexes } = parsed.data
+    return {
+      ...(field ? { field } : {}),
+      ...(field && indexes ? { indexes } : {})
+    }
+  } catch {
+    // Corpo que não é JSON (ou prazo estourado na leitura): fica só o status.
+    return {}
+  }
 }
 
 // AbortSignal.timeout (e o abort do prazo do stream) rejeita com TimeoutError;
@@ -103,6 +143,7 @@ export async function callOrchestrator<T>(
     method = 'GET',
     body,
     query,
+    ifMatch,
     timeoutMs = ORCHESTRATOR_TIMEOUT_MS
   }: CallOptions<T>
 ): Promise<OrchestratorResult<T>> {
@@ -117,7 +158,8 @@ export async function callOrchestrator<T>(
       method,
       headers: {
         Authorization: authorization,
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(ifMatch === undefined ? {} : { 'If-Match': `"${ifMatch}"` })
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs)
@@ -126,6 +168,10 @@ export async function callOrchestrator<T>(
     return fail(fetchError(error))
   }
 
+  if (response.status === 422) {
+    const where = await invalidField(response)
+    return { ...fail('rejected', 422), ...where }
+  }
   if (!response.ok) {
     // Libera a conexão sem ler o corpo (que não sai daqui). Sem await: o
     // cancel de um corpo ainda chegando pode demorar, e o stream não está

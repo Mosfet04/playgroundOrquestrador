@@ -2,9 +2,9 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { hydrated } from './hydration'
 
-// P1-05b: tabela/linhas da lista, chips de contagem e excluir no editor. Até a
-// P3, /api/agents* e /api/tools* leem o Mongo: aqui respondem por page.route,
-// com estado (o DELETE tira o item da próxima listagem).
+// P1-05b: tabela/linhas da lista, chips de contagem e excluir no editor. Aqui
+// /api/agents* e /api/tools* respondem por page.route, com estado (o DELETE
+// tira o item da próxima listagem).
 
 const agents = [
   { id: 'alfa', nome: 'Agente Alfa', model: 'llama3.2', factoryIaModel: 'ollama', active: true, tools_ids: [] },

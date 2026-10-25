@@ -57,6 +57,7 @@
     "idRequired": "ID é obrigatório",
     "nameRequired": "Nome é obrigatório",
     "descriptionRequired": "Descrição é obrigatória",
+    "rejectedByOrchestrator": "Valor recusado pelo orquestrador",
     "code": "código {status}",
     "withCode": "{message} (código {status})",
     "retry": "Tentar de novo",
@@ -268,7 +269,7 @@
       "providers": "💡 <strong>Provedores suportados:</strong> Ollama (local), OpenAI, Anthropic, Google, Groq, Azure",
       "tools": "🔧 <strong>Tools HTTP:</strong> Configure APIs como Weather, GitHub, qualquer REST API",
       "rag": "🧠 <strong>RAG (opcional):</strong> Adicione base de conhecimento para contexto personalizado",
-      "sync": "🔄 <strong>Quando vale:</strong> agentes e tools criados aqui ficam no MongoDB do orquestrador e passam a valer no chat depois que ele reinicia"
+      "sync": "🔄 <strong>Quando vale:</strong> agentes e tools criados aqui ficam na config do orquestrador e valem no chat logo depois de salvar"
     },
     "mobileTitle": "Otimizado para mobile",
     "mobileText": "✨ Esta interface foi otimizada para o seu dispositivo móvel. Abra o menu no cabeçalho para navegar entre as seções.",

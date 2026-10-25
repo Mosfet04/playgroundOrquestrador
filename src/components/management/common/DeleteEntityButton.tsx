@@ -35,11 +35,14 @@ type DeleteTexts = {
  */
 export function DeleteEntityButton({
   url,
+  version,
   texts,
   disabled,
   onDeleted
 }: {
   url: string
+  /** Versão lida da config: vai no If-Match (P2-06). */
+  version: number
   texts: DeleteTexts
   disabled: boolean
   onDeleted: () => void
@@ -63,7 +66,10 @@ export function DeleteEntityButton({
     setDeleting(true)
     let status: number | undefined
     try {
-      const response = await fetch(url, { method: 'DELETE' })
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: { 'If-Match': `"${version}"` }
+      })
       const data = response.ok ? await response.json() : null
       if (data?.success) {
         deleted.current = true

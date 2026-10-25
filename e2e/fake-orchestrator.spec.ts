@@ -190,3 +190,34 @@ test.describe('fake orchestrator', () => {
     ).toHaveLength(1)
   })
 })
+
+// P2-06 (review R5): a máscara `***` só mantém o header na mesma origem, com a
+// porta como escrita (o real compara o urlsplit: `https://h` ≠ `https://h:443`).
+test('fake orchestrator: header mascarado só vale na mesma origem, porta explícita inclusive', async ({
+  request
+}) => {
+  const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  const url = `${FAKE_ORCHESTRATOR_URL}/admin/config/tools`
+  const tool = {
+    id: 'fake-origem',
+    name: 'Origem',
+    description: 'Máscara e origem',
+    route: 'https://h.example/v1',
+    http_method: 'GET',
+    parameters: [],
+    headers: { 'X-Conta': 'texto' }
+  }
+  expect((await request.post(url, { headers, data: tool })).status()).toBe(201)
+  const put = (route: string, version: number) =>
+    request.put(`${url}/fake-origem`, {
+      headers: { ...headers, 'If-Match': `"${version}"` },
+      data: { ...tool, route, headers: { 'X-Conta': '***' } }
+    })
+
+  expect((await put('https://h.example/v2', 1)).status()).toBe(200)
+  const otherPort = await put('https://h.example:443/v2', 2)
+  expect(otherPort.status()).toBe(422)
+  expect(await otherPort.json()).toMatchObject({ field: 'headers' })
+
+  await request.delete(`${url}/fake-origem?hard=true`, { headers: { ...headers, 'If-Match': '"2"' } })
+})

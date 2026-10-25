@@ -5,8 +5,8 @@ import { hydrated } from './hydration'
 
 // QA P1-05b. Complementa e2e/lists.spec.ts: tools (teto, estados, 404 com
 // ícone, falha do excluir), EN em 390 px, teclado, 768 px (limite do md) e
-// tema escuro. /api/agents* e /api/tools* respondem por page.route (leem o
-// Mongo até a P3).
+// tema escuro. /api/agents* e /api/tools* respondem por page.route (o CRUD pelo
+// fake orchestrator está em config-crud*.spec.ts).
 
 const agent = (n: number, active = true) => ({
   id: `agente-${n}`,

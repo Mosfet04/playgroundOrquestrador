@@ -13,8 +13,10 @@ import { TextArea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AgentConfig, CreateAgentForm, Tool } from '@/types/management'
+import { AgentConfig, CreateAgentForm, Tool, isAgentFormField } from '@/types/management'
 import { DeleteEntityButton } from '../common/DeleteEntityButton'
+import { FieldError } from '../common/FieldError'
+import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
 
 interface AgentFormProps {
@@ -52,6 +54,8 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
     register,
     handleSubmit,
     setValue,
+    setError,
+    clearErrors,
     watch,
     formState: { errors }
   } = useForm<CreateAgentForm>({
@@ -114,10 +118,12 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
       const url = isEditing ? `/api/agents/${encodeURIComponent(agent.id)}` : '/api/agents'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // A versão lida vai no If-Match (P2-06): se mudou, o orquestrador recusa (412).
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(isEditing ? { 'If-Match': `"${agent.version}"` } : {})
         },
         body: JSON.stringify(payload)
       })
@@ -128,10 +134,15 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
         toast.success(t('saved'))
         onSuccess()
       } else {
+        // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
+        const field = await rejectedField(response, isAgentFormField)
+        if (field)
+          setError(field, { type: 'server', message: tc('rejectedByOrchestrator') }, { shouldFocus: true })
+        // 409 só é "id já existe" na criação.
         toast.error(
           requestError(response.status, {
             failed: t('saveError'),
-            conflict: t('conflict'),
+            conflict: isEditing ? undefined : t('conflict'),
             notFound: t('notFound')
           })
         )
@@ -165,7 +176,15 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
           </div>
         </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* O erro do servidor num campo sem regra (Select, Switch, tools) não
+          sai na validação: limpo antes, ele não trava o próximo envio. */}
+      <form
+        onSubmit={(event) => {
+          clearErrors()
+          return handleSubmit(onSubmit)(event)
+        }}
+        className="space-y-6"
+      >
         {/* Informações Básicas */}
         <Card>
           <CardHeader>
@@ -184,9 +203,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                   disabled={isEditing}
                   placeholder={tc('example', { value: 'agent-1' })}
                 />
-                {errors.id && (
-                  <p className="text-sm text-destructive">{errors.id.message}</p>
-                )}
+                <FieldError message={errors.id?.message} />
               </div>
 
               <div className="space-y-2">
@@ -196,9 +213,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                   {...register('nome', { required: tc('nameRequired') })}
                   placeholder={t('form.namePlaceholder')}
                 />
-                {errors.nome && (
-                  <p className="text-sm text-destructive">{errors.nome.message}</p>
-                )}
+                <FieldError message={errors.nome?.message} />
               </div>
             </div>
 
@@ -210,15 +225,19 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                 placeholder={t('form.descriptionPlaceholder')}
                 rows={3}
               />
+              <FieldError message={errors.descricao?.message} />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="active"
-                checked={watch('active')}
-                onCheckedChange={(checked) => setValue('active', checked)}
-              />
-              <Label htmlFor="active">{t('form.active')}</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="active"
+                  checked={watch('active')}
+                  onCheckedChange={(checked) => setValue('active', checked)}
+                />
+                <Label htmlFor="active">{t('form.active')}</Label>
+              </div>
+              <FieldError message={errors.active?.message} />
             </div>
           </CardContent>
         </Card>
@@ -251,6 +270,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                     ))}
                 </SelectContent>
                 </Select>
+                <FieldError message={errors.factoryIaModel?.message} />
               </div>
 
               <div className="space-y-2">
@@ -265,9 +285,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                       'claude-3-sonnet'
                   })}
                 />
-                {errors.model && (
-                  <p className="text-sm text-destructive">{errors.model.message}</p>
-                )}
+                <FieldError message={errors.model?.message} />
               </div>
             </div>
 
@@ -279,6 +297,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                 placeholder={t('form.systemPromptPlaceholder')}
                 rows={5}
               />
+              <FieldError message={errors.prompt?.message} />
             </div>
           </CardContent>
         </Card>
@@ -292,13 +311,16 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="rag_active"
-                checked={ragActive}
-                onCheckedChange={(checked) => setValue('rag_active', checked)}
-              />
-              <Label htmlFor="rag_active">{t('form.ragEnable')}</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="rag_active"
+                  checked={ragActive}
+                  onCheckedChange={(checked) => setValue('rag_active', checked)}
+                />
+                <Label htmlFor="rag_active">{t('form.ragEnable')}</Label>
+              </div>
+              <FieldError message={errors.rag_active?.message} />
             </div>
 
             {ragActive && (
@@ -310,6 +332,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                     {...register('rag_doc_name')}
                     placeholder={tc('example', { value: 'knowledge_base' })}
                   />
+                  <FieldError message={errors.rag_doc_name?.message} />
                 </div>
 
                 <div className="space-y-2">
@@ -330,6 +353,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FieldError message={errors.rag_factoryIaModel?.message} />
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -339,6 +363,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                     {...register('rag_model')}
                     placeholder={tc('example', { value: 'text-embedding-3-small' })}
                   />
+                  <FieldError message={errors.rag_model?.message} />
                 </div>
               </div>
             )}
@@ -353,7 +378,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
               {t('form.toolsDescription')}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {availableTools.length === 0 ? (
               <p className="text-muted-foreground">
                 {t('form.noTools')}
@@ -388,6 +413,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                 ))}
               </div>
             )}
+            <FieldError message={errors.tools_ids?.message} />
           </CardContent>
         </Card>
 
@@ -398,6 +424,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
             <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
               <DeleteEntityButton
                 url={`/api/agents/${encodeURIComponent(agent.id)}`}
+                version={agent.version}
                 texts={{
                   label: t('deleteLabel'),
                   title: t('deleteTitle'),

@@ -1,14 +1,15 @@
 // @vitest-environment node
 // QA P0-05: o que o teste do dev não cobre (tipo errado e operador em cada campo,
-// corpo null, eco de valor, operador na query).
+// corpo null, eco de valor). Desde a P2-06 o BFF fala com a API Admin do
+// orquestrador: corpo recusado aqui nem chega a ela.
+import { http, HttpResponse } from 'msw'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
-import { GET, POST } from '@/app/api/agents/route'
+import { POST } from '@/app/api/agents/route'
 
-import { agentsCollection } from '../../helpers/fakeMongodb'
-
-vi.mock('@/lib/mongodb', () => import('../../helpers/fakeMongodb'))
+import { TEST_ENV } from '../../../e2e/test-env'
+import { server } from '../../msw/server'
 
 const BASE_URL = 'http://playground.test/api/agents'
 
@@ -30,10 +31,17 @@ function rawRequest(url: string, method: string, body: string) {
 const jsonRequest = (url: string, method: string, body: unknown) =>
   rawRequest(url, method, JSON.stringify(body))
 
+// Chamadas que chegaram ao orquestrador.
+let calls: string[] = []
+
 beforeEach(() => {
-  agentsCollection.reset([
-    { ...validAgent, descricao: 'original', prompt: '', active: true, tools_ids: [] }
-  ])
+  calls = []
+  server.use(
+    http.all(`${TEST_ENV.ORCHESTRATOR_URL}/*`, ({ request }) => {
+      calls.push(`${request.method} ${new URL(request.url).pathname}`)
+      return HttpResponse.json({ detail: 'não devia chegar' }, { status: 500 })
+    })
+  )
 })
 
 // Cada item é um campo do form com valor de tipo errado ou operador Mongo.
@@ -61,20 +69,20 @@ const hostileFields: Array<[string, Record<string, unknown>]> = [
 ]
 
 describe('POST /api/agents: corpo hostil', () => {
-  it.each(hostileFields)('recusa %s com 400 sem tocar o banco', async (_, patch) => {
+  it.each(hostileFields)('recusa %s com 400 sem chamar o orquestrador', async (_, patch) => {
     const response = await POST(
       jsonRequest(BASE_URL, 'POST', { ...validAgent, id: 'novo', ...patch })
     )
 
     expect(response.status).toBe(400)
-    expect(agentsCollection.calls).toEqual([])
+    expect(calls).toEqual([])
   })
 
-  it('recusa corpo null com 400 sem tocar o banco', async () => {
+  it('recusa corpo null com 400 sem chamar o orquestrador', async () => {
     const response = await POST(rawRequest(BASE_URL, 'POST', 'null'))
 
     expect(response.status).toBe(400)
-    expect(agentsCollection.calls).toEqual([])
+    expect(calls).toEqual([])
   })
 
   it.each([
@@ -86,7 +94,7 @@ describe('POST /api/agents: corpo hostil', () => {
     )
 
     expect(response.status).toBe(400)
-    expect(agentsCollection.calls).toEqual([])
+    expect(calls).toEqual([])
   })
 
   it('não ecoa o valor quando o JSON é malformado', async () => {
@@ -95,23 +103,5 @@ describe('POST /api/agents: corpo hostil', () => {
     const text = await response.text()
     expect(response.status).toBe(400)
     expect(text).not.toContain('SEGREDO')
-  })
-})
-
-describe('GET /api/agents', () => {
-  it('operador na query string não vira filtro', async () => {
-    agentsCollection.reset([
-      { id: 'a1', nome: 'A', descricao: '', factoryIaModel: 'openai', active: true },
-      { id: 'a2', nome: 'B', descricao: '', factoryIaModel: 'ollama', active: false }
-    ])
-
-    const response = await GET(
-      new NextRequest(
-        `${BASE_URL}?factoryIaModel[$ne]=openai&search[$ne]=zzz&active[$ne]=true`
-      )
-    )
-
-    expect(response.status).toBe(200)
-    expect((await response.json()).data.total).toBe(2)
   })
 })

@@ -1,150 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { toolsCollection } from '@/lib/mongodb'
-import { escapeRegExp } from '@/lib/utils'
-import { Tool } from '@/types/management'
+import type { NextRequest } from 'next/server'
+import { z } from 'zod'
+
+import { createTool, listTools } from '@/server/orchestrator/tools'
 
 import { parseJsonBody } from '../parseJsonBody'
+import { badRequest, configError, ok, orchestratorError } from '../respond'
 import { toolBodySchema } from './schema'
 
-// GET - Listar todas as tools
+export const runtime = 'nodejs'
+
+// A API Admin não filtra nem busca: o BFF lê a lista inteira e filtra.
+const querySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  search: z.string().optional(),
+  method: z.string().optional()
+})
+
+// P2-06: lista de tools pela API Admin do orquestrador (chave admin).
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams
-    const method = searchParams.get('method')
-    const search = searchParams.get('search')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-
-    // Construir filtros
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filters: any = {}
-    
-    if (method) {
-      filters['http_config.method'] = method
-    }
-    
-    if (search) {
-      const pattern = escapeRegExp(search)
-      filters.$or = [
-        { name: { $regex: pattern, $options: 'i' } },
-        { description: { $regex: pattern, $options: 'i' } },
-        { id: { $regex: pattern, $options: 'i' } }
-      ]
-    }
-
-    // Contar total
-    const total = await toolsCollection.countDocuments(filters)
-    
-    // Buscar tools com paginação
-    const tools = await toolsCollection
-      .find(filters)
-      .sort({ created_at: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray()
-
-    // Garantir que todos os tools tenham a estrutura correta
-    const normalizedTools = tools.map(tool => ({
-      ...tool,
-      // Priorizar campos novos, fallback para http_config
-      route: tool.route || (tool.http_config ? `${tool.http_config.base_url}${tool.http_config.endpoint}` : ''),
-      http_method: tool.http_method || (tool.http_config ? tool.http_config.method : 'GET'),
-      instructions: tool.instructions || '',
-      active: tool.active !== undefined ? tool.active : true,
-      // Manter http_config para compatibilidade
-      http_config: tool.http_config || {
-        base_url: '',
-        method: tool.http_method || 'GET',
-        endpoint: '',
-        headers: tool.headers || {},
-        parameters: tool.parameters || []
-      }
-    }))
-
-    const totalPages = Math.ceil(total / limit)
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        data: normalizedTools,
-        total,
-        page,
-        limit,
-        totalPages
-      }
-    })
-  } catch (error) {
-    console.error('Error fetching tools:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Erro interno do servidor' 
-      },
-      { status: 500 }
-    )
-  }
+  const query = querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams))
+  if (!query.success) return badRequest()
+  const { page, limit, search, method } = query.data
+  const result = await listTools({ search, method }, page, limit)
+  return result.ok ? ok(result.data) : orchestratorError(result.error)
 }
 
-// POST - Criar nova tool
 export async function POST(request: NextRequest) {
-  try {
-    const parsed = await parseJsonBody(request, toolBodySchema)
-    if (!parsed.success) return parsed.response
-    const body = parsed.data
-
-    // Preparar dados para criação
-    const tool: Tool = {
-      id: body.id || `tool_${Date.now()}`,
-      name: body.name,
-      description: body.description,
-      route: body.route || `${body.base_url || ''}${body.endpoint || ''}`,
-      http_method: body.http_method || body.method || 'GET',
-      instructions: body.instructions || '',
-      headers: body.headers || {},
-      parameters: body.parameters || [],
-      active: body.active !== undefined ? body.active : true,
-      created_at: new Date(),
-      updated_at: new Date()
-    }
-
-    // Manter http_config para compatibilidade reversa
-    if (body.base_url || body.endpoint || body.method) {
-      tool.http_config = {
-        base_url: body.base_url || '',
-        method: body.method || body.http_method || 'GET',
-        endpoint: body.endpoint || '',
-        headers: body.headers || {},
-        parameters: body.parameters || []
-      }
-    }
-
-    // Verificar se já existe uma tool com o mesmo ID
-    const existingTool = await toolsCollection.findOne({ id: tool.id })
-    if (existingTool) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Já existe uma tool com este ID' 
-        },
-        { status: 409 }
-      )
-    }
-
-    const result = await toolsCollection.insertOne(tool)
-
-    return NextResponse.json({
-      success: true,
-      data: { ...tool, _id: result.insertedId },
-      message: 'Tool criada com sucesso'
-    })
-  } catch (error) {
-    console.error('Error creating tool:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Erro interno do servidor' 
-      },
-      { status: 500 }
-    )
-  }
+  const parsed = await parseJsonBody(request, toolBodySchema)
+  if (!parsed.success) return parsed.response
+  const result = await createTool(parsed.data)
+  return result.ok ? ok(result.data) : configError(result)
 }

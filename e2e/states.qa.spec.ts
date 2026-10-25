@@ -4,7 +4,7 @@ import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // QA P1-05: o que o dev não cobriu em e2e/states.spec.ts. /api/agents* e
-// /api/tools* leem o Mongo até a P3: aqui respondem por page.route.
+// /api/tools* respondem por page.route.
 
 const page1 = <T,>(data: T[]) => ({
   success: true,

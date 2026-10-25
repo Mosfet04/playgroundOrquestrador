@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import type { DashboardPeriod, DashboardStats, ModelUsage } from '@/types/dashboard'
 
+import { listConfigs } from './adminConfig'
 import { callOrchestrator, type OrchestratorResult } from './client'
 import type { components } from './openapi'
 
@@ -61,50 +62,18 @@ const metricsSchema = z.object({
   >[]
 }>
 
-// GET /admin/config/agents é paginado por offset/limit (teto de 200 por
-// página no orquestrador); o DELETE é lógico (`active: false`).
-const AGENTS_PAGE_SIZE = 200
-const agentsPageSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        active: z.boolean().nullish(),
-        rag_config: z
-          .object({
-            active: z.boolean().nullish(),
-            model: z.string().nullish(),
-            factory_ia_model: z.string().nullish()
-          })
-          .nullish()
-      })
-    )
-    .max(AGENTS_PAGE_SIZE),
-  total: z.number().int().nonnegative()
-})
-type AgentConfigItem = z.infer<typeof agentsPageSchema>['items'][number]
-
-// Teto de páginas (10 000 agents): um `total` absurdo não prende o laço.
-const MAX_AGENT_PAGES = 50
-
-async function listAgentConfigs(): Promise<
-  OrchestratorResult<{ agents: AgentConfigItem[]; total: number }>
-> {
-  const agents: AgentConfigItem[] = []
-  for (let page = 0; page < MAX_AGENT_PAGES; page++) {
-    const result = await callOrchestrator('/admin/config/agents', {
-      key: 'admin',
-      schema: agentsPageSchema,
-      query: { offset: String(agents.length), limit: String(AGENTS_PAGE_SIZE) }
+// Config dos agents pela API Admin (lista inteira, inativos inclusive: o
+// DELETE lógico é `active: false`); só os campos usados.
+const agentConfigSchema = z.object({
+  active: z.boolean().nullish(),
+  rag_config: z
+    .object({
+      active: z.boolean().nullish(),
+      model: z.string().nullish(),
+      factory_ia_model: z.string().nullish()
     })
-    if (!result.ok) return result
-    agents.push(...result.data.items)
-    // Página vazia antes do total (a lista encolheu no meio): vale o que veio.
-    if (result.data.items.length === 0 || agents.length >= result.data.total)
-      return { ok: true, data: { agents, total: result.data.total } }
-  }
-  console.warn('[orchestrator] lista de agents acima do teto de páginas')
-  return { ok: false, error: 'invalid_response' }
-}
+    .nullish()
+})
 
 // No máximo 1 recálculo por minuto por processo (marca em memória): o refresh
 // é idempotente (upsert por data) mas custa uma varredura no orquestrador. Quem
@@ -158,7 +127,7 @@ export async function getDashboardStats(
         query: { starting_date: startingDate(period, now) }
       })
     ),
-    listAgentConfigs()
+    listConfigs('agents', agentConfigSchema)
   ])
   if (!metrics.ok) return metrics
   if (!configs.ok) return configs
@@ -172,7 +141,7 @@ export async function getDashboardStats(
 
   // Embedding: o RAG ativo da config do agent ativo (uso = agents que o usam).
   const embeddingModels = new Map<string, ModelUsage>()
-  for (const agent of configs.data.agents) {
+  for (const agent of configs.data.items) {
     const rag = agent.rag_config
     if (agent.active && rag?.active && rag.model && rag.factory_ia_model)
       addUsage(embeddingModels, rag.model, rag.factory_ia_model, 1)
@@ -186,7 +155,7 @@ export async function getDashboardStats(
   return {
     ok: true,
     data: {
-      activeAgents: configs.data.agents.filter((agent) => agent.active).length,
+      activeAgents: configs.data.items.filter((agent) => agent.active).length,
       totalAgents: configs.data.total,
       peakDailyUsers: Math.max(0, ...days.map((day) => day.users_count)),
       totalSessions: totalAgentSessions + totalTeamSessions,

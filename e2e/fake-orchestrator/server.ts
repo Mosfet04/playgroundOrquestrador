@@ -1,9 +1,9 @@
 // Orquestrador falso para os testes E2E: imita só os endpoints do AgentOS
-// (agno 2.5) que o BFF chama (src/server/orchestrator/chat.ts e dashboard.ts). Exige
+// (agno 2.5) e da API Admin que o BFF chama (src/server/orchestrator/). Exige
 // a chave como o real (decisão 0018): Bearer run ou admin; 401 sem chave
 // válida, 403 com a run em /admin*, /metrics* e DELETE /sessions*. As rotas de
-// controle do teste (/hold/release, /aborts) não existem no real e não pedem
-// chave. Estado em memória; rota desconhecida => 404.
+// controle do teste (/hold/release, /aborts, /test/config/*) não existem no real
+// e não pedem chave. Estado em memória; rota desconhecida => 404.
 // Roda com `node e2e/fake-orchestrator/server.ts` (type stripping do Node 22.18+):
 // use só sintaxe TypeScript apagável (sem enum, namespace ou parameter properties).
 import { createServer } from 'node:http'
@@ -25,6 +25,9 @@ const ADMIN_KEY = process.env.FAKE_API_KEY_ADMIN
 if (!RUN_KEY || !ADMIN_KEY)
   throw new Error('FAKE_API_KEY_RUN e FAKE_API_KEY_ADMIN são obrigatórias (playwright.config.ts)')
 const TEST_ROUTES = new Set(['POST /hold/release', 'GET /aborts'])
+// GET /test/config/{kind}/{id}: documento gravado sem máscara, para o e2e
+// conferir que salvar com o header mascarado não apagou o valor.
+const TEST_CONFIG_ROUTE = /^GET \/test\/config\/(agents|tools)\/([^/]+)$/
 // Runs cuja conexão fechou antes do fim (aba fechada, abort do BFF): o e2e
 // confere em GET /aborts que o abort chegou ao orquestrador.
 const abortedRuns: { entity: string; message: string }[] = []
@@ -75,19 +78,308 @@ const toAgentResponse = (agent: FakeAgent) => ({
   sessions: { session_table: 'agno_sessions' }
 })
 
-// Config dos agents da API Admin (GET /admin/config/agents, snake_case, com
-// `version`): um agent inativo (DELETE lógico) e um com RAG ativo, para o
-// dashboard contar ativos, total e embeddings.
-const agentConfigs = [
-  {
-    id: 'agente-alfa',
-    active: true,
-    version: 1,
-    rag_config: { active: true, model: 'fake-embed', factory_ia_model: 'Fake' }
-  },
-  { id: 'agente-beta', active: true, version: 1 },
-  { id: 'agente-gama', active: false, version: 2 }
-]
+// Config da API Admin (/admin/config/{agents,tools}, admin_config.py): documento
+// snake_case com `version` (ETag), If-Match no PUT/DELETE (ausente 428, outra
+// versão 412), 422 com `field` (e `indexes`) sem o valor, 409 para id existente
+// ou entidade em uso, header de tool em texto mascarado (`***`) na leitura.
+// Seed: um agent inativo, um com RAG ativo e um com `prompt` em lista (formato
+// legado do seed real), para o dashboard contar ativos,
+// total e embeddings (o e2e do CRUD de agents roda depois do dashboard:
+// playwright.config.ts).
+type ConfigKind = 'agents' | 'tools'
+type ConfigDoc = Record<string, unknown> & { id: string; version: number }
+type Refusal = { status: number; body: Record<string, unknown> }
+type Checked<T> = { ok: true; value: T } | { ok: false; refusal: Refusal }
+
+const agentDoc = (id: string, nome: string, extra: Record<string, unknown> = {}): ConfigDoc => ({
+  id,
+  nome,
+  factory_ia_model: 'ollama',
+  model: 'fake-model',
+  descricao: '',
+  prompt: '',
+  tools_ids: [],
+  rag_config: null,
+  user_memory_active: false,
+  summary_active: false,
+  active: true,
+  model_params: null,
+  base_url: null,
+  api_key_ref: null,
+  markdown: true,
+  add_history_to_context: true,
+  num_history_runs: 5,
+  add_datetime_to_context: true,
+  reasoning: false,
+  version: 1,
+  ...extra
+})
+
+const configs: Record<ConfigKind, ConfigDoc[]> = {
+  agents: [
+    agentDoc('agente-alfa', 'Agente Alfa', {
+      rag_config: {
+        active: true,
+        doc_name: null,
+        model: 'fake-embed',
+        factory_ia_model: 'Fake',
+        search_strategy: 'semantic',
+        model_params: null,
+        base_url: null,
+        api_key_ref: null
+      }
+    }),
+    // `prompt` em lista, como no seed do orquestrador (mongo-init): a leitura
+    // devolve assim; a escrita (POST/PUT) só aceita texto (D-P2-06-9).
+    agentDoc('agente-beta', 'Agente Beta', { prompt: ['Você é o Beta.', 'Responda curto.'] }),
+    agentDoc('agente-gama', 'Agente Gama', { active: false, version: 2 })
+  ],
+  tools: []
+}
+
+const AGENT_KEYS = Object.keys(agentDoc('', '')).filter((key) => key !== 'version')
+const RAG_KEYS = ['active', 'doc_name', 'model', 'factory_ia_model', 'search_strategy', 'model_params', 'base_url', 'api_key_ref']
+const TOOL_KEYS = ['id', 'name', 'description', 'route', 'http_method', 'parameters', 'instructions', 'headers', 'active']
+const PARAMETER_KEYS = ['name', 'type', 'description', 'required', 'default_value']
+const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+const PARAMETER_TYPES = ['string', 'integer', 'float', 'boolean', 'object', 'array']
+const MASK = '***'
+const NAMEABLE_KEY = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
+
+const invalid = (field?: string, indexes?: number[]): { ok: false; refusal: Refusal } => ({
+  ok: false,
+  refusal: {
+    status: 422,
+    body: {
+      detail: 'Configuração inválida',
+      ...(field ? { field } : {}),
+      ...(indexes ? { indexes } : {})
+    }
+  }
+})
+const accepted = <T>(value: T): Checked<T> => ({ ok: true, value })
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+const isText = (value: unknown) => typeof value === 'string' && value !== ''
+const isRef = (value: string) => /^(env|file):./.test(value)
+const unknownKey = (body: Record<string, unknown>, known: string[], prefix = '') => {
+  const key = Object.keys(body).find((name) => !known.includes(name))
+  if (key === undefined) return null
+  return invalid(NAMEABLE_KEY.test(key) ? `${prefix}${key}` : 'unknown_key')
+}
+const hasOperator = (value: unknown): boolean =>
+  Array.isArray(value)
+    ? value.some(hasOperator)
+    : isRecord(value) && Object.entries(value).some(([key, item]) => key.startsWith('$') || hasOperator(item))
+// Esquema, host e porta como escritos (o urlsplit do real): o URL do WHATWG
+// apagaria a porta padrão e `https://h:443` passaria por `https://h`.
+const origin = (route: string) => {
+  const parts = /^([a-z][a-z0-9+.-]*):\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]*)(?::(\d*))?(?:[/?#]|$)/i.exec(route)
+  return parts ? [parts[1].toLowerCase(), parts[2].toLowerCase(), parts[3] || ''].join('|') : null
+}
+
+function checkAgent(body: Record<string, unknown>): Checked<ConfigDoc> {
+  const unknown = unknownKey(body, AGENT_KEYS)
+  if (unknown) return unknown
+  for (const field of ['id', 'nome', 'model', 'factory_ia_model'])
+    if (!isText(body[field])) return invalid(field)
+  if (body.prompt !== undefined && typeof body.prompt !== 'string') return invalid('prompt')
+  if (body.active !== undefined && typeof body.active !== 'boolean') return invalid('active')
+  const toolsIds = body.tools_ids ?? []
+  if (!Array.isArray(toolsIds) || toolsIds.some((id) => typeof id !== 'string')) return invalid('tools_ids')
+  const missing = toolsIds.flatMap((id, position) =>
+    configs.tools.some((tool) => tool.id === id) ? [] : [position]
+  )
+  if (missing.length) return invalid('tools_ids', missing)
+  const rag = body.rag_config ?? null
+  if (rag !== null) {
+    if (!isRecord(rag)) return invalid('rag_config')
+    const ragUnknown = unknownKey(rag, RAG_KEYS, 'rag_config.')
+    if (ragUnknown) return ragUnknown
+  }
+  return accepted({ ...agentDoc(String(body.id), String(body.nome)), ...body, tools_ids: toolsIds, rag_config: rag })
+}
+
+function checkTool(body: Record<string, unknown>, current?: ConfigDoc): Checked<ConfigDoc> {
+  const unknown = unknownKey(body, TOOL_KEYS)
+  if (unknown) return unknown
+  for (const field of ['id', 'name', 'description', 'route'])
+    if (!isText(body[field])) return invalid(field)
+  const method = String(body.http_method ?? 'GET').toUpperCase()
+  if (!HTTP_METHODS.includes(method)) return invalid('http_method')
+  const parameters = body.parameters ?? []
+  if (!Array.isArray(parameters)) return invalid('parameters')
+  for (const [position, parameter] of parameters.entries()) {
+    const ok =
+      isRecord(parameter) &&
+      Object.keys(parameter).every((key) => PARAMETER_KEYS.includes(key)) &&
+      isText(parameter.name) &&
+      isText(parameter.description) &&
+      PARAMETER_TYPES.includes(String(parameter.type))
+    if (!ok) return invalid('parameters', [position])
+  }
+  const headers = body.headers ?? {}
+  if (!isRecord(headers) || Object.values(headers).some((value) => typeof value !== 'string'))
+    return invalid('headers')
+  // Nome sensível só por referência; a máscara mantém o gravado na mesma origem.
+  const stored = isRecord(current?.headers) ? current.headers : {}
+  const sameOrigin =
+    current !== undefined &&
+    origin(String(body.route)) !== null &&
+    origin(String(body.route)) === origin(String(current.route))
+  const kept: Record<string, string> = {}
+  for (const [name, value] of Object.entries(headers as Record<string, string>)) {
+    if (value === MASK) {
+      if (!sameOrigin || typeof stored[name] !== 'string') return invalid('headers')
+      kept[name] = stored[name]
+      continue
+    }
+    const sensitive = /^(authorization|proxy-authorization|cookie)$|[-_](key|token)$/i.test(name)
+    if (sensitive && !isRef(value)) return invalid('headers')
+    kept[name] = value
+  }
+  return accepted({
+    id: String(body.id),
+    name: body.name,
+    description: body.description,
+    route: body.route,
+    http_method: method,
+    parameters,
+    instructions: body.instructions ?? null,
+    headers: kept,
+    active: body.active ?? true,
+    version: 0
+  })
+}
+
+const shown = (kind: ConfigKind, doc: ConfigDoc): ConfigDoc =>
+  kind === 'tools' && isRecord(doc.headers)
+    ? {
+        ...doc,
+        headers: Object.fromEntries(
+          Object.entries(doc.headers).map(([name, value]) => [name, isRef(String(value)) ? value : MASK])
+        )
+      }
+    : doc
+
+const usedBy = (kind: ConfigKind, id: string): Record<string, string[]> | null => {
+  if (kind !== 'tools') return null
+  const agentsUsing = configs.agents
+    .filter((agent) => Array.isArray(agent.tools_ids) && agent.tools_ids.includes(id))
+    .map((agent) => agent.id)
+  return agentsUsing.length ? { agents: agentsUsing } : null
+}
+
+const readJson = async (req: IncomingMessage): Promise<unknown> => {
+  const chunks: Uint8Array[] = []
+  for await (const chunk of req) chunks.push(chunk as Uint8Array)
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  } catch {
+    return undefined
+  }
+}
+
+const sendConfig = (res: ServerResponse, status: number, kind: ConfigKind, doc: ConfigDoc) => {
+  res.writeHead(status, { 'Content-Type': 'application/json', ETag: `"${doc.version}"` })
+  res.end(JSON.stringify(shown(kind, doc)))
+}
+
+async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL) {
+  const match = /^\/admin\/config\/(agents|tools)(?:\/([^/]+))?$/.exec(url.pathname)
+  if (!match) return false
+  const kind = match[1] as ConfigKind
+  const id = match[2] === undefined ? undefined : decodeURIComponent(match[2])
+  const store = configs[kind]
+  const refuse = (refusal: Refusal) => sendJson(res, refusal.status, refusal.body)
+
+  if (id === undefined && req.method === 'GET') {
+    const offset = Number(url.searchParams.get('offset') ?? 0)
+    const limit = Number(url.searchParams.get('limit') ?? 50)
+    sendJson(res, 200, {
+      items: store.slice(offset, offset + limit).map((doc) => shown(kind, doc)),
+      total: store.length,
+      offset,
+      limit
+    })
+    return true
+  }
+  const check = (doc: Record<string, unknown>, current?: ConfigDoc) =>
+    kind === 'agents' ? checkAgent(doc) : checkTool(doc, current)
+  // Corpo como objeto JSON, sem operador `$`; a `version` do corpo é descartada.
+  const body = async (): Promise<Checked<Record<string, unknown>>> => {
+    const raw = await readJson(req)
+    if (!isRecord(raw) || hasOperator(raw)) return invalid()
+    const { version: _ignored, ...rest } = raw
+    void _ignored
+    return accepted(rest)
+  }
+
+  if (id === undefined && req.method === 'POST') {
+    const received = await body()
+    const doc = received.ok ? check(received.value) : received
+    if (!doc.ok) refuse(doc.refusal)
+    else if (store.some((item) => item.id === doc.value.id))
+      refuse({ status: 409, body: { detail: 'Já existe config com este id' } })
+    else {
+      const created = { ...doc.value, version: 1 }
+      store.push(created)
+      sendConfig(res, 201, kind, created)
+    }
+    return true
+  }
+  if (id === undefined) return false
+
+  const index = store.findIndex((item) => item.id === id)
+  if (req.method === 'GET') {
+    if (index === -1) refuse({ status: 404, body: { detail: 'Config não encontrada' } })
+    else sendConfig(res, 200, kind, store[index])
+    return true
+  }
+  if (req.method !== 'PUT' && req.method !== 'DELETE') return false
+  const ifMatch = req.headers['if-match']
+  if (ifMatch === undefined) {
+    refuse({ status: 428, body: { detail: 'If-Match obrigatório' } })
+    return true
+  }
+  if (index === -1) {
+    refuse({ status: 404, body: { detail: 'Config não encontrada' } })
+    return true
+  }
+  const current = store[index]
+  if (ifMatch.replace(/^"(.*)"$/, '$1') !== String(current.version)) {
+    refuse({ status: 412, body: { detail: 'Versão divergente: releia a config' } })
+    return true
+  }
+
+  if (req.method === 'PUT') {
+    const received = await body()
+    const sameId = !received.ok || received.value.id === undefined || received.value.id === id
+    const doc = !sameId ? invalid('id') : received.ok ? check({ ...received.value, id }, current) : received
+    if (!doc.ok) refuse(doc.refusal)
+    else {
+      const replaced = { ...doc.value, version: current.version + 1 }
+      store[index] = replaced
+      sendConfig(res, 200, kind, replaced)
+    }
+    return true
+  }
+
+  const users = usedBy(kind, id)
+  if (users) {
+    refuse({ status: 409, body: { detail: 'Config em uso', used_by: users } })
+    return true
+  }
+  if (url.searchParams.get('hard') === 'true') {
+    store.splice(index, 1)
+    res.writeHead(204).end()
+    return true
+  }
+  const deactivated = { ...current, active: false, version: current.version + 1 }
+  store[index] = deactivated
+  sendConfig(res, 200, kind, deactivated)
+  return true
+}
 
 // GET /metrics do AgentOS: 90 dias até hoje (UTC), determinísticos. Como no
 // agno, ele só lê agregados prontos: o dia de hoje só aparece depois do primeiro
@@ -266,7 +558,7 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   const url = new URL(req.url ?? '/', `http://${HOST}`)
   const route = `${req.method} ${url.pathname}`
 
-  if (!TEST_ROUTES.has(route)) {
+  if (!TEST_ROUTES.has(route) && !TEST_CONFIG_ROUTE.test(route)) {
     const key = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1]
     if (key !== RUN_KEY && key !== ADMIN_KEY)
       return sendJson(res, 401, { detail: 'unauthorized' })
@@ -277,6 +569,12 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   }
 
   if (route === 'GET /aborts') return sendJson(res, 200, abortedRuns)
+  const raw = TEST_CONFIG_ROUTE.exec(route)
+  if (raw) {
+    const doc = configs[raw[1] as ConfigKind].find((item) => item.id === decodeURIComponent(raw[2]))
+    return doc ? sendJson(res, 200, doc) : notFound(res)
+  }
+  if (await handleConfig(req, res, url)) return
   if (route === 'GET /status')
     return sendJson(res, 200, { status: 'available' })
   // HealthResponse do AgentOS (docs/contracts/orchestrator-openapi.json).
@@ -296,16 +594,6 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
       ),
       updated_at: null
     })
-  if (route === 'GET /admin/config/agents') {
-    const offset = Number(url.searchParams.get('offset') ?? 0)
-    const limit = Number(url.searchParams.get('limit') ?? 50)
-    return sendJson(res, 200, {
-      items: agentConfigs.slice(offset, offset + limit),
-      total: agentConfigs.length,
-      offset,
-      limit
-    })
-  }
   if (route === 'GET /teams') return sendJson(res, 200, teams.map(toAgentResponse))
   if (route === 'POST /hold/release') {
     const only = url.searchParams.get('agent')

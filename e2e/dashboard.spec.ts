@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 
 // P2-05 (decisão 0023): o dashboard lê o /metrics e a config dos agents do
-// orquestrador pelo BFF (sem Mongo: a URL do Mongo do e2e não responde). Dados
+// orquestrador pelo BFF (sem Mongo). Dados
 // do fake: hoje 3+1 sessões, 3 usuários, 1000 tokens; cada dia anterior 1
 // sessão, 1 usuário, 100 tokens (e2e/fake-orchestrator/server.ts). O fake só
 // inclui o dia de hoje depois do POST /metrics/refresh que o BFF faz antes de ler.

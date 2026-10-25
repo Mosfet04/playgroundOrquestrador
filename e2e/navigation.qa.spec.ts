@@ -5,8 +5,8 @@ import { hydrated } from './hydration'
 
 // QA do P1-03: o que o navigation.spec.ts do dev não cobre (id hostil,
 // carregando/500, teclado na navegação, criação por rota, voltar do
-// playground com parâmetros, salvar + voltar). Até a P3 as rotas /api/* leem o
-// Mongo: respondem por page.route.
+// playground com parâmetros, salvar + voltar). As rotas /api/* respondem por
+// page.route.
 
 const agent = {
   id: 'agente alfa',
