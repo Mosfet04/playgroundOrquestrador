@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Editor de agent · desktop claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app shell" style="min-height: 2480px">
+  <div class="side">
+    <div class="side-top"><span class="pg-mark pg-grad" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M8.5 6h7"></path><path d="m7.2 8.2 3.6 7.6"></path><path d="m16.8 8.2-3.6 7.6"></path></svg></span><div class="brand"><b>Orquestrador</b><span>playground</span></div></div>
+    <nav class="side-body" aria-label="Navegação principal">
+      <a class="nav-item" href="#inicio">Início</a>
+      <p class="nav-group">Testar</p>
+      <a class="nav-item" href="#playground">Playground</a>
+      <p class="nav-group">Configurar</p>
+      <a class="nav-item" href="#agents" aria-current="page"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>Agentes</a>
+      <a class="nav-item" href="#tools">Tools</a>
+      <p class="nav-group">Observar</p>
+      <a class="nav-item" href="#dashboard">Dashboard</a>
+    </nav>
+  </div>
+  <div class="main">
+    <header class="hdr">
+      <ol class="crumbs" aria-label="Você está em">
+        <li>Configurar</li>
+        <li><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>Agentes</li>
+        <li><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span aria-current="page">Suporte local</span></li>
+      </ol>
+      <div class="hdr-actions"><span class="pg-mono pg-caption">PT-BR</span></div>
+    </header>
+
+    <form class="ed" aria-labelledby="h1">
+      <div class="ed-head">
+        <a class="pg-btn pg-btn-ghost" href="#agents"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>Voltar</a>
+        <div><h1 id="h1">Editar agente</h1><p>Edite as configurações do agente</p></div>
+      </div>
+
+      <!-- 1. Identidade -->
+      <section class="sec" aria-labelledby="s-id">
+        <div class="sec-head"><h2 id="s-id">Identidade</h2><p>Como o agente aparece na lista e no chat.</p></div>
+        <div class="g2">
+          <div class="fld"><label class="pg-label" for="id">ID do agente <span class="req">*</span></label><input class="pg-input mono" id="id" value="suporte-local" disabled></div>
+          <div class="fld"><label class="pg-label" for="nome">Nome <span class="req">*</span></label><input class="pg-input" id="nome" value="Suporte local"></div>
+        </div>
+        <div class="fld"><label class="pg-label" for="descricao">Descrição</label><textarea class="ta" id="descricao" style="min-height: 64px">Atende dúvidas de pedido com o modelo da rede interna.</textarea></div>
+        <div class="pg-switch-row"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="active"></button><label for="active">Agente ativo</label></div>
+      </section>
+
+      <!-- 2. Modelo -->
+      <section class="sec" aria-labelledby="s-model">
+        <div class="sec-head"><h2 id="s-model">Modelo</h2><p>Provedor, modelo e como o orquestrador se conecta a ele.</p></div>
+        <div class="g2">
+          <div class="fld"><label class="pg-label" for="provider">Provedor <span class="req">*</span></label><button class="pg-select" type="button" id="provider" role="combobox" aria-expanded="false"><span class="mono">openai_compatible</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+          <div class="fld"><label class="pg-label" for="model">Modelo <span class="req">*</span></label><input class="pg-input mono" id="model" value="qwen2.5:14b-instruct"></div>
+          <div class="fld"><label class="pg-label" for="base_url">URL base <span class="req">*</span></label><input class="pg-input mono" id="base_url" value="https://llm.interno:8000/v1" aria-describedby="base_url-help"><p class="pg-help" id="base_url-help">http(s)://host[:porta][/caminho], sem usuário, senha, query nem fragmento.</p></div>
+          <div class="fld"><label class="pg-label" for="api_key_ref">Referência da chave de API</label><input class="pg-input mono" id="api_key_ref" value="env:LOCAL_LLM_API_KEY" autocomplete="off" spellcheck="false" aria-describedby="api_key_ref-help"><p class="pg-help" id="api_key_ref-help">Só a referência, nunca a chave. Formatos: <code>env:&lt;PROVEDOR&gt;_API_KEY</code> · <code>file:&lt;caminho em SECRETS_DIR&gt;</code>. Vazio: o agente não define chave própria.</p></div>
+        </div>
+
+        <div class="sub" role="group" aria-labelledby="mp-title" aria-describedby="mp-help">
+          <div class="sub-head">
+            <div class="t"><b id="mp-title">Parâmetros do modelo</b><p class="pg-help" id="mp-help">Nomes aceitos por openai_compatible. Valor: número com ponto (0.7), true/false ou texto.</p></div>
+            <button class="pg-btn pg-btn-outline pg-btn-sm" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Adicionar parâmetro</button>
+          </div>
+          <div class="params-cols" aria-hidden="true"><span>Nome</span><span>Valor</span><span>Tipo</span><span></span></div>
+          <ul class="params" aria-label="Parâmetros do modelo">
+            <li class="prow"><div class="prow-ctl">
+              <button class="pg-select" type="button" role="combobox" aria-label="Nome do parâmetro 1" aria-expanded="false"><span class="mono">temperature</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+              <input class="pg-input mono" aria-label="Valor de temperature" value="0.2" aria-describedby="t1">
+              <span class="pg-chip" id="t1">número</span>
+              <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover temperature"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+            </div></li>
+            <li class="prow"><div class="prow-ctl">
+              <button class="pg-select" type="button" role="combobox" aria-label="Nome do parâmetro 2" aria-expanded="false"><span class="mono">max_tokens</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+              <input class="pg-input mono" aria-label="Valor de max_tokens" value="1024" aria-describedby="t2">
+              <span class="pg-chip" id="t2">número</span>
+              <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover max_tokens"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+            </div></li>
+            <li class="prow"><div class="prow-ctl">
+              <button class="pg-select" type="button" role="combobox" aria-label="Nome do parâmetro 3" aria-expanded="false"><span class="mono">stop</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+              <input class="pg-input mono is-focus" aria-label="Valor de stop" value="###" aria-describedby="t3">
+              <span class="pg-chip" id="t3">texto</span>
+              <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover stop"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+            </div></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 3. Instruções -->
+      <section class="sec" aria-labelledby="s-ins">
+        <div class="sec-head"><h2 id="s-ins">Instruções</h2><p>O prompt de sistema que orienta o agente em toda conversa.</p></div>
+        <div class="fld"><label class="pg-label" for="prompt">Prompt do sistema</label><textarea class="ta" id="prompt">Você é o suporte de pedidos da loja. Responda em português, em até 4 frases. Consulte o pedido com a tool antes de afirmar prazo ou status. Se não souber, diga que vai encaminhar para um atendente.</textarea></div>
+      </section>
+
+      <!-- 4. Execução -->
+      <section class="sec" aria-labelledby="s-exec">
+        <div class="sec-head"><h2 id="s-exec">Execução</h2><p>Contexto que o agente recebe e como ele responde.</p></div>
+        <ul class="sws">
+          <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="markdown" aria-describedby="markdown-d"></button><div class="sw-txt"><label for="markdown">Responder em Markdown</label><p class="pg-help" id="markdown-d">Títulos, listas e código formatados no chat.</p></div><span class="sw-dft">Padrão: ligado</span></div></li>
+          <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="dt" aria-describedby="dt-d"></button><div class="sw-txt"><label for="dt">Enviar data e hora atuais</label><p class="pg-help" id="dt-d">O agente sabe que dia e hora são.</p></div><span class="sw-dft">Padrão: ligado</span></div></li>
+          <li class="sw">
+            <div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="hist" aria-describedby="hist-d" aria-controls="runs"></button><div class="sw-txt"><label for="hist">Enviar histórico da sessão</label><p class="pg-help" id="hist-d">As últimas execuções da sessão vão junto com cada pergunta.</p></div><span class="sw-dft">Padrão: ligado</span></div>
+            <div class="sw-child"><label class="pg-label" for="runs">Execuções no histórico</label><input class="pg-input mono num" id="runs" type="number" min="1" max="50" step="1" value="5" aria-describedby="runs-d"><p class="pg-help" id="runs-d">Inteiro de 1 a 50. Padrão: 5.</p></div>
+          </li>
+          <li class="sw">
+            <div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="reason" aria-describedby="reason-d reason-w"></button><div class="sw-txt"><label for="reason">Raciocínio passo a passo</label><p class="pg-help" id="reason-d">O modelo pensa em etapas antes de responder.</p></div><span class="sw-dft">Padrão: desligado</span></div>
+            <p class="pg-warn" id="reason-w"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>Mais chamadas ao modelo por resposta, e as tools podem ser chamadas nessa fase. Evite com tool que altera dados (POST, PUT, DELETE).</span></p>
+          </li>
+          <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="mem" aria-describedby="mem-d"></button><div class="sw-txt"><label for="mem">Memória do usuário</label><p class="pg-help" id="mem-d">Guarda fatos sobre o usuário entre sessões.</p></div><span class="sw-dft">Padrão: desligado</span></div></li>
+          <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="sum" aria-describedby="sum-d"></button><div class="sw-txt"><label for="sum">Resumo da sessão</label><p class="pg-help" id="sum-d">Resume a conversa para manter o contexto em sessões longas.</p></div><span class="sw-dft">Padrão: desligado</span></div></li>
+        </ul>
+      </section>
+
+      <!-- 5. RAG (sem mudança; P3-05) -->
+      <section class="sec" aria-labelledby="s-rag">
+        <div class="sec-head"><h2 id="s-rag">Configuração RAG</h2><p>Configure o sistema de Retrieval-Augmented Generation</p></div>
+        <div class="pg-switch-row"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="rag"></button><label for="rag">Habilitar RAG</label></div>
+      </section>
+
+      <!-- 6. Tools (sem mudança) -->
+      <section class="sec" aria-labelledby="s-tools">
+        <div class="sec-head"><h2 id="s-tools">Tools disponíveis</h2><p>Selecione as tools que o agente pode utilizar</p></div>
+        <div class="g2">
+          <label class="pg-row" style="padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); flex-wrap: nowrap; align-items: flex-start"><input type="checkbox" checked style="width: 16px; height: 16px; accent-color: var(--primary); margin-top: 2px"><span class="pg-col" style="gap: 0"><b style="font-weight: 500">consultar_pedido</b><span class="pg-caption">GET · status e prazo de um pedido</span></span></label>
+          <label class="pg-row" style="padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); flex-wrap: nowrap; align-items: flex-start"><input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--primary); margin-top: 2px"><span class="pg-col" style="gap: 0"><b style="font-weight: 500">abrir_chamado</b><span class="pg-caption">POST · abre chamado no atendimento</span></span></label>
+        </div>
+      </section>
+
+      <div class="foot">
+        <button class="pg-btn pg-btn-outline del-btn" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>Excluir agente</button>
+        <div class="r"><a class="pg-btn pg-btn-outline" href="#agents">Cancelar</a><button class="pg-btn" type="submit"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>Salvar</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2480}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

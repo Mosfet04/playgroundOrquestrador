@@ -47,7 +47,7 @@ describe('AgentForm: envio', () => {
 
     await user.type(screen.getByLabelText(/ID do agente/), 'assistente')
     await user.type(screen.getByLabelText(/^Nome/), 'Assistente')
-    await user.type(screen.getByLabelText(/^Modelo/), 'llama3.2')
+    await user.type(screen.getByLabelText(/^Modelo \*/), 'llama3.2')
     await user.click(await screen.findByRole('checkbox', { name: /Tool da página 2/ }))
     await user.click(screen.getByRole('button', { name: /salvar|criar/i }))
 

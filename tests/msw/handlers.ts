@@ -55,10 +55,23 @@ const sessionOwners: Record<string, keyof typeof sessionsFixture> = {
 // dos testes de AgentForm e ToolForm; cada teste troca por `server.use`.
 export const SCHEMA_URL = '*/api/config/schema'
 export const schemaFixture = {
-  chatProviders: ['ollama', 'openai', 'anthropic', 'fake-llm'],
+  chatProviders: [
+    { name: 'ollama', modelParams: ['temperature', 'top_p', 'stop'], requiresBaseUrl: false },
+    { name: 'openai', modelParams: ['temperature', 'max_tokens'], requiresBaseUrl: false },
+    { name: 'anthropic', modelParams: ['temperature'], requiresBaseUrl: false },
+    { name: 'fake-llm', modelParams: [], requiresBaseUrl: true }
+  ],
   embedderProviders: ['openai', 'ollama', 'fake-embed'],
   httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   parameterTypes: ['string', 'integer', 'float', 'boolean', 'object', 'array'],
+  agent: {
+    markdown: true,
+    addHistoryToContext: true,
+    addDatetimeToContext: true,
+    reasoning: false,
+    numHistoryRuns: { default: 5, minimum: 1, maximum: 50 }
+  },
+  apiKeyRefFormats: ['env:<PROVEDOR>_API_KEY', 'file:<caminho em SECRETS_DIR>'],
   writable: true
 }
 

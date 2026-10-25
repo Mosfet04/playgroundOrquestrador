@@ -11,11 +11,26 @@ export interface AgentConfig {
   active: boolean
   tools_ids: string[]
   rag_config?: RagConfig
+  // Conexão e execução (P3-02): ausente = o orquestrador usa o default. Nomes do
+  // documento do orquestrador, como `tools_ids`.
+  model_params?: ModelParams
+  base_url?: string
+  api_key_ref?: string // só a referência (`env:`/`file:`), nunca o valor
+  markdown?: boolean
+  add_history_to_context?: boolean
+  num_history_runs?: number
+  add_datetime_to_context?: boolean
+  reasoning?: boolean
+  user_memory_active?: boolean
+  summary_active?: boolean
   // Versão lida: volta no If-Match do PUT/DELETE.
   version: number
   // O orquestrador não guarda datas: a coluna "Atualizado" mostra "—" (D-P2-06-4).
   updated_at?: string
 }
+
+// Parâmetros do modelo: nome aceito pelo provider e valor escalar (D-P3-02-2).
+export type ModelParams = Record<string, string | number | boolean>
 
 export interface RagConfig {
   active: boolean
@@ -60,12 +75,29 @@ export interface Parameter {
   default_value?: any
 }
 
-// Opções dos formulários lidas do /admin/schema pelo BFF (P3-01).
+// Provider de chat do /admin/schema: o que a config pode pedir dele (P3-02).
+export interface ChatProvider {
+  name: string
+  modelParams: string[] // nomes aceitos em `model_params`; sem tipo (D-P3-02-2)
+  requiresBaseUrl: boolean
+}
+
+// Opções dos formulários lidas do /admin/schema pelo BFF (P3-01, P3-02).
 export interface ConfigSchema {
-  chatProviders: string[]
+  chatProviders: ChatProvider[]
   embedderProviders: string[]
   httpMethods: string[]
   parameterTypes: string[]
+  // Defaults (e a faixa de `num_history_runs`) dos campos de execução do agent.
+  agent: {
+    markdown: boolean
+    addHistoryToContext: boolean
+    addDatetimeToContext: boolean
+    reasoning: boolean
+    numHistoryRuns: { default: number; minimum: number; maximum: number }
+  }
+  // Formatos aceitos em `api_key_ref` (ex.: `env:<PROVEDOR>_API_KEY`), de dica.
+  apiKeyRefFormats: string[]
   // false: o store de config não aceita escrita (as rotas de escrita recusam).
   writable: boolean
 }
@@ -84,7 +116,17 @@ export const AGENT_FORM_FIELDS = [
   'rag_active',
   'rag_doc_name',
   'rag_model',
-  'rag_factoryIaModel'
+  'rag_factoryIaModel',
+  'model_params',
+  'base_url',
+  'api_key_ref',
+  'markdown',
+  'add_history_to_context',
+  'num_history_runs',
+  'add_datetime_to_context',
+  'reasoning',
+  'user_memory_active',
+  'summary_active'
 ] as const
 export type AgentFormField = (typeof AGENT_FORM_FIELDS)[number]
 export const isAgentFormField = (field: string): field is AgentFormField =>
@@ -122,6 +164,16 @@ export interface CreateAgentForm {
   rag_doc_name?: string
   rag_model?: string
   rag_factoryIaModel?: string
+  model_params?: ModelParams
+  base_url?: string
+  api_key_ref?: string
+  markdown?: boolean
+  add_history_to_context?: boolean
+  num_history_runs?: number
+  add_datetime_to_context?: boolean
+  reasoning?: boolean
+  user_memory_active?: boolean
+  summary_active?: boolean
 }
 
 export interface CreateToolForm {

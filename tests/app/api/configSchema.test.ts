@@ -18,12 +18,18 @@ const LEAK = 'detalhe-interno-do-orquestrador'
 const document = {
   providers: {
     chat: [
-      { name: 'ollama', model_params: ['temperature'], requires_base_url: false },
+      { name: 'ollama', model_params: ['temperature', 'stop'], requires_base_url: false },
       { name: 'fake-llm', model_params: [], requires_base_url: true }
     ],
     embedder: [{ name: 'fake-embed', model_params: [], requires_base_url: false }]
   },
-  agent: { markdown: { type: 'boolean', default: true } },
+  agent: {
+    markdown: { type: 'boolean', default: true },
+    add_history_to_context: { type: 'boolean', default: true },
+    add_datetime_to_context: { type: 'boolean', default: false },
+    num_history_runs: { type: 'integer', default: 5, minimum: 1, maximum: 50 },
+    reasoning: { type: 'boolean', default: false }
+  },
   team: { mode: ['route', 'coordinate'] },
   tool: { http_method: ['GET', 'POST'], parameter_type: ['string', 'integer'] },
   rag_config: { search_strategy: ['semantic'] },
@@ -47,10 +53,21 @@ describe('GET /api/config/schema', () => {
     expect(await response.json()).toEqual({
       success: true,
       data: {
-        chatProviders: ['ollama', 'fake-llm'],
+        chatProviders: [
+          { name: 'ollama', modelParams: ['temperature', 'stop'], requiresBaseUrl: false },
+          { name: 'fake-llm', modelParams: [], requiresBaseUrl: true }
+        ],
         embedderProviders: ['fake-embed'],
         httpMethods: ['GET', 'POST'],
         parameterTypes: ['string', 'integer'],
+        agent: {
+          markdown: true,
+          addHistoryToContext: true,
+          addDatetimeToContext: false,
+          reasoning: false,
+          numHistoryRuns: { default: 5, minimum: 1, maximum: 50 }
+        },
+        apiKeyRefFormats: ['env:<NOME>', 'file:<caminho>'],
         writable: true
       }
     })
@@ -72,6 +89,29 @@ describe('GET /api/config/schema', () => {
   it.each([
     ['sem provider de chat', { ...document, providers: { chat: 'ollama', embedder: [] } }],
     ['sem tool.http_method', { ...document, tool: { parameter_type: ['string'] } }],
+    ['provider de chat sem model_params', {
+      ...document,
+      providers: { chat: [{ name: 'ollama', requires_base_url: false }], embedder: [] }
+    }],
+    ['provider de chat com requires_base_url que não é booleano', {
+      ...document,
+      providers: {
+        chat: [{ name: 'ollama', model_params: [], requires_base_url: 'sim' }],
+        embedder: []
+      }
+    }],
+    ['sem a seção agent', { ...document, agent: undefined }],
+    ['num_history_runs sem faixa', {
+      ...document,
+      agent: { ...document.agent, num_history_runs: { type: 'integer', default: 5 } }
+    }],
+    ['default de campo de execução que não é booleano', {
+      ...document,
+      agent: { ...document.agent, markdown: { type: 'boolean', default: 'sim' } }
+    }],
+    ['api_key_ref.formats vazio', { ...document, api_key_ref: { formats: [] } }],
+    ['api_key_ref.formats sem prefixo com ":"', { ...document, api_key_ref: { formats: ['qualquer'] } }],
+    ['api_key_ref.formats que não é lista', { ...document, api_key_ref: { formats: 'env:' } }],
     ['writable que não é booleano', { ...document, config_store: { writable: 'sim' } }]
   ])('schema inválido (%s): 502 invalid_response', async (_, upstream) => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})

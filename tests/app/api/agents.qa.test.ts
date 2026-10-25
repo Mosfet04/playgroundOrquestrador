@@ -65,7 +65,14 @@ const hostileFields: Array<[string, Record<string, unknown>]> = [
   [
     'rag_factoryIaModel como operador',
     { rag_active: true, rag_factoryIaModel: { $gt: '' } }
-  ]
+  ],
+  // P3-02: campos novos do modelo e da execução (um caso por classe)
+  ['base_url como operador', { base_url: { $ne: '' } }],
+  ['model_params como lista', { model_params: [['temperature', 1]] }],
+  ['model_params com nome vazio', { model_params: { '': 1 } }],
+  ['model_params com operador no valor', { model_params: { temperature: { $gt: 0 } } }],
+  ['user_memory_active como operador', { user_memory_active: { $ne: false } }],
+  ['num_history_runs como texto', { num_history_runs: '5' }]
 ]
 
 describe('POST /api/agents: corpo hostil', () => {
@@ -95,6 +102,27 @@ describe('POST /api/agents: corpo hostil', () => {
 
     expect(response.status).toBe(400)
     expect(calls).toEqual([])
+  })
+
+  it('model_params com nome __proto__: não polui Object.prototype e a chave não chega ao orquestrador', async () => {
+    let forwarded = ''
+    server.use(
+      http.post(`${TEST_ENV.ORCHESTRATOR_URL}/admin/config/agents`, async ({ request }) => {
+        forwarded = await request.text()
+        return HttpResponse.json({ detail: 'x' }, { status: 500 })
+      })
+    )
+    const body = JSON.stringify({ ...validAgent, id: 'novo' }).replace(
+      /}$/,
+      ',"model_params":{"__proto__":1}}'
+    )
+
+    const response = await POST(rawRequest(BASE_URL, 'POST', body))
+
+    expect(Object.keys(Object.prototype)).toEqual([])
+    // a chave é descartada (zod): o orquestrador não recebe model_params
+    expect(response.status).not.toBe(400)
+    expect(JSON.parse(forwarded)).not.toHaveProperty('model_params')
   })
 
   it('não ecoa o valor quando o JSON é malformado', async () => {

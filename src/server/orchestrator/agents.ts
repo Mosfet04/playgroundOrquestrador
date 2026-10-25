@@ -2,7 +2,7 @@ import 'server-only'
 
 import { z } from 'zod'
 
-import type { AgentConfig, AgentFormField } from '@/types/management'
+import type { AgentConfig, AgentFormField, ModelParams } from '@/types/management'
 
 import {
   createConfig,
@@ -31,6 +31,13 @@ const ragSchema = z.looseObject({
   factory_ia_model: z.string().nullish()
 })
 
+// Campo opcional do documento: ausente e `null` são o mesmo (o orquestrador
+// usa o default).
+const optional = <T extends z.ZodType>(schema: T) =>
+  schema.nullish().transform((value) => value ?? undefined)
+
+const modelParamsSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+
 const agentSchema = z.looseObject({
   id: z.string(),
   nome: z.string(),
@@ -44,6 +51,16 @@ const agentSchema = z.looseObject({
   active: z.boolean(),
   tools_ids: z.array(z.string()).nullish(),
   rag_config: ragSchema.nullish(),
+  model_params: optional(modelParamsSchema),
+  base_url: optional(z.string()),
+  api_key_ref: optional(z.string()),
+  markdown: optional(z.boolean()),
+  add_history_to_context: optional(z.boolean()),
+  num_history_runs: optional(z.number().int()),
+  add_datetime_to_context: optional(z.boolean()),
+  reasoning: optional(z.boolean()),
+  user_memory_active: optional(z.boolean()),
+  summary_active: optional(z.boolean()),
   version: z.number().int().nonnegative()
 })
 type AgentDocument = z.infer<typeof agentSchema>
@@ -62,6 +79,16 @@ export type AgentInput = {
   rag_doc_name?: string
   rag_model?: string
   rag_factoryIaModel?: string
+  model_params?: ModelParams
+  base_url?: string
+  api_key_ref?: string
+  markdown?: boolean
+  add_history_to_context?: boolean
+  num_history_runs?: number
+  add_datetime_to_context?: boolean
+  reasoning?: boolean
+  user_memory_active?: boolean
+  summary_active?: boolean
 }
 
 export type AgentFilters = {
@@ -89,12 +116,23 @@ const toAgent = (doc: AgentDocument): AgentConfig => ({
         }
       }
     : {}),
+  model_params: doc.model_params,
+  base_url: doc.base_url,
+  api_key_ref: doc.api_key_ref,
+  markdown: doc.markdown,
+  add_history_to_context: doc.add_history_to_context,
+  num_history_runs: doc.num_history_runs,
+  add_datetime_to_context: doc.add_datetime_to_context,
+  reasoning: doc.reasoning,
+  user_memory_active: doc.user_memory_active,
+  summary_active: doc.summary_active,
   version: doc.version
 })
 
 // Os campos do formulário no documento; o RAG ligado mantém o que o
 // formulário não mostra (search_strategy, model_params...), desligado sai
-// (`null`, como o Mongo gravava).
+// (`null`, como o Mongo gravava). Campo opcional vazio ou ausente fica
+// `undefined`: o JSON não o leva e, no PUT, ele apaga o do documento atual.
 function formFields(input: Omit<AgentInput, 'id'>, current?: AgentDocument) {
   return {
     nome: input.nome,
@@ -104,6 +142,19 @@ function formFields(input: Omit<AgentInput, 'id'>, current?: AgentDocument) {
     prompt: input.prompt ?? '',
     active: input.active ?? true,
     tools_ids: input.tools_ids ?? [],
+    model_params:
+      input.model_params && Object.keys(input.model_params).length > 0
+        ? input.model_params
+        : undefined,
+    base_url: input.base_url || undefined,
+    api_key_ref: input.api_key_ref || undefined,
+    markdown: input.markdown,
+    add_history_to_context: input.add_history_to_context,
+    num_history_runs: input.num_history_runs,
+    add_datetime_to_context: input.add_datetime_to_context,
+    reasoning: input.reasoning,
+    user_memory_active: input.user_memory_active,
+    summary_active: input.summary_active,
     rag_config: input.rag_active
       ? {
           ...current?.rag_config,
@@ -117,7 +168,8 @@ function formFields(input: Omit<AgentInput, 'id'>, current?: AgentDocument) {
 }
 
 // Campo do documento recusado no 422 ⇒ campo do formulário (Map: o nome vem
-// do orquestrador e não pode casar com propriedade de Object).
+// do orquestrador e não pode casar com propriedade de Object). O orquestrador
+// recusa `model_params` inteiro, sem dizer qual parâmetro.
 const FORM_FIELDS = new Map<string, AgentFormField>([
   ['id', 'id'],
   ['nome', 'nome'],
@@ -127,6 +179,16 @@ const FORM_FIELDS = new Map<string, AgentFormField>([
   ['prompt', 'prompt'],
   ['active', 'active'],
   ['tools_ids', 'tools_ids'],
+  ['model_params', 'model_params'],
+  ['base_url', 'base_url'],
+  ['api_key_ref', 'api_key_ref'],
+  ['markdown', 'markdown'],
+  ['add_history_to_context', 'add_history_to_context'],
+  ['num_history_runs', 'num_history_runs'],
+  ['add_datetime_to_context', 'add_datetime_to_context'],
+  ['reasoning', 'reasoning'],
+  ['user_memory_active', 'user_memory_active'],
+  ['summary_active', 'summary_active'],
   ['rag_config', 'rag_active'],
   ['rag_config.active', 'rag_active'],
   ['rag_config.doc_name', 'rag_doc_name'],
@@ -171,8 +233,9 @@ export async function createAgent(input: AgentInput) {
   )
 }
 
-// O PUT troca o documento inteiro: lê o atual e sobrescreve só os campos do
-// formulário. O If-Match é a versão que o browser leu, não a desta leitura:
+// O PUT troca o documento inteiro: lê o atual e sobrescreve os campos do
+// formulário (P3-02: modelo, execução, memória, RAG...); o que ele não conhece
+// (chave futura do orquestrador) segue do documento lido. O If-Match é a versão que o browser leu, não a desta leitura:
 // se o documento mudou no meio, o orquestrador responde 412.
 export async function replaceAgent(
   id: string,

@@ -221,6 +221,9 @@ test.describe('EN em 390 px', () => {
     await hydrated(page)
     const remove = page.getByRole('button', { name: 'Delete agent' })
     const save = page.getByRole('button', { name: 'Save' })
+    // Salvar só habilita com o schema lido; até lá a seção Execução é skeleton e
+    // o rodapé ainda desce (P3-02).
+    await expect(save).toBeEnabled()
     const [removeBox, saveBox] = [await remove.boundingBox(), await save.boundingBox()]
     if (!removeBox || !saveBox) throw new Error('botões do rodapé')
     expect(removeBox.y).toBeGreaterThan(saveBox.y)

@@ -90,7 +90,10 @@ const saveButton = () => screen.getByRole('button', { name: 'Salvar' })
 describe('AgentForm: opções do schema', () => {
   it('provider do modelo e do embedder são os do schema, sem lista fixa', async () => {
     serveSchema({
-      chatProviders: ['ollama', 'fake-llm'],
+      chatProviders: [
+        { name: 'ollama', modelParams: [], requiresBaseUrl: false },
+        { name: 'fake-llm', modelParams: [], requiresBaseUrl: true }
+      ],
       embedderProviders: ['fake-embed']
     })
     const user = userEvent.setup()
@@ -108,7 +111,9 @@ describe('AgentForm: opções do schema', () => {
   })
 
   it('agent novo: o provider padrão ausente das opções vira o 1º do schema', async () => {
-    serveSchema({ chatProviders: ['fake-llm'] })
+    serveSchema({
+      chatProviders: [{ name: 'fake-llm', modelParams: [], requiresBaseUrl: true }]
+    })
     renderWithIntl(<AgentForm onSuccess={() => {}} />)
 
     const provider = screen.getByRole('combobox', { name: /^Provedor \*/ })

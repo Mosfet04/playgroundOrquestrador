@@ -43,6 +43,19 @@ test('fake orchestrator: /admin/schema com a chave admin', async ({ request }) =
   const schema = await response.json()
   expect(schema.providers.chat.map((provider: { name: string }) => provider.name)).toContain('fake-llm')
   expect(schema.config_store).toEqual({ writable: true })
+  // P3-02: parâmetros por provider, URL base exigida por um deles, execução e formatos da chave.
+  expect(schema.providers.chat).toContainEqual({
+    name: 'fake-llm',
+    model_params: ['temperature'],
+    requires_base_url: true
+  })
+  expect(schema.agent.num_history_runs).toEqual({
+    type: 'integer',
+    default: 5,
+    minimum: 1,
+    maximum: 50
+  })
+  expect(schema.api_key_ref.formats).toHaveLength(2)
 })
 
 // P2-05: /metrics (filtrado por starting_date) e /admin/config/agents (paginado).

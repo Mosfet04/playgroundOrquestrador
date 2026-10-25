@@ -139,7 +139,7 @@ describe('AgentForm: If-Match e 422 no campo', () => {
 
   it.each([
     ['sem campo', undefined],
-    ['campo fora do formulário', 'num_history_runs']
+    ['campo fora do formulário', 'rag_config.search_strategy']
   ])('422 %s: só o toast com o código', async (_, field) => {
     server.use(noTools)
     serveSaves('*/api/agents/:id', [refused(field)])

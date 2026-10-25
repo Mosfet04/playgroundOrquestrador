@@ -68,6 +68,15 @@ const asForm = {
     model: 'embed-1',
     factoryIaModel: 'ollama'
   },
+  model_params: { temperature: 0.2 },
+  api_key_ref: 'env:OPENAI_API_KEY',
+  markdown: false,
+  add_history_to_context: true,
+  num_history_runs: 9,
+  add_datetime_to_context: true,
+  reasoning: false,
+  user_memory_active: true,
+  summary_active: false,
   version: 3
 }
 
@@ -85,6 +94,20 @@ const formBody = {
   rag_doc_name: '',
   rag_model: '',
   rag_factoryIaModel: 'openai'
+}
+
+// Os campos novos do formulário (P3-02): execução, memória, conexão e parâmetros.
+const newFields = {
+  model_params: { temperature: 0.7, stop: 'FIM', stream: true },
+  base_url: 'http://llm.local:8080/v1',
+  api_key_ref: 'env:OLLAMA_API_KEY',
+  markdown: false,
+  add_history_to_context: false,
+  num_history_runs: 12,
+  add_datetime_to_context: false,
+  reasoning: true,
+  user_memory_active: true,
+  summary_active: true
 }
 
 const doc = (patch: Record<string, unknown>) => ({ ...stored, ...patch })
@@ -181,6 +204,15 @@ describe('GET /api/agents', () => {
       prompt: 'Seja útil.',
       active: false,
       tools_ids: [],
+      model_params: { temperature: 0.2 },
+      api_key_ref: 'env:OPENAI_API_KEY',
+      markdown: false,
+      add_history_to_context: true,
+      num_history_runs: 9,
+      add_datetime_to_context: true,
+      reasoning: false,
+      user_memory_active: true,
+      summary_active: false,
       version: 1
     })
     expect(data.data[2].descricao).toBe('')
@@ -378,6 +410,51 @@ describe('POST /api/agents', () => {
     ])
   })
 
+  it('traduz os campos novos para o documento, com o tipo dos parâmetros como vieram', async () => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(jsonRequest(API, 'POST', { ...formBody, ...newFields }))
+
+    expect(seen[0].body).toMatchObject(newFields)
+    expect((seen[0].body as { model_params: object }).model_params).toStrictEqual(
+      newFields.model_params
+    )
+  })
+
+  it('sem os campos novos, o documento criado não os traz (o orquestrador usa os defaults)', async () => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(jsonRequest(API, 'POST', { ...formBody, model_params: {} }))
+
+    for (const key of Object.keys(newFields)) expect(seen[0].body).not.toHaveProperty(key)
+  })
+
+  it.each([
+    ['parâmetro com valor objeto', { model_params: { stop: { a: 1 } } }],
+    ['parâmetro com valor nulo', { model_params: { stop: null } }],
+    ['num_history_runs fracionário', { num_history_runs: 1.5 }],
+    ['markdown em texto', { markdown: 'sim' }],
+    ['referência que não é texto', { api_key_ref: { $ne: null } }]
+  ])('recusa %s com 400 sem chamar o orquestrador', async (_, patch) => {
+    serveItem('post', () => HttpResponse.json(stored, { status: 201 }))
+
+    const response = await POST(jsonRequest(API, 'POST', { ...formBody, ...patch }))
+
+    expect(response.status).toBe(400)
+    expect(seen).toEqual([])
+  })
+
+  it('texto da referência e da URL base vai sem espaços nas pontas; só em branco vira ausente', async () => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(
+      jsonRequest(API, 'POST', { ...formBody, base_url: '  http://h/v1 ', api_key_ref: '   ' })
+    )
+
+    expect(seen[0].body).toMatchObject({ base_url: 'http://h/v1' })
+    expect(seen[0].body).not.toHaveProperty('api_key_ref')
+  })
+
   it('RAG ligado vira rag_config em snake_case', async () => {
     serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
 
@@ -439,7 +516,17 @@ describe('POST /api/agents', () => {
     ['rag_config', 'rag_active'],
     ['rag_config.doc_name', 'rag_doc_name'],
     ['rag_config.model', 'rag_model'],
-    ['rag_config.factory_ia_model', 'rag_factoryIaModel']
+    ['rag_config.factory_ia_model', 'rag_factoryIaModel'],
+    ['model_params', 'model_params'],
+    ['base_url', 'base_url'],
+    ['api_key_ref', 'api_key_ref'],
+    ['markdown', 'markdown'],
+    ['add_history_to_context', 'add_history_to_context'],
+    ['num_history_runs', 'num_history_runs'],
+    ['add_datetime_to_context', 'add_datetime_to_context'],
+    ['reasoning', 'reasoning'],
+    ['user_memory_active', 'user_memory_active'],
+    ['summary_active', 'summary_active']
   ])('422 em %s ⇒ 422 no campo %s do formulário, sem o valor', async (field, formField) => {
     serveItem('post', refusal(422, { detail: LEAK, field, indexes: [0] }))
 
@@ -452,7 +539,8 @@ describe('POST /api/agents', () => {
   })
 
   it.each([
-    ['campo fora do formulário', { detail: LEAK, field: 'num_history_runs' }],
+    ['campo fora do formulário', { detail: LEAK, field: 'rag_config.search_strategy' }],
+    ['parâmetro por nome (o orquestrador não detalha)', { detail: LEAK, field: 'model_params.temperature' }],
     ['chave desconhecida', { detail: LEAK, field: 'unknown_key' }],
     ['propriedade de Object', { detail: LEAK, field: 'constructor' }],
     ['sem campo (não monta no runtime)', { detail: LEAK, error_type: 'ValueError' }]
@@ -480,6 +568,7 @@ describe('PUT /api/agents/[id]', () => {
         'PUT',
         {
           ...updateBody,
+          ...newFields,
           nome: 'Renomeado',
           rag_active: true,
           rag_doc_name: 'outra',
@@ -502,6 +591,7 @@ describe('PUT /api/agents/[id]', () => {
     expect(seen[1]).toMatchObject({ auth: ADMIN, ifMatch: '"3"' })
     expect(seen[1].body).toEqual({
       ...current,
+      ...newFields,
       nome: 'Renomeado',
       model: 'llama3.2',
       factory_ia_model: 'ollama',
@@ -529,11 +619,51 @@ describe('PUT /api/agents/[id]', () => {
     )
 
     expect(seen[1].ifMatch).toBe('"3"')
-    expect(seen[1].body).toMatchObject({
-      rag_config: null,
-      api_key_ref: 'env:OPENAI_API_KEY',
-      num_history_runs: 9,
-      user_memory_active: true
+    expect(seen[1].body).toMatchObject({ rag_config: null })
+  })
+
+  // P3-02: os campos que o formulário cobre vêm do formulário; o que ele não
+  // conhece (chave futura) segue do documento atual.
+  it('campo coberto ausente do formulário sai do documento; chave desconhecida e RAG ficam', async () => {
+    serveItem('get', () => HttpResponse.json({ ...stored, base_url: 'http://velha/v1', future_key: 'fica' }))
+    serveItem('put', () => HttpResponse.json(doc({ version: 4 })))
+
+    await PUT(
+      jsonRequest(
+        `${API}/assistente`,
+        'PUT',
+        {
+          ...updateBody,
+          model_params: {},
+          base_url: '',
+          api_key_ref: '',
+          rag_active: true,
+          rag_doc_name: 'base',
+          rag_model: 'embed-1',
+          rag_factoryIaModel: 'ollama'
+        },
+        { 'If-Match': '"3"' }
+      ),
+      params('assistente')
+    )
+
+    const body = seen[1].body as Record<string, unknown>
+    for (const key of [
+      'model_params',
+      'base_url',
+      'api_key_ref',
+      'markdown',
+      'add_history_to_context',
+      'num_history_runs',
+      'add_datetime_to_context',
+      'reasoning',
+      'user_memory_active',
+      'summary_active'
+    ])
+      expect(body).not.toHaveProperty(key)
+    expect(body).toMatchObject({
+      future_key: 'fica',
+      rag_config: { search_strategy: 'hierarchical', doc_name: 'base' }
     })
   })
 

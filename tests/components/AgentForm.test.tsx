@@ -56,13 +56,11 @@ describe('AgentForm', () => {
 
     renderWithIntl(<AgentForm onSuccess={() => {}} />)
 
-    expect(
-      await screen.findByRole('checkbox', { name: /Ferramenta 101/ })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('checkbox', { name: /Ferramenta 011/ })
-    ).toBeInTheDocument()
-    expect(screen.getAllByRole('checkbox')).toHaveLength(tools.length)
+    // getByLabelText: com 101 tools, getByRole varre a árvore de acessibilidade
+    // a cada consulta e estoura o prazo com a suíte inteira em paralelo.
+    expect(await screen.findByLabelText(/Ferramenta 101/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Ferramenta 011/)).toBeInTheDocument()
+    expect(screen.getAllByLabelText(/^Ferramenta/)).toHaveLength(tools.length)
   })
 
   it('dá nome aos switches pelo Label (F-05)', async () => {

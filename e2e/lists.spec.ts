@@ -133,6 +133,9 @@ test.describe('390 px', () => {
     await row.getByRole('link').click()
     const remove = page.getByRole('button', { name: 'Excluir agente' })
     const save = page.getByRole('button', { name: 'Salvar' })
+    // Salvar só habilita com o schema lido; até lá a seção Execução é skeleton e
+    // o rodapé ainda desce (P3-02).
+    await expect(save).toBeEnabled()
     const [removeBox, saveBox] = [await remove.boundingBox(), await save.boundingBox()]
     if (!removeBox || !saveBox) throw new Error('botões do rodapé')
     expect(removeBox.y).toBeGreaterThan(saveBox.y)

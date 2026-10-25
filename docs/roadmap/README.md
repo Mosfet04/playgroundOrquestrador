@@ -39,6 +39,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P2-05 | concluído (dashboard pelo `/metrics` do AgentOS e `/admin/config/agents` com chave admin, refresh 1x/min pelo BFF, filtro por dia UTC, pico diário de usuários, card de tokens por agente fora até a F8; decisão 0023) |
 | P2-06 | concluído (CRUD de agents e tools pela `/admin/config` com chave admin, If-Match e 422 no campo, exclusão hard, pacote `mongodb` e scripts de seed fora; decisão 0024) |
 | P3-01 | concluído (opções de provider, embedder, método HTTP e tipo de parâmetro vindas do `/admin/schema` pelo BFF; valor gravado fora das opções preservado; store só leitura trava o formulário; decisão 0025) |
+| P3-02 | concluído (editor de agent com o documento inteiro: `model_params` por provider com tipo inferido, `base_url` quando o provider exige, `api_key_ref` só como referência, campos de execução com default e faixa do schema, memória e resumo; PUT sem mesclagem dos campos cobertos; decisão 0026) |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

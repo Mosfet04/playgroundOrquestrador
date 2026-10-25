@@ -143,24 +143,35 @@ const TOOL_KEYS = ['id', 'name', 'description', 'route', 'http_method', 'paramet
 const PARAMETER_KEYS = ['name', 'type', 'description', 'required', 'default_value']
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 const PARAMETER_TYPES = ['string', 'integer', 'float', 'boolean', 'object', 'array']
-// GET /admin/schema (FA-03, config_schema.py): só as seções que o playground lê
-// (P3-01), com providers que a lista antiga do playground não tinha
-// (`fake-llm`, `fake-embed`). Agent e tool gravados com outro valor seguem
-// válidos no fake (o seed usa `Fake` no RAG): o e2e confere o que o form oferece.
+// GET /admin/schema (FA-03/FA-07, config_schema.py): só as seções que o
+// playground lê (P3-01, P3-02), com providers que a lista antiga do playground
+// não tinha (`fake-llm`, que exige URL base, e `fake-embed`) e parâmetros do
+// modelo por provider. Agent e tool gravados com outro valor seguem válidos no
+// fake (o seed usa `Fake` no RAG): o e2e confere o que o form oferece.
+const NUM_HISTORY_RUNS_RANGE = { minimum: 1, maximum: 50 }
+const SECRET_REF_FORMATS = ['env:<PROVEDOR>_API_KEY', 'file:<caminho em SECRETS_DIR>']
 const SCHEMA_DOCUMENT = {
   providers: {
-    chat: ['ollama', 'openai', 'fake-llm'].map((name) => ({
-      name,
-      model_params: [],
-      requires_base_url: false
-    })),
+    chat: [
+      { name: 'ollama', model_params: ['temperature', 'top_p', 'stop'], requires_base_url: false },
+      { name: 'openai', model_params: ['temperature', 'max_tokens'], requires_base_url: false },
+      { name: 'fake-llm', model_params: ['temperature'], requires_base_url: true }
+    ],
     embedder: ['openai', 'ollama', 'fake-embed'].map((name) => ({
       name,
       model_params: [],
       requires_base_url: false
     }))
   },
+  agent: {
+    markdown: { type: 'boolean', default: true },
+    add_history_to_context: { type: 'boolean', default: true },
+    add_datetime_to_context: { type: 'boolean', default: true },
+    num_history_runs: { type: 'integer', default: 5, ...NUM_HISTORY_RUNS_RANGE },
+    reasoning: { type: 'boolean', default: false }
+  },
   tool: { http_method: HTTP_METHODS, parameter_type: PARAMETER_TYPES },
+  api_key_ref: { formats: SECRET_REF_FORMATS },
   config_store: { writable: true }
 }
 const MASK = '***'
@@ -198,11 +209,48 @@ const origin = (route: string) => {
   return parts ? [parts[1].toLowerCase(), parts[2].toLowerCase(), parts[3] || ''].join('|') : null
 }
 
+const BOOLEAN_AGENT_KEYS = [
+  'markdown',
+  'add_history_to_context',
+  'add_datetime_to_context',
+  'reasoning',
+  'user_memory_active',
+  'summary_active'
+]
+const isScalar = (value: unknown) => ['string', 'number', 'boolean'].includes(typeof value)
+const isBaseUrl = (value: unknown) =>
+  typeof value === 'string' && /^https?:\/\/[^\s/?#@\\]+(\/[^\s?#\\]*)?$/.test(value)
+const isSecretRef = (value: unknown) =>
+  typeof value === 'string' && /^(env:[A-Z][A-Z0-9_]*_API_KEY|file:\/.+)$/.test(value)
+
+// Campos novos do agent (FA-07, F2-01): o 422 nomeia o campo do documento; o
+// `model_params` inteiro, como o real (sem o nome do parâmetro).
+function checkAgentOptions(body: Record<string, unknown>) {
+  const params = body.model_params
+  if (params != null) {
+    if (!isRecord(params) || Object.values(params).some((value) => !isScalar(value)))
+      return invalid('model_params')
+  }
+  if (body.base_url != null && !isBaseUrl(body.base_url)) return invalid('base_url')
+  if (body.api_key_ref != null && !isSecretRef(body.api_key_ref)) return invalid('api_key_ref')
+  for (const key of BOOLEAN_AGENT_KEYS)
+    if (body[key] != null && typeof body[key] !== 'boolean') return invalid(key)
+  const runs = body.num_history_runs
+  if (
+    runs != null &&
+    !(Number.isInteger(runs) && Number(runs) >= NUM_HISTORY_RUNS_RANGE.minimum && Number(runs) <= NUM_HISTORY_RUNS_RANGE.maximum)
+  )
+    return invalid('num_history_runs')
+  return null
+}
+
 function checkAgent(body: Record<string, unknown>): Checked<ConfigDoc> {
   const unknown = unknownKey(body, AGENT_KEYS)
   if (unknown) return unknown
   for (const field of ['id', 'nome', 'model', 'factory_ia_model'])
     if (!isText(body[field])) return invalid(field)
+  const option = checkAgentOptions(body)
+  if (option) return option
   if (body.prompt !== undefined && typeof body.prompt !== 'string') return invalid('prompt')
   if (body.active !== undefined && typeof body.active !== 'boolean') return invalid('active')
   const toolsIds = body.tools_ids ?? []
