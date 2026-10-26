@@ -25,14 +25,14 @@ test('tool: métodos e tipos de parâmetro do schema', async ({ page }) => {
   await page.goto('/tools/new')
   await hydrated(page)
 
-  await page.getByRole('button', { name: 'Adicionar', exact: true }).click()
-  const method = page.getByText(/^Método HTTP/).locator('..').getByRole('combobox')
+  await page.getByRole('button', { name: 'Adicionar parâmetro' }).click()
+  const method = page.getByRole('combobox', { name: /^Método HTTP/ })
   await expect(method).toBeEnabled()
   await method.click()
   await expect(page.getByRole('option')).toHaveText(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
   await page.keyboard.press('Escape')
 
-  await page.getByText(/^Tipo/).locator('..').getByRole('combobox').click()
+  await page.getByRole('combobox', { name: /^Tipo/ }).click()
   await expect(page.getByRole('option')).toHaveText([
     'string',
     'integer',

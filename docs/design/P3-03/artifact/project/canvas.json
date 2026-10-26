@@ -1,0 +1,21 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-25T18:00:00Z"},
+  "title": "P3-03 Editor de tool HTTP",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 2240, "title": "Desktop · claro · Editor completo com preview lateral (/tools/<id>)", "expand": "fill"},
+    "Estados-escuro.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 3160, "title": "Desktop · escuro · Rota, parâmetros, headers, 422, carregando, falha e só leitura"},
+    "Celular-claro.dc.html": {"x": 0, "y": 2360, "w": 390, "h": 3300, "title": "Celular · claro · Rota, headers, parâmetros e preview (rolagem inteira)"}
+  },
+  "order": [
+    "Main.dc.html",
+    "Estados-escuro.dc.html",
+    "Celular-claro.dc.html"
+  ],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "P3-03 · Editor de tool HTTP", "kind": "title1", "maxW": 2960}
+  },
+  "designSystems": []
+}

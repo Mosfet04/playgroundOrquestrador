@@ -27,7 +27,7 @@ import { useConfigSchema, withCurrent } from '../common/useConfigSchema'
 import { AgentFormValues, toFormValues, toPayload } from './agentFormValues'
 import { ExecutionSection } from './ExecutionSection'
 import { ModelSection } from './ModelSection'
-import { SectionCard } from './SectionCard'
+import { SectionCard } from '../common/SectionCard'
 
 interface AgentFormProps {
   agent?: AgentConfig | null

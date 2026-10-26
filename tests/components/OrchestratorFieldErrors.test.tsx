@@ -181,7 +181,7 @@ describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {
     const user = userEvent.setup()
     renderTool()
 
-    expect(screen.getByText('***')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('***')).toHaveAttribute('readonly')
     await user.click(screen.getByRole('button', { name: 'Salvar' }))
 
     await waitFor(() => expect(saved).toHaveLength(1))
@@ -196,7 +196,7 @@ describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {
 
     await user.click(screen.getByRole('button', { name: 'Salvar' }))
 
-    expect(await within(block(/^Headers HTTP/)).findByText(REJECTED)).toBeInTheDocument()
+    expect(await screen.findByText(/recusou algum header e não diz qual/)).toBeInTheDocument()
     expect(screen.getByText('Não foi possível salvar a tool (código 422)')).toBeInTheDocument()
   })
 

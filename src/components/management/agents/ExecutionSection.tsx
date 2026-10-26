@@ -12,7 +12,7 @@ import type { ConfigSchema } from '@/types/management'
 import { FieldError } from '../common/FieldError'
 import { FieldWarning } from '../common/FieldWarning'
 import type { AgentFormValues } from './agentFormValues'
-import { SectionCard } from './SectionCard'
+import { SectionCard } from '../common/SectionCard'
 
 type SwitchField =
   | 'markdown'

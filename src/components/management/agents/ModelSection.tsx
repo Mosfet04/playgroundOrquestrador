@@ -13,7 +13,7 @@ import { FieldWarning } from '../common/FieldWarning'
 import { withCurrent } from '../common/useConfigSchema'
 import type { AgentFormValues } from './agentFormValues'
 import { ModelParams } from './ModelParams'
-import { SectionCard } from './SectionCard'
+import { SectionCard } from '../common/SectionCard'
 
 // Map: o provider vem do orquestrador e não pode casar com propriedade de Object.
 const MODEL_EXAMPLES = new Map([

@@ -273,6 +273,10 @@ function checkTool(body: Record<string, unknown>, current?: ConfigDoc): Checked<
   if (unknown) return unknown
   for (const field of ['id', 'name', 'description', 'route'])
     if (!isText(body[field])) return invalid(field)
+  // Placeholder só no caminho e na query (tool_route_guard.py): no host ou na
+  // porta o modelo escolheria o destino.
+  if (/\{[^{}]+\}/.test(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)/i.exec(String(body.route))?.[1] ?? ''))
+    return invalid('route')
   const method = String(body.http_method ?? 'GET').toUpperCase()
   if (!HTTP_METHODS.includes(method)) return invalid('http_method')
   const parameters = body.parameters ?? []

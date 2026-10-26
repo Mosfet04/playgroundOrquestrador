@@ -174,6 +174,22 @@ describe('GET /api/tools/[id]', () => {
     expect(response.status).toBe(200)
     expect((await response.json()).data.parameters).toEqual([retired])
   })
+
+  it('default_value de cada tipo chega ao formulário como gravado (P3-03)', async () => {
+    const defaults = [
+      { ...parameter, name: 'a', type: 'integer', default_value: 10 },
+      { ...parameter, name: 'b', type: 'float', default_value: 0.5 },
+      { ...parameter, name: 'c', type: 'boolean', default_value: false },
+      { ...parameter, name: 'd', type: 'object', default_value: { loja: 'SP' } },
+      { ...parameter, name: 'e', type: 'array', default_value: [1, 'x'] },
+      { ...parameter, name: 'f', type: 'string' }
+    ]
+    serve('get', '/admin/config/tools/:id', () => HttpResponse.json({ ...stored, parameters: defaults }))
+
+    const response = await GET_BY_ID(new NextRequest(`${API}/clima`), params('clima'))
+
+    expect((await response.json()).data.parameters).toEqual(defaults)
+  })
 })
 
 describe('/api/tools/[id]: id com `%` literal (review P2-06, R1)', () => {
@@ -315,6 +331,45 @@ describe('PUT /api/tools/[id]', () => {
     expect(seen).toHaveLength(1)
     expect(seen[0]).toMatchObject({ method: 'PUT', path: '/admin/config/tools/clima', auth: ADMIN, ifMatch: '"2"' })
     expect(seen[0].body).toMatchObject({ id: 'clima', headers: { 'X-Api-Key': '***' } })
+  })
+
+  it('envia default_value tipado e a referência do header como estão (P3-03)', async () => {
+    serve('put', '/admin/config/tools/:id', () => HttpResponse.json(doc({ version: 3 })))
+    const parameters = [
+      { name: 'a', type: 'integer', description: 'A', required: true, default_value: 10 },
+      { name: 'b', type: 'boolean', description: 'B', required: false, default_value: false },
+      { name: 'c', type: 'object', description: 'C', required: false, default_value: { x: [1] } },
+      { name: 'd', type: 'string', description: 'D', required: false }
+    ]
+    const headers = { 'X-Api-Key': 'env:LOJA_API_KEY', 'X-Conta': '***', Accept: 'application/json' }
+
+    await PUT(
+      jsonRequest(`${API}/clima`, 'PUT', { ...formBody, parameters, headers }, { 'If-Match': '"2"' }),
+      params('clima')
+    )
+
+    expect(seen[0].body).toMatchObject({ parameters, headers })
+  })
+
+  it('422 de header não deixa o valor em log do BFF', async () => {
+    serve('put', '/admin/config/tools/:id', refusal(422, { detail: LEAK, field: 'headers' }))
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await PUT(
+      jsonRequest(
+        `${API}/clima`,
+        'PUT',
+        { ...formBody, headers: { Authorization: 'Bearer VALOR-SECRETO' } },
+        { 'If-Match': '"2"' }
+      ),
+      params('clima')
+    )
+
+    const logged = JSON.stringify([
+      ...vi.mocked(console.warn).mock.calls,
+      ...errors.mock.calls
+    ])
+    expect(logged).not.toMatch(/VALOR-SECRETO/)
   })
 
   it('sem If-Match ⇒ 400 sem chamar o orquestrador', async () => {

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -82,9 +82,7 @@ const tool: Tool = {
 }
 
 const optionNames = () => screen.getAllByRole('option').map((option) => option.textContent)
-// O rótulo "Tipo" e "Método" não estão ligados ao Select (sem htmlFor).
-const selectOf = (label: RegExp) =>
-  within(screen.getByText(label).parentElement as HTMLElement).getByRole('combobox')
+const selectOf = (label: RegExp) => screen.getByRole('combobox', { name: label })
 const saveButton = () => screen.getByRole('button', { name: 'Salvar' })
 
 describe('AgentForm: opções do schema', () => {
@@ -333,11 +331,79 @@ describe('ToolForm: opções do schema', () => {
     renderWithIntl(<ToolForm tool={tool} onSuccess={() => {}} />)
 
     expect(await screen.findByText(READ_ONLY)).toBeVisible()
-    expect(screen.getByLabelText(/^Nome/)).toBeDisabled()
+    for (const field of screen.getAllByLabelText(/^Nome/)) expect(field).toBeDisabled()
     expect(selectOf(/^Método HTTP/)).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Adicionar' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Adicionar parâmetro' })).toBeDisabled()
     expect(saveButton()).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Excluir tool' })).toBeDisabled()
+  })
+
+  it('store só leitura: Substituir, Criar parâmetro, Adicionar, lixeiras e Switch não aceitam interação; preview segue', async () => {
+    serveSchema({ writable: false })
+    renderWithIntl(
+      <ToolForm
+        tool={{
+          ...tool,
+          route: 'https://clima.example.com/v1/{cidade}/{uf}',
+          headers: { Authorization: '***', Accept: 'application/json' }
+        }}
+        onSuccess={() => {}}
+      />
+    )
+    expect(await screen.findByText(READ_ONLY)).toBeVisible()
+
+    for (const name of [
+      'Substituir o valor de Authorization',
+      'Criar parâmetro uf',
+      'Adicionar header',
+      'Adicionar parâmetro',
+      'Remover Authorization',
+      'Remover cidade'
+    ])
+      expect(screen.getByRole('button', { name })).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Obrigatório' })).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Tool ativa' })).toBeDisabled()
+    expect(screen.getByRole('region', { name: 'Requisição' })).toHaveTextContent(
+      'GET https://clima.example.com/v1/{cidade}/{uf}'
+    )
+  })
+
+  it('carregando: o preview já responde e salvar espera o schema', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    server.use(
+      http.get(SCHEMA_URL, async () => {
+        await gate
+        return HttpResponse.json({ success: true, data: schemaFixture })
+      })
+    )
+    renderWithIntl(<ToolForm tool={tool} onSuccess={() => {}} />)
+
+    expect(screen.getByRole('region', { name: 'Requisição' })).toHaveTextContent(
+      'GET https://clima.example.com/v1'
+    )
+    expect(saveButton()).toBeDisabled()
+    release()
+    await waitFor(() => expect(saveButton()).toBeEnabled())
+  })
+
+  it('carregando: "Carregando opções do orquestrador…" visível e a região em aria-busy; some ao chegar', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    server.use(
+      http.get(SCHEMA_URL, async () => {
+        await gate
+        return HttpResponse.json({ success: true, data: schemaFixture })
+      })
+    )
+    const { container } = renderWithIntl(<ToolForm tool={tool} onSuccess={() => {}} />)
+
+    expect(screen.getByText('Carregando opções do orquestrador…').closest('[role="status"]')).not.toBeNull()
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull()
+
+    release()
+    await waitFor(() => expect(screen.queryByText('Carregando opções do orquestrador…')).toBeNull())
+    expect(container.querySelector('[aria-busy="true"]')).toBeNull()
   })
 
   it('store só leitura: o clique nos selects não abre o menu', async () => {
@@ -357,7 +423,7 @@ describe('ToolForm: opções do schema', () => {
     renderWithIntl(<ToolForm onSuccess={() => {}} />)
 
     await waitFor(() => expect(selectOf(/^Método HTTP/)).toBeEnabled())
-    await user.click(screen.getByRole('button', { name: 'Adicionar' }))
+    await user.click(screen.getByRole('button', { name: 'Adicionar parâmetro' }))
 
     expect(selectOf(/^Tipo/)).toHaveTextContent('fake-type')
   })

@@ -247,3 +247,28 @@ test('fake orchestrator: header mascarado só vale na mesma origem, porta explí
 
   await request.delete(`${url}/fake-origem?hard=true`, { headers: { ...headers, 'If-Match': '"2"' } })
 })
+
+// P3-03: placeholder só no caminho e na query; no host (ou na porta) o real
+// recusa com 422 `route`.
+test('fake orchestrator: placeholder no host da route ⇒ 422 route', async ({ request }) => {
+  const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  const url = `${FAKE_ORCHESTRATOR_URL}/admin/config/tools`
+  const tool = {
+    id: 'fake-host',
+    name: 'Host',
+    description: 'Placeholder no host',
+    http_method: 'GET',
+    parameters: [{ name: 'x', type: 'string', description: 'X', required: true }]
+  }
+
+  for (const route of ['https://{x}.example/v1', 'https://h.example:{x}/v1', 'https://u:p@{x}/v1']) {
+    const refused = await request.post(url, { headers, data: { ...tool, route } })
+    expect(refused.status(), route).toBe(422)
+    expect(await refused.json()).toMatchObject({ field: 'route' })
+  }
+  for (const route of ['https://h.example/v1/{x}', 'https://h.example/v1?q={x}']) {
+    const ok = await request.post(url, { headers, data: { ...tool, route } })
+    expect(ok.status(), route).toBe(201)
+    await request.delete(`${url}/fake-host?hard=true`, { headers: { ...headers, 'If-Match': '"1"' } })
+  }
+})

@@ -71,8 +71,8 @@ export interface Parameter {
   type: string // opções: as do /admin/schema (P3-01); o orquestrador valida
   description: string
   required: boolean
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  default_value?: any
+  // Só gravado: o orquestrador não o envia na chamada (D-P3-03-1).
+  default_value?: unknown
 }
 
 // Provider de chat do /admin/schema: o que a config pode pedir dele (P3-02).
@@ -186,11 +186,6 @@ export interface CreateToolForm {
   headers: Record<string, string>
   parameters: Parameter[]
   active: boolean
-  
-  // Campos para compatibilidade com estrutura antiga
-  base_url?: string
-  method?: string
-  endpoint?: string
 }
 
 // Tipos para responses da API

@@ -12,7 +12,7 @@ Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/o
 
 - **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls (tempo e erro de cada uma), tempo e tokens de cada resposta, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo).
 - **Agentes** (`/agents`, `/agents/new`, `/agents/<id>`): criar, editar, excluir, buscar e filtrar; modelo, prompt, tools associadas e RAG.
-- **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): método, URL, endpoint, headers e parâmetros.
+- **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): método, rota com `{param}` ligada aos parâmetros, headers, parâmetros com valor padrão e o preview da requisição.
 - **Dashboard** (`/dashboard`): agentes ativos, pico diário de usuários, sessões de agent e de team, tokens, modelos e atividade por dia, com filtro de período (Hoje, 7, 30 e 90 dias, em dias UTC).
 - **Primeiros passos** (`/`): guia com atalhos para criar agente, tool e testar.
 - Cada seção tem endereço próprio (favoritar, nova aba, voltar do navegador); tema claro/escuro; pt-BR e EN.
@@ -307,3 +307,5 @@ License: [MIT](./LICENSE).
 - `layout.tsx`: `viewport` exportado separadamente conforme recomendação do Next.js
 - Correção de keys duplicadas no dashboard (`model.name` → chave composta com provider e index)
 - Adicionados `eslint-disable` para supressões necessárias de `@typescript-eslint/no-explicit-any`
+
+**Editor de tool (P3-03):** a rota aceita `{param}` só no caminho e na query (no host o orquestrador recusa). Placeholder sem parâmetro de mesmo nome faz o orquestrador descartar a tool no runtime, então o editor recusa o envio e oferece criar o parâmetro (obrigatório, `string`); parâmetro cujo nome está na rota vai sempre obrigatório. O `default_value` do parâmetro é convertido pelo tipo (número, booleano, JSON) e só serve de exemplo: o orquestrador não o envia na chamada. O card "Requisição" mostra, sem chamar a rota, como o orquestrador monta a chamada (`{x}` pelo valor padrão percent-encoded, demais parâmetros em query para GET/DELETE ou corpo JSON para POST/PUT/PATCH, header em texto mascarado). Header de nome sensível com valor novo em texto é recusado no navegador (a regra de nomes é a do orquestrador, duplicada).
