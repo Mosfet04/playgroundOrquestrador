@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, type FieldErrors, type Path } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TextArea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AgentConfig,
   AgentFormField,
@@ -23,11 +22,32 @@ import { FieldError } from '../common/FieldError'
 import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
-import { useConfigSchema, withCurrent } from '../common/useConfigSchema'
+import { useConfigSchema } from '../common/useConfigSchema'
 import { AgentFormValues, toFormValues, toPayload } from './agentFormValues'
 import { ExecutionSection } from '../common/ExecutionSection'
 import { ModelSection } from '../common/ModelSection'
 import { SectionCard } from '../common/SectionCard'
+import { RagSection } from './RagSection'
+
+// Ordem da tela dos campos do RAG: o 1º com erro leva o foco.
+const RAG_ERROR_ORDER = [
+  'rag_doc_name',
+  'rag_search_strategy',
+  'rag_factoryIaModel',
+  'rag_model',
+  'rag_base_url',
+  'rag_api_key_ref',
+  'rag_params'
+] as const
+
+// Campo do RAG a focar: o 1º com erro na ordem da tela; em `rag_params`, o valor
+// da 1ª linha com erro.
+function firstRagErrorPath(found: FieldErrors<AgentFormValues>): Path<AgentFormValues> | undefined {
+  const first = RAG_ERROR_ORDER.find((name) => found[name])
+  if (first !== 'rag_params') return first
+  const row = found.rag_params?.findIndex?.((error) => !!error) ?? -1
+  return `rag_params.${Math.max(row, 0)}.value`
+}
 
 interface AgentFormProps {
   agent?: AgentConfig | null
@@ -55,12 +75,10 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
     setFocus,
     clearErrors,
     control,
-    watch,
     formState: { errors }
   } = form
-
-  const ragActive = watch('rag_active')
-  const ragFactoryIaModel = watch('rag_factoryIaModel')
+  // RAG desligado com um campo com erro: os campos reaparecem (P3-05).
+  const [ragReopened, setRagReopened] = useState(false)
 
   // Opções do orquestrador (P3-01): sem schema os selects ficam desabilitados;
   // config só leitura desabilita o formulário todo.
@@ -78,8 +96,11 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
     if (!schema) return
     if (!isEditing && !schema.chatProviders.some(({ name }) => name === getValues('factoryIaModel')))
       setValue('factoryIaModel', schema.chatProviders[0]?.name ?? '')
-    if (!storedEmbedder && !schema.embedderProviders.includes(getValues('rag_factoryIaModel') ?? ''))
-      setValue('rag_factoryIaModel', schema.embedderProviders[0] ?? '')
+    if (!storedEmbedder && !schema.embedderProviders.some(({ name }) => name === getValues('rag_factoryIaModel')))
+      setValue('rag_factoryIaModel', schema.embedderProviders[0]?.name ?? '')
+    // RAG novo (ou sem estratégia gravada): a 1ª do schema, que é o padrão do
+    // orquestrador.
+    if (!getValues('rag_search_strategy')) setValue('rag_search_strategy', schema.ragSearchStrategies[0] ?? '')
   }, [schema, isEditing, storedEmbedder, getValues, setValue])
 
   // Campo de execução ausente (agent novo ou sem o campo) vale o default do
@@ -126,15 +147,47 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
     }
   }, [agent])
 
+  // Mostra o RAG desligado e leva o foco ao campo; o elemento só existe
+  // visível depois do render.
+  const [ragFocus, setRagFocus] = useState<Path<AgentFormValues> | null>(null)
+  const reveal = (name: Path<AgentFormValues>, reopen: boolean) => {
+    if (reopen) setRagReopened(true)
+    setRagFocus(name)
+  }
+  useEffect(() => {
+    if (!ragFocus) return
+    setFocus(ragFocus)
+    setRagFocus(null)
+  }, [ragFocus, setFocus])
+
+  // Erro local (referência, com o RAG desligado): campo recolhido não pode
+  // guardar o erro escondido. Foco só se for o único tipo de erro.
+  const onInvalid = (found: FieldErrors<AgentFormValues>) => {
+    if (getValues('rag_active')) return
+    const first = firstRagErrorPath(found)
+    if (!first) return
+    setRagReopened(true)
+    if (Object.keys(found).every((name) => name.startsWith('rag_'))) setRagFocus(first)
+  }
+
   // Erro do orquestrador no campo recusado, sem o valor. `model_params` é um
   // grupo (o orquestrador não diz qual parâmetro): erro no grupo e foco no 1º
   // valor. `num_history_runs` com o histórico desligado tem o input desabilitado,
   // que não recebe foco: vai ao switch do histórico.
-  const markRejected = (field: AgentFormField, params: AgentFormValues['params']) => {
+  // Campo do RAG com o switch desligado: os campos reaparecem e o foco vai a
+  // ele depois do render (P3-05).
+  const markRejected = (field: AgentFormField, data: AgentFormValues) => {
     const error = { type: 'server', message: tc('rejectedByOrchestrator') }
+    const ragOff = !getValues('rag_active') && field !== 'rag_active' && field.startsWith('rag_')
     if (field === 'model_params') {
       setError('root.params', error)
-      if (params.length > 0) setFocus('params.0.value')
+      if (data.params.length > 0) setFocus('params.0.value')
+    } else if (field === 'rag_model_params') {
+      setError('root.rag_params', error)
+      if (data.rag_params.length > 0) reveal('rag_params.0.value', ragOff)
+    } else if (ragOff) {
+      setError(field, error)
+      reveal(field, true)
     } else if (field === 'num_history_runs' && !getValues('add_history_to_context')) {
       setError(field, error)
       setFocus('add_history_to_context')
@@ -169,7 +222,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
       } else {
         // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
         const field = await rejectedField(response, isAgentFormField)
-        if (field) markRejected(field, data.params)
+        if (field) markRejected(field, data)
         // 409 só é "id já existe" na criação.
         toast.error(
           requestError(response.status, {
@@ -223,7 +276,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
         noValidate
         onSubmit={(event) => {
           clearErrors()
-          return handleSubmit(onSubmit)(event)
+          return handleSubmit(onSubmit, onInvalid)(event)
         }}
       >
         <fieldset disabled={!writable} className="min-w-0 space-y-6">
@@ -282,7 +335,14 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
           </div>
         </SectionCard>
 
-        <ModelSection entity="agent" form={form} schema={schema} locked={selectsDisabled} />
+        <ModelSection
+          entity="agent"
+          form={form}
+          schema={schema}
+          status={schemaState.status}
+          storedApiKeyRef={agent?.api_key_ref ?? ''}
+          locked={selectsDisabled}
+        />
 
         <SectionCard
           id="agent-instructions"
@@ -309,71 +369,16 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
           locked={selectsDisabled}
         />
 
-        <SectionCard id="agent-rag" title={t('form.rag')} description={t('form.ragDescription')}>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Controller
-                control={control}
-                name="rag_active"
-                render={({ field }) => (
-                  <Switch
-                    id="rag_active"
-                    ref={field.ref}
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label htmlFor="rag_active">{t('form.ragEnable')}</Label>
-            </div>
-            <FieldError message={errors.rag_active?.message} />
-          </div>
-
-          {ragActive && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="rag_doc_name">{t('form.ragDocName')}</Label>
-                <Input
-                  id="rag_doc_name"
-                  {...register('rag_doc_name')}
-                  placeholder={tc('example', { value: 'knowledge_base' })}
-                />
-                <FieldError message={errors.rag_doc_name?.message} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="rag_factoryIaModel">{t('form.ragProvider')}</Label>
-                <Select
-                  value={ragFactoryIaModel}
-                  disabled={selectsDisabled}
-                  onValueChange={(value) => setValue('rag_factoryIaModel', value)}
-                >
-                  <SelectTrigger id="rag_factoryIaModel">
-                    <SelectValue placeholder={t('form.providerPlaceholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {withCurrent(schema?.embedderProviders ?? [], ragFactoryIaModel).map((provider) => (
-                      <SelectItem key={provider} value={provider}>
-                        {provider}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError message={errors.rag_factoryIaModel?.message} />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="rag_model">{t('form.ragModel')}</Label>
-                <Input
-                  id="rag_model"
-                  {...register('rag_model')}
-                  placeholder={tc('example', { value: 'text-embedding-3-small' })}
-                />
-                <FieldError message={errors.rag_model?.message} />
-              </div>
-            </div>
-          )}
-        </SectionCard>
+        <RagSection
+          form={form}
+          schema={schema}
+          status={schemaState.status}
+          writable={writable}
+          locked={selectsDisabled}
+          storedApiKeyRef={agent?.rag_config?.api_key_ref ?? ''}
+          reopened={ragReopened}
+          onSettled={() => setRagReopened(false)}
+        />
 
         <SectionCard id="agent-tools" title={t('form.tools')} description={t('form.toolsDescription')}>
           {availableTools.length === 0 ? (

@@ -110,7 +110,7 @@ describe('excluir agent membro de teams', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await waitFor(() => expect(trigger).toHaveFocus())
-    expect(screen.getByLabelText(/^Nome/)).toHaveValue('Agente Alfa')
+    expect(screen.getByLabelText('Nome *')).toHaveValue('Agente Alfa')
   })
 
   it('a descrição fica numa região aria-live="polite"', async () => {

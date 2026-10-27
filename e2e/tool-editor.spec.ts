@@ -81,10 +81,12 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
   // Headers: texto, referência.
   await page.getByRole('button', { name: 'Adicionar header' }).click()
   await page.getByLabel('Nome do header 1').fill('Accept')
-  await page.getByLabel('Valor de Accept').fill('application/json')
+  await page.getByLabel('Valor de Accept', { exact: true }).fill('application/json')
   await page.getByRole('button', { name: 'Adicionar header' }).click()
   await page.getByLabel('Nome do header 2').fill('X-Api-Key')
-  await page.getByLabel('Valor de X-Api-Key').fill('env:LOJA_API_KEY')
+  await page.getByRole('combobox', { name: 'Modo do valor de X-Api-Key' }).click()
+  await page.getByRole('option', { name: 'Segredo' }).click()
+  await page.getByRole('textbox', { name: 'Variável de ambiente (X-Api-Key)' }).fill('LOJA_API_KEY')
 
   // Preview: GET, rota com o padrão, demais parâmetros em Query, headers.
   await expect(request(page)).toContainText('GET https://api.loja.example/v1/orders/T%2077')
@@ -124,12 +126,13 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
   await expect(parameter(page, 4).getByLabel('Valor padrão')).toHaveValue('[1,2]')
   await expect(parameter(page, 5).getByRole('combobox', { name: 'Valor padrão' })).toHaveText('true')
   await expect(page.getByLabel('Valor de Accept (gravado, oculto)')).toHaveValue('***')
-  await expect(page.getByLabel('Valor de X-Api-Key')).toHaveValue('env:LOJA_API_KEY')
+  await expect(page.getByRole('textbox', { name: 'Variável de ambiente (X-Api-Key)' })).toHaveValue('LOJA_API_KEY')
+  await expect(page.getByText('Gravada como').filter({ hasText: 'env:LOJA_API_KEY' })).toBeVisible()
 
   // Editar: o `***` segue como veio; o outro valor é trocado por uma referência.
   await page.getByRole('button', { name: 'Adicionar header' }).click()
   await page.getByLabel('Nome do header 3').fill('X-Conta')
-  await page.getByLabel('Valor de X-Conta').fill('valor-em-texto')
+  await page.getByLabel('Valor de X-Conta', { exact: true }).fill('valor-em-texto')
   await page.getByLabel(/^Descrição \*/).first().fill('Consulta um pedido (editada)')
   await page.getByRole('button', { name: 'Salvar' }).click()
   await expect(page.getByText('Tool salva').last()).toBeVisible()
@@ -154,17 +157,17 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
 
   await page.getByRole('button', { name: 'Substituir o valor de Accept' }).click()
   await expect(page.getByLabel('Novo valor de Accept')).toBeFocused()
-  await page.getByLabel('Novo valor de Accept').fill('env:ACCEPT')
+  await page.getByLabel('Novo valor de Accept').fill('env:ACCEPT_API_KEY')
   await page.getByLabel('Valor de X-Conta (gravado, oculto)').waitFor()
   await page.getByRole('button', { name: 'Substituir o valor de X-Conta' }).click()
-  await page.getByLabel('Novo valor de X-Conta').fill('env:CONTA')
+  await page.getByLabel('Novo valor de X-Conta').fill('env:CONTA_API_KEY')
   await page.getByRole('button', { name: 'Salvar' }).click()
   await expect(page.getByText('Tool salva').last()).toBeVisible()
   await expect
     .poll(() => storedTool(ID))
     .toMatchObject({
       route: 'https://outro.example/v1/orders/{order_id}',
-      headers: { Accept: 'env:ACCEPT', 'X-Conta': 'env:CONTA' },
+      headers: { Accept: 'env:ACCEPT_API_KEY', 'X-Conta': 'env:CONTA_API_KEY' },
       version: 3
     })
 
@@ -175,4 +178,52 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
   await expect(page.getByText('Tool excluída')).toBeVisible()
   expect((await fetch(`${FAKE_ORCHESTRATOR_URL}/test/config/tools/${ID}`)).status).toBe(404)
+})
+
+// P3-05: header em modo Segredo; nome sensível com texto é recusado e a ação
+// "Usar segredo" leva ao seletor (V-P3-05-21, 22).
+test('header sensível: "Usar segredo" troca o modo e grava a referência', async ({ page }) => {
+  const id = 'e2e-tool-segredo'
+  const writes: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('/api/tools') && request.method() !== 'GET') writes.push(request.url())
+  })
+  await page.goto('/tools/new')
+  await hydrated(page)
+  await page.getByLabel(/^ID da tool/).fill(id)
+  await page.getByLabel(/^Nome \*/).fill('Tool segredo')
+  await page.getByLabel(/^Descrição \*/).fill('Header com segredo')
+  await page.getByLabel(/^Rota/).fill('https://clima.example.com/v1/previsao')
+  await page.getByRole('button', { name: 'Adicionar header' }).click()
+  await page.getByLabel('Nome do header 1').fill('Authorization')
+  await page.getByLabel('Valor de Authorization', { exact: true }).fill('Bearer texto-recusado')
+  await page.getByRole('button', { name: 'Salvar' }).click()
+
+  await expect(
+    page.getByText('Authorization é sensível: use Segredo (referência env:, file:), nunca o valor.')
+  ).toBeVisible()
+  await expect(page.getByText('texto-recusado')).toHaveCount(0)
+  expect(writes).toEqual([])
+
+  await page.getByRole('button', { name: 'Usar segredo em Authorization' }).click()
+  const target = page.getByRole('textbox', { name: 'Variável de ambiente (Authorization)' })
+  await expect(target).toBeFocused()
+  await expect(target).toHaveValue('')
+  await target.fill('loja_key')
+  await page.getByRole('button', { name: 'Salvar' }).click()
+  await expect(page.getByText(/^Use MAIÚSCULAS, dígitos e _/)).toBeVisible()
+  expect(writes).toEqual([])
+
+  await target.fill('LOJA_API_KEY')
+  await expect(page.getByText('Gravada como').filter({ hasText: 'env:LOJA_API_KEY' })).toBeVisible()
+  await page.getByRole('button', { name: 'Salvar' }).click()
+  await expect(page.getByText('Tool salva').last()).toBeVisible()
+  await expect.poll(() => storedTool(id)).toMatchObject({ headers: { Authorization: 'env:LOJA_API_KEY' } })
+
+  await page.getByRole('link', { name: 'Tool segredo' }).first().click()
+  await hydrated(page)
+  await expect(page.getByRole('combobox', { name: 'Modo do valor de Authorization' })).toHaveText('Segredo')
+  await expect(page.getByRole('textbox', { name: 'Variável de ambiente (Authorization)' })).toHaveValue('LOJA_API_KEY')
+  await page.getByRole('button', { name: 'Excluir tool' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
 })

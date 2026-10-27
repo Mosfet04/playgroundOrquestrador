@@ -397,6 +397,6 @@ describe('excluir agente no editor: rede caiu', () => {
     expect(await screen.findByText(/^Não foi possível excluir o agente/)).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(push).not.toHaveBeenCalled()
-    expect(screen.getByLabelText(/^Nome/)).toHaveValue('Agente Alfa')
+    expect(screen.getByLabelText('Nome *')).toHaveValue('Agente Alfa')
   })
 })

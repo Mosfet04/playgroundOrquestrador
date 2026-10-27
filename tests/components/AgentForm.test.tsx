@@ -7,6 +7,9 @@ import { AgentForm } from '@/components/management/agents/AgentForm'
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 
+// Teste longo de interação: com a suíte em paralelo passa dos 5 s padrão.
+const LONG = 15_000
+
 // 101 tools: com limit=100 a última só vem na página 2.
 const tools = Array.from({ length: 101 }, (_, index) => {
   const number = String(index + 1).padStart(3, '0')
@@ -61,7 +64,7 @@ describe('AgentForm', () => {
     expect(await screen.findByLabelText(/Ferramenta 101/)).toBeInTheDocument()
     expect(screen.getByLabelText(/Ferramenta 011/)).toBeInTheDocument()
     expect(screen.getAllByLabelText(/^Ferramenta/)).toHaveLength(tools.length)
-  })
+  }, LONG)
 
   it('dá nome aos switches pelo Label (F-05)', async () => {
     serveToolsPaginated()

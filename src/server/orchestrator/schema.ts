@@ -2,16 +2,16 @@ import 'server-only'
 
 import { z } from 'zod'
 
-import type { ConfigSchema } from '@/types/management'
+import type { ConfigSchema, ProviderOption } from '@/types/management'
 
 import { callOrchestrator } from './client'
 
 // GET /admin/schema (FA-03/FA-07, chave admin): as opções que o orquestrador em
 // vigor aceita. Não está tipado no OpenAPI. Só as seções que os formulários usam
-// (P3-01, P3-02); o resto do documento é ignorado (chave extra não derruba). Sem
+// (P3-01, P3-02, P3-05); o resto do documento é ignorado (chave extra não derruba). Sem
 // cache: uma leitura por abertura do formulário.
-const embedderProviders = z.array(z.object({ name: z.string().min(1) }))
-const chatProviders = z.array(
+// Chat e embedder têm o mesmo formato (P3-05 lê os do embedder).
+const providers = z.array(
   z.object({
     name: z.string().min(1),
     model_params: z.array(z.string().min(1)),
@@ -21,7 +21,7 @@ const chatProviders = z.array(
 const flag = z.object({ type: z.literal('boolean'), default: z.boolean() })
 
 const schemaDocument = z.object({
-  providers: z.object({ chat: chatProviders, embedder: embedderProviders }),
+  providers: z.object({ chat: providers, embedder: providers }),
   agent: z.object({
     markdown: flag,
     add_history_to_context: flag,
@@ -43,19 +43,23 @@ const schemaDocument = z.object({
     http_method: z.array(z.string().min(1)),
     parameter_type: z.array(z.string().min(1))
   }),
+  rag_config: z.object({ search_strategy: z.array(z.string().min(1)).min(1) }),
   // Cada formato começa com o prefixo da referência (`env:`): é o que o form
   // confere. Sem formato a trava não teria o que conferir: schema inválido.
   api_key_ref: z.object({ formats: z.array(z.string().regex(/^[^:]+:/)).min(1) }),
   config_store: z.object({ writable: z.boolean() })
 })
 
+const toProvider = (provider: z.infer<typeof providers>[number]): ProviderOption => ({
+  name: provider.name,
+  modelParams: provider.model_params,
+  requiresBaseUrl: provider.requires_base_url
+})
+
 const toConfigSchema = (doc: z.infer<typeof schemaDocument>): ConfigSchema => ({
-  chatProviders: doc.providers.chat.map((provider) => ({
-    name: provider.name,
-    modelParams: provider.model_params,
-    requiresBaseUrl: provider.requires_base_url
-  })),
-  embedderProviders: doc.providers.embedder.map(({ name }) => name),
+  chatProviders: doc.providers.chat.map(toProvider),
+  embedderProviders: doc.providers.embedder.map(toProvider),
+  ragSearchStrategies: doc.rag_config.search_strategy,
   httpMethods: doc.tool.http_method,
   parameterTypes: doc.tool.parameter_type,
   agent: {

@@ -5,6 +5,11 @@ import { TEST_ENV } from './test-env'
 
 const bearer = (key: string) => ({ Authorization: `Bearer ${key}` })
 
+// QA P3-05: o teste do `rag_config` cria e apaga o agent `fake-rag` no fake
+// compartilhado; em paralelo com o de /admin/config/agents (que conta 3
+// agents) o total virava 4 sob carga. Em série no mesmo worker, não se cruzam.
+test.describe.configure({ mode: 'serial' })
+
 // P2-03 (decisão 0018): o fake exige a chave como o orquestrador real.
 test.describe('fake orchestrator: chave', () => {
   test('sem chave ou com chave errada: 401', async ({ request }) => {
@@ -56,6 +61,48 @@ test('fake orchestrator: /admin/schema com a chave admin', async ({ request }) =
     maximum: 50
   })
   expect(schema.api_key_ref.formats).toHaveLength(2)
+  // P3-05: embedders com parâmetros (um sem nenhum, um que exige URL base) e as estratégias do RAG.
+  expect(schema.providers.embedder).toEqual([
+    { name: 'openai', model_params: ['dimensions'], requires_base_url: false },
+    { name: 'ollama', model_params: [], requires_base_url: false },
+    { name: 'fake-embed', model_params: ['dimensions', 'truncate'], requires_base_url: true }
+  ])
+  expect(schema.rag_config).toEqual({ search_strategy: ['semantic', 'hierarchical'] })
+})
+
+// P3-05: o RAG com o documento inteiro; o 422 nomeia `rag_config.<campo>`, como o real.
+test('fake orchestrator: campos novos do rag_config validados (422 rag_config.<campo>)', async ({ request }) => {
+  const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  const url = `${FAKE_ORCHESTRATOR_URL}/admin/config/agents`
+  const agent = { id: 'fake-rag', nome: 'Rag', model: 'm', factory_ia_model: 'ollama' }
+  const rag = { active: true, doc_name: 'd', model: 'embed', factory_ia_model: 'openai' }
+
+  const cases: [string, Record<string, unknown>][] = [
+    ['search_strategy', { ...rag, search_strategy: 'legacy' }],
+    ['model_params', { ...rag, model_params: { dimensions: { a: 1 } } }],
+    ['base_url', { ...rag, base_url: 'ftp://h' }],
+    ['api_key_ref', { ...rag, api_key_ref: 'sk-valor-cru' }],
+    ['api_key_ref', { ...rag, api_key_ref: 'env:minuscula_key' }],
+    ['model', { active: true, doc_name: 'd', factory_ia_model: 'openai', api_key_ref: 'env:EMBED_API_KEY' }],
+    ['factory_ia_model', { active: true, doc_name: 'd', model: 'embed', base_url: 'http://h/v1' }]
+  ]
+  for (const [field, rag_config] of cases) {
+    const refused = await request.post(url, { headers, data: { ...agent, rag_config } })
+    expect(refused.status(), `${field} ${JSON.stringify(rag_config)}`).toBe(422)
+    expect(await refused.json()).toMatchObject({ field: `rag_config.${field}` })
+  }
+
+  const full = {
+    ...rag,
+    search_strategy: 'hierarchical',
+    model_params: { dimensions: 512 },
+    base_url: 'http://embed.local:8080/v1',
+    api_key_ref: 'env:EMBED_API_KEY'
+  }
+  const ok = await request.post(url, { headers, data: { ...agent, rag_config: full } })
+  expect(ok.status()).toBe(201)
+  expect((await ok.json()).rag_config).toEqual(full)
+  await request.delete(`${url}/fake-rag?hard=true`, { headers: { ...headers, 'If-Match': '"1"' } })
 })
 
 // P2-05: /metrics (filtrado por starting_date) e /admin/config/agents (paginado).

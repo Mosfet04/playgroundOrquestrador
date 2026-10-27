@@ -66,6 +66,13 @@ const hostileFields: Array<[string, Record<string, unknown>]> = [
     'rag_factoryIaModel como operador',
     { rag_active: true, rag_factoryIaModel: { $gt: '' } }
   ],
+  // P3-05: campos novos do RAG
+  ['rag_search_strategy como operador', { rag_search_strategy: { $ne: '' } }],
+  ['rag_base_url como operador', { rag_base_url: { $ne: '' } }],
+  ['rag_api_key_ref como array', { rag_api_key_ref: ['env:X_API_KEY'] }],
+  ['rag_model_params como lista', { rag_model_params: [['dimensions', 1]] }],
+  ['rag_model_params com nome vazio', { rag_model_params: { '': 1 } }],
+  ['rag_model_params com operador no valor', { rag_model_params: { dimensions: { $gt: 0 } } }],
   // P3-02: campos novos do modelo e da execução (um caso por classe)
   ['base_url como operador', { base_url: { $ne: '' } }],
   ['model_params como lista', { model_params: [['temperature', 1]] }],

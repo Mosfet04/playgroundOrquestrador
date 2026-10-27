@@ -394,15 +394,16 @@ describe('TeamForm: modo de coordenação', () => {
     expect(save()).toBeDisabled()
   })
 
-  it('V-15: sem os formatos do schema, a ajuda da referência não mostra "Formatos: ."', async () => {
+  it('V-15: sem o schema, o seletor da referência fica desabilitado e diz de onde vêm os formatos', async () => {
     serveAgents()
     server.use(http.get(SCHEMA_URL, () => HttpResponse.json({ success: false }, { status: 503 })))
     renderWithIntl(<TeamForm team={team} onSuccess={() => {}} />)
 
     await screen.findByText('As opções de modo vêm do orquestrador. Use “Tentar de novo” no aviso acima.')
-    const help = document.getElementById('api-key-ref-help')
-    expect(help).toHaveTextContent('Só a referência, nunca a chave. Vazio: o team não define chave própria.')
-    expect(help).not.toHaveTextContent('Formatos')
+    const reference = screen.getByRole('group', { name: 'Referência da chave de API' })
+    expect(reference).toHaveTextContent('Os formatos vêm do orquestrador.')
+    expect(reference).toHaveTextContent('Vazio: o team não define chave própria.')
+    expect(within(reference).getByRole('combobox', { name: 'Formato' })).toBeDisabled()
   })
 
   it('V-15: schema carregando mostra o status e Salvar desabilitado', async () => {
@@ -516,15 +517,27 @@ describe('TeamForm: salvar', () => {
     expect(sent[0].body).toMatchObject({ nome: 'Renomeado', member_ids: ['suporte-local'] })
   })
 
-  it('referência da chave com o valor colado é recusada no browser, sem requisição', async () => {
+  it('V-1: o modelo do líder usa o mesmo seletor de segredo, com o "Vazio" do team', async () => {
+    serveAgents()
+    await ready()
+
+    const model = screen.getByRole('region', { name: 'Modelo do líder' })
+    const group = within(model).getByRole('group', { name: 'Referência da chave de API' })
+    expect(within(group).getByRole('combobox', { name: 'Formato' })).toHaveTextContent('env:')
+    expect(within(group).getByRole('textbox', { name: 'Variável de ambiente' })).toBeVisible()
+    expect(group).toHaveTextContent('Vazio: o team não define chave própria.')
+  })
+
+  it('referência da chave fora da regra é recusada no browser, sem requisição nem eco', async () => {
     serveAgents()
     const sent = serveSave()
     const user = await ready()
 
-    await user.type(screen.getByLabelText('Referência da chave de API'), 'sk-colado-no-campo')
+    await user.type(screen.getByRole('textbox', { name: 'Variável de ambiente' }), 'sk-colado-no-campo')
     await user.click(save())
 
-    expect(await screen.findByText(/Use uma referência/)).toBeInTheDocument()
+    const error = await screen.findByText(/^Use MAIÚSCULAS, dígitos e _/)
+    expect(error).not.toHaveTextContent('sk-colado-no-campo')
     expect(sent).toEqual([])
   })
 

@@ -268,7 +268,14 @@ export function TeamForm({ team, onSuccess }: TeamFormProps) {
               )}
             />
 
-            <ModelSection entity="team" form={form} schema={schema} locked={selectsDisabled} />
+            <ModelSection
+              entity="team"
+              form={form}
+              schema={schema}
+              status={schemaState.status}
+              storedApiKeyRef={team?.api_key_ref ?? ''}
+              locked={selectsDisabled}
+            />
 
             <SectionCard
               id="team-instructions"

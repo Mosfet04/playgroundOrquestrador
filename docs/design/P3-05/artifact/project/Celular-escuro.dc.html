@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Headers e erro do seletor · celular escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+<link rel="stylesheet" href="p305.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app dark phone" style="width: 390px; min-height: 1700px"><div class="ed">
+
+<section class="sec" aria-labelledby="e-http"><div class="sec-head"><h2 id="e-http">Headers HTTP</h2><p>Erro de nome sensível com texto, Segredo e oculto.</p></div>
+<ul class="hrows" aria-label="Headers HTTP">
+<li class="hrow"><div class="hrow-ctl m"><input class="pg-input mono c-name" aria-label="Nome do header 1" value="Authorization"><button class="pg-btn pg-btn-ghost icon36 c-del" type="button" aria-label="Remover Authorization"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button><button class="pg-select c-mode" type="button" role="combobox" aria-label="Modo do valor de Authorization" aria-expanded="false"><span>Texto</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="hv c-val"><input class="pg-input mono focus-ring" aria-label="Valor de Authorization" value="Bearer abc123" aria-invalid="true" aria-describedby="e-s1 e-e1"></div><span class="pg-chip c-state" id="e-s1" style="justify-content: center">texto</span></div>
+<div class="err-act"><p class="pg-error" id="e-e1"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span><code>Authorization</code> é sensível: use Segredo (referência <code>env:, file:</code>), nunca o valor.</span></p><button class="pg-btn pg-btn-outline pg-btn-sm" type="button" aria-label="Usar segredo em Authorization">Usar segredo</button></div></li>
+
+<li class="hrow"><div class="hrow-ctl m"><input class="pg-input mono c-name" aria-label="Nome do header 2" value="X-Api-Key"><button class="pg-btn pg-btn-ghost icon36 c-del" type="button" aria-label="Remover X-Api-Key"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button><button class="pg-select c-mode" type="button" role="combobox" aria-label="Modo do valor de X-Api-Key" aria-expanded="false"><span>Segredo</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="hv c-val"><div class="pg-secret" role="group" aria-label="Referência de X-Api-Key"><button class="pg-select" type="button" role="combobox" aria-label="Formato (X-Api-Key)" aria-expanded="false"><span>env:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input" aria-label="Variável de ambiente (X-Api-Key)" value="LOJA_API_KEY" autocomplete="off" spellcheck="false" aria-describedby="e-s2 e-o2"></div></div><span class="pg-chip c-state" id="e-s2" style="justify-content: center">referência</span></div><p class="sref-out hrow-sub" id="e-o2">Gravada como <span class="pg-chip">env:LOJA_API_KEY</span></p></li>
+
+<li class="hrow"><div class="hrow-ctl m"><input class="pg-input mono c-name" aria-label="Nome do header 3" value="Cookie"><button class="pg-btn pg-btn-ghost icon36 c-del" type="button" aria-label="Remover Cookie"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button><button class="pg-select c-mode" type="button" role="combobox" aria-label="Modo do valor de Cookie" aria-expanded="false" disabled><span>Texto</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="hv c-val"><input class="pg-input mono mask" aria-label="Valor de Cookie" value="***" readonly aria-describedby="e-s3"><button class="pg-btn pg-btn-outline" type="button">Substituir</button></div><span class="pg-chip c-state" id="e-s3" style="justify-content: center"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>oculto</span></div></li>
+</ul></section>
+
+<section class="sec" aria-labelledby="e-model"><div class="sec-head"><h2 id="e-model">Modelo do líder</h2><p>Erro local do seletor após Salvar.</p></div>
+<div class="g2">
+<div class="sref" role="group" aria-labelledby="e-l" aria-describedby="e-h e-o e-e">
+<span class="pg-label" id="e-l">Referência da chave de API</span>
+<div class="pg-secret bad"><button class="pg-select" type="button" role="combobox" aria-label="Formato" aria-expanded="false"><span>file:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input focus-ring" aria-label="Caminho do arquivo" value="secrets/lider_key" aria-invalid="true" aria-describedby="e-e" autocomplete="off" spellcheck="false"></div>
+<p class="sref-out" id="e-o">Gravada como <span class="pg-chip">file:secrets/lider_key</span></p>
+<p class="pg-help" id="e-h">Só a referência, nunca a chave. Caminho absoluto de um arquivo do servidor do orquestrador que guarda a chave. Vazio: o team não define chave própria.</p>
+<p class="pg-error" id="e-e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Use um caminho absoluto, começando por <code>/</code> (ex.: <code>/run/secrets/openai_key</code>).</span></p>
+</div></div></section>
+
+<section class="sec" aria-labelledby="e-rag"><div class="sec-head"><h2 id="e-rag">Configuração RAG</h2><p>RAG desligado, com valores guardados.</p></div>
+<div class="rag-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="e-rs" aria-describedby="e-k"></button><div class="sw-txt"><label for="e-rs">Habilitar RAG</label></div></div>
+<div class="kept" id="e-k"><div class="t"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><p>RAG desligado. Os valores ficam guardados e voltam ao religar: <code>catalogo_produtos</code> · <code>openai/text-embedding-3-small</code> · <code>semantic</code>.</p></div><button class="pg-btn pg-btn-ghost pg-btn-sm" type="button">Descartar valores</button></div>
+</section>
+
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

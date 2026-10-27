@@ -131,7 +131,7 @@ test('trocar o idioma em /agents/new mantém a rota e o form, sem recarregar; o 
   await expect(page).toHaveTitle('New agent · Orchestrator Playground')
   await expect(page).toHaveURL('/agents/new')
   await expect(page.getByLabel('Agent ID *')).toHaveValue('agente-novo')
-  await expect(page.getByLabel('Name *')).toHaveValue('Agente Novo')
+  await expect(page.getByLabel('Name *', { exact: true })).toHaveValue('Agente Novo')
   await expect(page.getByRole('button', { name: 'Save' })).toBeVisible()
   const englishTrigger = page.getByRole('combobox', {
     name: 'Language: English. Change language'

@@ -11,6 +11,9 @@ import { server } from '../msw/server'
 import { SCHEMA_URL, schemaFixture } from '../msw/handlers'
 import { renderWithIntl } from '../helpers/intl'
 
+// Teste longo de interação: com a suíte em paralelo passa dos 5 s padrão.
+const LONG = 15_000
+
 // P3-02: o editor de agent cobre o documento inteiro (D-P3-02-1, D-P3-02-2):
 // modelo (parâmetros do provider, URL base, referência da chave), instruções,
 // execução (defaults e faixa do schema), memória e resumo. Spec:
@@ -163,7 +166,7 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.model_params).toStrictEqual({ temperature: 0.2, top_p: true, stop: 'FIM' })
     expect(agentBodySchema.safeParse({ ...sent[0].body, id: 'a' }).success).toBe(true)
-  })
+  }, LONG)
 
   it('o chip entra na descrição do valor', async () => {
     const user = await ready()
@@ -366,19 +369,18 @@ describe('AgentForm P3-02: URL base e referência da chave', () => {
     expect(screen.queryByLabelText(/^URL base/)).toBeNull()
   })
 
-  it('V-4: a ajuda traz os formatos do schema; valor sem prefixo é recusado sem eco e sem requisição', async () => {
+  it('V-4: alvo fora da regra é recusado sem eco e sem requisição', async () => {
     const sent = serveSave()
     const user = await ready()
-    const reference = screen.getByLabelText('Referência da chave de API')
+    const reference = screen.getByRole('textbox', { name: 'Variável de ambiente' })
 
     expect(reference).toHaveAttribute('type', 'text')
     expect(reference).toHaveAttribute('autocomplete', 'off')
-    expect(reference).toHaveAccessibleDescription(/env:<PROVEDOR>_API_KEY · file:<caminho em SECRETS_DIR>/)
 
     await user.type(reference, 'sk-segredo-colado')
     await user.click(saveButton())
 
-    const error = await screen.findByText('Use uma referência (env:, file:), nunca o valor da chave.')
+    const error = await screen.findByText(/^Use MAIÚSCULAS, dígitos e _/)
     expect(error).not.toHaveTextContent('sk-segredo-colado')
     expect(reference).toBeInvalid()
     expect(sent).toEqual([])
@@ -387,9 +389,9 @@ describe('AgentForm P3-02: URL base e referência da chave', () => {
   it('referência env:/file: vai no corpo; vazia não vai', async () => {
     const sent = serveSave()
     const user = await ready()
-    const reference = screen.getByLabelText('Referência da chave de API')
+    const reference = screen.getByRole('textbox', { name: 'Variável de ambiente' })
 
-    await user.type(reference, 'env:OLLAMA_API_KEY')
+    await user.type(reference, 'OLLAMA_API_KEY')
     await user.click(saveButton())
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.api_key_ref).toBe('env:OLLAMA_API_KEY')
@@ -398,6 +400,72 @@ describe('AgentForm P3-02: URL base e referência da chave', () => {
     await user.click(saveButton())
     await waitFor(() => expect(sent).toHaveLength(2))
     expect(sent[1].body.api_key_ref ?? '').toBe('')
+  })
+})
+
+describe('AgentForm P3-05: seletor de segredo no modelo', () => {
+  const reference = () => screen.getByRole('textbox', { name: 'Variável de ambiente' })
+
+  it('V-7: referência gravada fora da regra abre com aviso, sem erro; inalterada, o PUT segue', async () => {
+    const sent = serveSave()
+    const user = await ready(
+      <AgentForm agent={{ ...agent, api_key_ref: 'env:openai_key' }} onSuccess={() => {}} />
+    )
+
+    expect(reference()).toHaveValue('openai_key')
+    expect(screen.getByText(/está fora da regra do orquestrador/).closest('p')).toHaveClass('text-warning')
+    expect(reference()).not.toBeInvalid()
+    await user.click(saveButton())
+
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0]).toMatchObject({ method: 'PUT', body: { api_key_ref: 'env:openai_key' } })
+  })
+
+  it('V-7: editar o alvo troca o aviso pelo erro da regra, e nada é enviado', async () => {
+    const sent = serveSave()
+    const user = await ready(
+      <AgentForm agent={{ ...agent, api_key_ref: 'env:openai_key' }} onSuccess={() => {}} />
+    )
+
+    await user.type(reference(), '2')
+    await user.click(saveButton())
+
+    expect(await screen.findByText(/^Use MAIÚSCULAS, dígitos e _/)).toBeVisible()
+    expect(screen.queryByText(/está fora da regra do orquestrador/)).toBeNull()
+    expect(sent).toEqual([])
+  })
+
+  it('V-5: file: com caminho relativo é recusado; absoluto vai com o prefixo', async () => {
+    const sent = serveSave()
+    const user = await ready()
+
+    await user.click(screen.getByRole('combobox', { name: 'Formato' }))
+    await user.click(screen.getByRole('option', { name: 'file:' }))
+    await user.type(screen.getByRole('textbox', { name: 'Caminho do arquivo' }), 'secrets/key')
+    await user.click(saveButton())
+    expect(await screen.findByText(/^Use um caminho absoluto, começando por \//)).toBeVisible()
+    expect(sent).toEqual([])
+
+    await user.clear(screen.getByRole('textbox', { name: 'Caminho do arquivo' }))
+    await user.type(screen.getByRole('textbox', { name: 'Caminho do arquivo' }), '/run/secrets/openai_key')
+    await user.click(saveButton())
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0].body.api_key_ref).toBe('file:/run/secrets/openai_key')
+  })
+
+  it('V-9: com o schema lento o seletor fica desabilitado com o valor visível', async () => {
+    server.use(http.get(SCHEMA_URL, () => new Promise(() => {})))
+    renderWithIntl(
+      <AgentForm agent={{ ...agent, api_key_ref: 'env:OLLAMA_API_KEY' }} onSuccess={() => {}} />
+    )
+
+    const model = within(screen.getByRole('region', { name: 'Modelo' }))
+    expect(await model.findByText('Carregando formatos do orquestrador…')).toBeVisible()
+    expect(screen.getByRole('combobox', { name: 'Formato' })).toBeDisabled()
+    expect(reference()).toBeDisabled()
+    expect(reference()).toHaveValue('OLLAMA_API_KEY')
+    expect(screen.queryByText(/não está entre os aceitos/)).toBeNull()
+    expect(model.queryByText(/está fora da regra/)).toBeNull()
   })
 })
 
@@ -437,7 +505,7 @@ describe('AgentForm P3-02: execução', () => {
     expect(execution.getAllByText('Padrão: ligado')).toHaveLength(2)
 
     await user.type(screen.getByLabelText(/ID do agente/), 'novo')
-    await user.type(screen.getByLabelText(/^Nome/), 'Novo')
+    await user.type(screen.getByLabelText('Nome *'), 'Novo')
     await user.type(screen.getByLabelText(/^Modelo \*/), 'm')
     await user.click(saveButton())
     await waitFor(() => expect(sent).toHaveLength(1))
@@ -600,7 +668,8 @@ describe('AgentForm P3-02: só leitura', () => {
       ...execution.getAllByRole('switch'),
       execution.getByRole('spinbutton'),
       screen.getByLabelText('URL base'),
-      screen.getByLabelText('Referência da chave de API'),
+      screen.getByRole('combobox', { name: 'Formato' }),
+      screen.getByRole('textbox', { name: 'Variável de ambiente' }),
       screen.getByRole('textbox', { name: 'Valor de temperature' }),
       screen.getByRole('combobox', { name: 'Nome do parâmetro 1' }),
       screen.getByRole('button', { name: 'Remover temperature' }),
@@ -633,7 +702,7 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
 
   it.each([
     ['base_url', () => screen.getByLabelText('URL base')],
-    ['api_key_ref', () => screen.getByLabelText('Referência da chave de API')],
+    ['api_key_ref', () => screen.getByRole('textbox', { name: 'Variável de ambiente' })],
     [
       'num_history_runs',
       () => screen.getByRole('spinbutton', { name: 'Execuções no histórico' })

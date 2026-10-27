@@ -24,7 +24,7 @@ test('cria, edita (header mascarado mantido) e exclui uma tool pelo fake', async
   await page.getByLabel(/^Rota/).fill('https://clima.example.com/v1/previsao')
   await page.getByRole('button', { name: 'Adicionar header' }).click()
   await page.getByLabel('Nome do header 1').fill('X-Conta')
-  await page.getByLabel('Valor de X-Conta').fill(SECRET)
+  await page.getByLabel('Valor de X-Conta', { exact: true }).fill(SECRET)
   await page.getByRole('button', { name: 'Salvar' }).click()
 
   await expect(page.getByText('Tool salva').last()).toBeVisible()
@@ -72,14 +72,14 @@ test('header sensível em texto não sai do browser: erro na linha, nenhum reque
   await page.getByLabel(/^Rota/).fill('https://clima.example.com/v1/previsao')
   await page.getByRole('button', { name: 'Adicionar header' }).click()
   await page.getByLabel('Nome do header 1').fill('Authorization')
-  await page.getByLabel('Valor de Authorization').fill('Bearer texto-recusado')
+  await page.getByLabel('Valor de Authorization', { exact: true }).fill('Bearer texto-recusado')
 
   await page.getByRole('button', { name: 'Salvar' }).click()
 
   await expect(
-    page.getByText('Authorization é sensível: use uma referência (env:, file:), nunca o valor.')
+    page.getByText('Authorization é sensível: use Segredo (referência env:, file:), nunca o valor.')
   ).toBeVisible()
-  await expect(page.getByLabel('Valor de Authorization')).toBeFocused()
+  await expect(page.getByLabel('Valor de Authorization', { exact: true })).toBeFocused()
   await expect(page.getByText('texto-recusado')).toHaveCount(0)
   expect(saves).toEqual([])
 })

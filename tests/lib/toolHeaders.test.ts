@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  headerProblems,
-  isReference,
-  isSensitiveHeader,
-  referencePrefixes
-} from '@/lib/toolHeaders'
+import { headerProblems, isSensitiveHeader } from '@/lib/toolHeaders'
 
 // D-P3-03-3: a regra de nome sensível é a do orquestrador (duplicada de
 // propósito); header sensível com valor novo em texto é recusado no cliente.
@@ -34,24 +29,22 @@ describe('isSensitiveHeader', () => {
   )
 })
 
-describe('referencePrefixes e isReference', () => {
-  const prefixes = referencePrefixes(['env:<PROVEDOR>_API_KEY', 'file:<caminho em SECRETS_DIR>'])
-
-  it('o prefixo é o texto até o primeiro dois-pontos', () => {
-    expect(prefixes).toEqual(['env:', 'file:'])
-  })
-
-  it('reconhece a referência pelo prefixo', () => {
-    expect(isReference('env:LOJA_API_KEY', prefixes)).toBe(true)
-    expect(isReference('file:/run/secrets/x', prefixes)).toBe(true)
-    expect(isReference('Bearer abc', prefixes)).toBe(false)
-    expect(isReference('ENV:X', prefixes)).toBe(false)
-  })
-})
-
 describe('headerProblems', () => {
   const prefixes = ['env:', 'file:']
-  const row = (name: string, value: string, hidden = false) => ({ name, value, hidden })
+  const row = (name: string, value: string, hidden = false) => ({
+    name,
+    value,
+    hidden,
+    mode: 'text' as const,
+    original: ''
+  })
+  const secret = (name: string, value: string, original = '') => ({
+    name,
+    value,
+    hidden: false,
+    mode: 'secret' as const,
+    original
+  })
 
   it('linhas válidas não têm problema', () => {
     expect(
@@ -94,5 +87,36 @@ describe('headerProblems', () => {
 
   it('nome comum aceita texto', () => {
     expect(headerProblems([row('X-Conta', 'valor em texto')], prefixes)).toEqual([{}])
+  })
+
+  describe('linha em modo Segredo (P3-05)', () => {
+    it('referência válida passa', () => {
+      expect(
+        headerProblems([secret('X-Api-Key', 'env:LOJA_API_KEY'), secret('Authorization', 'file:/run/k')], prefixes)
+      ).toEqual([{}, {}])
+    })
+
+    it('sem alvo: informe o alvo', () => {
+      expect(headerProblems([secret('X-Api-Key', '')], prefixes)).toEqual([{ value: 'target-required' }])
+    })
+
+    it('alvo fora da regra do formato', () => {
+      expect(
+        headerProblems([secret('X-Api-Key', 'env:loja_key'), secret('X-B', 'file:relativo')], prefixes)
+      ).toEqual([{ value: 'env' }, { value: 'file' }])
+    })
+
+    it('referência gravada fora da regra e inalterada não bloqueia; alterada, sim', () => {
+      expect(
+        headerProblems([secret('X-Api-Key', 'env:loja_key', 'env:loja_key')], prefixes)
+      ).toEqual([{}])
+      expect(
+        headerProblems([secret('X-Api-Key', 'env:outra_key', 'env:loja_key')], prefixes)
+      ).toEqual([{ value: 'env' }])
+    })
+
+    it('o nome sensível não pede texto: Segredo vale para qualquer nome', () => {
+      expect(headerProblems([secret('X-Conta', 'env:CONTA_API_KEY')], prefixes)).toEqual([{}])
+    })
   })
 })

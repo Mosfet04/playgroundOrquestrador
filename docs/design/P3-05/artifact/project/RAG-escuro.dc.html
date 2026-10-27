@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>RAG · estados · escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+<link rel="stylesheet" href="p305.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app dark board one" style="width: 960px; min-height: 3560px; align-content: start">
+
+<div class="panel"><p class="cap">R1 · Desligado com valores guardados (D-P3-05-3): os campos recolhem, o resumo mostra o que fica</p>
+<section class="sec" aria-labelledby="r1t"><div class="sec-head"><h2 id="r1t">Configuração RAG</h2><p>Base de conhecimento consultada pelo agente: documento, busca e o modelo que gera os embeddings.</p></div>
+<div class="rag-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="r1s" aria-describedby="r1sd r1k"></button><div class="sw-txt"><label for="r1s">Habilitar RAG</label><p class="pg-help" id="r1sd">Desligue para pausar o RAG sem perder a configuração.</p></div></div>
+<div class="kept" id="r1k"><div class="t"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><p>RAG desligado. Os valores ficam guardados e voltam ao religar: <code>catalogo_produtos</code> · <code>openai/text-embedding-3-small</code> · <code>semantic</code>.</p></div><button class="pg-btn pg-btn-ghost pg-btn-sm" type="button">Descartar valores</button></div>
+</section></div>
+
+<div class="panel"><p class="cap">R2 · Desligado sem nada gravado (rag_config segue null)</p>
+<section class="sec" aria-labelledby="r2t"><div class="sec-head"><h2 id="r2t">Configuração RAG</h2><p>Base de conhecimento consultada pelo agente: documento, busca e o modelo que gera os embeddings.</p></div>
+<div class="rag-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="r2s" aria-describedby="r2sd r2k"></button><div class="sw-txt"><label for="r2s">Habilitar RAG</label><p class="pg-help" id="r2sd">Desligue para pausar o RAG sem perder a configuração.</p></div></div>
+<p class="pg-help" id="r2k">RAG desligado: o agente responde sem base de conhecimento.</p>
+</section></div>
+
+<div class="panel"><p class="cap">R3 · Ligado, erros locais no envio (provedor que exige URL base; foco no 1º campo com erro)</p>
+<section class="sec" aria-labelledby="r3t"><div class="sec-head"><h2 id="r3t">Configuração RAG</h2><p>Base de conhecimento consultada pelo agente: documento, busca e o modelo que gera os embeddings.</p></div>
+<div class="rag-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="r3s"></button><div class="sw-txt"><label for="r3s">Habilitar RAG</label><p class="pg-help">Desligue para pausar o RAG sem perder a configuração.</p></div></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="r3d">Nome do documento <span class="req">*</span></label><input class="pg-input mono focus-ring" id="r3d" value="" aria-invalid="true" aria-describedby="r3de"><p class="pg-error" id="r3de"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Informe o nome do documento</span></p></div>
+<div class="fld"><label class="pg-label" for="r3st">Estratégia de busca <span class="req">*</span></label><button class="pg-select" type="button" id="r3st" role="combobox" aria-expanded="false"><span class="mono">semantic</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+</div>
+<div class="sub" role="group" aria-labelledby="r3e"><div class="sub-head"><div class="t"><b id="r3e">Embedder</b><p class="pg-help">Modelo que transforma o texto em vetores para a busca.</p></div></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="r3p">Provedor de embedding <span class="req">*</span></label><button class="pg-select" type="button" id="r3p" role="combobox" aria-expanded="false"><span class="mono">ollama</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="fld"><label class="pg-label" for="r3m">Modelo de embedding <span class="req">*</span></label><input class="pg-input mono" id="r3m" value="" placeholder="ex.: nomic-embed-text" aria-invalid="true" aria-describedby="r3me" style="border-color: var(--destructive)"><p class="pg-error" id="r3me"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Informe o modelo de embedding</span></p></div>
+<div class="fld sec-wide"><label class="pg-label" for="r3u">URL base *</label><input class="pg-input mono" id="r3u" value="" autocomplete="off" spellcheck="false" aria-invalid="true" aria-describedby="r3uh r3ue" style="border-color: var(--destructive)"><p class="pg-help" id="r3uh">http(s)://host[:porta][/caminho], sem usuário, senha, query nem fragmento.</p><p class="pg-error" id="r3ue"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>ollama exige URL base</span></p></div>
+<div class="sref sec-wide" role="group" aria-labelledby="r3l" aria-describedby="r3h r3o r3re"><span class="pg-label" id="r3l">Referência da chave do embedder</span><div class="pg-secret bad"><button class="pg-select" type="button" role="combobox" aria-label="Formato" aria-expanded="false"><span>env:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input" aria-label="Variável de ambiente" value="ollama_key" aria-invalid="true" aria-describedby="r3re" autocomplete="off" spellcheck="false"></div><p class="sref-out" id="r3o">Gravada como <span class="pg-chip">env:ollama_key</span></p><p class="pg-help" id="r3h">Só a referência, nunca a chave. Variável de ambiente do servidor do orquestrador, em MAIÚSCULAS e terminando em <code>_API_KEY</code>. Vazio: o embedder não define chave própria.</p><p class="pg-error" id="r3re"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Use MAIÚSCULAS, dígitos e _, começando por letra e terminando em <code>_API_KEY</code> (ex.: <code>OPENAI_API_KEY</code>), até 128 caracteres.</span></p></div>
+</div></div>
+<div class="sub" role="group" aria-labelledby="r3pt"><div class="sub-head"><div class="t"><b id="r3pt">Parâmetros do embedder</b><p class="pg-help">Nomes aceitos por ollama. Valor: número com ponto (0.7), true/false ou texto.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Adicionar parâmetro</button></div><p class="empty-line">Nenhum parâmetro: o embedder usa os padrões do provedor.</p></div>
+</section></div>
+
+<div class="panel"><p class="cap">R4 · Estratégia gravada fora do schema (preservada), provedor sem model_params e parâmetro gravado não aceito</p>
+<section class="sec" aria-labelledby="r4t"><div class="sec-head"><h2 id="r4t">Configuração RAG (trecho)</h2></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="r4st">Estratégia de busca <span class="req">*</span></label><button class="pg-select" type="button" id="r4st" role="combobox" aria-expanded="true"><span class="mono">legacy_mmr</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="pg-help" style="border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card); padding: var(--space-1)"><div class="mono" style="padding: 6px 8px; color: var(--foreground)">legacy_mmr <span class="pg-muted">(gravado)</span></div><div class="mono" style="padding: 6px 8px; color: var(--foreground)">semantic</div><div class="mono" style="padding: 6px 8px; color: var(--foreground)">hierarchical</div></div></div>
+<div class="fld"><label class="pg-label" for="r4p">Provedor de embedding <span class="req">*</span></label><button class="pg-select" type="button" id="r4p" role="combobox" aria-expanded="false"><span class="mono">openai_compatible</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+</div>
+<div class="sub" role="group" aria-labelledby="r4pt"><div class="sub-head"><div class="t"><b id="r4pt">Parâmetros do embedder</b><p class="pg-help" id="r4ph">openai_compatible não aceita parâmetros.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button" disabled aria-describedby="r4ph"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Adicionar parâmetro</button></div>
+<ul class="params" aria-label="Parâmetros do embedder"><li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" role="combobox" aria-label="Nome do parâmetro 1" aria-expanded="false"><span class="mono">dimensions</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de dimensions" value="512" aria-describedby="r4w"><span class="pg-chip" style="justify-content: center">número</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover dimensions"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div><p class="pg-warn" id="r4w"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>openai_compatible não aceita <code>dimensions</code>. O orquestrador decide ao salvar; remova se não for usar.</span></p></li></ul></div>
+</section></div>
+
+<div class="panel"><p class="cap">R5 · Desligado e reaberto por erro: o 422 do api_key_ref reabre os campos, com o RAG ainda desligado</p>
+<section class="sec" aria-labelledby="r5t"><div class="sec-head"><h2 id="r5t">Configuração RAG</h2><p>Base de conhecimento consultada pelo agente: documento, busca e o modelo que gera os embeddings.</p></div>
+<div class="rag-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="r5s" aria-describedby="r5sd r5k"></button><div class="sw-txt"><label for="r5s">Habilitar RAG</label><p class="pg-help" id="r5sd">Desligue para pausar o RAG sem perder a configuração.</p></div></div>
+<p class="pg-help rag-reopen" id="r5k"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><span>RAG desligado, com campos mostrados porque um deles tem erro. Os valores continuam guardados.</span></p>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="r5d">Nome do documento</label><input class="pg-input mono" id="r5d" value="catalogo_produtos"></div>
+<div class="fld"><label class="pg-label" for="r5st">Estratégia de busca</label><button class="pg-select" type="button" id="r5st" role="combobox" aria-expanded="false"><span class="mono">semantic</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="fld"><label class="pg-label" for="r5p">Provedor de embedding</label><button class="pg-select" type="button" id="r5p" role="combobox" aria-expanded="false"><span class="mono">openai</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="fld"><label class="pg-label" for="r5m">Modelo de embedding</label><input class="pg-input mono" id="r5m" value="text-embedding-3-small"></div>
+<div class="sref sec-wide" role="group" aria-labelledby="r5l" aria-describedby="r5o r5e"><span class="pg-label" id="r5l">Referência da chave do embedder</span><div class="pg-secret bad"><button class="pg-select" type="button" role="combobox" aria-label="Formato" aria-expanded="false"><span>env:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input focus-ring" aria-label="Variável de ambiente" value="OPENAI_API_KEY" aria-invalid="true" aria-describedby="r5e" autocomplete="off" spellcheck="false"></div><p class="sref-out" id="r5o">Gravada como <span class="pg-chip">env:OPENAI_API_KEY</span></p><p class="pg-error" id="r5e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Valor recusado pelo orquestrador</span></p></div>
+</div></section></div>
+
+<div class="panel"><p class="cap">R6 · Carregando o schema: estratégia, provedor e formato desabilitados; texto segue editável; Salvar desabilitado</p>
+<section class="sec" aria-labelledby="r6t" aria-busy="true"><div class="sec-head"><h2 id="r6t">Configuração RAG</h2></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="r6d">Nome do documento <span class="req">*</span></label><input class="pg-input mono" id="r6d" value="catalogo_produtos"></div>
+<div class="fld"><label class="pg-label" for="r6st">Estratégia de busca <span class="req">*</span></label><button class="pg-select" type="button" id="r6st" role="combobox" aria-expanded="false" disabled><span class="mono">semantic</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="fld"><label class="pg-label" for="r6p">Provedor de embedding <span class="req">*</span></label><button class="pg-select" type="button" id="r6p" role="combobox" aria-expanded="false" disabled><span class="mono">openai</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="fld"><label class="pg-label" for="r6m">Modelo de embedding <span class="req">*</span></label><input class="pg-input mono" id="r6m" value="text-embedding-3-small"></div>
+<div class="sref sec-wide" role="group" aria-labelledby="r6l"><span class="pg-label" id="r6l">Referência da chave do embedder</span><div class="pg-secret"><button class="pg-select" type="button" role="combobox" aria-label="Formato" aria-expanded="false" disabled><span>env:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input" aria-label="Variável de ambiente" value="OPENAI_API_KEY" disabled></div></div>
+</div>
+<p class="status-line pg-help" role="status"><span class="dot" aria-hidden="true"></span>Carregando opções do orquestrador…</p>
+</section></div>
+
+<div class="panel"><p class="cap">R7 · Falha no schema (aviso da P3-01 e controles do schema desabilitados) e, abaixo, só leitura (nada editável)</p>
+<div class="stack"><div class="notice-err" role="alert"><p>Não foi possível carregar as opções do orquestrador</p><button class="pg-btn pg-btn-outline" type="button">Tentar de novo</button></div>
+<section class="sec" aria-labelledby="r7t"><div class="sec-head"><h2 id="r7t">Configuração RAG</h2></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="r7st">Estratégia de busca <span class="req">*</span></label><button class="pg-select" type="button" id="r7st" role="combobox" aria-expanded="false" disabled aria-describedby="r7h"><span class="mono">semantic</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="fld"><label class="pg-label" for="r7p">Provedor de embedding <span class="req">*</span></label><button class="pg-select" type="button" id="r7p" role="combobox" aria-expanded="false" disabled aria-describedby="r7h"><span class="mono">openai</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+</div>
+<p class="pg-help" id="r7h">As opções do RAG vêm do orquestrador. Use “Tentar de novo” no aviso acima.</p></section>
+<div class="notice-ro" role="status"><p>Configuração em modo somente leitura: o orquestrador não aceita alterações.</p></div>
+<section class="sec" aria-labelledby="r8t"><div class="sec-head"><h2 id="r8t">Configuração RAG</h2></div>
+<div class="rag-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="r8s" disabled></button><div class="sw-txt"><label for="r8s">Habilitar RAG</label></div></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="r8d">Nome do documento</label><input class="pg-input mono" id="r8d" value="catalogo_produtos" disabled></div>
+<div class="fld"><label class="pg-label" for="r8st">Estratégia de busca</label><button class="pg-select" type="button" id="r8st" role="combobox" aria-expanded="false" disabled><span class="mono">hierarchical</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="sref sec-wide" role="group" aria-labelledby="r8l" aria-describedby="r8o"><span class="pg-label" id="r8l">Referência da chave do embedder</span><div class="pg-secret"><button class="pg-select" type="button" role="combobox" aria-label="Formato" aria-expanded="false" disabled><span>file:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input" aria-label="Caminho do arquivo" value="/run/secrets/openai_embed_key" disabled></div><p class="sref-out" id="r8o">Gravada como <span class="pg-chip">file:/run/secrets/openai_embed_key</span></p></div>
+</div></section></div></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":3560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

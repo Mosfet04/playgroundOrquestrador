@@ -11,11 +11,22 @@ import { Input } from '@/components/ui/input'
 import { Chip } from '@/components/ui/loading'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { paramKind } from '@/lib/modelParams'
-import type { ChatProvider } from '@/types/management'
+import type { ProviderOption } from '@/types/management'
 import { FieldError } from './FieldError'
 import { FieldWarning } from './FieldWarning'
 import { withCurrent } from './useConfigSchema'
-import type { ModelFormValues } from './modelFormValues'
+import type { ParamRow } from './modelFormValues'
+
+// Os dois grupos de parâmetros do editor: o do modelo (agent e team) e o do
+// embedder do RAG (P3-05). Mesmos controles, textos e regras; só mudam o campo
+// do formulário, o título e o texto de vazio.
+export type ParamsField = 'params' | 'rag_params'
+export type ParamsForm = Record<ParamsField, ParamRow[]>
+
+const GROUPS = {
+  params: { id: 'model-params', title: 'modelParams', empty: 'modelParamsEmpty' },
+  rag_params: { id: 'rag-params', title: 'ragModelParams', empty: 'ragParamsEmpty' }
+} as const
 
 // Parâmetros do modelo (P3-02): linhas nome + valor. O nome é um dos
 // `model_params` do provider escolhido (o gravado que ele não aceita fica, com
@@ -23,21 +34,27 @@ import type { ModelFormValues } from './modelFormValues'
 // `provider` ausente com o schema lido = provider fora das opções: aceita nada.
 export function ModelParams({
   form,
+  name: fieldName,
   vendor,
   provider,
   schemaReady,
-  locked
+  locked,
+  validateRows = true
 }: {
-  form: UseFormReturn<ModelFormValues>
+  form: UseFormReturn<ParamsForm>
+  name: ParamsField
   vendor: string
-  provider: ChatProvider | undefined
+  provider: ProviderOption | undefined
   schemaReady: boolean
   locked: boolean
+  // Linha incompleta só bloqueia quando o grupo vale (RAG desligado: o orquestrador decide).
+  validateRows?: boolean
 }) {
   const t = useTranslations('agents.form')
   const { register, watch, setValue, getValues, trigger, control, formState } = form
-  const { fields, append, remove } = useFieldArray({ control, name: 'params' })
-  const params = watch('params')
+  const group = GROUPS[fieldName]
+  const { fields, append, remove } = useFieldArray({ control, name: fieldName })
+  const params = watch(fieldName)
   const { errors } = formState
 
   // Foco depois de adicionar (nome da linha nova) ou remover (linha seguinte,
@@ -68,7 +85,7 @@ export function ModelParams({
   const addDisabled = locked || free.length === 0
 
   const rowError = (index: number) => {
-    const row = getValues(`params.${index}`)
+    const row = getValues(`${fieldName}.${index}`)
     return (
       [
         row.name ? '' : t('modelParamNameRequired'),
@@ -79,26 +96,26 @@ export function ModelParams({
     )
   }
 
-  const groupError = errors.root?.params?.message
+  const groupError = errors.root?.[fieldName]?.message
 
   return (
     <div
       role="group"
-      aria-labelledby="model-params-title"
-      aria-describedby="model-params-help"
+      aria-labelledby={`${group.id}-title`}
+      aria-describedby={`${group.id}-help`}
       className="space-y-3 border-t border-border pt-4"
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 space-y-0.5">
           <p
-            id="model-params-title"
+            id={`${group.id}-title`}
             ref={titleRef}
             tabIndex={-1}
             className="text-sm font-medium leading-none focus:outline-none"
           >
-            {t('modelParams')}
+            {t(group.title)}
           </p>
-          <p id="model-params-help" className="text-xs text-muted-foreground">
+          <p id={`${group.id}-help`} className="text-xs text-muted-foreground">
             {t(helpKey, { vendor })}
           </p>
         </div>
@@ -109,7 +126,7 @@ export function ModelParams({
           size="sm"
           className="h-10 w-full md:h-8 md:w-auto"
           disabled={addDisabled}
-          aria-describedby="model-params-help"
+          aria-describedby={`${group.id}-help`}
           onClick={() => {
             append({ name: '', value: '' })
             setFocusTarget(fields.length)
@@ -119,11 +136,11 @@ export function ModelParams({
           {t('addModelParam')}
         </Button>
       </div>
-      <FieldError id="model-params-error" message={groupError} />
+      <FieldError id={`${group.id}-error`} message={groupError} />
 
       {fields.length === 0 ? (
         <p className="rounded-md border bg-muted p-3 text-sm text-muted-foreground">
-          {t('modelParamsEmpty')}
+          {t(group.empty)}
         </p>
       ) : (
         <>
@@ -137,8 +154,8 @@ export function ModelParams({
             <span />
           </div>
           <ul
-            aria-label={t('modelParams')}
-            aria-describedby={groupError ? 'model-params-error' : undefined}
+            aria-label={t(group.title)}
+            aria-describedby={groupError ? `${group.id}-error` : undefined}
             className="space-y-2"
           >
             {fields.map((field, index) => {
@@ -147,7 +164,7 @@ export function ModelParams({
               const kind = paramKind(row.value)
               const kindId = `param-kind-${field.id}`
               const errorId = `param-error-${field.id}`
-              const error = errors.params?.[index]?.value?.message
+              const error = errors[fieldName]?.[index]?.value?.message
               const unnamed = row.name === ''
               return (
                 <li
@@ -159,8 +176,8 @@ export function ModelParams({
                       value={row.name}
                       disabled={locked}
                       onValueChange={(name) => {
-                        setValue(`params.${index}.name`, name, { shouldDirty: true })
-                        if (errors.params?.[index]) void trigger(`params.${index}.value`)
+                        setValue(`${fieldName}.${index}.name`, name, { shouldDirty: true })
+                        if (errors[fieldName]?.[index]) void trigger(`${fieldName}.${index}.value`)
                       }}
                     >
                       <SelectTrigger
@@ -184,7 +201,9 @@ export function ModelParams({
                       </SelectContent>
                     </Select>
                     <Input
-                      {...register(`params.${index}.value`, { validate: () => rowError(index) })}
+                      {...register(`${fieldName}.${index}.value`, {
+                        validate: () => !validateRows || rowError(index)
+                      })}
                       aria-label={
                         unnamed
                           ? t('modelParamValueUnnamedAria', { index: position })

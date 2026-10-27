@@ -1,7 +1,11 @@
 import { defaultText, parseDefault, type DefaultKind } from '@/lib/toolDefault'
+import { isReference } from '@/lib/secretRef'
 import { headerProblems, MASK, type HeaderProblem, type HeaderRow } from '@/lib/toolHeaders'
 import { missingParams, routePlaceholders, spacedPlaceholders } from '@/lib/toolRoute'
 import type { CreateToolForm, Tool } from '@/types/management'
+
+// Formatos de referência que o orquestrador aceita (o schema os confirma).
+const REFERENCE_PREFIXES = ['env:', 'file:']
 
 // Valores do formulário da tool. O `default_value` do parâmetro é texto
 // (D-P3-03-1) e os headers são linhas nome + valor: `hidden` é o valor gravado
@@ -39,7 +43,11 @@ export const toFormValues = (tool?: Tool | null): ToolFormValues => ({
     name,
     value,
     hidden: value === MASK,
-    stored: value === MASK
+    stored: value === MASK,
+    // Referência gravada abre como Segredo (P3-05); o modo é do valor lido, o
+    // schema só entra depois (o aviso de fora da regra, o seletor).
+    mode: value !== MASK && isReference(value, REFERENCE_PREFIXES) ? 'secret' : 'text',
+    original: value === MASK ? '' : value
   }))
 })
 

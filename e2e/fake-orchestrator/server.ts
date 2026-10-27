@@ -174,6 +174,7 @@ const PARAMETER_TYPES = ['string', 'integer', 'float', 'boolean', 'object', 'arr
 // modelo por provider. Agent e tool gravados com outro valor seguem válidos no
 // fake (o seed usa `Fake` no RAG): o e2e confere o que o form oferece.
 const NUM_HISTORY_RUNS_RANGE = { minimum: 1, maximum: 50 }
+const SEARCH_STRATEGIES = ['semantic', 'hierarchical']
 const SECRET_REF_FORMATS = ['env:<PROVEDOR>_API_KEY', 'file:<caminho em SECRETS_DIR>']
 const SCHEMA_DOCUMENT = {
   providers: {
@@ -182,11 +183,12 @@ const SCHEMA_DOCUMENT = {
       { name: 'openai', model_params: ['temperature', 'max_tokens'], requires_base_url: false },
       { name: 'fake-llm', model_params: ['temperature'], requires_base_url: true }
     ],
-    embedder: ['openai', 'ollama', 'fake-embed'].map((name) => ({
-      name,
-      model_params: [],
-      requires_base_url: false
-    }))
+    // P3-05: embedders com parâmetros (`ollama` sem nenhum) e um que exige URL base.
+    embedder: [
+      { name: 'openai', model_params: ['dimensions'], requires_base_url: false },
+      { name: 'ollama', model_params: [], requires_base_url: false },
+      { name: 'fake-embed', model_params: ['dimensions', 'truncate'], requires_base_url: true }
+    ]
   },
   agent: {
     markdown: { type: 'boolean', default: true },
@@ -201,6 +203,7 @@ const SCHEMA_DOCUMENT = {
     add_history_to_context: { type: 'boolean', default: true }
   },
   tool: { http_method: HTTP_METHODS, parameter_type: PARAMETER_TYPES },
+  rag_config: { search_strategy: SEARCH_STRATEGIES },
   api_key_ref: { formats: SECRET_REF_FORMATS },
   config_store: { writable: true }
 }
@@ -253,6 +256,27 @@ const isBaseUrl = (value: unknown) =>
 const isSecretRef = (value: unknown) =>
   typeof value === 'string' && /^(env:[A-Z][A-Z0-9_]*_API_KEY|file:\/.+)$/.test(value)
 
+// `rag_config` (RagConfig + map_rag_document): o 422 nomeia `rag_config.<campo>`;
+// com model_params, base_url ou api_key_ref o modelo e o provider são
+// obrigatórios (sem default implícito).
+function checkRag(rag: Record<string, unknown>) {
+  const field = (name: string) => invalid(`rag_config.${name}`)
+  for (const name of ['doc_name', 'model', 'factory_ia_model'])
+    if (rag[name] != null && typeof rag[name] !== 'string') return field(name)
+  if (rag.active != null && typeof rag.active !== 'boolean') return field('active')
+  if (rag.search_strategy != null && !SEARCH_STRATEGIES.includes(String(rag.search_strategy)))
+    return field('search_strategy')
+  const params = rag.model_params
+  if (params != null && (!isRecord(params) || Object.values(params).some((value) => !isScalar(value))))
+    return field('model_params')
+  if (rag.base_url != null && !isBaseUrl(rag.base_url)) return field('base_url')
+  if (rag.api_key_ref != null && !isSecretRef(rag.api_key_ref)) return field('api_key_ref')
+  const extras = [rag.model_params, rag.base_url, rag.api_key_ref].some((value) => value != null)
+  if (extras && !isText(rag.factory_ia_model)) return field('factory_ia_model')
+  if (extras && !isText(rag.model)) return field('model')
+  return null
+}
+
 // Campos novos do agent (FA-07, F2-01): o 422 nomeia o campo do documento; o
 // `model_params` inteiro, como o real (sem o nome do parâmetro).
 function checkAgentOptions(body: Record<string, unknown>) {
@@ -294,6 +318,8 @@ function checkAgent(body: Record<string, unknown>): Checked<ConfigDoc> {
     if (!isRecord(rag)) return invalid('rag_config')
     const ragUnknown = unknownKey(rag, RAG_KEYS, 'rag_config.')
     if (ragUnknown) return ragUnknown
+    const ragInvalid = checkRag(rag)
+    if (ragInvalid) return ragInvalid
   }
   return accepted({ ...agentDoc(String(body.id), String(body.nome)), ...body, tools_ids: toolsIds, rag_config: rag })
 }

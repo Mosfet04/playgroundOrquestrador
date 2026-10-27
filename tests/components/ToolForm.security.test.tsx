@@ -70,7 +70,7 @@ describe('nome sensível depois do valor', () => {
 
       await user.click(saveButton())
 
-      expect(await within(rowsOf()[0]).findByText(/é sensível: use uma referência/)).toBeVisible()
+      expect(await within(rowsOf()[0]).findByText(/é sensível: use Segredo/)).toBeVisible()
       expect(valueInput).toBeInvalid()
       expect(bodies).toEqual([])
       expect(sent.filter((line) => /^(POST|PUT) /.test(line))).toEqual([])

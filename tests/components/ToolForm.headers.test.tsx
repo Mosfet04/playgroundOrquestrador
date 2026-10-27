@@ -61,7 +61,8 @@ describe('estados do valor', () => {
     const [text, reference, hidden] = within(group()).getAllByRole('listitem')
     expect(within(text).getByLabelText('Valor de Accept')).toHaveValue('application/json')
     expect(within(text).getByText('texto')).toBeVisible()
-    expect(within(reference).getByLabelText('Valor de X-Api-Key')).toHaveValue('env:LOJA_API_KEY')
+    // Referência abre como Segredo, separada em formato e alvo (P3-05).
+    expect(within(reference).getByLabelText('Variável de ambiente (X-Api-Key)')).toHaveValue('LOJA_API_KEY')
     expect(within(reference).getByText('referência')).toBeVisible()
     const masked = within(hidden).getByLabelText('Valor de Authorization (gravado, oculto)')
     expect(masked).toHaveValue('***')
@@ -78,7 +79,9 @@ describe('estados do valor', () => {
     await renderReady(stored)
 
     expect(screen.getByLabelText('Valor de Accept')).toHaveAccessibleDescription('texto')
-    expect(screen.getByLabelText('Valor de X-Api-Key')).toHaveAccessibleDescription('referência')
+    expect(screen.getByLabelText('Variável de ambiente (X-Api-Key)')).toHaveAccessibleDescription(
+      /^referência/
+    )
   })
 
   it('sem header: linha vazia com a mensagem', async () => {
@@ -118,11 +121,11 @@ describe('salvar', () => {
     expect(screen.getByRole('button', { name: 'Manter o valor oculto de Authorization' })).toBeVisible()
     expect(screen.queryByRole('button', { name: /Substituir/ })).toBeNull()
 
-    await user.type(field, 'env:NOVA_CHAVE')
+    await user.type(field, 'env:NOVA_API_KEY')
     await user.click(saveButton())
 
     await waitFor(() => expect(bodies).toHaveLength(1))
-    expect(bodies[0].headers).toMatchObject({ Authorization: 'env:NOVA_CHAVE' })
+    expect(bodies[0].headers).toMatchObject({ Authorization: 'env:NOVA_API_KEY' })
   })
 
   it('"Manter oculto" restaura "***" e devolve o foco a "Substituir"', async () => {
@@ -186,7 +189,7 @@ describe('header sensível em texto (D-P3-03-3)', () => {
 
       await user.click(saveButton())
 
-      const error = `${name} é sensível: use uma referência (env:, file:), nunca o valor.`
+      const error = `${name} é sensível: use Segredo (referência env:, file:), nunca o valor.`
       expect(await within(row).findByText(error)).toBeVisible()
       expect(row.textContent).not.toContain(SECRET)
       expect(within(row).getAllByRole('textbox')[1]).toBeInvalid()
@@ -205,12 +208,12 @@ describe('header sensível em texto (D-P3-03-3)', () => {
     await user.click(saveButton())
     await within(row).findByText(/é sensível/)
 
-    await paste(user, within(row).getAllByRole('textbox')[1], 'env:LOJA_TOKEN')
+    await paste(user, within(row).getAllByRole('textbox')[1], 'env:LOJA_TOKEN_API_KEY')
     expect(within(row).queryByText(/é sensível/)).toBeNull()
     await user.click(saveButton())
 
     await waitFor(() => expect(bodies).toHaveLength(1))
-    expect(bodies[0].headers).toEqual({ Authorization: 'env:LOJA_TOKEN' })
+    expect(bodies[0].headers).toEqual({ Authorization: 'env:LOJA_TOKEN_API_KEY' })
   })
 
   it('nenhum valor de texto digitado vai para o console', async () => {

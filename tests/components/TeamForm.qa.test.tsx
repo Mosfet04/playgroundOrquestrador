@@ -124,7 +124,7 @@ describe('TeamForm: reabrir e salvar', () => {
     const model = screen.getByRole('region', { name: 'Modelo do líder' })
 
     await user.clear(within(model).getByLabelText(/^URL base/))
-    await user.clear(within(model).getByLabelText(/^Referência da chave/))
+    await user.clear(within(model).getByRole('textbox', { name: 'Variável de ambiente' }))
     await user.click(screen.getByRole('button', { name: 'Salvar' }))
 
     await waitFor(() => expect(sent).toHaveLength(1))

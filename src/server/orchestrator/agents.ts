@@ -24,19 +24,23 @@ import type { OrchestratorResult } from './client'
 
 // Só os campos que o formulário lê; o resto do documento passa adiante sem
 // validar (`looseObject`), para o PUT não zerar o que a UI não mostra.
-const ragSchema = z.looseObject({
-  active: z.boolean(),
-  doc_name: z.string().nullish(),
-  model: z.string().nullish(),
-  factory_ia_model: z.string().nullish()
-})
-
 // Campo opcional do documento: ausente e `null` são o mesmo (o orquestrador
 // usa o default).
 const optional = <T extends z.ZodType>(schema: T) =>
   schema.nullish().transform((value) => value ?? undefined)
 
 const modelParamsSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+
+const ragSchema = z.looseObject({
+  active: z.boolean(),
+  doc_name: z.string().nullish(),
+  model: z.string().nullish(),
+  factory_ia_model: z.string().nullish(),
+  search_strategy: optional(z.string()),
+  model_params: optional(modelParamsSchema),
+  base_url: optional(z.string()),
+  api_key_ref: optional(z.string())
+})
 
 const agentSchema = z.looseObject({
   id: z.string(),
@@ -79,6 +83,10 @@ export type AgentInput = {
   rag_doc_name?: string
   rag_model?: string
   rag_factoryIaModel?: string
+  rag_search_strategy?: string
+  rag_model_params?: ModelParams
+  rag_base_url?: string
+  rag_api_key_ref?: string
   model_params?: ModelParams
   base_url?: string
   api_key_ref?: string
@@ -112,7 +120,11 @@ const toAgent = (doc: AgentDocument): AgentConfig => ({
           active: doc.rag_config.active,
           doc_name: doc.rag_config.doc_name ?? '',
           model: doc.rag_config.model ?? '',
-          factoryIaModel: doc.rag_config.factory_ia_model ?? ''
+          factoryIaModel: doc.rag_config.factory_ia_model ?? '',
+          search_strategy: doc.rag_config.search_strategy,
+          model_params: doc.rag_config.model_params,
+          base_url: doc.rag_config.base_url,
+          api_key_ref: doc.rag_config.api_key_ref
         }
       }
     : {}),
@@ -129,10 +141,37 @@ const toAgent = (doc: AgentDocument): AgentConfig => ({
   version: doc.version
 })
 
-// Os campos do formulário no documento; o RAG ligado mantém o que o
-// formulário não mostra (search_strategy, model_params...), desligado sai
-// (`null`, como o Mongo gravava). Campo opcional vazio ou ausente fica
+// Os campos do formulário no documento. O RAG é o documento inteiro (P3-05):
+// desligado com algum valor grava `active: false` e os valores (religar volta
+// como estava, D-P3-05-3); sem valor nenhum (provedor e estratégia são só
+// padrão do formulário) fica `null`. Campo opcional vazio ou ausente fica
 // `undefined`: o JSON não o leva e, no PUT, ele apaga o do documento atual.
+function ragFields(input: Omit<AgentInput, 'id'>, current?: AgentDocument) {
+  const modelParams =
+    input.rag_model_params && Object.keys(input.rag_model_params).length > 0
+      ? input.rag_model_params
+      : undefined
+  const hasValues = !!(
+    input.rag_doc_name ||
+    input.rag_model ||
+    input.rag_base_url ||
+    input.rag_api_key_ref ||
+    modelParams
+  )
+  if (!input.rag_active && !hasValues) return null
+  return {
+    ...current?.rag_config,
+    active: !!input.rag_active,
+    doc_name: input.rag_doc_name ?? '',
+    model: input.rag_model ?? '',
+    factory_ia_model: input.rag_factoryIaModel || 'openai',
+    search_strategy: input.rag_search_strategy || current?.rag_config?.search_strategy,
+    model_params: modelParams,
+    base_url: input.rag_base_url || undefined,
+    api_key_ref: input.rag_api_key_ref || undefined
+  }
+}
+
 function formFields(input: Omit<AgentInput, 'id'>, current?: AgentDocument) {
   return {
     nome: input.nome,
@@ -155,15 +194,7 @@ function formFields(input: Omit<AgentInput, 'id'>, current?: AgentDocument) {
     reasoning: input.reasoning,
     user_memory_active: input.user_memory_active,
     summary_active: input.summary_active,
-    rag_config: input.rag_active
-      ? {
-          ...current?.rag_config,
-          active: true,
-          doc_name: input.rag_doc_name ?? '',
-          model: input.rag_model ?? '',
-          factory_ia_model: input.rag_factoryIaModel || 'openai'
-        }
-      : null
+    rag_config: ragFields(input, current)
   }
 }
 
@@ -193,7 +224,11 @@ const FORM_FIELDS = new Map<string, AgentFormField>([
   ['rag_config.active', 'rag_active'],
   ['rag_config.doc_name', 'rag_doc_name'],
   ['rag_config.model', 'rag_model'],
-  ['rag_config.factory_ia_model', 'rag_factoryIaModel']
+  ['rag_config.factory_ia_model', 'rag_factoryIaModel'],
+  ['rag_config.search_strategy', 'rag_search_strategy'],
+  ['rag_config.model_params', 'rag_model_params'],
+  ['rag_config.base_url', 'rag_base_url'],
+  ['rag_config.api_key_ref', 'rag_api_key_ref']
 ])
 
 const toFormField = (field: string) => FORM_FIELDS.get(field)

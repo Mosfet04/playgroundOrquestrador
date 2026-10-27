@@ -21,7 +21,10 @@ const document = {
       { name: 'ollama', model_params: ['temperature', 'stop'], requires_base_url: false },
       { name: 'fake-llm', model_params: [], requires_base_url: true }
     ],
-    embedder: [{ name: 'fake-embed', model_params: [], requires_base_url: false }]
+    embedder: [
+      { name: 'openai', model_params: ['dimensions'], requires_base_url: false },
+      { name: 'fake-embed', model_params: [], requires_base_url: true }
+    ]
   },
   agent: {
     markdown: { type: 'boolean', default: true },
@@ -36,7 +39,7 @@ const document = {
     add_history_to_context: { type: 'boolean', default: false }
   },
   tool: { http_method: ['GET', 'POST'], parameter_type: ['string', 'integer'] },
-  rag_config: { search_strategy: ['semantic'] },
+  rag_config: { search_strategy: ['semantic', 'hierarchical'] },
   api_key_ref: { formats: ['env:<NOME>', 'file:<caminho>'] },
   config_store: { writable: true }
 }
@@ -61,7 +64,11 @@ describe('GET /api/config/schema', () => {
           { name: 'ollama', modelParams: ['temperature', 'stop'], requiresBaseUrl: false },
           { name: 'fake-llm', modelParams: [], requiresBaseUrl: true }
         ],
-        embedderProviders: ['fake-embed'],
+        embedderProviders: [
+          { name: 'openai', modelParams: ['dimensions'], requiresBaseUrl: false },
+          { name: 'fake-embed', modelParams: [], requiresBaseUrl: true }
+        ],
+        ragSearchStrategies: ['semantic', 'hierarchical'],
         httpMethods: ['GET', 'POST'],
         parameterTypes: ['string', 'integer'],
         agent: {
@@ -104,6 +111,27 @@ describe('GET /api/config/schema', () => {
         chat: [{ name: 'ollama', model_params: [], requires_base_url: 'sim' }],
         embedder: []
       }
+    }],
+    ['provider de embedder sem model_params', {
+      ...document,
+      providers: { chat: [], embedder: [{ name: 'openai', requires_base_url: false }] }
+    }],
+    ['provider de embedder com requires_base_url que não é booleano', {
+      ...document,
+      providers: {
+        chat: [],
+        embedder: [{ name: 'openai', model_params: [], requires_base_url: 'sim' }]
+      }
+    }],
+    ['provider de embedder só com o nome (formato antigo)', {
+      ...document,
+      providers: { chat: [], embedder: [{ name: 'openai' }] }
+    }],
+    ['sem a seção rag_config', { ...document, rag_config: undefined }],
+    ['rag_config.search_strategy vazio', { ...document, rag_config: { search_strategy: [] } }],
+    ['rag_config.search_strategy que não é lista', {
+      ...document,
+      rag_config: { search_strategy: 'semantic' }
     }],
     ['sem a seção agent', { ...document, agent: undefined }],
     ['sem a seção team', { ...document, team: undefined }],

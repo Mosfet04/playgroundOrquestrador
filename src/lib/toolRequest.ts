@@ -1,5 +1,6 @@
 import { parseDefault } from '@/lib/toolDefault'
-import { isReference, MASK } from '@/lib/toolHeaders'
+import { isReference } from '@/lib/secretRef'
+import { MASK } from '@/lib/toolHeaders'
 import { PLACEHOLDER, routePlaceholders } from '@/lib/toolRoute'
 
 // Preview da requisição (P3-03), como o orquestrador a monta

@@ -61,7 +61,12 @@ export const schemaFixture = {
     { name: 'anthropic', modelParams: ['temperature'], requiresBaseUrl: false },
     { name: 'fake-llm', modelParams: [], requiresBaseUrl: true }
   ],
-  embedderProviders: ['openai', 'ollama', 'fake-embed'],
+  embedderProviders: [
+    { name: 'openai', modelParams: ['dimensions'], requiresBaseUrl: false },
+    { name: 'ollama', modelParams: [], requiresBaseUrl: false },
+    { name: 'fake-embed', modelParams: ['dimensions', 'truncate'], requiresBaseUrl: true }
+  ],
+  ragSearchStrategies: ['semantic', 'hierarchical'],
   httpMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   parameterTypes: ['string', 'integer', 'float', 'boolean', 'object', 'array'],
   agent: {

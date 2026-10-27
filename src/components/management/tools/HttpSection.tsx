@@ -160,6 +160,7 @@ export function HttpSection({
       <HeadersGroup
         form={form}
         prefixes={prefixes}
+        locked={locked}
         problems={headerProblems}
         loadedOrigin={loadedOrigin}
         addRef={addHeaderRef}

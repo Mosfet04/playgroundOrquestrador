@@ -132,7 +132,7 @@ describe('excluir no editor de agente', () => {
     const user = userEvent.setup()
     renderAgentEditor(agent.id)
 
-    const name = await screen.findByLabelText(/^Nome/)
+    const name = await screen.findByLabelText('Nome *')
     await user.clear(name)
     await user.type(name, 'Alfa editado')
     await user.click(screen.getByRole('button', { name: 'Excluir agente' }))
@@ -142,7 +142,7 @@ describe('excluir no editor de agente', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.queryByText('cru')).not.toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
-    expect(screen.getByLabelText(/^Nome/)).toHaveValue('Alfa editado')
+    expect(screen.getByLabelText('Nome *')).toHaveValue('Alfa editado')
   })
 
   it('"Excluir agente" fica desabilitado enquanto salva', async () => {

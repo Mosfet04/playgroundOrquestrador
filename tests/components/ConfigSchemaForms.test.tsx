@@ -92,7 +92,7 @@ describe('AgentForm: opções do schema', () => {
         { name: 'ollama', modelParams: [], requiresBaseUrl: false },
         { name: 'fake-llm', modelParams: [], requiresBaseUrl: true }
       ],
-      embedderProviders: ['fake-embed']
+      embedderProviders: [{ name: 'fake-embed', modelParams: [], requiresBaseUrl: false }]
     })
     const user = userEvent.setup()
     renderWithIntl(<AgentForm onSuccess={() => {}} />)
@@ -159,7 +159,7 @@ describe('AgentForm: opções do schema', () => {
     renderWithIntl(<AgentForm agent={agent} onSuccess={() => {}} />)
 
     expect(await screen.findByText(READ_ONLY)).toBeVisible()
-    expect(screen.getByLabelText(/^Nome/)).toBeDisabled()
+    expect(screen.getByLabelText('Nome *')).toBeDisabled()
     expect(screen.getByRole('combobox', { name: /^Provedor \*/ })).toBeDisabled()
     expect(screen.getByRole('switch', { name: 'Agente ativo' })).toBeDisabled()
     expect(saveButton()).toBeDisabled()
@@ -191,7 +191,7 @@ describe('AgentForm: opções do schema', () => {
   })
 
   it('config sem RAG, em edição: o provider de embedding não finge um padrão fora das opções', async () => {
-    serveSchema({ embedderProviders: ['fake-embed'] })
+    serveSchema({ embedderProviders: [{ name: 'fake-embed', modelParams: [], requiresBaseUrl: false }] })
     const user = userEvent.setup()
     renderWithIntl(<AgentForm agent={agent} onSuccess={() => {}} />)
 

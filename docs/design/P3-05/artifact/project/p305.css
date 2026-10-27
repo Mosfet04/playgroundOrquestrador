@@ -1,0 +1,51 @@
+/* P3-05: seletor de segredo, RAG completo e headers com modo Texto | Segredo.
+   Delta sobre theme.css, pg-ds.css (inclui .pg-secret = SecretRefField do DS), p302.css e p303.css. Só tokens do DS.
+   Equivalência Tailwind anotada em cada bloco (o código usa as classes, não este arquivo). */
+
+/* SecretRefField: space-y-2; o par Select+Input é o .pg-secret do DS (Select w-[92px] font-mono bg-muted + Input) */
+.sref { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.pg-secret.bad .pg-select, .pg-secret.bad .pg-input { border-color: var(--destructive); }
+.pg-secret .pg-input[disabled] { background: var(--muted); opacity: .5; cursor: not-allowed; }
+.pg-secret .pg-select .ph { color: var(--muted-foreground); }
+/* "Gravada como": text-xs text-muted-foreground; o chip quebra linha (caminho longo nunca é cortado) */
+.sref-out { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.sref-out .pg-chip { height: auto; min-height: 24px; padding: 2px 8px; white-space: normal; overflow-wrap: anywhere; }
+.sref-out .pg-chip.none { color: var(--muted-foreground); }
+.sec-wide { grid-column: 1 / -1; }
+
+/* RAG: linha do switch com estado; caixa de valores guardados (desligado) */
+.rag-top { display: flex; align-items: flex-start; gap: var(--space-3); }
+.rag-top .sw-txt { gap: 2px; }
+.kept { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--muted); }
+.kept .t { display: flex; gap: var(--space-2); align-items: flex-start; min-width: 0; flex: 1; flex-basis: 240px; }
+.kept .t .pg-ico { width: 14px; height: 14px; margin-top: 3px; flex: none; color: var(--muted-foreground); }
+.kept .t p { margin: 0; color: var(--muted-foreground); }
+.kept code { font-family: var(--font-mono); font-size: 12px; color: var(--foreground); }
+.rag-reopen { margin: 0; display: flex; gap: var(--space-1); align-items: flex-start; }
+.rag-reopen .pg-ico { width: 14px; height: 14px; margin-top: 1px; flex: none; }
+
+/* Headers: nome | modo | valor | estado | lixeira (grid-cols-[12rem_7rem_minmax(0,1fr)_6rem_2.25rem]) */
+.hcols.m, .hrow-ctl.m { grid-template-columns: 192px 112px minmax(0, 1fr) 96px 36px; }
+.hrow { display: flex; flex-direction: column; gap: var(--space-1); }
+/* sob a linha, alinhado à coluna Valor: pl-80 (= nome 12rem + modo 7rem + 2 gaps de 0.5rem) */
+.hrow-sub { margin: 0; padding-left: 320px; }
+.hrow-sub.sref-out { padding-left: 320px; }
+.err-act { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; padding-left: 320px; }
+.err-act .pg-error { flex: 1; flex-basis: 240px; }
+.hrows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.pg-select[disabled] .mono, .pg-select[disabled] span { opacity: 1; }
+.focus-ring { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* Celular (< md): linha de header vira bloco; modo, valor e estado em largura total */
+.phone .hrow { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); gap: var(--space-2); }
+.phone .hrow-ctl.m { grid-template-columns: minmax(0, 1fr) 44px; row-gap: var(--space-2); }
+.phone .hrow-ctl.m .c-name { grid-column: 1; }
+.phone .hrow-ctl.m .c-del { grid-column: 2; grid-row: 1; }
+.phone .hrow-ctl.m .c-mode, .phone .hrow-ctl.m .c-val, .phone .hrow-ctl.m .c-state { grid-column: 1 / -1; }
+.phone .hrow-sub, .phone .hrow-sub.sref-out, .phone .err-act { padding-left: 0; }
+.phone .err-act .pg-btn { width: 100%; }
+.phone .kept .pg-btn { width: 100%; }
+.phone .sec-head.stack-sm { gap: var(--space-1); }
+
+/* Prancha de estados em coluna única (painéis largos) */
+.board.one { grid-template-columns: minmax(0, 1fr); }

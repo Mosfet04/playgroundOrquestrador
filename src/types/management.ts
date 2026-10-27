@@ -61,6 +61,12 @@ export interface RagConfig {
   doc_name: string
   model: string
   factoryIaModel: string // valores válidos: os do orquestrador (decisão 0006)
+  // P3-05: ausente = o orquestrador usa o default. Opções: `rag_config.search_strategy`
+  // do /admin/schema.
+  search_strategy?: string
+  model_params?: ModelParams
+  base_url?: string
+  api_key_ref?: string // só a referência (`env:`/`file:`), nunca o valor
 }
 
 export interface Tool {
@@ -99,8 +105,9 @@ export interface Parameter {
   default_value?: unknown
 }
 
-// Provider de chat do /admin/schema: o que a config pode pedir dele (P3-02).
-export interface ChatProvider {
+// Provider de chat ou de embedder do /admin/schema: o que a config pode pedir
+// dele (P3-02, P3-05).
+export interface ProviderOption {
   name: string
   modelParams: string[] // nomes aceitos em `model_params`; sem tipo (D-P3-02-2)
   requiresBaseUrl: boolean
@@ -108,8 +115,10 @@ export interface ChatProvider {
 
 // Opções dos formulários lidas do /admin/schema pelo BFF (P3-01, P3-02).
 export interface ConfigSchema {
-  chatProviders: ChatProvider[]
-  embedderProviders: string[]
+  chatProviders: ProviderOption[]
+  embedderProviders: ProviderOption[]
+  // `rag_config.search_strategy`: só os nomes (sem default nem descrição).
+  ragSearchStrategies: string[]
   httpMethods: string[]
   parameterTypes: string[]
   // Defaults (e a faixa de `num_history_runs`) dos campos de execução do agent.
@@ -147,6 +156,10 @@ export const AGENT_FORM_FIELDS = [
   'rag_doc_name',
   'rag_model',
   'rag_factoryIaModel',
+  'rag_search_strategy',
+  'rag_model_params',
+  'rag_base_url',
+  'rag_api_key_ref',
   'model_params',
   'base_url',
   'api_key_ref',
@@ -216,6 +229,10 @@ export interface CreateAgentForm {
   rag_doc_name?: string
   rag_model?: string
   rag_factoryIaModel?: string
+  rag_search_strategy?: string
+  rag_model_params?: ModelParams
+  rag_base_url?: string
+  rag_api_key_ref?: string
   model_params?: ModelParams
   base_url?: string
   api_key_ref?: string

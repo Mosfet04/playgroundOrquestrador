@@ -66,7 +66,8 @@ const asForm = {
     active: true,
     doc_name: 'base',
     model: 'embed-1',
-    factoryIaModel: 'ollama'
+    factoryIaModel: 'ollama',
+    search_strategy: 'hierarchical'
   },
   model_params: { temperature: 0.2 },
   api_key_ref: 'env:OPENAI_API_KEY',
@@ -478,6 +479,95 @@ describe('POST /api/agents', () => {
     })
   })
 
+  // P3-05: o documento inteiro do RAG (D-P3-05-2) e o desligado que guarda os
+  // valores (D-P3-05-3).
+  const ragFull = {
+    rag_doc_name: 'manual',
+    rag_model: 'text-embedding-3-small',
+    rag_factoryIaModel: 'openai',
+    rag_search_strategy: 'hierarchical',
+    rag_model_params: { dimensions: 512, normalize: true, task: 'search' },
+    rag_base_url: ' http://embed.local:8080/v1 ',
+    rag_api_key_ref: 'env:EMBED_API_KEY'
+  }
+  const ragDocument = {
+    doc_name: 'manual',
+    model: 'text-embedding-3-small',
+    factory_ia_model: 'openai',
+    search_strategy: 'hierarchical',
+    model_params: { dimensions: 512, normalize: true, task: 'search' },
+    base_url: 'http://embed.local:8080/v1',
+    api_key_ref: 'env:EMBED_API_KEY'
+  }
+
+  it('RAG ligado leva estratégia, parâmetros, URL base e referência da chave', async () => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(jsonRequest(API, 'POST', { ...formBody, rag_active: true, ...ragFull }))
+
+    expect(seen[0].body).toMatchObject({ rag_config: { active: true, ...ragDocument } })
+  })
+
+  it('RAG desligado com valores grava active false e os valores', async () => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(jsonRequest(API, 'POST', { ...formBody, rag_active: false, ...ragFull }))
+
+    expect(seen[0].body).toMatchObject({ rag_config: { active: false, ...ragDocument } })
+  })
+
+  it('RAG desligado só com provedor e estratégia padrão (sem valores) segue null', async () => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(
+      jsonRequest(API, 'POST', {
+        ...formBody,
+        rag_active: false,
+        rag_factoryIaModel: 'openai',
+        rag_search_strategy: 'semantic',
+        rag_model_params: {}
+      })
+    )
+
+    expect(seen[0].body).toMatchObject({ rag_config: null })
+  })
+
+  it.each([
+    ['o nome do documento', { rag_doc_name: 'manual' }],
+    ['o modelo', { rag_model: 'embed-1' }],
+    ['a URL base', { rag_base_url: 'http://h/v1' }],
+    ['a referência da chave', { rag_api_key_ref: 'env:EMBED_API_KEY' }],
+    ['um parâmetro', { rag_model_params: { dimensions: 8 } }]
+  ])('RAG desligado com só %s ainda grava o rag_config', async (_, patch) => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(jsonRequest(API, 'POST', { ...formBody, rag_active: false, ...patch }))
+
+    expect(seen[0].body).toMatchObject({ rag_config: { active: false } })
+  })
+
+  it('RAG ligado sem os campos opcionais não os leva (vazio ⇒ ausente)', async () => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(
+      jsonRequest(API, 'POST', {
+        ...formBody,
+        rag_active: true,
+        rag_doc_name: 'manual',
+        rag_model: 'embed-1',
+        rag_factoryIaModel: 'openai',
+        rag_search_strategy: 'semantic',
+        rag_model_params: {},
+        rag_base_url: '  ',
+        rag_api_key_ref: ''
+      })
+    )
+
+    const rag = (seen[0].body as { rag_config: Record<string, unknown> }).rag_config
+    expect(rag).toMatchObject({ active: true, search_strategy: 'semantic' })
+    for (const key of ['model_params', 'base_url', 'api_key_ref']) expect(rag).not.toHaveProperty(key)
+  })
+
   // Decisão 0006: o BFF valida o tipo; os valores aceitos são os do orquestrador.
   it('repassa factoryIaModel fora da lista do form (openai_compatible)', async () => {
     serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
@@ -517,6 +607,10 @@ describe('POST /api/agents', () => {
     ['rag_config.doc_name', 'rag_doc_name'],
     ['rag_config.model', 'rag_model'],
     ['rag_config.factory_ia_model', 'rag_factoryIaModel'],
+    ['rag_config.search_strategy', 'rag_search_strategy'],
+    ['rag_config.model_params', 'rag_model_params'],
+    ['rag_config.base_url', 'rag_base_url'],
+    ['rag_config.api_key_ref', 'rag_api_key_ref'],
     ['model_params', 'model_params'],
     ['base_url', 'base_url'],
     ['api_key_ref', 'api_key_ref'],
@@ -539,7 +633,7 @@ describe('POST /api/agents', () => {
   })
 
   it.each([
-    ['campo fora do formulário', { detail: LEAK, field: 'rag_config.search_strategy' }],
+    ['campo fora do formulário', { detail: LEAK, field: 'rag_config.future_key' }],
     ['parâmetro por nome (o orquestrador não detalha)', { detail: LEAK, field: 'model_params.temperature' }],
     ['chave desconhecida', { detail: LEAK, field: 'unknown_key' }],
     ['propriedade de Object', { detail: LEAK, field: 'constructor' }],
@@ -551,6 +645,35 @@ describe('POST /api/agents', () => {
 
     expect(response.status).toBe(422)
     expect(await response.json()).toEqual({ success: false, error: 'invalid_config' })
+  })
+})
+
+describe('GET /api/agents/[id]: RAG completo (P3-05)', () => {
+  it('traduz estratégia, parâmetros, URL base e referência; null vira ausente', async () => {
+    serveItem('get', () =>
+      HttpResponse.json({
+        ...stored,
+        rag_config: {
+          ...stored.rag_config,
+          model_params: { dimensions: 512 },
+          base_url: 'http://embed.local/v1',
+          api_key_ref: 'env:EMBED_API_KEY'
+        }
+      })
+    )
+
+    const response = await GET_BY_ID(new NextRequest(`${API}/assistente`), params('assistente'))
+
+    expect((await response.json()).data.rag_config).toEqual({
+      active: true,
+      doc_name: 'base',
+      model: 'embed-1',
+      factoryIaModel: 'ollama',
+      search_strategy: 'hierarchical',
+      model_params: { dimensions: 512 },
+      base_url: 'http://embed.local/v1',
+      api_key_ref: 'env:EMBED_API_KEY'
+    })
   })
 })
 
@@ -599,12 +722,13 @@ describe('PUT /api/agents/[id]', () => {
       prompt: 'Olá',
       active: true,
       tools_ids: [],
+      // Os campos do RAG vêm do formulário: o que ele não manda sai (era null).
       rag_config: {
-        ...current.rag_config,
         active: true,
         doc_name: 'outra',
         model: 'embed-2',
-        factory_ia_model: 'openai'
+        factory_ia_model: 'openai',
+        search_strategy: 'hierarchical'
       }
     })
   })
