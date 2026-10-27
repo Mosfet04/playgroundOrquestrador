@@ -236,7 +236,7 @@ describe('middleware: /api', () => {
   )
 
   // P2-06: o CRUD pela API Admin (PUT/DELETE no item) passa pelas mesmas regras.
-  it.each(['/api/agents/assistente', '/api/tools/clima'])(
+  it.each(['/api/agents/assistente', '/api/teams/suporte', '/api/tools/clima'])(
     '%s: PUT/DELETE sem cookie ⇒ 401; com sessão e sem Origin ⇒ 403',
     async (path) => {
       const cookie = await createSession('playground')

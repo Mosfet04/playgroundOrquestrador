@@ -192,7 +192,10 @@ test('cria e edita agent com modelo, execução, memória e resumo', async ({ pa
   await page.getByLabel('Referência da chave de API').fill('')
   await page.getByRole('button', { name: 'Salvar' }).click()
 
-  await expect(page.getByText('Agente salvo').last()).toBeVisible()
+  // O toast da criação ainda pode estar na tela: espera o PUT pela versão gravada.
+  await expect
+    .poll(async () => ((await (await storedAgent(id)).json()) as { version: number }).version)
+    .toBe(2)
   const edited = await (await storedAgent(id)).json()
   expect(edited).toMatchObject({ base_url: 'http://llm.local:8080/v1', version: 2 })
   expect(edited.model_params ?? null).toBeNull()

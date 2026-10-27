@@ -30,7 +30,11 @@ const document = {
     num_history_runs: { type: 'integer', default: 5, minimum: 1, maximum: 50 },
     reasoning: { type: 'boolean', default: false }
   },
-  team: { mode: ['route', 'coordinate'] },
+  team: {
+    mode: ['route', 'coordinate'],
+    markdown: { type: 'boolean', default: true },
+    add_history_to_context: { type: 'boolean', default: false }
+  },
   tool: { http_method: ['GET', 'POST'], parameter_type: ['string', 'integer'] },
   rag_config: { search_strategy: ['semantic'] },
   api_key_ref: { formats: ['env:<NOME>', 'file:<caminho>'] },
@@ -67,6 +71,7 @@ describe('GET /api/config/schema', () => {
           reasoning: false,
           numHistoryRuns: { default: 5, minimum: 1, maximum: 50 }
         },
+        team: { modes: ['route', 'coordinate'], markdown: true, addHistoryToContext: false },
         apiKeyRefFormats: ['env:<NOME>', 'file:<caminho>'],
         writable: true
       }
@@ -101,6 +106,12 @@ describe('GET /api/config/schema', () => {
       }
     }],
     ['sem a seção agent', { ...document, agent: undefined }],
+    ['sem a seção team', { ...document, team: undefined }],
+    ['team.mode vazio', { ...document, team: { ...document.team, mode: [] } }],
+    ['default de team que não é booleano', {
+      ...document,
+      team: { ...document.team, markdown: { type: 'boolean', default: 'sim' } }
+    }],
     ['num_history_runs sem faixa', {
       ...document,
       agent: { ...document.agent, num_history_runs: { type: 'integer', default: 5 } }

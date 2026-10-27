@@ -27,7 +27,7 @@ if (!RUN_KEY || !ADMIN_KEY)
 const TEST_ROUTES = new Set(['POST /hold/release', 'GET /aborts'])
 // GET /test/config/{kind}/{id}: documento gravado sem máscara, para o e2e
 // conferir que salvar com o header mascarado não apagou o valor.
-const TEST_CONFIG_ROUTE = /^GET \/test\/config\/(agents|tools)\/([^/]+)$/
+const TEST_CONFIG_ROUTE = /^GET \/test\/config\/(agents|teams|tools)\/([^/]+)$/
 // Runs cuja conexão fechou antes do fim (aba fechada, abort do BFF): o e2e
 // confere em GET /aborts que o abort chegou ao orquestrador.
 const abortedRuns: { entity: string; message: string }[] = []
@@ -78,15 +78,16 @@ const toAgentResponse = (agent: FakeAgent) => ({
   sessions: { session_table: 'agno_sessions' }
 })
 
-// Config da API Admin (/admin/config/{agents,tools}, admin_config.py): documento
+// Config da API Admin (/admin/config/{agents,teams,tools}, admin_config.py): documento
 // snake_case com `version` (ETag), If-Match no PUT/DELETE (ausente 428, outra
 // versão 412), 422 com `field` (e `indexes`) sem o valor, 409 para id existente
 // ou entidade em uso, header de tool em texto mascarado (`***`) na leitura.
 // Seed: um agent inativo, um com RAG ativo e um com `prompt` em lista (formato
 // legado do seed real), para o dashboard contar ativos,
 // total e embeddings (o e2e do CRUD de agents roda depois do dashboard:
-// playwright.config.ts).
-type ConfigKind = 'agents' | 'tools'
+// playwright.config.ts). Um team (P3-04) tem como membro o agent inativo: o
+// e2e confere o 409 `used_by` do DELETE dele.
+type ConfigKind = 'agents' | 'teams' | 'tools'
 type ConfigDoc = Record<string, unknown> & { id: string; version: number }
 type Refusal = { status: number; body: Record<string, unknown> }
 type Checked<T> = { ok: true; value: T } | { ok: false; refusal: Refusal }
@@ -115,6 +116,27 @@ const agentDoc = (id: string, nome: string, extra: Record<string, unknown> = {})
   ...extra
 })
 
+const teamDoc = (id: string, nome: string, extra: Record<string, unknown> = {}): ConfigDoc => ({
+  id,
+  nome,
+  descricao: '',
+  prompt: '',
+  factory_ia_model: 'ollama',
+  model: 'fake-model',
+  member_ids: ['agente-alfa'],
+  mode: 'route',
+  user_memory_active: true,
+  summary_active: false,
+  active: true,
+  model_params: null,
+  base_url: null,
+  api_key_ref: null,
+  markdown: true,
+  add_history_to_context: true,
+  version: 1,
+  ...extra
+})
+
 const configs: Record<ConfigKind, ConfigDoc[]> = {
   agents: [
     agentDoc('agente-alfa', 'Agente Alfa', {
@@ -134,10 +156,13 @@ const configs: Record<ConfigKind, ConfigDoc[]> = {
     agentDoc('agente-beta', 'Agente Beta', { prompt: ['Você é o Beta.', 'Responda curto.'] }),
     agentDoc('agente-gama', 'Agente Gama', { active: false, version: 2 })
   ],
+  teams: [teamDoc('time-config', 'Time Config', { member_ids: ['agente-gama'] })],
   tools: []
 }
 
 const AGENT_KEYS = Object.keys(agentDoc('', '')).filter((key) => key !== 'version')
+const TEAM_KEYS = Object.keys(teamDoc('', '')).filter((key) => key !== 'version')
+const TEAM_MODES = ['route', 'coordinate', 'broadcast', 'tasks']
 const RAG_KEYS = ['active', 'doc_name', 'model', 'factory_ia_model', 'search_strategy', 'model_params', 'base_url', 'api_key_ref']
 const TOOL_KEYS = ['id', 'name', 'description', 'route', 'http_method', 'parameters', 'instructions', 'headers', 'active']
 const PARAMETER_KEYS = ['name', 'type', 'description', 'required', 'default_value']
@@ -169,6 +194,11 @@ const SCHEMA_DOCUMENT = {
     add_datetime_to_context: { type: 'boolean', default: true },
     num_history_runs: { type: 'integer', default: 5, ...NUM_HISTORY_RUNS_RANGE },
     reasoning: { type: 'boolean', default: false }
+  },
+  team: {
+    mode: TEAM_MODES,
+    markdown: { type: 'boolean', default: true },
+    add_history_to_context: { type: 'boolean', default: true }
   },
   tool: { http_method: HTTP_METHODS, parameter_type: PARAMETER_TYPES },
   api_key_ref: { formats: SECRET_REF_FORMATS },
@@ -268,6 +298,25 @@ function checkAgent(body: Record<string, unknown>): Checked<ConfigDoc> {
   return accepted({ ...agentDoc(String(body.id), String(body.nome)), ...body, tools_ids: toolsIds, rag_config: rag })
 }
 
+// Team (TeamConfig): membros existentes (≥ 1, senão 422 em `member_ids`, sem
+// dizer qual) e modo do schema.
+function checkTeam(body: Record<string, unknown>): Checked<ConfigDoc> {
+  const unknown = unknownKey(body, TEAM_KEYS)
+  if (unknown) return unknown
+  for (const field of ['id', 'nome', 'model', 'factory_ia_model'])
+    if (!isText(body[field])) return invalid(field)
+  const members = body.member_ids
+  if (!Array.isArray(members) || members.length === 0 || members.some((id) => typeof id !== 'string'))
+    return invalid('member_ids')
+  if (members.some((id) => !configs.agents.some((agent) => agent.id === id))) return invalid('member_ids')
+  if (body.mode !== undefined && !TEAM_MODES.includes(String(body.mode))) return invalid('mode')
+  const option = checkAgentOptions(body)
+  if (option) return option
+  if (body.prompt !== undefined && typeof body.prompt !== 'string') return invalid('prompt')
+  if (body.active !== undefined && typeof body.active !== 'boolean') return invalid('active')
+  return accepted({ ...teamDoc(String(body.id), String(body.nome)), ...body })
+}
+
 function checkTool(body: Record<string, unknown>, current?: ConfigDoc): Checked<ConfigDoc> {
   const unknown = unknownKey(body, TOOL_KEYS)
   if (unknown) return unknown
@@ -335,6 +384,12 @@ const shown = (kind: ConfigKind, doc: ConfigDoc): ConfigDoc =>
     : doc
 
 const usedBy = (kind: ConfigKind, id: string): Record<string, string[]> | null => {
+  if (kind === 'agents') {
+    const teamsUsing = configs.teams
+      .filter((team) => Array.isArray(team.member_ids) && team.member_ids.includes(id))
+      .map((team) => team.id)
+    return teamsUsing.length ? { teams: teamsUsing } : null
+  }
   if (kind !== 'tools') return null
   const agentsUsing = configs.agents
     .filter((agent) => Array.isArray(agent.tools_ids) && agent.tools_ids.includes(id))
@@ -358,7 +413,7 @@ const sendConfig = (res: ServerResponse, status: number, kind: ConfigKind, doc: 
 }
 
 async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL) {
-  const match = /^\/admin\/config\/(agents|tools)(?:\/([^/]+))?$/.exec(url.pathname)
+  const match = /^\/admin\/config\/(agents|teams|tools)(?:\/([^/]+))?$/.exec(url.pathname)
   if (!match) return false
   const kind = match[1] as ConfigKind
   const id = match[2] === undefined ? undefined : decodeURIComponent(match[2])
@@ -377,7 +432,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     return true
   }
   const check = (doc: Record<string, unknown>, current?: ConfigDoc) =>
-    kind === 'agents' ? checkAgent(doc) : checkTool(doc, current)
+    kind === 'agents' ? checkAgent(doc) : kind === 'teams' ? checkTeam(doc) : checkTool(doc, current)
   // Corpo como objeto JSON, sem operador `$`; a `version` do corpo é descartada.
   const body = async (): Promise<Checked<Record<string, unknown>>> => {
     const raw = await readJson(req)

@@ -40,6 +40,8 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P2-06 | concluído (CRUD de agents e tools pela `/admin/config` com chave admin, If-Match e 422 no campo, exclusão hard, pacote `mongodb` e scripts de seed fora; decisão 0024) |
 | P3-01 | concluído (opções de provider, embedder, método HTTP e tipo de parâmetro vindas do `/admin/schema` pelo BFF; valor gravado fora das opções preservado; store só leitura trava o formulário; decisão 0025) |
 | P3-02 | concluído (editor de agent com o documento inteiro: `model_params` por provider com tipo inferido, `base_url` quando o provider exige, `api_key_ref` só como referência, campos de execução com default e faixa do schema, memória e resumo; PUT sem mesclagem dos campos cobertos; decisão 0026) |
+| P3-03 | concluído (editor de tool HTTP: rota `{param}` ligada a parâmetro obrigatório com ação de criar, `default_value` por tipo, headers texto/referência/`***` com nome sensível recusado no browser, preview da requisição como o orquestrador monta; decisão 0027) |
+| P3-04 | concluído (teams pela API Admin: BFF `/api/teams`, lista, editor com o documento inteiro — membros, modo em cartões, modelo do líder, prompt e execução —, Teams na navegação, excluir agent membro mostra os teams do 409 `used_by`; lista comum de agents/teams/tools como follow-up; decisão 0028) |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

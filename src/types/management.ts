@@ -32,6 +32,30 @@ export interface AgentConfig {
 // Parâmetros do modelo: nome aceito pelo provider e valor escalar (D-P3-02-2).
 export type ModelParams = Record<string, string | number | boolean>
 
+// Team (P3-04): um líder com modelo próprio e os agents que ele aciona. Campos
+// do documento do orquestrador, como o agent (`factoryIaModel` do formulário).
+export interface TeamConfig {
+  id: string
+  nome: string
+  descricao: string
+  prompt: string
+  active: boolean
+  member_ids: string[]
+  mode: string // opções: `team.mode` do /admin/schema; o orquestrador valida
+  factoryIaModel: string
+  model: string
+  model_params?: ModelParams
+  base_url?: string
+  api_key_ref?: string // só a referência (`env:`/`file:`), nunca o valor
+  markdown?: boolean
+  add_history_to_context?: boolean
+  user_memory_active?: boolean
+  summary_active?: boolean
+  // Versão lida: volta no If-Match do PUT/DELETE.
+  version: number
+  updated_at?: string
+}
+
 export interface RagConfig {
   active: boolean
   doc_name: string
@@ -96,6 +120,12 @@ export interface ConfigSchema {
     reasoning: boolean
     numHistoryRuns: { default: number; minimum: number; maximum: number }
   }
+  // Modos e defaults de execução do team (P3-04).
+  team: {
+    modes: string[]
+    markdown: boolean
+    addHistoryToContext: boolean
+  }
   // Formatos aceitos em `api_key_ref` (ex.: `env:<PROVEDOR>_API_KEY`), de dica.
   apiKeyRefFormats: string[]
   // false: o store de config não aceita escrita (as rotas de escrita recusam).
@@ -131,6 +161,28 @@ export const AGENT_FORM_FIELDS = [
 export type AgentFormField = (typeof AGENT_FORM_FIELDS)[number]
 export const isAgentFormField = (field: string): field is AgentFormField =>
   (AGENT_FORM_FIELDS as readonly string[]).includes(field)
+
+export const TEAM_FORM_FIELDS = [
+  'id',
+  'nome',
+  'descricao',
+  'prompt',
+  'active',
+  'member_ids',
+  'mode',
+  'factoryIaModel',
+  'model',
+  'model_params',
+  'base_url',
+  'api_key_ref',
+  'markdown',
+  'add_history_to_context',
+  'user_memory_active',
+  'summary_active'
+] as const
+export type TeamFormField = (typeof TEAM_FORM_FIELDS)[number]
+export const isTeamFormField = (field: string): field is TeamFormField =>
+  (TEAM_FORM_FIELDS as readonly string[]).includes(field)
 
 // Parâmetro recusado: a linha dele (`parameters.<posição>`).
 export const TOOL_FORM_FIELDS = [
@@ -175,6 +227,8 @@ export interface CreateAgentForm {
   user_memory_active?: boolean
   summary_active?: boolean
 }
+
+export type CreateTeamForm = Omit<TeamConfig, 'version' | 'updated_at'>
 
 export interface CreateToolForm {
   id: string

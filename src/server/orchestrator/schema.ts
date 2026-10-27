@@ -34,6 +34,11 @@ const schemaDocument = z.object({
       maximum: z.number().int()
     })
   }),
+  team: z.object({
+    mode: z.array(z.string().min(1)).min(1),
+    markdown: flag,
+    add_history_to_context: flag
+  }),
   tool: z.object({
     http_method: z.array(z.string().min(1)),
     parameter_type: z.array(z.string().min(1))
@@ -63,6 +68,11 @@ const toConfigSchema = (doc: z.infer<typeof schemaDocument>): ConfigSchema => ({
       minimum: doc.agent.num_history_runs.minimum,
       maximum: doc.agent.num_history_runs.maximum
     }
+  },
+  team: {
+    modes: doc.team.mode,
+    markdown: doc.team.markdown.default,
+    addHistoryToContext: doc.team.add_history_to_context.default
   },
   apiKeyRefFormats: doc.api_key_ref.formats,
   writable: doc.config_store.writable

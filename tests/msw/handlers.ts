@@ -71,6 +71,11 @@ export const schemaFixture = {
     reasoning: false,
     numHistoryRuns: { default: 5, minimum: 1, maximum: 50 }
   },
+  team: {
+    modes: ['route', 'coordinate', 'broadcast', 'tasks'],
+    markdown: true,
+    addHistoryToContext: true
+  },
   apiKeyRefFormats: ['env:<PROVEDOR>_API_KEY', 'file:<caminho em SECRETS_DIR>'],
   writable: true
 }

@@ -95,6 +95,7 @@ describe('Navigation: item ativo', () => {
       ['Início', '/'],
       ['Playground', '/playground'],
       ['Agentes', '/agents'],
+      ['Teams', '/teams'],
       ['Tools', '/tools'],
       ['Dashboard', '/dashboard']
     ])

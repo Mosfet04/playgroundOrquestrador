@@ -9,7 +9,7 @@ export const FAKE_ORCHESTRATOR_URL = `http://127.0.0.1:${FAKE_ORCHESTRATOR_PORT}
 const isCI = !!process.env.CI
 // Sessão do usuário de teste, gravada pelo projeto `setup` (e2e/auth.setup.ts).
 export const AUTH_STATE = 'e2e/.auth/session.json'
-const CONFIG_AGENTS_SPEC = /config-crud\.agents\.spec\.ts/
+const CONFIG_AGENTS_SPEC = /config-crud\.(agents|teams)\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',
@@ -36,7 +36,9 @@ export default defineConfig({
       dependencies: ['setup'],
       testIgnore: CONFIG_AGENTS_SPEC
     },
-    // P2-06: o CRUD de agents muda a config que o dashboard conta; roda depois.
+    // P2-06: o CRUD de agents muda a config que o dashboard conta; roda depois
+    // (o de teams, P3-04, roda junto: o seed `time-config` tem o `agente-gama` como
+    // membro, e o CRUD de agents muda a lista de agents que o form de team mostra).
     {
       name: 'config-agents',
       testMatch: CONFIG_AGENTS_SPEC,

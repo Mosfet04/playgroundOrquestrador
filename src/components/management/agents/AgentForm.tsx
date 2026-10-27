@@ -25,8 +25,8 @@ import { useRequestError } from '../common/useRequestError'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema, withCurrent } from '../common/useConfigSchema'
 import { AgentFormValues, toFormValues, toPayload } from './agentFormValues'
-import { ExecutionSection } from './ExecutionSection'
-import { ModelSection } from './ModelSection'
+import { ExecutionSection } from '../common/ExecutionSection'
+import { ModelSection } from '../common/ModelSection'
 import { SectionCard } from '../common/SectionCard'
 
 interface AgentFormProps {
@@ -282,7 +282,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
           </div>
         </SectionCard>
 
-        <ModelSection form={form} schema={schema} locked={selectsDisabled} />
+        <ModelSection entity="agent" form={form} schema={schema} locked={selectsDisabled} />
 
         <SectionCard
           id="agent-instructions"
@@ -302,6 +302,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
         </SectionCard>
 
         <ExecutionSection
+          entity="agent"
           form={form}
           schema={schema}
           status={schemaState.status}
@@ -426,7 +427,15 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
                   description: t('deleteDescription', { name: agent.nome }),
                   deleted: t('deleted'),
                   failed: t('deleteError'),
-                  notFound: t('notFound')
+                  notFound: t('notFound'),
+                  blocked: {
+                    title: t('deleteBlockedTitle'),
+                    description: (count) =>
+                      t('deleteBlockedDescription', { name: agent.nome, count }),
+                    list: t('deleteBlockedList', { name: agent.nome }),
+                    generic: t('deleteBlockedGeneric'),
+                    opensInNewTab: tc('opensInNewTab')
+                  }
                 }}
                 disabled={loading}
                 onDeleted={onSuccess}

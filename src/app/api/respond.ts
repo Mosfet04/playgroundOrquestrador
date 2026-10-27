@@ -27,7 +27,8 @@ export const orchestratorError = (error: OrchestratorErrorCode) =>
 
 // Recusas da API Admin (CRUD de agents/tools, P2-06): id existente ou em uso
 // (409), versão divergente (412) e corpo recusado (422, com o campo do
-// formulário quando há). Sem o detalhe nem quem usa a entidade.
+// formulário quando há). Sem o detalhe; de quem usa a entidade, só os ids dos
+// teams de um agent membro (409, D-P3-04-2).
 const CONFIG_REFUSALS: Record<number, string> = {
   409: 'conflict',
   412: 'version_conflict',
@@ -44,7 +45,10 @@ export function configError(failure: OrchestratorFailure) {
     {
       success: false,
       error,
-      ...(failure.status === 422 && failure.field ? { field: failure.field } : {})
+      ...(failure.status === 422 && failure.field ? { field: failure.field } : {}),
+      ...(failure.status === 409 && failure.usedByTeams
+        ? { used_by: { teams: failure.usedByTeams } }
+        : {})
     },
     { status: failure.status }
   )

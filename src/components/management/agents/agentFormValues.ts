@@ -1,11 +1,8 @@
-import { paramValue } from '@/lib/modelParams'
 import type { AgentConfig, CreateAgentForm } from '@/types/management'
+import { toModelParams, toParamRows, type ParamRow } from '../common/modelFormValues'
 
-// Valores do formulário do agent. Os parâmetros do modelo são linhas nome +
-// valor em texto (D-P3-02-2); `toPayload` os transforma no objeto do corpo.
-// Os campos de execução ausentes (agent novo ou sem o campo) ficam
-// `undefined` até o schema chegar, e valem o default dele.
-export type ParamRow = { name: string; value: string }
+// Valores do formulário do agent. Os campos de execução ausentes (agent novo
+// ou sem o campo) ficam `undefined` até o schema chegar, e valem o default dele.
 export type AgentFormValues = Omit<CreateAgentForm, 'model_params'> & { params: ParamRow[] }
 
 export const toFormValues = (agent?: AgentConfig | null): AgentFormValues => ({
@@ -21,10 +18,7 @@ export const toFormValues = (agent?: AgentConfig | null): AgentFormValues => ({
   rag_doc_name: agent?.rag_config?.doc_name || '',
   rag_model: agent?.rag_config?.model || '',
   rag_factoryIaModel: agent?.rag_config?.factoryIaModel || 'openai',
-  params: Object.entries(agent?.model_params ?? {}).map(([name, value]) => ({
-    name,
-    value: String(value)
-  })),
+  params: toParamRows(agent?.model_params),
   base_url: agent?.base_url ?? '',
   api_key_ref: agent?.api_key_ref ?? '',
   markdown: agent?.markdown,
@@ -41,7 +35,7 @@ export function toPayload(values: AgentFormValues, toolIds: string[]): CreateAge
   return {
     ...rest,
     tools_ids: toolIds,
-    model_params: Object.fromEntries(params.map(({ name, value }) => [name, paramValue(value)])),
+    model_params: toModelParams(params),
     // Campo numérico vazio dá NaN; com o histórico desligado o vazio é válido.
     num_history_runs: Number.isNaN(values.num_history_runs) ? undefined : values.num_history_runs
   }

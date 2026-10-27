@@ -10,7 +10,7 @@ import { callOrchestrator, type OrchestratorResult } from './client'
 // 428; outra: 412). Os ids vêm do browser e entram no path com
 // encodeURIComponent (o `..` que sobra é invalid_path no cliente).
 
-export type ConfigKind = 'agents' | 'tools'
+export type ConfigKind = 'agents' | 'teams' | 'tools'
 
 // GET /admin/config/{kind} é paginado por offset/limit (teto de 200 por
 // página no orquestrador) e traz os inativos.

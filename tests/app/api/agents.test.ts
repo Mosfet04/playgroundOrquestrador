@@ -756,15 +756,37 @@ describe('DELETE /api/agents/[id]', () => {
     ])
   })
 
-  it('agent em uso por um team (409) ⇒ 409 conflict, sem quem usa', async () => {
-    serveItem('delete', refusal(409, { detail: LEAK, used_by: { teams: ['time-secreto'] } }))
+  // D-P3-04-2: o BFF repassa só os ids dos teams (lista de strings), nada mais
+  // do corpo do orquestrador.
+  it('agent membro de teams (409) ⇒ 409 conflict com só os ids dos teams', async () => {
+    serveItem(
+      'delete',
+      refusal(409, { detail: LEAK, used_by: { teams: ['suporte', 'vendas'], agents: ['outro'], extra: LEAK } })
+    )
 
     const response = await del('assistente')
 
     expect(response.status).toBe(409)
     const text = await response.text()
-    expect(JSON.parse(text)).toEqual({ success: false, error: 'conflict' })
-    expect(text).not.toContain('time-secreto')
+    expect(JSON.parse(text)).toEqual({
+      success: false,
+      error: 'conflict',
+      used_by: { teams: ['suporte', 'vendas'] }
+    })
+    expect(text).not.toMatch(/detalhe-interno|outro/)
+  })
+
+  it.each([
+    ['sem used_by', { detail: LEAK }],
+    ['used_by.teams que não é lista de texto', { detail: LEAK, used_by: { teams: [1, { a: 1 }] } }],
+    ['used_by.teams vazio', { detail: LEAK, used_by: { teams: [] } }]
+  ])('409 %s ⇒ 409 conflict sem lista', async (_, body) => {
+    serveItem('delete', refusal(409, body))
+
+    const response = await del('assistente')
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({ success: false, error: 'conflict' })
   })
 
   it('412 ⇒ 412 version_conflict', async () => {

@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { Table, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { AgentConfig, AgentFilters } from '@/types/management'
 import { CountChips, listCounts, rowLinkClass, ShowingOf, UpdatedAt } from '../common/EntityList'
+import { ListAvatar } from '../common/ListAvatar'
 import {
   Chip,
   EmptyState,
@@ -23,30 +24,6 @@ import { cn } from '@/lib/utils'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 const SEPARATOR = ' · '
-
-// Avatar de 28 px com as iniciais: gradiente da marca; inativo em `secondary`.
-function AgentAvatar({ agent }: { agent: AgentConfig }) {
-  const initials = agent.nome
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => Array.from(word)[0])
-    .join('')
-    .toUpperCase()
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'flex size-7 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-medium',
-        agent.active
-          ? 'bg-gradient-to-br from-primary to-signal text-primary-foreground'
-          : 'bg-secondary text-secondary-foreground'
-      )}
-    >
-      {initials}
-    </span>
-  )
-}
 
 export function AgentManagement() {
   const [agents, setAgents] = useState<AgentConfig[]>([])
@@ -273,7 +250,7 @@ export function AgentManagement() {
                   <TableRow key={agent.id} className="group relative hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <AgentAvatar agent={agent} />
+                        <ListAvatar name={agent.nome} active={agent.active} />
                         <div className="flex min-w-0 flex-col">
                           <Link href={agentHref(agent)} className={rowLinkClass}>
                             {agent.nome}
@@ -315,7 +292,7 @@ export function AgentManagement() {
                 key={agent.id}
                 className="group relative flex h-16 items-center gap-3 px-3 hover:bg-muted/50"
               >
-                <AgentAvatar agent={agent} />
+                <ListAvatar name={agent.nome} active={agent.active} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <div className="flex min-w-0 items-center gap-2">
                     <Link href={agentHref(agent)} className={cn(rowLinkClass, 'truncate')}>

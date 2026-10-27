@@ -12,10 +12,10 @@ import { Chip } from '@/components/ui/loading'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { paramKind } from '@/lib/modelParams'
 import type { ChatProvider } from '@/types/management'
-import { FieldError } from '../common/FieldError'
-import { FieldWarning } from '../common/FieldWarning'
-import { withCurrent } from '../common/useConfigSchema'
-import type { AgentFormValues } from './agentFormValues'
+import { FieldError } from './FieldError'
+import { FieldWarning } from './FieldWarning'
+import { withCurrent } from './useConfigSchema'
+import type { ModelFormValues } from './modelFormValues'
 
 // Parâmetros do modelo (P3-02): linhas nome + valor. O nome é um dos
 // `model_params` do provider escolhido (o gravado que ele não aceita fica, com
@@ -28,7 +28,7 @@ export function ModelParams({
   schemaReady,
   locked
 }: {
-  form: UseFormReturn<AgentFormValues>
+  form: UseFormReturn<ModelFormValues>
   vendor: string
   provider: ChatProvider | undefined
   schemaReady: boolean

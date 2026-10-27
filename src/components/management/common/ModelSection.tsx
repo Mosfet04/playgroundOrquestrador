@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { ConfigSchema } from '@/types/management'
-import { FieldError } from '../common/FieldError'
-import { FieldWarning } from '../common/FieldWarning'
-import { withCurrent } from '../common/useConfigSchema'
-import type { AgentFormValues } from './agentFormValues'
+import { FieldError } from './FieldError'
+import { FieldWarning } from './FieldWarning'
+import { withCurrent } from './useConfigSchema'
+import type { ModelFormValues } from './modelFormValues'
 import { ModelParams } from './ModelParams'
-import { SectionCard } from '../common/SectionCard'
+import { SectionCard } from './SectionCard'
 
 // Map: o provider vem do orquestrador e não pode casar com propriedade de Object.
 const MODEL_EXAMPLES = new Map([
@@ -21,21 +21,28 @@ const MODEL_EXAMPLES = new Map([
   ['openai', 'gpt-4']
 ])
 
-// Seção Modelo (P3-02): provider, modelo, URL base (quando o provider a exige
-// ou há valor) e referência da chave de API (nunca o valor), mais os
-// parâmetros do modelo.
-export function ModelSection({
-  form,
+// Seção Modelo (P3-02, reusada pelo team na P3-04): provider, modelo, URL base
+// (quando o provider a exige ou há valor) e referência da chave de API (nunca o
+// valor), mais os parâmetros do modelo. Os textos que citam a entidade (título,
+// descrição, ajuda da referência) são os do namespace dela.
+export function ModelSection<T extends ModelFormValues>({
+  entity,
+  form: entityForm,
   schema,
   locked
 }: {
-  form: UseFormReturn<AgentFormValues>
+  entity: 'agent' | 'team'
+  form: UseFormReturn<T>
   schema: ConfigSchema | undefined
   // Sem schema ou store só leitura: o Select precisa de `disabled` próprio.
   locked: boolean
 }) {
   const t = useTranslations('agents.form')
+  const te = useTranslations(entity === 'agent' ? 'agents.form' : 'teams.form')
   const tc = useTranslations('common')
+  // O formulário da entidade tem estes campos (T estende ModelFormValues); o
+  // RHF não aceita o subconjunto como UseFormReturn sem o cast.
+  const form = entityForm as unknown as UseFormReturn<ModelFormValues>
   const { register, watch, setValue, formState } = form
   const { errors } = formState
   const factoryIaModel = watch('factoryIaModel')
@@ -73,7 +80,7 @@ export function ModelSection({
   const apiKeyRefError = errors.api_key_ref?.message
 
   return (
-    <SectionCard id="agent-model" title={t('modelSettings')} description={t('modelSettingsDescription')}>
+    <SectionCard id={`${entity}-model`} title={te('modelSettings')} description={te('modelSettingsDescription')}>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="factoryIaModel">{t('provider')}</Label>
@@ -157,10 +164,12 @@ export function ModelSection({
             {...apiKeyRefField}
           />
           <p id="api-key-ref-help" className="text-xs text-muted-foreground">
-            {t.rich('apiKeyRefHelp', {
-              formats: formats.join(' · '),
-              code: (chunks) => <code className="font-mono">{chunks}</code>
-            })}
+            {formats.length > 0
+              ? te.rich('apiKeyRefHelp', {
+                  formats: formats.join(' · '),
+                  code: (chunks) => <code className="font-mono">{chunks}</code>
+                })
+              : te('apiKeyRefHelpNoFormats')}
           </p>
           <FieldError id="api-key-ref-error" message={apiKeyRefError} />
         </div>

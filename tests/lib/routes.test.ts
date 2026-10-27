@@ -12,7 +12,9 @@ describe('activeState', () => {
     ['/agents/x', '/agents', 'true'],
     ['/agents/new', '/agents', 'true'],
     ['/agents/a%2Fb%3Fc', '/agents', 'true'],
-    ['/tools/clima', '/tools', 'true']
+    ['/tools/clima', '/tools', 'true'],
+    ['/teams', '/teams', 'page'],
+    ['/teams/suporte', '/teams', 'true']
   ])('%s em %s -> %s', (pathname, href, expected) => {
     expect(activeState(pathname, href)).toBe(expected)
   })
@@ -45,6 +47,7 @@ describe('describeRoute', () => {
 
   it.each([
     ['/agents/new', 'newAgent', 'agents'],
+    ['/teams/new', 'newTeam', 'teams'],
     ['/tools/new', 'newTool', 'tools']
   ] as const)('%s: rótulo de criação, não um id', (pathname, label, section) => {
     expect(describeRoute(pathname)).toEqual({
@@ -61,6 +64,15 @@ describe('describeRoute', () => {
       section: { href: '/agents', label: 'agents' },
       id: '<script> a/b',
       subtitle: 'agents'
+    })
+  })
+
+  it('detalhe de team: trilha Configurar › Teams › id', () => {
+    expect(describeRoute('/teams/suporte')).toEqual({
+      group: 'configure',
+      section: { href: '/teams', label: 'teams' },
+      id: 'suporte',
+      subtitle: 'teams'
     })
   })
 

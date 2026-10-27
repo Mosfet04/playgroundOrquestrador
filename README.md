@@ -12,6 +12,7 @@ Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/o
 
 - **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls (tempo e erro de cada uma), tempo e tokens de cada resposta, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo).
 - **Agentes** (`/agents`, `/agents/new`, `/agents/<id>`): criar, editar, excluir, buscar e filtrar; modelo, prompt, tools associadas e RAG.
+- **Teams** (`/teams`, `/teams/new`, `/teams/<id>`): criar, editar, excluir, buscar e filtrar; membros (agents), modo de coordenação, modelo do líder e execução.
 - **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): método, rota com `{param}` ligada aos parâmetros, headers, parâmetros com valor padrão e o preview da requisição.
 - **Dashboard** (`/dashboard`): agentes ativos, pico diário de usuários, sessões de agent e de team, tokens, modelos e atividade por dia, com filtro de período (Hoje, 7, 30 e 90 dias, em dias UTC).
 - **Primeiros passos** (`/`): guia com atalhos para criar agente, tool e testar.
@@ -29,7 +30,7 @@ graph LR
 ```
 
 - **Dashboard**: `/api/dashboard/stats` chama o `GET /metrics` (agregados por dia, em UTC) e o `GET /admin/config/agents` do orquestrador com a chave admin, sem Mongo. Como o `GET /metrics` só lê agregados prontos, o BFF pede antes o recálculo (`POST /metrics/refresh`), no máximo 1 vez por minuto por processo; se o refresh falhar, a leitura segue com o que houver. Sessões, tokens e modelos somam os dias do período; "Máx. usuários/dia" é o pico diário (o orquestrador não conta usuários únicos no período). O consumo de tokens por agente ou team espera as métricas por agente do orquestrador (F8).
-- **Gestão** (agentes e tools): as rotas `src/app/api/agents|tools` validam o corpo com zod e chamam a API Admin do orquestrador (`/admin/config/agents|tools`) com a chave admin; o playground não acessa o Mongo. O formulário de hoje é traduzido para o documento snake_case do orquestrador (`factoryIaModel` vira `factory_ia_model`, os campos `rag_*` viram `rag_config`). Lista, busca e filtros correm no BFF sobre a lista inteira. A versão lida (`version`) volta no `If-Match` ao salvar e ao excluir: se outra pessoa mudou a config no meio, o salvar falha com o código 412. Salvar um agent troca o documento inteiro, então o BFF lê o atual e sobrescreve só os campos do formulário (o que a tela não mostra, como `model_params` e `num_history_runs`, fica). O orquestrador valida: o campo que ele recusa (422) aparece no formulário com "Valor recusado pelo orquestrador", sem o valor. "Excluir" apaga de vez (`?hard=true`). O orquestrador não guarda datas: a coluna "Atualizado" mostra "—".
+- **Gestão** (agentes, teams e tools): as rotas `src/app/api/agents|teams|tools` validam o corpo com zod e chamam a API Admin do orquestrador (`/admin/config/agents|teams|tools`) com a chave admin; o playground não acessa o Mongo. O formulário de hoje é traduzido para o documento snake_case do orquestrador (`factoryIaModel` vira `factory_ia_model`, os campos `rag_*` viram `rag_config`). Lista, busca e filtros correm no BFF sobre a lista inteira. A versão lida (`version`) volta no `If-Match` ao salvar e ao excluir: se outra pessoa mudou a config no meio, o salvar falha com o código 412. Salvar um agent troca o documento inteiro, então o BFF lê o atual e sobrescreve só os campos do formulário (o que a tela não mostra, como `model_params` e `num_history_runs`, fica). O orquestrador valida: o campo que ele recusa (422) aparece no formulário com "Valor recusado pelo orquestrador", sem o valor. "Excluir" apaga de vez (`?hard=true`). O orquestrador não guarda datas: a coluna "Atualizado" mostra "—".
 - **Chat**: o navegador só fala com o playground. As rotas `src/app/api/playground/**` (BFF) chamam o AgentOS do orquestrador em `ORCHESTRATOR_URL`, com a chave run (excluir sessão usa a admin), e repassam o stream do run sem buffer. O `user_id` das sessões é o usuário do login. Não há endpoint no painel: a URL e as chaves ficam só no servidor.
 - **Quando a mudança vale**: o que você cria ou edita aqui fica na config do orquestrador e vale no chat **logo depois de salvar** (a API Admin só grava o que monta e troca o runtime em seguida).
 
@@ -56,6 +57,24 @@ O playground não lê nem grava o banco: o formato é o da API Admin do orquestr
     "search_strategy": "semantic"
   },
   "version": 3
+}
+```
+
+#### Team (`/admin/config/teams/<id>`)
+```json
+{
+  "id": "suporte",
+  "nome": "Suporte",
+  "descricao": "Atende o cliente",
+  "prompt": "Escolha o melhor membro.",
+  "active": true,
+  "member_ids": ["assistant-general", "pesquisador"],
+  "mode": "route",
+  "factory_ia_model": "openai",
+  "model": "gpt-4o",
+  "user_memory_active": true,
+  "summary_active": false,
+  "version": 2
 }
 ```
 
@@ -103,7 +122,7 @@ Crie o `.env.local` com as variáveis abaixo.
 | `AUTH_USERNAME` | usuário do login |
 | `AUTH_PASSWORD_HASH` | hash scrypt da senha do login, gerado por `pnpm auth:hash` (nunca a senha em claro) |
 
-As variáveis são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas só pelo cliente do servidor (`src/server/orchestrator/`): health, o chat (`/api/playground/*`), o dashboard (`/api/dashboard/*`) e a gestão (`/api/agents*`, `/api/tools*`) e as opções dos formulários (`/api/config/schema`).
+As variáveis são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas só pelo cliente do servidor (`src/server/orchestrator/`): health, o chat (`/api/playground/*`), o dashboard (`/api/dashboard/*`) e a gestão (`/api/agents*`, `/api/teams*`, `/api/tools*`) e as opções dos formulários (`/api/config/schema`).
 
 Para gerar o hash, passe a senha pelo stdin (não fica no histórico do shell):
 
@@ -145,6 +164,8 @@ O `/playground` usa o orquestrador de `ORCHESTRATOR_URL`; para trocar, mude a va
 
 **Editor de agent (P3-02):** cobre o documento inteiro do agent. Modelo: provedor, modelo, URL base (aparece e é obrigatória quando o provedor tem `requires_base_url`), referência da chave de API e parâmetros do modelo. A referência é só `env:<PROVEDOR>_API_KEY` ou `file:/caminho` (os formatos vêm do schema); um valor sem esse prefixo é recusado no navegador e nunca sai dele. Parâmetros: linhas nome + valor; o nome é um dos `model_params` do provedor escolhido e o tipo do valor é inferido (número com ponto, `true`/`false` ou texto; não expressa número como texto, ex. `stop: "1"`). Execução: Markdown, data e hora, histórico (com `num_history_runs` na faixa do schema), raciocínio, memória do usuário e resumo da sessão, cada um com o padrão do orquestrador. Salvar envia o documento do formulário: parâmetro removido ou URL base/referência vazia saem do documento; o RAG e chaves que o formulário não conhece são preservados.
 
+**Editor de team (P3-04):** cobre o documento inteiro do team. Membros: os agents do `GET /api/agents` (até 100) como linhas marcáveis, com busca no navegador; ao menos um (senão o formulário não envia) e a ordem gravada se mantém, com os novos no fim; um id gravado que já não existe aparece marcado com aviso até ser desmarcado, e o salvar fica desabilitado enquanto a lista de agents carrega ou falha. Modo: um cartão por valor de `team.mode` do schema, com a descrição; um valor gravado fora da lista é preservado até o usuário trocar. Modelo do líder e Execução reusam as seções do agent (Execução com Markdown, histórico, memória do usuário, ligada por padrão no team, e resumo). Excluir um agent que é membro de team é recusado pelo orquestrador (409 `used_by`): o BFF repassa só os ids dos teams e o diálogo de excluir lista cada um com link para `/teams/<id>`, em nova aba.
+
 ## Interface
 
 - **Cores e tema:** só tokens do Design System (`docs/design/design-system.md`): canais HSL em `src/app/globals.css` (`:root` = claro, `.dark` = escuro), mapeados no `tailwind.config.ts` (`bg-background`, `text-foreground`, `bg-primary`…). Nada de hex nem paleta crua do Tailwind nos componentes. O tema (Claro, Escuro ou Sistema, padrão Sistema) vem do `next-themes`, no botão do cabeçalho (no celular, também no rodapé do menu), e fica no `localStorage` (`theme`).
@@ -157,14 +178,14 @@ O `/playground` usa o orquestrador de `ORCHESTRATOR_URL`; para trocar, mude a va
 ```
 src/
 ├── app/
-│   ├── api/                 # rotas da API (agents, tools, dashboard, auth), validação zod
+│   ├── api/                 # rotas da API (agents, teams, tools, dashboard, auth), validação zod
 │   ├── login/               # tela de login (fora da casca)
 │   └── (app)/               # rotas com a casca (navegação + cabeçalho): /, /playground,
-│                            # /agents[/new|/<id>], /tools[/new|/<id>], /dashboard;
+│                            # /agents[/new|/<id>], /teams[/new|/<id>], /tools[/new|/<id>], /dashboard;
 │                            # error.tsx, not-found.tsx e o catch-all do 404
 ├── components/
 │   ├── layout/              # casca, navegação, cabeçalho, tema e idioma
-│   ├── management/          # agentes, tools, dashboard e primeiros passos
+│   ├── management/          # agentes, teams, tools, dashboard e primeiros passos
 │   ├── playground/          # chat e painel de sessões
 │   └── ui/                  # componentes base (shadcn) e estados (loading.tsx)
 ├── hooks/                   # stream do chat, sessões, ações do playground
@@ -222,16 +243,17 @@ Web UI for the [Agno Python AI Orchestrator](https://github.com/Mosfet04/orquest
 ### What it does today
 
 - **Chat playground** (`/playground`): chat with the orchestrator's agents and teams, with streaming, tool calls (time and error of each), time and tokens of each response, session history (Agno 2.5 `chat_history` and the legacy format) and media.
-- **Agents** (`/agents`, `/agents/new`, `/agents/<id>`) and **HTTP tools** (`/tools`, …): create, edit, delete, search and filter.
+- **Agents** (`/agents`, `/agents/new`, `/agents/<id>`), **teams** (`/teams`, …) and **HTTP tools** (`/tools`, …): create, edit, delete, search and filter. A team has members (agents), a coordination mode, a leader model and execution settings.
 - **Dashboard** (`/dashboard`) and **getting started** guide (`/`).
 - **Sign-in** (`/login`): the whole playground (pages and `/api/*`) requires a session for a single user configured on the server; sessions last 12 h, no renewal. "Sign out" is at the end of the navigation.
 - Every section has its own URL; light/dark theme; pt-BR and EN. Loading, empty and error states everywhere: with the orchestrator down you get the error with "Try again", and an unknown address shows the in-app 404.
 
 ### How it works today
 
-- **Management** (agents, tools, dashboard): the `src/app/api/**` routes validate input with zod and call the orchestrator's Admin API (`/admin/config/*`) and `/metrics` with the admin key; the playground never touches Mongo. The version read goes back in `If-Match` on save and delete (code 412 if someone changed it meanwhile); a field the orchestrator rejects (422) is shown on the form without the value; "Delete" removes for good (`?hard=true`); tool header values come back masked (`***`) and saving them unchanged keeps the stored value.
+- **Management** (agents, teams, tools, dashboard): the `src/app/api/**` routes validate input with zod and call the orchestrator's Admin API (`/admin/config/*`) and `/metrics` with the admin key; the playground never touches Mongo. The version read goes back in `If-Match` on save and delete (code 412 if someone changed it meanwhile); a field the orchestrator rejects (422) is shown on the form without the value; "Delete" removes for good (`?hard=true`); tool header values come back masked (`***`) and saving them unchanged keeps the stored value.
 - **Form options**: model and embedding providers, HTTP methods and parameter types come from the orchestrator's `GET /admin/schema` (via `/api/config/schema`, admin key, no cache), not from lists in the playground. While it loads the selects are disabled; if it fails the form shows a message with "Try again" and cannot be saved; a read-only config store (`config_store.writable = false`) disables the whole form. A stored value the orchestrator no longer offers stays selected and the orchestrator decides on save.
 - **Agent editor**: covers the whole agent document: model (provider, model, base URL when the provider requires it, API key reference, model parameters as name + value rows with the value type inferred), instructions, execution options (Markdown, date and time, history with the schema range, reasoning, user memory, session summary) and tools. The API key is only a reference (`env:` / `file:`); a pasted key is refused in the browser. Saving sends the form's document; the RAG and keys the form doesn't know are preserved.
+- **Team editor**: covers the whole team document: members (the agents from `GET /api/agents`, up to 100, as checkable rows with client-side search; at least one, stored order kept, new ones last; a stored id that no longer exists is shown checked with a warning; save is disabled while the agent list loads or fails), coordination mode (one card per `team.mode` value from the schema; a stored value outside the list is kept until changed), the leader model and execution (reused from the agent; user memory defaults to on for a team). Deleting an agent that is a team member is refused by the orchestrator (409 `used_by`): the BFF passes only the team ids and the delete dialog lists each one with a link to `/teams/<id>` in a new tab.
 - **Chat**: the browser only talks to the playground. The `src/app/api/playground/**` routes (BFF) call the orchestrator's AgentOS at `ORCHESTRATOR_URL` with the run key (deleting a session uses the admin key) and pass the run stream through unbuffered. The sessions' `user_id` is the logged-in user. There is no endpoint field in the panel: the URL and keys stay on the server.
 - **When changes apply**: what you create or edit here is stored in the orchestrator's config and takes effect in chat **right after saving**.
 

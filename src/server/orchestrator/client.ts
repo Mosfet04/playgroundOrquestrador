@@ -24,12 +24,14 @@ export type OrchestratorErrorCode =
   | 'invalid_path'
 
 // `field`/`indexes`: onde a API Admin recusou o corpo (422), sem o valor.
+// `usedByTeams`: ids dos teams que impedem excluir o agent (409, P3-04).
 export type OrchestratorFailure = {
   ok: false
   error: OrchestratorErrorCode
   status?: number
   field?: string
   indexes?: number[]
+  usedByTeams?: string[]
 }
 
 export type OrchestratorResult<T> = { ok: true; data: T } | OrchestratorFailure
@@ -119,6 +121,22 @@ async function invalidField(response: Response) {
   }
 }
 
+// 409 de DELETE com `used_by` (admin_config.py): só a lista de ids de teams
+// (D-P3-04-2); os outros tipos e o resto do corpo ficam aqui.
+const usedBySchema = z.object({
+  used_by: z.object({ teams: z.array(z.string().min(1).max(256)).min(1).max(100) })
+})
+
+async function usedByTeams(response: Response) {
+  try {
+    const parsed = usedBySchema.safeParse(JSON.parse(await response.text()))
+    return parsed.success ? { usedByTeams: parsed.data.used_by.teams } : {}
+  } catch {
+    // Corpo que não é JSON (ou prazo estourado na leitura): fica só o status.
+    return {}
+  }
+}
+
 // AbortSignal.timeout (e o abort do prazo do stream) rejeita com TimeoutError;
 // o resto é rede (DNS, conexão recusada), cuja mensagem cita o host interno.
 const fetchError = (error: unknown): OrchestratorErrorCode =>
@@ -171,6 +189,10 @@ export async function callOrchestrator<T>(
   if (response.status === 422) {
     const where = await invalidField(response)
     return { ...fail('rejected', 422), ...where }
+  }
+  if (response.status === 409 && method === 'DELETE') {
+    const where = await usedByTeams(response)
+    return { ...fail('rejected', 409), ...where }
   }
   if (!response.ok) {
     // Libera a conexão sem ler o corpo (que não sai daqui). Sem await: o
