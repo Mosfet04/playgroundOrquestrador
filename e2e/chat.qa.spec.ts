@@ -213,7 +213,13 @@ test.describe('desktop 1440', () => {
     await expect(composer(page)).toBeEnabled()
     await pickBeta(page)
     await send(page, HOLD)
-    await expect(page.getByText('executando')).toBeVisible()
+    // O "executando" da 1ª tool dura um chunk do fake: esperar só o texto deixa
+    // o evaluate cair entre as duas tools, com só o ponto do "gerando". A 2ª
+    // (abrir_troca) fica executando enquanto o stream está retido.
+    const tools = page.getByRole('log').getByRole('list', { name: 'Chamadas de tool' })
+    await expect(tools.getByRole('listitem').nth(0)).toContainText('0,18 s')
+    await expect(tools.getByRole('listitem').nth(1)).toContainText('executando')
+    await expect(page.getByText('gerando', { exact: true })).toBeVisible()
 
     const animations = await page.evaluate(() => {
       const names = (selector: string, pseudo?: string) =>
