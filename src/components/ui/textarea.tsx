@@ -8,10 +8,9 @@ type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 }
 
-// O mínimo é classe (`min-h-10` por padrão; o composer passa o dele) e o
-// autoajuste lê o min-height calculado (P2-03).
-const MAX_HEIGHT = 96
-
+// O mínimo e o teto são classes (`min-h-10` e `max-h-24` por padrão; o composer
+// e as Instruções passam os deles) e o autoajuste lê o min-height e o
+// max-height calculados (P2-03, P3-06).
 const TextArea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, value, onChange, ...props }, forwardedRef) => {
     const [showScroll, setShowScroll] = React.useState(false)
@@ -21,12 +20,15 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       const textarea = textareaRef.current
       if (!textarea) return
 
-      const minHeight = parseFloat(getComputedStyle(textarea).minHeight) || 0
+      const computed = getComputedStyle(textarea)
+      const minHeight = parseFloat(computed.minHeight) || 0
+      // `none` (sem teto) não é número.
+      const maxHeight = parseFloat(computed.maxHeight) || Infinity
       textarea.style.height = `${minHeight}px`
       const { scrollHeight } = textarea
-      const newHeight = Math.min(Math.max(scrollHeight, minHeight), MAX_HEIGHT)
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight)
       textarea.style.height = `${newHeight}px`
-      setShowScroll(scrollHeight > MAX_HEIGHT)
+      setShowScroll(scrollHeight > maxHeight)
     }, [])
 
     const handleChange = React.useCallback(
@@ -73,7 +75,7 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <textarea
         className={cn(
-          'min-h-10 w-full resize-none bg-transparent',
+          'max-h-24 min-h-10 w-full resize-none bg-transparent',
           'rounded-md border border-input',
           'px-3 py-2',
           'text-base leading-5 md:text-sm',
@@ -83,7 +85,6 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           showScroll ? 'overflow-y-auto' : 'overflow-hidden',
           className
         )}
-        style={{ maxHeight: `${MAX_HEIGHT}px` }}
         ref={handleRef}
         value={value}
         onChange={handleChange}

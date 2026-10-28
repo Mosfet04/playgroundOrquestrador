@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Desativar, Reativar e 412 em ações · desktop escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+<link rel="stylesheet" href="p306.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app dark" style="width: 1000px; min-height: 1900px; padding: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start">
+
+<div class="panel"><p class="cap">A1 · Desativar: confirmação (sem edições)</p>
+<div class="dlg-frame pad"><div class="pg-dialog" role="dialog" aria-modal="true" aria-labelledby="a1-t" aria-describedby="a1-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="a1-t">Desativar agente</h2><p id="a1-d" aria-live="polite">O orquestrador deixa de carregar o agente “Agente Alfa”, mas a configuração continua salva. Você pode reativá-lo aqui quando quiser.</p></div>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Cancelar</button><button class="pg-btn" type="button">Desativar</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">A2 · Desativar com edições não salvas no formulário (a nota só aparece com o formulário alterado)</p>
+<div class="dlg-frame pad"><div class="pg-dialog" role="dialog" aria-modal="true" aria-labelledby="a2-t" aria-describedby="a2-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="a2-t">Desativar agente</h2><p id="a2-d" aria-live="polite">O orquestrador deixa de carregar o agente “Agente Alfa”, mas a configuração continua salva. Você pode reativá-lo aqui quando quiser.</p></div>
+<p class="dlg-note"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><span>Você tem edições não salvas. Elas continuam no formulário; esta ação não as grava.</span></p>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Cancelar</button><button class="pg-btn" type="button">Desativar</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">A3 · Desativar agent membro de team (409 used_by): o mesmo diálogo “em uso” do Excluir</p>
+<div class="dlg-frame pad"><div class="pg-dialog" role="dialog" aria-modal="true" aria-labelledby="a3-t" aria-describedby="a3-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="a3-t">Agente em uso por teams</h2><p id="a3-d" aria-live="polite">Agente Alfa é membro de 2 teams. Tire-o da lista de membros de cada um e tente de novo.</p></div>
+<ul aria-label="Teams que usam Agente Alfa" style="list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 6px">
+<li><a href="#t1" style="display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 12px; font-family: var(--font-mono); color: var(--foreground); text-decoration: none">suporte-vendas<svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px; color: var(--muted-foreground)"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg></a></li>
+<li style="border-top: 1px solid var(--border)"><a href="#t2" style="display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 12px; font-family: var(--font-mono); color: var(--foreground); text-decoration: none">pesquisa-mercado<svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px; color: var(--muted-foreground)"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg></a></li>
+</ul>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Fechar</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">A4 · Desativando (DELETE sem hard em andamento)</p>
+<div class="dlg-frame pad"><div class="pg-dialog" role="dialog" aria-modal="true" aria-labelledby="a4-t" aria-describedby="a4-d" aria-busy="true">
+<button class="dlg-x" type="button" aria-label="Fechar" disabled style="opacity: .5"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="a4-t">Desativar agente</h2><p id="a4-d" aria-live="polite">O orquestrador deixa de carregar o agente “Agente Alfa”, mas a configuração continua salva. Você pode reativá-lo aqui quando quiser.</p></div>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" disabled>Cancelar</button><button class="pg-btn" type="button" disabled><svg class="pg-ico pg-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>Desativando…</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">A5 · 412 em Excluir, Desativar ou Reativar (aqui, Desativar): aviso de que mudou, com Recarregar</p>
+<div class="dlg-frame pad"><div class="pg-dialog" role="dialog" aria-modal="true" aria-labelledby="a5-t" aria-describedby="a5-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="a5-t">O agente mudou</h2><p id="a5-d" aria-live="polite">Uma versão mais nova foi salva antes desta ação. Nada foi desativado. Recarregue para ver a versão atual e decidir de novo.</p></div>
+<p class="dlg-note"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><span>Recarregar descarta as edições não salvas do formulário.</span></p>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Fechar</button><button class="pg-btn" type="button">Recarregar</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">A6 · Reativar (sem diálogo): botão em andamento e toast de resultado</p>
+<div style="display: flex; flex-direction: column; gap: 16px; padding: 16px; border: 1px dashed var(--input); border-radius: 8px">
+<div class="ed-title"><h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em">Editar agente</h1><span class="pg-badge pg-badge-neutral"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="10" x2="10" y1="15" y2="9"></line><line x1="14" x2="14" y1="15" y2="9"></line></svg>Inativo</span></div>
+<div class="foot"><div class="l"><button class="pg-btn pg-btn-outline" type="button" disabled><svg class="pg-ico pg-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>Reativando…</button><button class="pg-btn pg-btn-outline is-danger" type="button" disabled><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>Excluir agente</button></div></div>
+<div class="toast-wrap"><div class="pg-toast pg-toast-success" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><div class="pg-toast-body"><span class="pg-toast-title">Agente reativado</span></div></div></div>
+</div></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

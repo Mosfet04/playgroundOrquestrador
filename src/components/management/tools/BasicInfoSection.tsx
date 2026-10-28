@@ -5,25 +5,22 @@ import { useTranslations } from 'next-intl'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { TextArea } from '@/components/ui/textarea'
 import { FieldError } from '../common/FieldError'
 import { SectionCard } from '../common/SectionCard'
 import type { ToolFormValues } from './toolFormValues'
 
-// Informações básicas da tool: identidade, instruções e se está ativa.
+// Informações básicas da tool: identidade e instruções (o estado ativo é do Desativar/Reativar, P3-06).
 export function BasicInfoSection({
   form,
-  isEditing,
-  readOnly
+  isEditing
 }: {
   form: UseFormReturn<ToolFormValues>
   isEditing: boolean
-  readOnly: boolean
 }) {
   const t = useTranslations('tools.form')
   const tc = useTranslations('common')
-  const { register, watch, setValue, formState } = form
+  const { register, formState } = form
   const { errors } = formState
 
   return (
@@ -64,7 +61,6 @@ export function BasicInfoSection({
             validate: (value) => value.trim() !== '' || tc('descriptionRequired')
           })}
           placeholder={t('descriptionPlaceholder')}
-          rows={3}
         />
         <FieldError message={errors.description?.message} />
       </div>
@@ -75,22 +71,8 @@ export function BasicInfoSection({
           id="instructions"
           {...register('instructions')}
           placeholder={t('instructionsPlaceholder')}
-          rows={2}
         />
         <FieldError message={errors.instructions?.message} />
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Label htmlFor="active">{t('active')}</Label>
-          <Switch
-            id="active"
-            checked={watch('active')}
-            disabled={readOnly}
-            onCheckedChange={(checked) => setValue('active', checked)}
-          />
-        </div>
-        <FieldError message={errors.active?.message} />
       </div>
     </SectionCard>
   )

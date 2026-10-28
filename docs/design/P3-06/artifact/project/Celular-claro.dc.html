@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Filtros, Instruções e conflito · celular claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+<link rel="stylesheet" href="p306.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app phone" style="width: 390px; min-height: 2300px; padding: 16px; gap: 32px; box-sizing: border-box">
+
+<div class="panel" style="gap: 16px"><p class="cap">M1 · /agents: Filtros com Buscar sempre visível (sem “Mostrar filtros”), p-4</p>
+<h1 class="m-title">Gerenciamento de agentes</h1>
+<div class="stats" style="margin-top: 0"><span class="pg-chip"><b>3</b><span class="pg-muted">agentes</span></span><span class="pg-chip" style="color: var(--success)"><span class="pg-dot" aria-hidden="true"></span><b>2</b>ativos</span><span class="pg-chip pg-muted"><b>1</b>inativo</span></div>
+<a class="pg-btn" href="#new" style="width: 100%"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Novo agente</a>
+<div class="fcard"><h2>Filtros</h2>
+<div class="fld"><label class="pg-label" for="m1-s">Buscar</label><div class="sbox"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input class="pg-input" id="m1-s" placeholder="ID, nome ou descrição…"></div></div>
+<div class="fld"><span class="pg-label">Apenas ativos</span><div class="sw-line"><button class="pg-switch" type="button" role="switch" aria-checked="false" aria-label="Apenas ativos"></button><span>Mostrar apenas agentes ativos</span></div></div>
+</div>
+<div class="m-list">
+<a class="row-link" href="#a"><span class="pg-avatar pg-grad" aria-hidden="true">AA</span><div class="row-txt"><div class="l1"><b>Agente Alfa</b><span class="pg-badge pg-badge-success"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ativo</span></div><span class="pg-cell-sub">agente-alfa · ollama/llama3.2</span></div><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+<a class="row-link" href="#b"><span class="pg-avatar" style="background: var(--secondary); color: var(--secondary-foreground)" aria-hidden="true">AB</span><div class="row-txt"><div class="l1"><b>Agente Beta</b><span class="pg-badge pg-badge-neutral"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="10" x2="10" y1="15" y2="9"></line><line x1="14" x2="14" y1="15" y2="9"></line></svg>Inativo</span></div><span class="pg-cell-sub">agente-beta · openai/gpt-4o</span></div><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+</div></div>
+
+<div class="panel" style="gap: 16px"><p class="cap">M2 · /tools: o mesmo Card, mesmo padding e mesma posição da busca (sem o switch)</p>
+<h1 class="m-title">Gerenciamento de tools</h1>
+<div class="stats" style="margin-top: 0"><span class="pg-chip"><b>3</b><span class="pg-muted">tools</span></span><span class="pg-chip" style="color: var(--success)"><span class="pg-dot" aria-hidden="true"></span><b>2</b>ativas</span><span class="pg-chip pg-muted"><b>1</b>inativa</span></div>
+<a class="pg-btn" href="#new" style="width: 100%"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Nova tool</a>
+<div class="fcard"><h2>Filtros</h2>
+<div class="fld"><label class="pg-label" for="m2-s">Buscar</label><div class="sbox"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input class="pg-input" id="m2-s" placeholder="ID, nome ou descrição…"></div></div>
+</div>
+<div class="m-list">
+<a class="row-link" href="#t1"><span class="pg-avatar" style="background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border)" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span><div class="row-txt"><div class="l1"><b>Clima</b><span class="pg-badge pg-badge-success"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ativa</span></div><span class="pg-cell-sub">clima · GET</span></div><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+<a class="row-link" href="#t3"><span class="pg-avatar" style="background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border)" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span><div class="row-txt"><div class="l1"><b>Legado</b><span class="pg-badge pg-badge-neutral"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="10" x2="10" y1="15" y2="9"></line><line x1="14" x2="14" y1="15" y2="9"></line></svg>Inativa</span></div><span class="pg-cell-sub">legado · GET</span></div><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+</div></div>
+
+<div class="panel" style="gap: 16px"><p class="cap">M3 · Instruções: textarea com 176 px de altura mínima (8 linhas)</p>
+<section class="sec" aria-labelledby="m3-h"><div class="sec-head"><h2 id="m3-h">Instruções</h2><p>O prompt de sistema que orienta o agente em toda conversa.</p></div>
+<div class="fld"><label class="pg-label" for="m3-p">Prompt do sistema</label><textarea class="ta min44" id="m3-p" style="font-size: 16px" placeholder="Descreva como o agente deve se comportar…"></textarea></div></section></div>
+
+<div class="panel" style="gap: 16px"><p class="cap">M4 · Conflito sem campo visível diferente: Dialog com 16 px de margem, texto à esquerda, botões com 8 px entre si, primário no topo</p>
+<div class="dlg-frame vp" style="margin: 0 -16px; border-left: 0; border-right: 0; border-radius: 0"><div class="pg-dialog vp" role="dialog" aria-modal="true" aria-labelledby="m4-t" aria-describedby="m4-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="m4-t">O team mudou</h2><p id="m4-d" aria-live="polite">Uma versão mais nova (v4) foi salva enquanto você editava a v2, mas nenhum campo do formulário difere. A mudança está em algo que este formulário não mostra.</p></div>
+<p class="pg-help">Salvar por cima grava só o que o formulário cobre; o resto da versão atual fica como está.</p>
+<div class="dlg-foot stack"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><button class="pg-btn pg-btn-outline" type="button">Recarregar a atual</button><button class="pg-btn" type="button">Salvar as minhas por cima</button></div>
+</div></div></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

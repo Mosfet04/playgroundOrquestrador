@@ -31,7 +31,7 @@ export function AgentEditor({ id }: { id?: string }) {
       icon={Bot}
       getLabel={(agent) => agent.nome}
     >
-      {(agent) => <AgentForm agent={agent} onSuccess={backToList} />}
+      {(agent, controls) => <AgentForm agent={agent} controls={controls} onSuccess={backToList} />}
     </EntityLoader>
   )
 }

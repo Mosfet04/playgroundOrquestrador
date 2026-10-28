@@ -731,7 +731,6 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
     ['reasoning', 'Raciocínio passo a passo'],
     ['user_memory_active', 'Memória do usuário'],
     ['summary_active', 'Resumo da sessão'],
-    ['active', 'Agente ativo'],
     ['rag_active', 'Habilitar RAG']
   ])('%s recusado (switch): erro no item e foco no switch', async (field, name) => {
     serveSave(rejectWith(field))
@@ -739,7 +738,7 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
 
     await user.click(saveButton())
 
-    // Execução: o erro está no <li> do próprio item; Ativo e RAG ficam fora da lista.
+    // Execução: o erro está no <li> do próprio item; o RAG fica fora da lista.
     const li = (await screen.findByRole('switch', { name })).closest('li')
     const scope = li ? within(li) : screen
     expect(await scope.findByText('Valor recusado pelo orquestrador')).toBeVisible()

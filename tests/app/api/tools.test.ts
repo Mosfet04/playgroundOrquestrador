@@ -395,8 +395,8 @@ describe('PUT /api/tools/[id]', () => {
 })
 
 describe('DELETE /api/tools/[id]', () => {
-  const del = (headers: Record<string, string> = { 'If-Match': '"2"' }) =>
-    DELETE(new NextRequest(`${API}/clima`, { method: 'DELETE', headers }), params('clima'))
+  const del = (headers: Record<string, string> = { 'If-Match': '"2"' }, query = '') =>
+    DELETE(new NextRequest(`${API}/clima${query}`, { method: 'DELETE', headers }), params('clima'))
 
   it('exclui de vez (hard=true) com o If-Match', async () => {
     serve('delete', '/admin/config/tools/:id', () => new HttpResponse(null, { status: 204 }))
@@ -405,6 +405,37 @@ describe('DELETE /api/tools/[id]', () => {
 
     expect(response.status).toBe(200)
     expect(seen[0]).toMatchObject({ path: '/admin/config/tools/clima?hard=true', ifMatch: '"2"', auth: ADMIN })
+  })
+
+  it('?soft=true desativa (sem hard) e devolve o documento traduzido com a versão nova', async () => {
+    serve('delete', '/admin/config/tools/:id', () =>
+      HttpResponse.json(doc({ active: false, version: 3 }))
+    )
+
+    const response = await del(undefined, '?soft=true')
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      success: true,
+      data: { ...asForm, active: false, version: 3 }
+    })
+    expect(seen).toEqual([
+      { method: 'DELETE', path: '/admin/config/tools/clima', auth: ADMIN, ifMatch: '"2"' }
+    ])
+  })
+
+  it.each(['?soft=1', '?soft=false', '?soft='])('%s ⇒ 400 sem chamar o orquestrador (D-P3-06-4)', async (query) => {
+    serve('delete', '/admin/config/tools/:id', () => new HttpResponse(null, { status: 204 }))
+
+    expect((await del(undefined, query)).status).toBe(400)
+    expect(seen).toEqual([])
+  })
+
+  it('?soft=true: 412 ⇒ version_conflict; sem If-Match ⇒ 400', async () => {
+    serve('delete', '/admin/config/tools/:id', refusal(412))
+
+    expect((await del(undefined, '?soft=true')).status).toBe(412)
+    expect((await del({}, '?soft=true')).status).toBe(400)
   })
 
   it('tool usada por um agent (409) ⇒ 409 conflict, sem quem usa', async () => {

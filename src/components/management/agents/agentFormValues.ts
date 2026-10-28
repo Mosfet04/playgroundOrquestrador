@@ -1,4 +1,4 @@
-import type { AgentConfig, CreateAgentForm } from '@/types/management'
+import type { AgentConfig, ConfigSchema, CreateAgentForm } from '@/types/management'
 import { toModelParams, toParamRows, type ParamRow } from '../common/modelFormValues'
 
 // Valores do formulário do agent. Os campos de execução ausentes (agent novo
@@ -49,3 +49,13 @@ export function toPayload(values: AgentFormValues, toolIds: string[]): CreateAge
     num_history_runs: Number.isNaN(values.num_history_runs) ? undefined : values.num_history_runs
   }
 }
+
+// Execução ausente vale o default do schema (o formulário o aplica ao abrir; o
+// conflito (P3-06) o aplica à versão atual para comparar o mesmo com o mesmo).
+export const executionDefaults = ({ agent }: ConfigSchema): Partial<AgentFormValues> => ({
+  markdown: agent.markdown,
+  add_datetime_to_context: agent.addDatetimeToContext,
+  add_history_to_context: agent.addHistoryToContext,
+  reasoning: agent.reasoning,
+  num_history_runs: agent.numHistoryRuns.default
+})

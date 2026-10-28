@@ -1,11 +1,12 @@
 import type { NextRequest } from 'next/server'
 
-import { deleteTeam, getTeam, replaceTeam } from '@/server/orchestrator/teams'
+import { deactivateTeam, deleteTeam, getTeam, replaceTeam } from '@/server/orchestrator/teams'
 
 import { parseJsonBody } from '../../parseJsonBody'
 import {
   badRequest,
   configError,
+  deleteMode,
   idSchema,
   ifMatchVersion,
   ok,
@@ -43,7 +44,13 @@ export async function PUT(request: NextRequest, context: Context) {
 export async function DELETE(request: NextRequest, context: Context) {
   const id = await routeId(context)
   const version = ifMatchVersion(request)
-  if (!id.success || version === null) return badRequest()
+  const mode = deleteMode(request)
+  if (!id.success || version === null || mode === null) return badRequest()
+  // `?soft=true` desativa (DELETE lógico, devolve o documento); sem ela, exclui de vez.
+  if (mode === 'soft') {
+    const soft = await deactivateTeam(id.data, version)
+    return soft.ok ? ok(soft.data) : configError(soft)
+  }
   const result = await deleteTeam(id.data, version)
   return result.ok ? ok() : configError(result)
 }

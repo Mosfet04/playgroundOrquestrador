@@ -6,6 +6,7 @@ import { isTeamFormField, type ModelParams, type TeamConfig, type TeamFormField 
 
 import {
   createConfig,
+  deactivateConfig,
   deleteConfig,
   getConfig,
   listConfigs,
@@ -162,3 +163,7 @@ export async function replaceTeam(id: string, input: Omit<TeamInput, 'id'>, vers
 }
 
 export const deleteTeam = (id: string, version: number) => deleteConfig('teams', id, version)
+
+export async function deactivateTeam(id: string, version: number) {
+  return mapped(await deactivateConfig('teams', id, version, teamSchema))
+}

@@ -61,6 +61,14 @@ export function ifMatchVersion(request: NextRequest) {
   return raw && /^\d{1,15}$/.test(raw) ? Number(raw) : null
 }
 
+// DELETE do item (P3-06, D-P3-06-4): `?soft=true` desativa, sem `soft` exclui
+// de vez; qualquer outra forma de `soft` é pedido malformado (null ⇒ 400).
+export function deleteMode(request: NextRequest): 'soft' | 'hard' | null {
+  const values = request.nextUrl.searchParams.getAll('soft')
+  if (values.length === 0) return 'hard'
+  return values.length === 1 && values[0] === 'true' ? 'soft' : null
+}
+
 export const badRequest = () =>
   NextResponse.json(
     { success: false, error: 'invalid_request' },

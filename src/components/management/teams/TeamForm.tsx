@@ -8,13 +8,16 @@ import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { withDefaults } from '@/lib/formDiff'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { TextArea } from '@/components/ui/textarea'
 import { isTeamFormField, type TeamConfig, type TeamFormField } from '@/types/management'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
-import { DeleteEntityButton } from '../common/DeleteEntityButton'
+import { ConflictDialog } from '../common/ConflictDialog'
+import { EntityActions } from '../common/EntityActions'
+import type { EntityControls } from '../common/EntityLoader'
 import { ExecutionSection } from '../common/ExecutionSection'
 import { FieldError } from '../common/FieldError'
 import { ModelSection } from '../common/ModelSection'
@@ -22,19 +25,28 @@ import { rejectedField } from '../common/rejectedField'
 import { SectionCard } from '../common/SectionCard'
 import { useConfigSchema } from '../common/useConfigSchema'
 import { useRequestError } from '../common/useRequestError'
+import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
 import { MembersSection } from './MembersSection'
+import { diffTeam } from './teamDiff'
 import { ModeSection } from './ModeSection'
-import { toFormValues, toPayload, type TeamFormValues } from './teamFormValues'
+import { executionDefaults, toFormValues, toPayload, type TeamFormValues } from './teamFormValues'
 import { useMemberAgents } from './useMemberAgents'
 
 interface TeamFormProps {
   team?: TeamConfig | null
+  /** Só na edição: recarregar, trocar a versão ou só atualizá-la (P3-06). */
+  controls?: EntityControls<TeamConfig>
   onSuccess: () => void
 }
 
-export function TeamForm({ team, onSuccess }: TeamFormProps) {
+export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
   const [loading, setLoading] = useState(false)
+  // Desativar, Reativar ou Excluir em andamento (P3-06): Salvar e Cancelar esperam.
+  const [acting, setActing] = useState(false)
+  const saveRef = useRef<HTMLButtonElement>(null)
   const t = useTranslations('teams')
+  const tt = useTranslations('teams.form')
+  const ta = useTranslations('agents.form')
   const tc = useTranslations('common')
   const requestError = useRequestError()
   const { state: schemaState, retrying, reload: reloadSchema } = useConfigSchema()
@@ -94,28 +106,45 @@ export function TeamForm({ team, onSuccess }: TeamFormProps) {
     } else setError(field, error, { shouldFocus: true })
   }
 
-  const onSubmit = async (data: TeamFormValues) => {
+  // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
+  // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
+  // O estado nunca vem do formulário: salvar não liga nem desliga o team.
+  const submit = async (
+    data: TeamFormValues,
+    base?: { version: number; active: boolean },
+    dismiss?: () => void
+  ): Promise<OverwriteOutcome> => {
     try {
       setLoading(true)
+      const target = base ?? team
       const url = isEditing ? `/api/teams/${encodeURIComponent(team.id)}` : '/api/teams'
       // A versão lida vai no If-Match (P2-06): se mudou, o orquestrador recusa (412).
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(isEditing ? { 'If-Match': `"${team.version}"` } : {})
+          ...(target ? { 'If-Match': `"${target.version}"` } : {})
         },
-        body: JSON.stringify(toPayload(data))
+        body: JSON.stringify(toPayload({ ...data, active: target?.active ?? true }))
       })
       const result = response.ok ? await response.json() : null
 
       if (result?.success) {
         toast.success(t('saved'))
         onSuccess()
-      } else {
-        // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
-        const field = await rejectedField(response, isTeamFormField)
-        if (field) markRejected(field, data.params)
+        return 'saved'
+      }
+      // 412: o diálogo de conflito decide (sem toast).
+      if (isEditing && response.status === 412) return 'conflict'
+      // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
+      const field = await rejectedField(response, isTeamFormField)
+      if (field) {
+        // Salvar por cima: o diálogo fecha antes, para o foco ir ao campo com erro.
+        dismiss?.()
+        markRejected(field, data.params)
+      }
+      // 404 no "salvar por cima": o diálogo diz que foi excluído.
+      if (!(base && response.status === 404))
         // 409 só é "id já existe" na criação.
         toast.error(
           requestError(response.status, {
@@ -124,13 +153,35 @@ export function TeamForm({ team, onSuccess }: TeamFormProps) {
             notFound: t('notFound')
           })
         )
-      }
+      return response.status === 404 ? 'missing' : 'failed'
     } catch (error) {
       console.error('Error saving team:', error)
       toast.error(requestError(undefined, { failed: t('saveError') }))
+      return 'failed'
     } finally {
       setLoading(false)
     }
+  }
+
+  // O que difere entre o formulário e uma versão da config (P3-06), pelos
+  // mesmos valores que o salvar enviaria (o execution ausente vale o default do schema).
+  const compare = (other: TeamConfig) =>
+    diffTeam(
+      toPayload(getValues()),
+      toPayload(withDefaults(toFormValues(other), schema ? executionDefaults(schema) : {})),
+      tt,
+      ta
+    )
+
+  const conflict = useSaveConflict<TeamConfig>({
+    url: `/api/teams/${encodeURIComponent(team?.id ?? '')}`,
+    compare,
+    overwrite: (current, dismiss) => submit(getValues(), current, dismiss),
+    controls
+  })
+
+  const onSubmit = async (data: TeamFormValues) => {
+    if ((await submit(data)) === 'conflict' && team) conflict.start(team.version)
   }
 
   return (
@@ -144,9 +195,16 @@ export function TeamForm({ team, onSuccess }: TeamFormProps) {
             </Link>
           </Button>
           <div>
-            <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
-              {isEditing ? t('form.editTitle') : t('form.newTitle')}
-            </h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
+                {isEditing ? t('form.editTitle') : t('form.newTitle')}
+              </h1>
+              {team && (
+                <StatusBadge active={team.active}>
+                  {team.active ? t('active') : t('inactive')}
+                </StatusBadge>
+              )}
+            </div>
             <p className="text-muted-foreground">
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
@@ -205,28 +263,8 @@ export function TeamForm({ team, onSuccess }: TeamFormProps) {
                   id="descricao"
                   {...register('descricao')}
                   placeholder={t('form.descriptionPlaceholder')}
-                  rows={3}
                 />
                 <FieldError message={errors.descricao?.message} />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Controller
-                    control={control}
-                    name="active"
-                    render={({ field }) => (
-                      <Switch
-                        id="active"
-                        ref={field.ref}
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
-                  <Label htmlFor="active">{t('form.active')}</Label>
-                </div>
-                <FieldError message={errors.active?.message} />
               </div>
             </SectionCard>
           </fieldset>
@@ -288,8 +326,7 @@ export function TeamForm({ team, onSuccess }: TeamFormProps) {
                   id="prompt"
                   {...register('prompt')}
                   placeholder={t('form.systemPromptPlaceholder')}
-                  rows={8}
-                  className="min-h-44"
+                  className="min-h-44 max-h-96"
                 />
                 <FieldError message={errors.prompt?.message} />
               </div>
@@ -305,31 +342,40 @@ export function TeamForm({ team, onSuccess }: TeamFormProps) {
 
             {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
             <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-              {team && (
+              {team && controls && (
                 <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-                  <DeleteEntityButton
-                    url={`/api/teams/${encodeURIComponent(team.id)}`}
+                  <EntityActions
+                    kind="teams"
+                    id={team.id}
+                    name={team.nome}
                     version={team.version}
-                    texts={{
-                      label: t('deleteLabel'),
-                      title: t('deleteTitle'),
-                      description: t('deleteDescription', { name: team.nome }),
-                      deleted: t('deleted'),
-                      failed: t('deleteError'),
-                      notFound: t('notFound')
-                    }}
+                    active={team.active}
+                    isDirty={() => compare(team).length > 0}
                     disabled={loading}
+                    reactivateBody={() =>
+                      JSON.stringify(toPayload({ ...toFormValues(team), active: true }))
+                    }
                     onDeleted={onSuccess}
+                    onChanged={controls.update}
+                    onReload={controls.reload}
+                    onBusyChange={setActing}
                   />
                 </div>
               )}
               <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-                <Button variant="outline" asChild className="h-10 sm:h-9">
-                  <Link href="/teams">{tc('cancel')}</Link>
+                <Button
+                  variant="outline"
+                  asChild
+                  className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                >
+                  <Link href="/teams" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                    {tc('cancel')}
+                  </Link>
                 </Button>
                 <Button
+                  ref={saveRef}
                   type="submit"
-                  disabled={loading || schemaState.status !== 'ready' || members.state.status !== 'ready'}
+                  disabled={loading || acting || schemaState.status !== 'ready' || members.state.status !== 'ready'}
                   className="h-10 gap-2 sm:h-9"
                 >
                   <Save className="size-4" aria-hidden="true" />
@@ -339,6 +385,15 @@ export function TeamForm({ team, onSuccess }: TeamFormProps) {
             </div>
           </fieldset>
         </form>
+        {team && controls && (
+          <ConflictDialog
+            {...conflict.dialog}
+            kind="teams"
+            name={team.nome}
+            listHref="/teams"
+            saveRef={saveRef}
+          />
+        )}
       </div>
     </div>
   )

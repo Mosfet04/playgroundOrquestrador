@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Diálogo de conflito · desktop escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+<link rel="stylesheet" href="p306.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app dark" style="width: 1272px; min-height: 2900px; padding: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start">
+
+<div style="display: flex; flex-direction: column; gap: 24px; min-width: 0">
+
+<div class="panel"><p class="cap">C1 · Buscando a versão atual (GET em andamento)</p>
+<div class="dlg-frame pad"><div class="pg-dialog wide" role="dialog" aria-modal="true" aria-labelledby="c1-t" aria-describedby="c1-d" aria-busy="true">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="c1-t">A tool mudou</h2><p id="c1-d" aria-live="polite">Uma versão mais nova foi salva enquanto você editava.</p></div>
+<div class="dlg-load" role="status"><span class="status-line"><span class="dot" aria-hidden="true"></span>Buscando a versão atual para comparar…</span><span class="pg-sk" style="height: 56px; border-radius: 6px"></span></div>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><button class="pg-btn pg-btn-outline is-danger" type="button" disabled>Salvar as minhas por cima</button><button class="pg-btn" type="button" disabled>Recarregar a atual</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">C3 · Falha ao reler a versão atual (5xx, rede, 401/403)</p>
+<div class="dlg-frame pad"><div class="pg-dialog wide" role="dialog" aria-modal="true" aria-labelledby="c3-t" aria-describedby="c3-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="c3-t">A tool mudou</h2><p id="c3-d" aria-live="polite">Uma versão mais nova foi salva enquanto você editava.</p></div>
+<p class="dlg-err" role="alert"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Não foi possível buscar a versão atual (código 503). Sem ela não dá para comparar nem salvar por cima.</span></p>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button">Voltar ao formulário</button><button class="pg-btn" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Tentar de novo</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">C4 · A versão atual foi excluída (GET 404): sem “Salvar por cima”</p>
+<div class="dlg-frame pad"><div class="pg-dialog wide" role="dialog" aria-modal="true" aria-labelledby="c4-t" aria-describedby="c4-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="c4-t">A tool foi excluída</h2><p id="c4-d" aria-live="polite">“Consulta de pedido” foi excluída enquanto você editava. As suas edições não podem ser salvas aqui; copie o que precisar antes de sair.</p></div>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><a class="pg-btn" href="#tools">Ir para a lista</a></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">C5 · Nenhum campo do formulário difere (mudou algo que ele não cobre): “Salvar por cima” vira o primário</p>
+<div class="dlg-frame pad"><div class="pg-dialog wide" role="dialog" aria-modal="true" aria-labelledby="c5-t" aria-describedby="c5-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="c5-t">A tool mudou</h2><p id="c5-d" aria-live="polite">Uma versão mais nova (v8) foi salva enquanto você editava a v6, mas nenhum campo do formulário difere. A mudança está em algo que este formulário não mostra.</p></div>
+<p class="pg-help">Salvar por cima grava só o que o formulário cobre; o resto da versão atual fica como está.</p>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><button class="pg-btn pg-btn-outline" type="button">Recarregar a atual</button><button class="pg-btn" type="button">Salvar as minhas por cima</button></div>
+</div></div></div>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 24px; min-width: 0">
+
+<div class="panel"><p class="cap">C2 · Campos que diferem (tool): referência, oculto, texto, parâmetros · lista rola a partir de 320 px</p>
+<div class="dlg-frame pad"><div class="pg-dialog wide" role="dialog" aria-modal="true" aria-labelledby="c2-t" aria-describedby="c2-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="c2-t">A tool mudou</h2><p id="c2-d" aria-live="polite">Uma versão mais nova (v8) foi salva enquanto você editava a v6. 7 campos do formulário diferem da versão atual.</p></div>
+<div role="region" aria-label="Campos que diferem" tabindex="0"><ul class="diff">
+<li><p class="lbl">Rota/URL</p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">https://api.loja.example/pedidos/{id}</span></dd></div><div><dt>Atual</dt><dd><span class="m">https://api.loja.example/v2/pedidos/{id}</span></dd></div></dl></li>
+<li><p class="lbl">Método HTTP</p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">GET</span></dd></div><div><dt>Atual</dt><dd><span class="m">POST</span></dd></div></dl></li>
+<li><p class="lbl">Headers HTTP<span class="sep">›</span><span class="it">Authorization</span></p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">env:LOJA_API_KEY</span><span class="pg-chip">referência</span></dd></div><div><dt>Atual</dt><dd><span class="m">env:LOJA_API_KEY_V2</span><span class="pg-chip">referência</span></dd></div></dl></li>
+<li><p class="lbl">Headers HTTP<span class="sep">›</span><span class="it">X-Api-Key</span></p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="mask">***</span><span class="pg-chip"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>oculto</span></dd></div><div><dt>Atual</dt><dd><span class="m">file:/run/secrets/loja_key</span><span class="pg-chip">referência</span></dd></div></dl></li>
+<li><p class="lbl">Headers HTTP<span class="sep">›</span><span class="it">X-Trace</span></p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="mask">••••••</span><span class="pg-chip">texto</span></dd></div><div><dt>Atual</dt><dd><span class="mask">••••••</span><span class="pg-chip">texto</span></dd></div></dl><p class="hint">Valores em texto não são exibidos.</p></li>
+<li><p class="lbl">Parâmetros<span class="sep">›</span><span class="it">id</span></p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">string · obrigatório</span><span class="sub">Número do pedido.</span></dd></div><div><dt>Atual</dt><dd><span class="m">integer · obrigatório · padrão 1</span><span class="sub">Número do pedido.</span></dd></div></dl></li>
+<li><p class="lbl">Parâmetros<span class="sep">›</span><span class="it">pagina</span></p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">integer · opcional · padrão 1</span></dd></div><div><dt>Atual</dt><dd><span class="none">ausente</span></dd></div></dl></li>
+</ul></div>
+<p class="pg-help">Recarregar descarta as suas edições. Salvar por cima substitui os valores da versão atual pelos seus.</p>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><button class="pg-btn pg-btn-outline is-danger" type="button">Salvar as minhas por cima</button><button class="pg-btn" type="button">Recarregar a atual</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">C6 · Salvando por cima (PUT em andamento): tudo desabilitado, sem fechar</p>
+<div class="dlg-frame pad"><div class="pg-dialog wide" role="dialog" aria-modal="true" aria-labelledby="c6-t" aria-describedby="c6-d" aria-busy="true">
+<button class="dlg-x" type="button" aria-label="Fechar" disabled style="opacity: .5"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="c6-t">A tool mudou</h2><p id="c6-d" aria-live="polite">Uma versão mais nova (v8) foi salva enquanto você editava a v6. 2 campos do formulário diferem da versão atual.</p></div>
+<ul class="diff">
+<li><p class="lbl">Método HTTP</p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">GET</span></dd></div><div><dt>Atual</dt><dd><span class="m">POST</span></dd></div></dl></li>
+<li><p class="lbl">Rota/URL</p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">https://api.loja.example/pedidos/{id}</span></dd></div><div><dt>Atual</dt><dd><span class="m">https://api.loja.example/v2/pedidos/{id}</span></dd></div></dl></li>
+</ul>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" disabled>Voltar ao formulário</button><button class="pg-btn pg-btn-outline is-danger" type="button" disabled><svg class="pg-ico pg-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>Salvando…</button><button class="pg-btn" type="button" disabled>Recarregar a atual</button></div>
+</div></div></div>
+
+<div class="panel"><p class="cap">C7 · Mudou de novo durante “Salvar por cima” (novo 412): o diálogo fica, relê e avisa</p>
+<div class="dlg-frame pad"><div class="pg-dialog wide" role="dialog" aria-modal="true" aria-labelledby="c7-t" aria-describedby="c7-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="c7-t">A tool mudou</h2><p id="c7-d" aria-live="polite">Uma versão mais nova (v9) foi salva enquanto você editava a v6. 2 campos do formulário diferem da versão atual.</p></div>
+<p class="dlg-warn" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>Mudou de novo enquanto você decidia. A comparação foi atualizada e nada foi salvo.</span></p>
+<ul class="diff">
+<li><p class="lbl">Método HTTP</p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">GET</span></dd></div><div><dt>Atual</dt><dd><span class="m">PUT</span></dd></div></dl></li>
+<li><p class="lbl">Rota/URL</p><dl class="cmp"><div><dt>O seu valor</dt><dd><span class="m">https://api.loja.example/pedidos/{id}</span></dd></div><div><dt>Atual</dt><dd><span class="m">https://api.loja.example/v3/pedidos/{id}</span></dd></div></dl></li>
+</ul>
+<p class="pg-help">Recarregar descarta as suas edições. Salvar por cima substitui os valores da versão atual pelos seus.</p>
+<div class="dlg-foot"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><button class="pg-btn pg-btn-outline is-danger" type="button">Salvar as minhas por cima</button><button class="pg-btn" type="button">Recarregar a atual</button></div>
+</div></div></div>
+
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1272,"height":2900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

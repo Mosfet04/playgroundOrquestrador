@@ -72,10 +72,9 @@ describe('AgentForm', () => {
     renderWithIntl(<AgentForm onSuccess={() => {}} />)
 
     expect(
-      await screen.findByRole('switch', { name: 'Agente ativo' })
+      await screen.findByRole('switch', { name: 'Habilitar RAG' })
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('switch', { name: 'Habilitar RAG' })
-    ).toBeInTheDocument()
+    // P3-06: o estado ativo saiu do formulário (Desativar/Reativar no editor).
+    expect(screen.queryByRole('switch', { name: 'Agente ativo' })).not.toBeInTheDocument()
   })
 })

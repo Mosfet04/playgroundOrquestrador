@@ -9,6 +9,7 @@ import type { AgentConfig, Tool } from '@/types/management'
 
 import { server } from '../msw/server'
 import { SCHEMA_URL, schemaFixture } from '../msw/handlers'
+import { entityControls } from '../helpers/controls'
 import { renderWithIntl } from '../helpers/intl'
 
 // P3-01: AgentForm e ToolForm oferecem as opções do GET /api/config/schema (o
@@ -156,13 +157,13 @@ describe('AgentForm: opções do schema', () => {
 
   it('store só leitura: aviso e nada editável, nem salvar nem excluir', async () => {
     serveSchema({ writable: false })
-    renderWithIntl(<AgentForm agent={agent} onSuccess={() => {}} />)
+    renderWithIntl(<AgentForm agent={agent} controls={entityControls()} onSuccess={() => {}} />)
 
     expect(await screen.findByText(READ_ONLY)).toBeVisible()
     expect(screen.getByLabelText('Nome *')).toBeDisabled()
     expect(screen.getByRole('combobox', { name: /^Provedor \*/ })).toBeDisabled()
-    expect(screen.getByRole('switch', { name: 'Agente ativo' })).toBeDisabled()
     expect(saveButton()).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Desativar agente' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Excluir agente' })).toBeDisabled()
   })
 
@@ -328,13 +329,14 @@ describe('ToolForm: opções do schema', () => {
 
   it('store só leitura: aviso e nada editável, nem salvar nem excluir', async () => {
     serveSchema({ writable: false })
-    renderWithIntl(<ToolForm tool={tool} onSuccess={() => {}} />)
+    renderWithIntl(<ToolForm tool={tool} controls={entityControls()} onSuccess={() => {}} />)
 
     expect(await screen.findByText(READ_ONLY)).toBeVisible()
     for (const field of screen.getAllByLabelText(/^Nome/)) expect(field).toBeDisabled()
     expect(selectOf(/^Método HTTP/)).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Adicionar parâmetro' })).toBeDisabled()
     expect(saveButton()).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Desativar tool' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Excluir tool' })).toBeDisabled()
   })
 
@@ -362,7 +364,7 @@ describe('ToolForm: opções do schema', () => {
     ])
       expect(screen.getByRole('button', { name })).toBeDisabled()
     expect(screen.getByRole('switch', { name: 'Obrigatório' })).toBeDisabled()
-    expect(screen.getByRole('switch', { name: 'Tool ativa' })).toBeDisabled()
+    expect(screen.queryByRole('switch', { name: 'Tool ativa' })).not.toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Requisição' })).toHaveTextContent(
       'GET https://clima.example.com/v1/{cidade}/{uf}'
     )

@@ -474,8 +474,11 @@ describe('PUT /api/teams/[id]', () => {
 })
 
 describe('DELETE /api/teams/[id]', () => {
-  const del = (id: string, headers: Record<string, string> = { 'If-Match': '"3"' }) =>
-    DELETE(new NextRequest(`${API}/${id}`, { method: 'DELETE', headers }), params(id))
+  const del = (target: string, headers: Record<string, string> = { 'If-Match': '"3"' }) =>
+    DELETE(
+      new NextRequest(`${API}/${target}`, { method: 'DELETE', headers }),
+      params(target.split('?')[0])
+    )
 
   it('exclui de vez (hard=true) com o If-Match do browser', async () => {
     serveItem('delete', () => new HttpResponse(null, { status: 204 }))
@@ -487,6 +490,37 @@ describe('DELETE /api/teams/[id]', () => {
     expect(seen).toEqual([
       { method: 'DELETE', path: '/admin/config/teams/suporte?hard=true', auth: ADMIN, ifMatch: '"3"' }
     ])
+  })
+
+  it('?soft=true desativa (sem hard) e devolve o documento traduzido com a versão nova', async () => {
+    serveItem('delete', () => HttpResponse.json(doc({ active: false, version: 4 })))
+
+    const response = await del('suporte?soft=true')
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      success: true,
+      data: { ...asForm, active: false, version: 4 }
+    })
+    expect(seen).toEqual([
+      { method: 'DELETE', path: '/admin/config/teams/suporte', auth: ADMIN, ifMatch: '"3"' }
+    ])
+  })
+
+  it.each(['soft=1', 'soft=false', 'soft='])('?%s ⇒ 400 sem chamar o orquestrador (D-P3-06-4)', async (query) => {
+    serveItem('delete', () => new HttpResponse(null, { status: 204 }))
+
+    expect((await del(`suporte?${query}`)).status).toBe(400)
+    expect(seen).toEqual([])
+  })
+
+  it('?soft=true: 412 ⇒ version_conflict; 404 ⇒ not_found; sem If-Match ⇒ 400', async () => {
+    serveItem('delete', refusal(412))
+    expect((await del('suporte?soft=true')).status).toBe(412)
+    expect((await del('suporte?soft=true', {})).status).toBe(400)
+
+    serveItem('delete', refusal(404))
+    expect((await del('suporte?soft=true')).status).toBe(404)
   })
 
   it('sem If-Match ⇒ 400; 412 ⇒ version_conflict; 404 ⇒ not_found', async () => {

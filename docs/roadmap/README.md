@@ -43,6 +43,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P3-03 | concluído (editor de tool HTTP: rota `{param}` ligada a parâmetro obrigatório com ação de criar, `default_value` por tipo, headers texto/referência/`***` com nome sensível recusado no browser, preview da requisição como o orquestrador monta; decisão 0027) |
 | P3-04 | concluído (teams pela API Admin: BFF `/api/teams`, lista, editor com o documento inteiro — membros, modo em cartões, modelo do líder, prompt e execução —, Teams na navegação, excluir agent membro mostra os teams do 409 `used_by`; lista comum de agents/teams/tools como follow-up; decisão 0028) |
 | P3-05 | concluído (seletor de segredo único — formato `env:`/`file:` + alvo com a regra do orquestrador — no modelo do agent, do líder, no embedder e nos headers com modo Texto \| Segredo e "Usar segredo"; RAG com o documento inteiro — estratégia, parâmetros, URL base e referência do embedder —, desligado guarda os valores com `active: false`; decisão 0029) |
+| P3-06 | concluído (conflito no 412 em agent, team e tool com a comparação "o seu valor × atual" — Recarregar a atual ou Salvar as minhas por cima, segredo nunca exibido —; Desativar/Reativar ao lado de Excluir com selo de estado, switch "Ativo" removido; BFF `DELETE ?soft=true` e `soft` inválido ⇒ 400; colunas fixas, margem do Dialog, busca em 390 px, altura das Instruções; decisão 0030) |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

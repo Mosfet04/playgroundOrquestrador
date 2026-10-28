@@ -244,7 +244,7 @@ test.describe('desktop 1440', () => {
     await expect(page.getByText(`Agente Beta recebeu: ${first}`)).toBeVisible()
   })
 
-  test('V-P2-03-9 (1440): composer de 48 px; textareas dos formulários seguem com 40 px', async ({
+  test('V-P2-03-9 (1440): composer de 48 px; textareas dos formulários com 40 px, menos o prompt (176 px, P3-06)', async ({
     page
   }) => {
     await open(page)
@@ -263,8 +263,11 @@ test.describe('desktop 1440', () => {
       await page.goto(path)
       const areas = page.locator('main textarea')
       await expect(areas.first()).toBeVisible()
-      for (const box of await areas.all())
-        expect(Math.round((await box.boundingBox())!.height), path).toBe(40)
+      // O prompt do sistema tem 8 linhas de mínimo (V-P3-06-22); o resto, 40 px.
+      for (const box of await areas.all()) {
+        const isPrompt = (await box.getAttribute('id')) === 'prompt'
+        expect(Math.round((await box.boundingBox())!.height), path).toBe(isPrompt ? 176 : 40)
+      }
     }
   })
 })

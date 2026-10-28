@@ -6,6 +6,7 @@ import type { Tool, ToolFormField } from '@/types/management'
 
 import {
   createConfig,
+  deactivateConfig,
   deleteConfig,
   getConfig,
   listConfigs,
@@ -142,3 +143,7 @@ export async function replaceTool(id: string, input: ToolInput, version: number)
 
 export const deleteTool = (id: string, version: number) =>
   deleteConfig('tools', id, version)
+
+export async function deactivateTool(id: string, version: number) {
+  return mapped(await deactivateConfig('tools', id, version, toolSchema))
+}

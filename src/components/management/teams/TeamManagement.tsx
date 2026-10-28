@@ -3,7 +3,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { ChevronRight, Plus, Search, Filter } from 'lucide-react'
+import { ChevronRight, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,7 +34,6 @@ export function TeamManagement() {
   const [loadError, setLoadError] = useState<{ status?: number } | null>(null)
   const [filters, setFilters] = useState<{ active?: boolean }>({})
   const [searchTerm, setSearchTerm] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
   const t = useTranslations('teams')
   const tc = useTranslations('common')
   const searchRef = useRef<HTMLInputElement>(null)
@@ -91,9 +90,9 @@ export function TeamManagement() {
       <TableHead>{t('columnTeam')}</TableHead>
       <TableHead>{t('columnModel')}</TableHead>
       <TableHead>{t('columnMode')}</TableHead>
-      <TableHead className="text-right">{t('columnMembers')}</TableHead>
-      <TableHead>{tc('status')}</TableHead>
-      <TableHead>{tc('updated')}</TableHead>
+      <TableHead className="w-24 text-right">{t('columnMembers')}</TableHead>
+      <TableHead className="w-28">{tc('status')}</TableHead>
+      <TableHead className="w-32">{tc('updated')}</TableHead>
       <TableHead className="w-9">
         <span className="sr-only">{tc('open')}</span>
       </TableHead>
@@ -135,25 +134,9 @@ export function TeamManagement() {
       {/* Filtros e Busca */}
       <Card>
         <CardHeader className="p-4 pb-2 lg:p-6">
-          <div className="flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <CardTitle>
-              {tc('filters')}
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-xs lg:hidden"
-            >
-              <Filter className="w-3 h-3 mr-1" />
-              {showFilters ? t('hideFilters') : t('showFilters')}
-            </Button>
-          </div>
+          <CardTitle>{tc('filters')}</CardTitle>
         </CardHeader>
-        <CardContent className={cn(
-          "space-y-4 p-4 pt-0 lg:block lg:p-6 lg:pt-0",
-          !showFilters && "hidden"
-        )}>
+        <CardContent className="space-y-4 p-4 pt-0 lg:p-6 lg:pt-0">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="search">

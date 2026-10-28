@@ -8,6 +8,7 @@ import { teamBodySchema } from '@/app/api/teams/schema'
 import { TeamForm } from '@/components/management/teams/TeamForm'
 import type { TeamConfig } from '@/types/management'
 
+import { entityControls } from '../helpers/controls'
 import { renderWithIntl } from '../helpers/intl'
 import { SCHEMA_URL, schemaFixture } from '../msw/handlers'
 import { server } from '../msw/server'
@@ -609,7 +610,9 @@ describe('TeamForm: excluir', () => {
       })
     )
     const onSuccess = vi.fn()
-    const user = await ready(<TeamForm team={team} onSuccess={onSuccess} />)
+    const user = await ready(
+      <TeamForm team={team} controls={entityControls()} onSuccess={onSuccess} />
+    )
 
     await user.click(screen.getByRole('button', { name: 'Excluir team' }))
     const dialog = screen.getByRole('dialog', { name: 'Excluir team' })

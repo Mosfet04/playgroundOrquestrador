@@ -67,8 +67,7 @@ export const replaceConfig = <T>(
     schema
   })
 
-// Exclusão de vez (`?hard=true`, D-P2-06-3): o "Excluir" da UI apaga; o
-// DELETE lógico (desativar) fica para a P3-06.
+// Exclusão de vez (`?hard=true`, D-P2-06-3): o "Excluir" da UI apaga.
 export const deleteConfig = (kind: ConfigKind, id: string, version: number) =>
   callOrchestrator(itemPath(kind, id), {
     key: 'admin',
@@ -77,6 +76,15 @@ export const deleteConfig = (kind: ConfigKind, id: string, version: number) =>
     ifMatch: version,
     schema: z.undefined()
   })
+
+// DELETE lógico (sem `hard`, D-P3-06-3): o orquestrador grava `active: false`
+// e devolve o documento com a versão nova; em uso, 409 `used_by`.
+export const deactivateConfig = <T>(
+  kind: ConfigKind,
+  id: string,
+  version: number,
+  schema: z.ZodType<T>
+) => callOrchestrator(itemPath(kind, id), { key: 'admin', method: 'DELETE', ifMatch: version, schema })
 
 // Página do resultado já filtrado (a API Admin não filtra nem busca).
 export function pageOf<T>(items: T[], page: number, limit: number) {

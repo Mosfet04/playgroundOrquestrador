@@ -9,7 +9,7 @@ export const FAKE_ORCHESTRATOR_URL = `http://127.0.0.1:${FAKE_ORCHESTRATOR_PORT}
 const isCI = !!process.env.CI
 // Sessão do usuário de teste, gravada pelo projeto `setup` (e2e/auth.setup.ts).
 export const AUTH_STATE = 'e2e/.auth/session.json'
-const CONFIG_AGENTS_SPEC = /config-crud\.(agents|teams)\.spec\.ts/
+const CONFIG_AGENTS_SPEC = /config-crud\.(agents|teams|concurrency)\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',

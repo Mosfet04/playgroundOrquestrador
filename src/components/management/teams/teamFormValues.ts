@@ -1,4 +1,4 @@
-import type { CreateTeamForm, TeamConfig } from '@/types/management'
+import type { ConfigSchema, CreateTeamForm, TeamConfig } from '@/types/management'
 import { toModelParams, toParamRows, type ParamRow } from '../common/modelFormValues'
 
 // Modo de um team novo: o default da entidade (o schema só traz a lista).
@@ -31,3 +31,10 @@ export function toPayload(values: TeamFormValues): CreateTeamForm {
   const { params, ...rest } = values
   return { ...rest, model_params: toModelParams(params) }
 }
+
+// Execução ausente vale o default do schema (o formulário o aplica ao abrir; o
+// conflito (P3-06) o aplica à versão atual para comparar o mesmo com o mesmo).
+export const executionDefaults = ({ team }: ConfigSchema): Partial<TeamFormValues> => ({
+  markdown: team.markdown,
+  add_history_to_context: team.addHistoryToContext
+})

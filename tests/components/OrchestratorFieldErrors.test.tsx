@@ -151,19 +151,6 @@ describe('AgentForm: If-Match e 422 no campo', () => {
     expect(await screen.findByText('Não foi possível salvar o agente (código 422)')).toBeInTheDocument()
     expect(screen.queryByText(REJECTED)).not.toBeInTheDocument()
   })
-
-  it('412: mensagem genérica com o código', async () => {
-    server.use(noTools)
-    serveSaves('*/api/agents/:id', [
-      HttpResponse.json({ success: false, error: 'version_conflict' }, { status: 412 })
-    ])
-    const user = userEvent.setup()
-    renderAgent()
-
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
-
-    expect(await screen.findByText('Não foi possível salvar o agente (código 412)')).toBeInTheDocument()
-  })
 })
 
 describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {

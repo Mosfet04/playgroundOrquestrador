@@ -30,7 +30,7 @@ export function TeamEditor({ id }: { id?: string }) {
       icon={Users}
       getLabel={(team) => team.nome}
     >
-      {(team) => <TeamForm team={team} onSuccess={backToList} />}
+      {(team, controls) => <TeamForm team={team} controls={controls} onSuccess={backToList} />}
     </EntityLoader>
   )
 }

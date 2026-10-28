@@ -6,6 +6,7 @@ import type { AgentConfig, AgentFormField, ModelParams } from '@/types/managemen
 
 import {
   createConfig,
+  deactivateConfig,
   deleteConfig,
   getConfig,
   listConfigs,
@@ -294,3 +295,7 @@ export async function replaceAgent(
 
 export const deleteAgent = (id: string, version: number) =>
   deleteConfig('agents', id, version)
+
+export async function deactivateAgent(id: string, version: number) {
+  return mapped(await deactivateConfig('agents', id, version, agentSchema))
+}

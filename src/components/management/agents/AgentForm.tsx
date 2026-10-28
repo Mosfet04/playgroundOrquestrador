@@ -1,29 +1,34 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Controller, useForm, type FieldErrors, type Path } from 'react-hook-form'
+import { useState, useEffect, useRef } from 'react'
+import { useForm, type FieldErrors, type Path } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { withDefaults } from '@/lib/formDiff'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TextArea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
+import { StatusBadge } from '@/components/ui/status-badge'
 import {
   AgentConfig,
   AgentFormField,
   Tool,
   isAgentFormField
 } from '@/types/management'
-import { DeleteEntityButton } from '../common/DeleteEntityButton'
+import { ConflictDialog } from '../common/ConflictDialog'
+import { EntityActions } from '../common/EntityActions'
+import type { EntityControls } from '../common/EntityLoader'
 import { FieldError } from '../common/FieldError'
 import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema } from '../common/useConfigSchema'
-import { AgentFormValues, toFormValues, toPayload } from './agentFormValues'
+import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { diffAgent } from './agentDiff'
+import { AgentFormValues, executionDefaults, toFormValues, toPayload } from './agentFormValues'
 import { ExecutionSection } from '../common/ExecutionSection'
 import { ModelSection } from '../common/ModelSection'
 import { SectionCard } from '../common/SectionCard'
@@ -51,16 +56,22 @@ function firstRagErrorPath(found: FieldErrors<AgentFormValues>): Path<AgentFormV
 
 interface AgentFormProps {
   agent?: AgentConfig | null
+  /** Só na edição: recarregar, trocar a versão ou só atualizá-la (P3-06). */
+  controls?: EntityControls<AgentConfig>
   onSuccess: () => void
 }
 
-export function AgentForm({ agent, onSuccess }: AgentFormProps) {
+export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
   const [loading, setLoading] = useState(false)
+  // Desativar, Reativar ou Excluir em andamento (P3-06): Salvar e Cancelar esperam.
+  const [acting, setActing] = useState(false)
   const [availableTools, setAvailableTools] = useState<Tool[]>([])
-  const [selectedToolIds, setSelectedToolIds] = useState<string[]>([])
+  const [selectedToolIds, setSelectedToolIds] = useState<string[]>(agent?.tools_ids ?? [])
   const t = useTranslations('agents')
+  const tf = useTranslations('agents.form')
   const tc = useTranslations('common')
   const requestError = useRequestError()
+  const saveRef = useRef<HTMLButtonElement>(null)
   const { state: schemaState, retrying, reload: reloadSchema } = useConfigSchema()
 
   const isEditing = !!agent
@@ -74,7 +85,6 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
     setError,
     setFocus,
     clearErrors,
-    control,
     formState: { errors }
   } = form
   // RAG desligado com um campo com erro: os campos reaparecem (P3-05).
@@ -140,13 +150,6 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
     fetchTools()
   }, [])
 
-  // Definir tools selecionadas
-  useEffect(() => {
-    if (agent?.tools_ids) {
-      setSelectedToolIds(agent.tools_ids)
-    }
-  }, [agent])
-
   // Mostra o RAG desligado e leva o foco ao campo; o elemento só existe
   // visível depois do render.
   const [ragFocus, setRagFocus] = useState<Path<AgentFormValues> | null>(null)
@@ -194,12 +197,18 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
     } else setError(field, error, { shouldFocus: true })
   }
 
-  // Submit do formulário
-  const onSubmit = async (data: AgentFormValues) => {
+  // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
+  // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
+  // O estado nunca vem do formulário: salvar não liga nem desliga o agent.
+  const submit = async (
+    data: AgentFormValues,
+    base?: { version: number; active: boolean },
+    dismiss?: () => void
+  ): Promise<OverwriteOutcome> => {
     try {
       setLoading(true)
-
-      const payload = toPayload(data, selectedToolIds)
+      const target = base ?? agent
+      const payload = toPayload({ ...data, active: target?.active ?? true }, selectedToolIds)
 
       const url = isEditing ? `/api/agents/${encodeURIComponent(agent.id)}` : '/api/agents'
       const method = isEditing ? 'PUT' : 'POST'
@@ -209,7 +218,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...(isEditing ? { 'If-Match': `"${agent.version}"` } : {})
+          ...(target ? { 'If-Match': `"${target.version}"` } : {})
         },
         body: JSON.stringify(payload)
       })
@@ -219,10 +228,19 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
       if (result?.success) {
         toast.success(t('saved'))
         onSuccess()
-      } else {
-        // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
-        const field = await rejectedField(response, isAgentFormField)
-        if (field) markRejected(field, data)
+        return 'saved'
+      }
+      // 412: o diálogo de conflito decide (sem toast).
+      if (isEditing && response.status === 412) return 'conflict'
+      // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
+      const field = await rejectedField(response, isAgentFormField)
+      if (field) {
+        // Salvar por cima: o diálogo fecha antes, para o foco ir ao campo com erro.
+        dismiss?.()
+        markRejected(field, data)
+      }
+      // 404 no "salvar por cima": o diálogo diz que foi excluído.
+      if (!(base && response.status === 404))
         // 409 só é "id já existe" na criação.
         toast.error(
           requestError(response.status, {
@@ -231,13 +249,37 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
             notFound: t('notFound')
           })
         )
-      }
+      return response.status === 404 ? 'missing' : 'failed'
     } catch (error) {
       console.error('Error saving agent:', error)
       toast.error(requestError(undefined, { failed: t('saveError') }))
+      return 'failed'
     } finally {
       setLoading(false)
     }
+  }
+
+  // O que difere entre o formulário e uma versão da config (P3-06), pelos
+  // mesmos valores que o salvar enviaria (o execution ausente vale o default do schema).
+  const compare = (other: AgentConfig) =>
+    diffAgent(
+      toPayload(getValues(), selectedToolIds),
+      toPayload(
+        withDefaults(toFormValues(other), schema ? executionDefaults(schema) : {}),
+        other.tools_ids
+      ),
+      tf
+    )
+
+  const conflict = useSaveConflict<AgentConfig>({
+    url: `/api/agents/${encodeURIComponent(agent?.id ?? '')}`,
+    compare,
+    overwrite: (current, dismiss) => submit(getValues(), current, dismiss),
+    controls
+  })
+
+  const onSubmit = async (data: AgentFormValues) => {
+    if ((await submit(data)) === 'conflict' && agent) conflict.start(agent.version)
   }
 
   return (
@@ -252,9 +294,16 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
             </Link>
           </Button>
           <div>
-            <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
-              {isEditing ? t('form.editTitle') : t('form.newTitle')}
-            </h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
+                {isEditing ? t('form.editTitle') : t('form.newTitle')}
+              </h1>
+              {agent && (
+                <StatusBadge active={agent.active}>
+                  {agent.active ? t('active') : t('inactive')}
+                </StatusBadge>
+              )}
+            </div>
             <p className="text-muted-foreground">
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
@@ -310,28 +359,8 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
               id="descricao"
               {...register('descricao')}
               placeholder={t('form.descriptionPlaceholder')}
-              rows={3}
             />
             <FieldError message={errors.descricao?.message} />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Controller
-                control={control}
-                name="active"
-                render={({ field }) => (
-                  <Switch
-                    id="active"
-                    ref={field.ref}
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label htmlFor="active">{t('form.active')}</Label>
-            </div>
-            <FieldError message={errors.active?.message} />
           </div>
         </SectionCard>
 
@@ -355,7 +384,7 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
               id="prompt"
               {...register('prompt')}
               placeholder={t('form.systemPromptPlaceholder')}
-              rows={8}
+              className="min-h-44 max-h-96"
             />
             <FieldError message={errors.prompt?.message} />
           </div>
@@ -421,39 +450,40 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
         {/* Botões de ação */}
         {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
         <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {agent && (
+          {agent && controls && (
             <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-              <DeleteEntityButton
-                url={`/api/agents/${encodeURIComponent(agent.id)}`}
+              <EntityActions
+                kind="agents"
+                id={agent.id}
+                name={agent.nome}
                 version={agent.version}
-                texts={{
-                  label: t('deleteLabel'),
-                  title: t('deleteTitle'),
-                  description: t('deleteDescription', { name: agent.nome }),
-                  deleted: t('deleted'),
-                  failed: t('deleteError'),
-                  notFound: t('notFound'),
-                  blocked: {
-                    title: t('deleteBlockedTitle'),
-                    description: (count) =>
-                      t('deleteBlockedDescription', { name: agent.nome, count }),
-                    list: t('deleteBlockedList', { name: agent.nome }),
-                    generic: t('deleteBlockedGeneric'),
-                    opensInNewTab: tc('opensInNewTab')
-                  }
-                }}
+                active={agent.active}
+                isDirty={() => compare(agent).length > 0}
                 disabled={loading}
+                reactivateBody={() =>
+                  JSON.stringify(toPayload({ ...toFormValues(agent), active: true }, agent.tools_ids))
+                }
                 onDeleted={onSuccess}
+                onChanged={controls.update}
+                onReload={controls.reload}
+                onBusyChange={setActing}
               />
             </div>
           )}
           <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-            <Button variant="outline" asChild className="h-10 sm:h-9">
-              <Link href="/agents">{tc('cancel')}</Link>
+            <Button
+              variant="outline"
+              asChild
+              className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+            >
+              <Link href="/agents" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                {tc('cancel')}
+              </Link>
             </Button>
             <Button
+              ref={saveRef}
               type="submit"
-              disabled={loading || schemaState.status !== 'ready'}
+              disabled={loading || acting || schemaState.status !== 'ready'}
               className="h-10 gap-2 sm:h-9"
             >
               <Save className="w-4 h-4" />
@@ -463,6 +493,15 @@ export function AgentForm({ agent, onSuccess }: AgentFormProps) {
         </div>
         </fieldset>
       </form>
+      {agent && controls && (
+        <ConflictDialog
+          {...conflict.dialog}
+          kind="agents"
+          name={agent.nome}
+          listHref="/agents"
+          saveRef={saveRef}
+        />
+      )}
       </div>
     </div>
   )

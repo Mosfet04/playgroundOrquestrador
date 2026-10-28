@@ -860,8 +860,11 @@ describe('PUT /api/agents/[id]', () => {
 })
 
 describe('DELETE /api/agents/[id]', () => {
-  const del = (id: string, headers: Record<string, string> = { 'If-Match': '"3"' }) =>
-    DELETE(new NextRequest(`${API}/${id}`, { method: 'DELETE', headers }), params(id))
+  const del = (target: string, headers: Record<string, string> = { 'If-Match': '"3"' }) =>
+    DELETE(
+      new NextRequest(`${API}/${target}`, { method: 'DELETE', headers }),
+      params(target.split('?')[0])
+    )
 
   it('exclui de vez (hard=true) com o If-Match do browser', async () => {
     serveItem('delete', () => new HttpResponse(null, { status: 204 }))
@@ -879,6 +882,56 @@ describe('DELETE /api/agents/[id]', () => {
       }
     ])
   })
+
+  // P3-06 (D-P3-06-3): `?soft=true` é o DELETE lógico (sem `hard`); o
+  // orquestrador devolve o documento com active false e a versão nova.
+  it('?soft=true desativa (sem hard) e devolve o documento traduzido com a versão nova', async () => {
+    serveItem('delete', () => HttpResponse.json(doc({ active: false, version: 4 })))
+
+    const response = await del('assistente?soft=true')
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      success: true,
+      data: { ...asForm, active: false, version: 4 }
+    })
+    expect(seen).toEqual([
+      { method: 'DELETE', path: '/admin/config/agents/assistente', auth: ADMIN, ifMatch: '"3"' }
+    ])
+  })
+
+  it('?soft=true em agent membro de teams (409) ⇒ 409 conflict com os ids dos teams', async () => {
+    serveItem('delete', refusal(409, { detail: LEAK, used_by: { teams: ['suporte'] } }))
+
+    const response = await del('assistente?soft=true')
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      success: false,
+      error: 'conflict',
+      used_by: { teams: ['suporte'] }
+    })
+  })
+
+  it('?soft=true: 412 ⇒ version_conflict; sem If-Match ⇒ 400', async () => {
+    serveItem('delete', refusal(412))
+    expect((await del('assistente?soft=true')).status).toBe(412)
+    expect((await del('assistente?soft=true', {})).status).toBe(400)
+  })
+
+  // D-P3-06-4: `soft` presente e diferente de `true` é pedido malformado.
+  it.each(['soft=1', 'soft=false', 'soft=', 'soft=TRUE', 'soft=true&soft=false'])(
+    '?%s ⇒ 400 sem chamar o orquestrador',
+    async (query) => {
+      serveItem('delete', () => new HttpResponse(null, { status: 204 }))
+
+      const response = await del(`assistente?${query}`)
+
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({ success: false, error: 'invalid_request' })
+      expect(seen).toEqual([])
+    }
+  )
 
   // D-P3-04-2: o BFF repassa só os ids dos teams (lista de strings), nada mais
   // do corpo do orquestrador.

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Colunas fixas das listas · desktop claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+<link rel="stylesheet" href="p306.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app" style="width: 960px; min-height: 1240px; padding: 32px 24px; box-sizing: border-box"><div class="tbl-stack">
+
+<div class="panel"><p class="cap">Agentes · Tools w-24 (96) · Status w-28 (112) · Atualizado w-32 (128) · chevron w-9 (36). Linhas tracejadas = início de Status e de Atualizado (mesmo x nas três listas)</p>
+<div class="align-wrap"><div class="pg-table-wrap"><table class="pg-table fx">
+<thead><tr><th scope="col">Agente</th><th scope="col">Modelo</th><th scope="col" class="w-24" style="text-align: right">Tools</th><th scope="col" class="w-28">Status</th><th scope="col" class="w-32">Atualizado</th><th scope="col" class="w-9"><span class="sr">Abrir</span></th></tr></thead>
+<tbody>
+<tr><td><div class="pg-row" style="gap: 12px; flex-wrap: nowrap"><span class="pg-avatar pg-grad" aria-hidden="true">AA</span><div class="pg-cell-text"><a href="#a">Agente Alfa</a><span class="pg-cell-sub">agente-alfa</span></div></div></td><td><span class="pg-chip">ollama/llama3.2</span></td><td class="pg-num">3</td><td><span class="pg-badge pg-badge-success"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ativo</span></td><td class="nw" style="font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground)">27/10 09:14</td><td class="pg-go"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></td></tr>
+<tr><td><div class="pg-row" style="gap: 12px; flex-wrap: nowrap"><span class="pg-avatar" style="background: var(--secondary); color: var(--secondary-foreground)" aria-hidden="true">AB</span><div class="pg-cell-text"><a href="#b">Agente Beta</a><span class="pg-cell-sub">agente-beta</span></div></div></td><td><span class="pg-chip">openai/gpt-4o-mini-2024-07-18</span></td><td class="pg-num">12</td><td><span class="pg-badge pg-badge-neutral"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="10" x2="10" y1="15" y2="9"></line><line x1="14" x2="14" y1="15" y2="9"></line></svg>Inativo</span></td><td class="nw" style="font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground)">26/10 17:02</td><td class="pg-go"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></td></tr>
+<tr><td><div class="pg-row" style="gap: 12px; flex-wrap: nowrap"><span class="pg-avatar pg-grad" aria-hidden="true">AG</span><div class="pg-cell-text"><a href="#c">Agente Gama</a><span class="pg-cell-sub">agente-gama</span></div></div></td><td><span class="pg-chip">anthropic/claude-sonnet</span></td><td class="pg-num">0</td><td><span class="pg-badge pg-badge-success"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ativo</span></td><td class="nw" style="font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground)">—</td><td class="pg-go"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></td></tr>
+</tbody></table></div></div></div>
+
+<div class="panel"><p class="cap">Tools · Parâmetros w-24 (96)</p>
+<div class="align-wrap"><div class="pg-table-wrap"><table class="pg-table fx">
+<thead><tr><th scope="col">Tool</th><th scope="col">Requisição</th><th scope="col" class="w-24" style="text-align: right">Parâmetros</th><th scope="col" class="w-28">Status</th><th scope="col" class="w-32">Atualizado</th><th scope="col" class="w-9"><span class="sr">Abrir</span></th></tr></thead>
+<tbody>
+<tr><td><div class="pg-row" style="gap: 12px; flex-wrap: nowrap"><span class="pg-avatar" style="background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border)" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span><div class="pg-cell-text"><a href="#t1">Clima</a><span class="pg-cell-sub">clima</span></div></div></td><td><span class="pg-chip"><b>GET</b><span class="pg-muted">https://api.clima.example/v1/previsao</span></span></td><td class="pg-num">2</td><td><span class="pg-badge pg-badge-success"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ativa</span></td><td class="nw" style="font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground)">27/10 08:40</td><td class="pg-go"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></td></tr>
+<tr><td><div class="pg-row" style="gap: 12px; flex-wrap: nowrap"><span class="pg-avatar" style="background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border)" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span><div class="pg-cell-text"><a href="#t2">CEP</a><span class="pg-cell-sub">cep</span></div></div></td><td><span class="pg-chip"><b>POST</b><span class="pg-muted">https://viacep.example/ws/{cep}/json</span></span></td><td class="pg-num">1</td><td><span class="pg-badge pg-badge-success"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ativa</span></td><td class="nw" style="font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground)">25/10 11:20</td><td class="pg-go"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></td></tr>
+<tr><td><div class="pg-row" style="gap: 12px; flex-wrap: nowrap"><span class="pg-avatar" style="background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border)" aria-hidden="true"><svg class="pg-ico" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span><div class="pg-cell-text"><a href="#t3">Legado</a><span class="pg-cell-sub">legado</span></div></div></td><td><span class="pg-chip"><b>GET</b><span class="pg-muted">https://legado.example/status</span></span></td><td class="pg-num">0</td><td><span class="pg-badge pg-badge-neutral"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="10" x2="10" y1="15" y2="9"></line><line x1="14" x2="14" y1="15" y2="9"></line></svg>Inativa</span></td><td class="nw" style="font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground)">20/10 16:55</td><td class="pg-go"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></td></tr>
+</tbody></table></div></div></div>
+
+<div class="panel"><p class="cap">Teams · Membros w-24 (96)</p>
+<div class="align-wrap"><div class="pg-table-wrap"><table class="pg-table fx">
+<thead><tr><th scope="col">Team</th><th scope="col">Modelo</th><th scope="col">Modo</th><th scope="col" class="w-24" style="text-align: right">Membros</th><th scope="col" class="w-28">Status</th><th scope="col" class="w-32">Atualizado</th><th scope="col" class="w-9"><span class="sr">Abrir</span></th></tr></thead>
+<tbody>
+<tr><td><div class="pg-row" style="gap: 12px; flex-wrap: nowrap"><span class="pg-avatar pg-grad" aria-hidden="true">SE</span><div class="pg-cell-text"><a href="#m1">Suporte e Vendas</a><span class="pg-cell-sub">suporte-vendas</span></div></div></td><td><span class="pg-chip">openai/gpt-4.1</span></td><td><span class="pg-chip">route</span></td><td class="pg-num">3</td><td><span class="pg-badge pg-badge-success"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Ativo</span></td><td class="nw" style="font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground)">27/10 10:05</td><td class="pg-go"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></td></tr>
+<tr><td><div class="pg-row" style="gap: 12px; flex-wrap: nowrap"><span class="pg-avatar" style="background: var(--secondary); color: var(--secondary-foreground)" aria-hidden="true">TA</span><div class="pg-cell-text"><a href="#m2">Triagem antiga</a><span class="pg-cell-sub">triagem-antiga</span></div></div></td><td><span class="pg-chip">anthropic/claude-sonnet</span></td><td><span class="pg-chip">coordinate</span></td><td class="pg-num">4</td><td><span class="pg-badge pg-badge-neutral"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="10" x2="10" y1="15" y2="9"></line><line x1="14" x2="14" y1="15" y2="9"></line></svg>Inativo</span></td><td class="nw" style="font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground)">18/10 14:30</td><td class="pg-go"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></td></tr>
+</tbody></table></div></div></div>
+
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
