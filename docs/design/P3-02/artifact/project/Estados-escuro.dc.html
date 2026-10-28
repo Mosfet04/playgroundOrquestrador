@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Estados do editor de agent · desktop escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7397ff}a:hover{color:#a3bbff}
+</style>
+</helmet>
+<div class="pg-app dark board" style="width: 1440px; min-height: 2080px">
+
+  <!-- 1 -->
+  <div class="panel">
+    <p class="cap">1 · Valores gravados fora das opções (provider trocado para openai)</p>
+    <section class="sec" aria-label="Modelo">
+      <div class="g2">
+        <div class="fld"><label class="pg-label" for="p1">Provedor <span class="req">*</span></label><button class="pg-select" type="button" id="p1" role="combobox" aria-expanded="false"><span class="mono">openai</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+        <div class="fld"><label class="pg-label" for="m1">Modelo <span class="req">*</span></label><input class="pg-input mono" id="m1" value="gpt-4.1-mini"></div>
+        <div class="fld"><label class="pg-label" for="b1">URL base</label><input class="pg-input mono" id="b1" value="https://llm.interno:8000/v1" aria-describedby="b1-w"><p class="pg-warn" id="b1-w"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>openai não usa URL base. Ao salvar, o orquestrador decide se aceita; apague para remover.</span></p></div>
+        <div class="fld"><label class="pg-label" for="k1">Referência da chave de API</label><input class="pg-input mono" id="k1" value="env:OPENAI_API_KEY"></div>
+      </div>
+      <div class="sub">
+        <div class="sub-head"><div class="t"><b>Parâmetros do modelo</b><p class="pg-help">Nomes aceitos por openai. Valor: número com ponto (0.7), true/false ou texto.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar parâmetro</button></div>
+        <ul class="params" aria-label="Parâmetros do modelo">
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" aria-label="Nome do parâmetro 1"><span class="mono">temperature</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de temperature" value="0.2"><span class="pg-chip">número</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover temperature"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div></li>
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" aria-label="Nome do parâmetro 2" aria-describedby="w2"><span class="mono">keep_alive</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de keep_alive" value="5m"><span class="pg-chip">texto</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover keep_alive"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div>
+            <p class="pg-warn" id="w2"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>openai não aceita <code>keep_alive</code>. O orquestrador decide ao salvar; remova se não for usar.</span></p></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <!-- 2 -->
+  <div class="panel">
+    <p class="cap">2 · Validação no campo, antes de enviar</p>
+    <section class="sec" aria-label="Modelo">
+      <div class="g2">
+        <div class="fld"><label class="pg-label" for="p2">Provedor <span class="req">*</span></label><button class="pg-select" type="button" id="p2" role="combobox" aria-expanded="false"><span class="mono">openai_compatible</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+        <div class="fld"><label class="pg-label" for="m2">Modelo <span class="req">*</span></label><input class="pg-input mono" id="m2" value="qwen2.5:14b-instruct"></div>
+        <div class="fld"><label class="pg-label" for="b2">URL base <span class="req">*</span></label><input class="pg-input mono" id="b2" value="" placeholder="ex: https://llm.interno:8000/v1" aria-invalid="true" aria-describedby="b2-e"><p class="pg-error" id="b2-e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>openai_compatible exige URL base</span></p></div>
+        <div class="fld"><label class="pg-label" for="k2">Referência da chave de API</label><input class="pg-input mono" id="k2" value="OPENAI_API_KEY" aria-invalid="true" aria-describedby="k2-e"><p class="pg-error" id="k2-e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Use uma referência (<code>env:</code>, <code>file:</code>), nunca o valor da chave.</span></p></div>
+      </div>
+      <div class="sub">
+        <div class="sub-head"><div class="t"><b>Parâmetros do modelo</b><p class="pg-help">Nomes aceitos por openai_compatible. Valor: número com ponto (0.7), true/false ou texto.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar parâmetro</button></div>
+        <ul class="params" aria-label="Parâmetros do modelo">
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" aria-label="Nome do parâmetro 1"><span class="mono">temperature</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de temperature" value="0,7"><span class="pg-chip">texto</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover temperature"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div></li>
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" aria-label="Nome do parâmetro 2" aria-invalid="true" aria-describedby="e2"><span class="ph">Escolha</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor do parâmetro 2" value="" aria-invalid="true" aria-describedby="e2"><span class="pg-chip pg-muted" style="color: var(--muted-foreground)">—</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover parâmetro 2"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div>
+            <p class="pg-error" id="e2"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Escolha o parâmetro · Informe o valor</span></p></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <!-- 3 -->
+  <div class="panel">
+    <p class="cap">3 · 422 do orquestrador: no grupo (model_params) e na linha (model_params.&lt;nome&gt;)</p>
+    <section class="sec" aria-label="Parâmetros do modelo">
+      <div class="sub" style="border-top: 0; padding-top: 0">
+        <div class="sub-head"><div class="t"><b>Parâmetros do modelo</b><p class="pg-help">Nomes aceitos por openai. Valor: número com ponto (0.7), true/false ou texto.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar parâmetro</button></div>
+        <p class="pg-error grp-err" id="g3"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Valor recusado pelo orquestrador</span></p>
+        <ul class="params" aria-label="Parâmetros do modelo" aria-describedby="g3">
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" aria-label="Nome do parâmetro 1"><span class="mono">seed</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de seed" value="42"><span class="pg-chip">número</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover seed"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div></li>
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" aria-label="Nome do parâmetro 2"><span class="mono">reasoning_effort</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono is-focus" aria-label="Valor de reasoning_effort" value="altíssimo" aria-invalid="true" aria-describedby="e3"><span class="pg-chip">texto</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover reasoning_effort"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div>
+            <p class="pg-error" id="e3"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Valor recusado pelo orquestrador</span></p></li>
+        </ul>
+        <p class="pg-help">Só um dos dois aparece por envio: na linha quando o 422 nomeia o parâmetro, no grupo quando nomeia só <code>model_params</code>. O foco vai ao campo da linha ou ao primeiro valor da lista.</p>
+      </div>
+    </section>
+    <section class="sec" aria-label="Execução">
+      <div class="sw-child" style="padding-left: 0"><label class="pg-label" for="r3">Execuções no histórico</label><input class="pg-input mono num" id="r3" type="number" value="60" aria-invalid="true" aria-describedby="r3-e"><p class="pg-error" id="r3-e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Use um inteiro de 1 a 50</span></p></div>
+    </section>
+  </div>
+
+  <!-- 4 -->
+  <div class="panel">
+    <p class="cap">4 · Lista vazia · provedor sem parâmetros · todos em uso</p>
+    <section class="sec" aria-label="Parâmetros do modelo, vazio">
+      <div class="sub" style="border-top: 0; padding-top: 0">
+        <div class="sub-head"><div class="t"><b>Parâmetros do modelo</b><p class="pg-help">Nomes aceitos por anthropic. Valor: número com ponto (0.7), true/false ou texto.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar parâmetro</button></div>
+        <p class="empty-line">Nenhum parâmetro: o modelo usa os padrões do provedor.</p>
+      </div>
+    </section>
+    <section class="sec" aria-label="Parâmetros do modelo, provedor sem parâmetros">
+      <div class="sub" style="border-top: 0; padding-top: 0">
+        <div class="sub-head"><div class="t"><b>Parâmetros do modelo</b><p class="pg-help" id="n4">acme_llm não aceita parâmetros.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button" disabled aria-describedby="n4">Adicionar parâmetro</button></div>
+        <p class="empty-line">Nenhum parâmetro: o modelo usa os padrões do provedor.</p>
+      </div>
+    </section>
+    <section class="sec" aria-label="Parâmetros do modelo, todos em uso">
+      <div class="sub" style="border-top: 0; padding-top: 0">
+        <div class="sub-head"><div class="t"><b>Parâmetros do modelo</b><p class="pg-help" id="a4">Todos os parâmetros de mini_llm já estão na lista.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button" disabled aria-describedby="a4">Adicionar parâmetro</button></div>
+        <ul class="params" aria-label="Parâmetros do modelo">
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" aria-label="Nome do parâmetro 1"><span class="mono">temperature</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de temperature" value="0"><span class="pg-chip">número</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover temperature"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div></li>
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" aria-label="Nome do parâmetro 2"><span class="mono">stream</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de stream" value="true"><span class="pg-chip">booleano</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover stream"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <!-- 5 -->
+  <div class="panel">
+    <p class="cap">5 · Carregando o schema</p>
+    <section class="sec" aria-label="Modelo" aria-busy="true">
+      <div class="g2">
+        <div class="fld"><label class="pg-label" for="p5">Provedor <span class="req">*</span></label><button class="pg-select" type="button" id="p5" disabled><span class="ph">Selecione o provedor</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+        <div class="fld"><label class="pg-label" for="m5">Modelo <span class="req">*</span></label><input class="pg-input mono" id="m5" value="gpt-4.1-mini"></div>
+        <div class="fld"><label class="pg-label" for="k5">Referência da chave de API</label><input class="pg-input mono" id="k5" value="" placeholder="ex: env:OPENAI_API_KEY"></div>
+      </div>
+      <div class="sub">
+        <div class="sub-head"><div class="t"><b>Parâmetros do modelo</b></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button" disabled>Adicionar parâmetro</button></div>
+        <ul class="params" aria-label="Parâmetros do modelo">
+          <li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" disabled aria-label="Nome do parâmetro 1"><span class="mono">temperature</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de temperature" value="0.2"><span class="pg-chip">número</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover temperature"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div></li>
+        </ul>
+      </div>
+    </section>
+    <section class="sec" aria-labelledby="x5" aria-busy="true">
+      <div class="sec-head"><h2 id="x5">Execução</h2><p>Contexto que o agente recebe e como ele responde.</p></div>
+      <p class="status-line" role="status"><span class="dot" aria-hidden="true"></span>Carregando opções do orquestrador…</p>
+      <div class="sk-row"><span class="pg-sk sk-sw"></span><span class="pg-sk" style="width: 200px"></span></div>
+      <div class="sk-row"><span class="pg-sk sk-sw"></span><span class="pg-sk" style="width: 240px"></span></div>
+      <div class="sk-row"><span class="pg-sk sk-sw"></span><span class="pg-sk" style="width: 220px"></span></div>
+      <div class="sk-row"><span class="pg-sk sk-sw"></span><span class="pg-sk" style="width: 180px"></span></div>
+    </section>
+  </div>
+
+  <!-- 6 -->
+  <div class="panel">
+    <p class="cap">6 · Falha no schema (P3-01) · Execução sem opções</p>
+    <div class="notice-err" role="alert"><p>Não foi possível carregar as opções do orquestrador</p><button class="pg-btn pg-btn-outline" type="button">Tentar de novo</button></div>
+    <section class="sec" aria-labelledby="x6">
+      <div class="sec-head"><h2 id="x6">Execução</h2><p>Contexto que o agente recebe e como ele responde.</p></div>
+      <p class="empty-line">As opções de execução vêm do orquestrador. Use “Tentar de novo” no aviso acima.</p>
+    </section>
+    <p class="cap" style="margin-top: 12px">7 · Só leitura (writable: false)</p>
+    <p class="notice-ro" role="status">Configuração em modo somente leitura: o orquestrador não aceita alterações.</p>
+    <section class="sec" aria-labelledby="x7">
+      <div class="sec-head"><h2 id="x7">Execução</h2><p>Contexto que o agente recebe e como ele responde.</p></div>
+      <ul class="sws">
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="h7" disabled></button><div class="sw-txt"><label for="h7">Enviar histórico da sessão</label><p class="pg-help">As últimas execuções da sessão vão junto com cada pergunta.</p></div><span class="sw-dft">Padrão: ligado</span></div>
+          <div class="sw-child"><label class="pg-label" for="r7">Execuções no histórico</label><input class="pg-input mono num" id="r7" type="number" value="5" disabled><p class="pg-help">Inteiro de 1 a 50. Padrão: 5.</p></div></li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="s7" disabled></button><div class="sw-txt"><label for="s7">Resumo da sessão</label><p class="pg-help">Resume a conversa para manter o contexto em sessões longas.</p></div><span class="sw-dft">Padrão: desligado</span></div></li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- 8 -->
+  <div class="panel" style="grid-column: 1 / -1">
+    <p class="cap">8 · Agente novo: defaults do schema · histórico desligado deixa o número visível e desabilitado</p>
+    <section class="sec" aria-labelledby="x8">
+      <div class="sec-head"><h2 id="x8">Execução</h2><p>Contexto que o agente recebe e como ele responde.</p></div>
+      <ul class="sws">
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="md8"></button><div class="sw-txt"><label for="md8">Responder em Markdown</label><p class="pg-help">Títulos, listas e código formatados no chat.</p></div><span class="sw-dft">Padrão: ligado</span></div></li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="dt8"></button><div class="sw-txt"><label for="dt8">Enviar data e hora atuais</label><p class="pg-help">O agente sabe que dia e hora são.</p></div><span class="sw-dft">Padrão: ligado</span></div></li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="h8" aria-controls="r8"></button><div class="sw-txt"><label for="h8">Enviar histórico da sessão</label><p class="pg-help">As últimas execuções da sessão vão junto com cada pergunta.</p></div><span class="sw-dft">Padrão: ligado</span></div>
+          <div class="sw-child off"><label class="pg-label" for="r8">Execuções no histórico</label><input class="pg-input mono num" id="r8" type="number" value="5" disabled aria-describedby="r8-d"><p class="pg-help" id="r8-d">Ligue o histórico para usar. Inteiro de 1 a 50. Padrão: 5.</p></div></li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="rs8"></button><div class="sw-txt"><label for="rs8">Raciocínio passo a passo</label><p class="pg-help">O modelo pensa em etapas antes de responder.</p></div><span class="sw-dft">Padrão: desligado</span></div></li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="mm8"></button><div class="sw-txt"><label for="mm8">Memória do usuário</label><p class="pg-help">Guarda fatos sobre o usuário entre sessões.</p></div><span class="sw-dft">Padrão: desligado</span></div></li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="sm8"></button><div class="sw-txt"><label for="sm8">Resumo da sessão</label><p class="pg-help">Resume a conversa para manter o contexto em sessões longas.</p></div><span class="sw-dft">Padrão: desligado</span></div></li>
+      </ul>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

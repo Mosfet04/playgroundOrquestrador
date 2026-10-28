@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Estados do editor de tool · desktop escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7397ff}a:hover{color:#a3bbff}
+</style>
+</helmet>
+<div class="pg-app dark board" style="width: 1440px; min-height: 3160px; align-content: start">
+
+  <!-- 1 -->
+  <div class="panel">
+    <p class="cap">1 · Rota com {param} sem parâmetro obrigatório: erro na rota + ação de um clique</p>
+    <section class="sec" aria-label="Configuração HTTP">
+      <div class="fld"><label class="pg-label" for="m1">Método HTTP <span class="req">*</span></label><button class="pg-select" type="button" id="m1" role="combobox" aria-expanded="false"><span class="mono">GET</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+      <div class="fld">
+        <label class="pg-label" for="r1">Rota/URL <span class="req">*</span></label>
+        <input class="pg-input mono" id="r1" value="https://api.loja.example/v1/orders/{order_id}/items/{item_id}" aria-invalid="true" aria-describedby="r1-help r1-e">
+        <p class="pg-help" id="r1-help">Use <code>{nome}</code> para um parâmetro do caminho, ex.: <code>/v1/orders/{order_id}</code>. O host não aceita placeholders.</p>
+        <p class="pg-error" id="r1-e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>A rota usa <code>order_id</code> e <code>item_id</code> sem parâmetro obrigatório de mesmo nome.</span></p>
+        <div class="route-acts">
+          <button class="pg-btn pg-btn-outline pg-btn-sm" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Criar parâmetro <code>order_id</code></button>
+          <button class="pg-btn pg-btn-outline pg-btn-sm" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Criar parâmetro <code>item_id</code></button>
+          <button class="pg-btn pg-btn-sm" type="button">Criar os 2</button>
+        </div>
+      </div>
+    </section>
+    <section class="sec" aria-label="Parâmetros">
+      <div class="sub" style="border-top: 0; padding-top: 0">
+        <div class="sub-head"><div class="t"><b>Parâmetros</b><p class="pg-help">Configure os parâmetros aceitos pela API</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar parâmetro</button></div>
+        <p class="empty-line">Nenhum parâmetro configurado</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 2 -->
+  <div class="panel">
+    <p class="cap">2 · Depois de “Criar os 2”: obrigatório e travado, foco na descrição, anúncio em aria-live</p>
+    <section class="sec" aria-label="Parâmetros">
+      <div class="sub" style="border-top: 0; padding-top: 0">
+        <div class="sub-head"><div class="t"><b>Parâmetros</b><p class="pg-help">Configure os parâmetros aceitos pela API</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar parâmetro</button></div>
+        <ul class="plist" aria-label="Parâmetros">
+          <li class="pblk"><div class="pgrid">
+            <div class="fld c-name"><div class="lbl-row"><label class="pg-label" for="a1n">Nome <span class="req">*</span></label><span class="pg-chip on-route" id="a1r"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>na rota</span></div><input class="pg-input mono" id="a1n" value="order_id" aria-describedby="a1r"></div>
+            <div class="fld"><label class="pg-label" for="a1t">Tipo <span class="req">*</span></label><button class="pg-select" type="button" id="a1t" role="combobox" aria-expanded="false"><span class="mono">string</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="fld"><span class="pg-label" id="a1q">Obrigatório</span><div class="req-cell"><button class="pg-switch" type="button" role="switch" aria-checked="true" disabled aria-labelledby="a1q" aria-describedby="a1r"></button><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover order_id"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+            <div class="fld c-desc"><label class="pg-label" for="a1d">Descrição <span class="req">*</span></label><input class="pg-input is-focus" id="a1d" value="" placeholder="Descrição do parâmetro"></div>
+            <div class="fld c-def"><label class="pg-label" for="a1v">Valor padrão</label><input class="pg-input mono" id="a1v" value="" placeholder="ex: A-1042"></div>
+          </div></li>
+          <li class="pblk"><div class="pgrid">
+            <div class="fld c-name"><div class="lbl-row"><label class="pg-label" for="a2n">Nome <span class="req">*</span></label><span class="pg-chip on-route" id="a2r"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>na rota</span></div><input class="pg-input mono" id="a2n" value="item_id" aria-describedby="a2r"></div>
+            <div class="fld"><label class="pg-label" for="a2t">Tipo <span class="req">*</span></label><button class="pg-select" type="button" id="a2t" role="combobox" aria-expanded="false"><span class="mono">string</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="fld"><span class="pg-label" id="a2q">Obrigatório</span><div class="req-cell"><button class="pg-switch" type="button" role="switch" aria-checked="true" disabled aria-labelledby="a2q" aria-describedby="a2r"></button><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover item_id"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+            <div class="fld c-desc"><label class="pg-label" for="a2d">Descrição <span class="req">*</span></label><input class="pg-input" id="a2d" value="" placeholder="Descrição do parâmetro"></div>
+            <div class="fld c-def"><label class="pg-label" for="a2v">Valor padrão</label><input class="pg-input mono" id="a2v" value="" placeholder="ex: A-1042"></div>
+          </div></li>
+        </ul>
+        <p class="pg-help" role="status">Parâmetros <code>order_id</code> e <code>item_id</code> criados (texto só para leitor de tela; aqui para referência).</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 3 -->
+  <div class="panel">
+    <p class="cap">3 · Valor padrão convertido pelo tipo: inválido gera erro no campo; vazio = ausente</p>
+    <section class="sec" aria-label="Parâmetros">
+      <div class="sub" style="border-top: 0; padding-top: 0">
+        <p class="pg-help note-line"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><span>O orquestrador não envia o valor padrão sozinho: ele serve de exemplo no preview.</span></p>
+        <ul class="plist" aria-label="Parâmetros">
+          <li class="pblk"><div class="pgrid">
+            <div class="fld c-name"><div class="lbl-row"><label class="pg-label" for="b1n">Nome <span class="req">*</span></label></div><input class="pg-input mono" id="b1n" value="limit"></div>
+            <div class="fld"><label class="pg-label" for="b1t">Tipo <span class="req">*</span></label><button class="pg-select" type="button" id="b1t" role="combobox" aria-expanded="false"><span class="mono">integer</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="fld"><span class="pg-label" id="b1q">Obrigatório</span><div class="req-cell"><button class="pg-switch" type="button" role="switch" aria-checked="false" aria-labelledby="b1q"></button></div></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover limit"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+            <div class="fld c-desc"><label class="pg-label" for="b1d">Descrição <span class="req">*</span></label><input class="pg-input" id="b1d" value="Máximo de itens"></div>
+            <div class="fld c-def"><label class="pg-label" for="b1v">Valor padrão</label><input class="pg-input mono is-focus" id="b1v" value="dez" aria-invalid="true" aria-describedby="b1e"><p class="pg-error" id="b1e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Use um número inteiro (ex.: 10)</span></p></div>
+          </div></li>
+          <li class="pblk"><div class="pgrid">
+            <div class="fld c-name"><div class="lbl-row"><label class="pg-label" for="b2n">Nome <span class="req">*</span></label></div><input class="pg-input mono" id="b2n" value="status"></div>
+            <div class="fld"><label class="pg-label" for="b2t">Tipo <span class="req">*</span></label><button class="pg-select" type="button" id="b2t" role="combobox" aria-expanded="false"><span class="mono">array</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="fld"><span class="pg-label" id="b2q">Obrigatório</span><div class="req-cell"><button class="pg-switch" type="button" role="switch" aria-checked="false" aria-labelledby="b2q"></button></div></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+            <div class="fld c-desc"><label class="pg-label" for="b2d">Descrição <span class="req">*</span></label><input class="pg-input" id="b2d" value="Status aceitos"></div>
+            <div class="fld c-def"><label class="pg-label" for="b2v">Valor padrão</label><input class="pg-input mono" id="b2v" value='["aberto", "pago"' aria-invalid="true" aria-describedby="b2e"><p class="pg-error" id="b2e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Use uma lista JSON válida (ex.: [1, 2])</span></p></div>
+          </div></li>
+          <li class="pblk"><div class="pgrid">
+            <div class="fld c-name"><div class="lbl-row"><label class="pg-label" for="b3n">Nome <span class="req">*</span></label></div><input class="pg-input mono" id="b3n" value="filtro"></div>
+            <div class="fld"><label class="pg-label" for="b3t">Tipo <span class="req">*</span></label><button class="pg-select" type="button" id="b3t" role="combobox" aria-expanded="false"><span class="mono">object</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="fld"><span class="pg-label" id="b3q">Obrigatório</span><div class="req-cell"><button class="pg-switch" type="button" role="switch" aria-checked="false" aria-labelledby="b3q"></button></div></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover filtro"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+            <div class="fld c-desc"><label class="pg-label" for="b3d">Descrição <span class="req">*</span></label><input class="pg-input" id="b3d" value="Filtro por campo"></div>
+            <div class="fld c-def"><label class="pg-label" for="b3v">Valor padrão</label><input class="pg-input mono" id="b3v" value='{"loja": "SP"}' placeholder='ex: {"loja": "SP"}'></div>
+          </div></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <!-- 4 -->
+  <div class="panel">
+    <p class="cap">4 · Headers: erros de linha antes de enviar (nenhuma requisição sai)</p>
+    <section class="sec" aria-label="Headers HTTP">
+      <div class="sub" style="border-top: 0; padding-top: 0" role="group" aria-labelledby="h4">
+        <div class="sub-head"><div class="t"><b id="h4">Headers HTTP</b><p class="pg-help">Valor em texto ou referência <code>env:</code>/<code>file:</code>. Nome sensível (Authorization, Cookie, …-Key, …-Token) aceita só referência.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar header</button></div>
+        <div class="hcols" aria-hidden="true"><span>Nome</span><span>Valor</span><span>Estado</span><span></span></div>
+        <ul class="params" aria-label="Headers HTTP">
+          <li class="prow"><div class="hrow-ctl">
+            <input class="pg-input mono" aria-label="Nome do header 1" value="Authorization">
+            <div class="hv"><input class="pg-input mono is-focus" aria-label="Valor de Authorization" value="Bearer abc123" aria-invalid="true" aria-describedby="hs4 he4" autocomplete="off" spellcheck="false"></div>
+            <span class="pg-chip" id="hs4">texto</span>
+            <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover Authorization"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+          </div>
+          <p class="pg-error" id="he4"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span><code>Authorization</code> é sensível: use uma referência (<code>env:</code>, <code>file:</code>), nunca o valor.</span></p></li>
+          <li class="prow"><div class="hrow-ctl">
+            <input class="pg-input mono" aria-label="Nome do header 2" value="accept" aria-invalid="true" aria-describedby="he5">
+            <div class="hv"><input class="pg-input mono" aria-label="Valor de accept" value="text/plain" aria-describedby="hs5"></div>
+            <span class="pg-chip" id="hs5">texto</span>
+            <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover accept"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+          </div>
+          <p class="pg-error" id="he5"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Já existe um header com este nome</span></p></li>
+          <li class="prow"><div class="hrow-ctl">
+            <input class="pg-input mono" aria-label="Nome do header 3" value="" aria-invalid="true" aria-describedby="he6">
+            <div class="hv"><input class="pg-input mono" aria-label="Valor do header 3" value="" aria-invalid="true" aria-describedby="hs6 he6"></div>
+            <span class="pg-chip" id="hs6" style="color: var(--muted-foreground)">—</span>
+            <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover header 3"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+          </div>
+          <p class="pg-error" id="he6"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Informe o nome · Informe o valor</span></p></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <!-- 5 -->
+  <div class="panel">
+    <p class="cap">5 · Substituir o valor oculto (***) e origem da rota alterada</p>
+    <section class="sec" aria-label="Headers HTTP">
+      <div class="sub" style="border-top: 0; padding-top: 0" role="group" aria-labelledby="h5">
+        <div class="sub-head"><div class="t"><b id="h5">Headers HTTP</b></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar header</button></div>
+        <ul class="params" aria-label="Headers HTTP">
+          <li class="prow"><div class="hrow-ctl">
+            <input class="pg-input mono" aria-label="Nome do header 1" value="Authorization">
+            <div class="hv"><input class="pg-input mono is-focus" aria-label="Novo valor de Authorization" value="" placeholder="Novo valor ou env:/file:" autocomplete="off" spellcheck="false" aria-describedby="hs7"><button class="pg-btn pg-btn-ghost" type="button" aria-label="Manter o valor oculto de Authorization">Manter oculto</button></div>
+            <span class="pg-chip" id="hs7" style="color: var(--muted-foreground)">—</span>
+            <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover Authorization"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+          </div></li>
+          <li class="prow"><div class="hrow-ctl">
+            <input class="pg-input mono" aria-label="Nome do header 2" value="Cookie">
+            <div class="hv"><input class="pg-input mono mask" aria-label="Valor de Cookie (gravado, oculto)" value="***" readonly aria-describedby="hs8 h5-w"><button class="pg-btn pg-btn-outline" type="button" aria-label="Substituir o valor de Cookie">Substituir</button></div>
+            <span class="pg-chip" id="hs8"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>oculto</span>
+            <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover Cookie"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+          </div></li>
+        </ul>
+        <p class="pg-warn" id="h5-w"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>A origem da rota mudou (<code>https://api.loja.example</code> → <code>https://api.novo.example</code>). O orquestrador só mantém valores ocultos na mesma origem: substitua <code>Cookie</code>.</span></p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 6 -->
+  <div class="panel">
+    <p class="cap">6 · 422 do orquestrador: route, headers (grupo) e parameters.&lt;posição&gt; (foco no campo)</p>
+    <section class="sec" aria-label="Configuração HTTP">
+      <div class="fld">
+        <label class="pg-label" for="r9">Rota/URL <span class="req">*</span></label>
+        <input class="pg-input mono is-focus" id="r9" value="https://{region}.loja.example/v1/orders/{order_id}" aria-invalid="true" aria-describedby="r9-help r9-e">
+        <p class="pg-help" id="r9-help">Use <code>{nome}</code> para um parâmetro do caminho, ex.: <code>/v1/orders/{order_id}</code>. O host não aceita placeholders.</p>
+        <p class="pg-error" id="r9-e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Valor recusado pelo orquestrador</span></p>
+      </div>
+      <div class="sub" role="group" aria-labelledby="h9" aria-describedby="h9-e">
+        <div class="sub-head"><div class="t"><b id="h9">Headers HTTP</b></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button">Adicionar header</button></div>
+        <p class="pg-error grp-err" id="h9-e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>O orquestrador recusou algum header e não diz qual. Confira nomes sensíveis (use referência) e a origem da rota.</span></p>
+        <ul class="params" aria-label="Headers HTTP">
+          <li class="prow"><div class="hrow-ctl">
+            <input class="pg-input mono" aria-label="Nome do header 1" value="X-Api-Key">
+            <div class="hv"><input class="pg-input mono is-focus" aria-label="Valor de X-Api-Key" value="env:LOJA_API_KEY" aria-describedby="hs9"></div>
+            <span class="pg-chip" id="hs9">referência</span>
+            <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover X-Api-Key"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+          </div></li>
+        </ul>
+      </div>
+    </section>
+    <section class="sec" aria-label="Parâmetros">
+      <ul class="plist" aria-label="Parâmetros">
+        <li class="pblk"><div class="pgrid">
+          <div class="fld c-name"><div class="lbl-row"><label class="pg-label" for="c1n">Nome <span class="req">*</span></label></div><input class="pg-input mono is-focus" id="c1n" value="limit" aria-invalid="true" aria-describedby="c1e"></div>
+          <div class="fld"><label class="pg-label" for="c1t">Tipo <span class="req">*</span></label><button class="pg-select" type="button" id="c1t" role="combobox" aria-expanded="false"><span class="mono">integer</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+          <div class="fld"><span class="pg-label" id="c1q">Obrigatório</span><div class="req-cell"><button class="pg-switch" type="button" role="switch" aria-checked="false" aria-labelledby="c1q"></button></div></div>
+          <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover limit"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+          <div class="fld c-desc"><label class="pg-label" for="c1d">Descrição <span class="req">*</span></label><input class="pg-input" id="c1d" value="Máximo de itens"></div>
+          <div class="fld c-def"><label class="pg-label" for="c1v">Valor padrão</label><input class="pg-input mono" id="c1v" value="10"></div>
+        </div>
+        <p class="pg-error" id="c1e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Valor recusado pelo orquestrador</span></p></li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- 7 -->
+  <div class="panel">
+    <p class="cap">7 · Preview: POST com corpo JSON, percent-encode e rota vazia</p>
+    <section class="sec" aria-label="Requisição, POST">
+      <div class="sec-head"><h2>Requisição</h2><p>Como o orquestrador monta a chamada. Nada é enviado.</p></div>
+      <div class="pv" role="group" aria-label="Requisição montada">
+        <div><p class="pv-lab">Chamada</p><p class="pv-box"><span class="pv-m">POST</span> https://api.loja.example/v1/tickets/<span class="pv-def">T%2077</span>/notes</p></div>
+        <div><p class="pv-lab">Corpo (JSON)</p><pre class="pv-box">{
+  <span class="pv-k">"note":</span> <span class="pv-ph">{note}</span>,
+  <span class="pv-k">"notify":</span> <span class="pv-def">false</span>
+}</pre></div>
+        <div><p class="pv-lab">Headers</p><p class="pv-box"><span class="pv-k">Authorization:</span> env:LOJA_TOKEN</p></div>
+        <p class="pg-help">Texto aparece oculto; referências e <code>***</code> como estão.</p>
+        <p class="pv-legend pg-help"><span class="pv-def" style="color: var(--foreground)">valor padrão</span><span class="pv-ph">{nome}</span> sem padrão: o modelo informa</p>
+      </div>
+    </section>
+    <section class="sec" aria-label="Requisição, sem rota">
+      <div class="sec-head"><h2>Requisição</h2><p>Como o orquestrador monta a chamada. Nada é enviado.</p></div>
+      <p class="empty-line">Informe a rota para ver a requisição.</p>
+    </section>
+  </div>
+
+  <!-- 8 -->
+  <div class="panel">
+    <p class="cap">8 · Carregando o schema: método e tipos desabilitados, Salvar desabilitado; preview funciona</p>
+    <section class="sec" aria-label="Configuração HTTP" aria-busy="true">
+      <p class="status-line" role="status"><span class="dot" aria-hidden="true"></span>Carregando opções do orquestrador…</p>
+      <div class="g2">
+        <div class="fld"><label class="pg-label" for="m8">Método HTTP <span class="req">*</span></label><button class="pg-select" type="button" id="m8" disabled><span class="mono">GET</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+        <div class="fld"><label class="pg-label" for="r8">Rota/URL <span class="req">*</span></label><input class="pg-input mono" id="r8" value="https://api.loja.example/v1/orders/{order_id}"></div>
+      </div>
+      <ul class="plist" aria-label="Parâmetros">
+        <li class="pblk"><div class="pgrid">
+          <div class="fld c-name"><div class="lbl-row"><label class="pg-label" for="d1n">Nome <span class="req">*</span></label></div><input class="pg-input mono" id="d1n" value="order_id"></div>
+          <div class="fld"><label class="pg-label" for="d1t">Tipo <span class="req">*</span></label><button class="pg-select" type="button" id="d1t" disabled><span class="mono">string</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+          <div class="fld"><span class="pg-label" id="d1q">Obrigatório</span><div class="req-cell"><button class="pg-switch" type="button" role="switch" aria-checked="true" aria-labelledby="d1q"></button></div></div>
+          <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover order_id"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+          <div class="fld c-desc"><label class="pg-label" for="d1d">Descrição <span class="req">*</span></label><input class="pg-input" id="d1d" value="Código do pedido"></div>
+          <div class="fld c-def"><label class="pg-label" for="d1v">Valor padrão</label><input class="pg-input mono" id="d1v" value="A-1042"></div>
+        </div></li>
+      </ul>
+    </section>
+    <div class="foot"><span></span><div class="r"><a class="pg-btn pg-btn-outline" href="#tools">Cancelar</a><button class="pg-btn" type="submit" disabled>Salvar</button></div></div>
+  </div>
+
+  <!-- 9 -->
+  <div class="panel" style="grid-column: 1 / -1">
+    <p class="cap">9 · Falha no schema (esquerda) · Só leitura, writable: false (direita)</p>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+      <div class="panel">
+        <div class="notice-err" role="alert"><p>Não foi possível carregar as opções do orquestrador</p><button class="pg-btn pg-btn-outline" type="button">Tentar de novo</button></div>
+        <section class="sec" aria-label="Configuração HTTP">
+          <div class="g2">
+            <div class="fld"><label class="pg-label" for="m10">Método HTTP <span class="req">*</span></label><button class="pg-select" type="button" id="m10" disabled><span class="mono">GET</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="fld"><label class="pg-label" for="r10">Rota/URL <span class="req">*</span></label><input class="pg-input mono" id="r10" value="https://api.loja.example/v1/orders/{order_id}"></div>
+          </div>
+          <p class="pg-help">Tipos e método vêm do orquestrador. Use “Tentar de novo” no aviso acima; Salvar fica desabilitado.</p>
+        </section>
+      </div>
+      <div class="panel">
+        <p class="notice-ro" role="status">Configuração em modo somente leitura: o orquestrador não aceita alterações.</p>
+        <section class="sec" aria-label="Headers HTTP e parâmetros">
+          <div class="sub" style="border-top: 0; padding-top: 0">
+            <div class="sub-head"><div class="t"><b>Headers HTTP</b></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button" disabled>Adicionar header</button></div>
+            <ul class="params" aria-label="Headers HTTP">
+              <li class="prow"><div class="hrow-ctl">
+                <input class="pg-input mono" aria-label="Nome do header 1" value="Authorization" disabled>
+                <div class="hv"><input class="pg-input mono mask" aria-label="Valor de Authorization (gravado, oculto)" value="***" readonly disabled><button class="pg-btn pg-btn-outline" type="button" disabled aria-label="Substituir o valor de Authorization">Substituir</button></div>
+                <span class="pg-chip"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>oculto</span>
+                <button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover Authorization" disabled><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+              </div></li>
+            </ul>
+          </div>
+          <div class="sub">
+            <div class="sub-head"><div class="t"><b>Parâmetros</b></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button" disabled>Adicionar parâmetro</button></div>
+            <ul class="plist" aria-label="Parâmetros">
+              <li class="pblk"><div class="pgrid">
+                <div class="fld c-name"><div class="lbl-row"><label class="pg-label" for="e1n">Nome <span class="req">*</span></label><span class="pg-chip on-route"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>na rota</span></div><input class="pg-input mono" id="e1n" value="order_id" disabled></div>
+                <div class="fld"><label class="pg-label" for="e1t">Tipo <span class="req">*</span></label><button class="pg-select" type="button" id="e1t" disabled><span class="mono">string</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+                <div class="fld"><span class="pg-label" id="e1q">Obrigatório</span><div class="req-cell"><button class="pg-switch" type="button" role="switch" aria-checked="true" disabled aria-labelledby="e1q"></button></div></div>
+                <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover order_id" disabled><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+                <div class="fld c-desc"><label class="pg-label" for="e1d">Descrição <span class="req">*</span></label><input class="pg-input" id="e1d" value="Código do pedido" disabled></div>
+                <div class="fld c-def"><label class="pg-label" for="e1v">Valor padrão</label><input class="pg-input mono" id="e1v" value="A-1042" disabled></div>
+              </div></li>
+            </ul>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3160}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

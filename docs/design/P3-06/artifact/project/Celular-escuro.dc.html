@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Rodapé, Desativar e conflito · celular escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+<link rel="stylesheet" href="p306.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app dark phone" style="width: 390px; min-height: 2700px; padding: 16px; gap: 32px; box-sizing: border-box">
+
+<div class="panel" style="gap: 16px"><p class="cap">N1 · Editor de tool inativa: badge “Inativa” e rodapé empilhado (Salvar, Cancelar, divisória, Reativar, Excluir)</p>
+<div class="ed-head"><a class="pg-btn pg-btn-ghost" href="#tools">Voltar</a><div><div class="ed-title"><h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em">Editar tool</h1><span class="pg-badge pg-badge-neutral"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="10" x2="10" y1="15" y2="9"></line><line x1="14" x2="14" y1="15" y2="9"></line></svg>Inativa</span></div><p style="margin: 0; color: var(--muted-foreground)">Edite as configurações da tool</p></div></div>
+<p class="ellipsis-sep" aria-hidden="true">· · ·  cards do formulário  · · ·</p>
+<div class="foot"><div class="del-wrap"><div class="l"><button class="pg-btn pg-btn-outline" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.77.04"></path></svg>Reativar tool</button><button class="pg-btn pg-btn-outline is-danger" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>Excluir tool</button></div></div><div class="r"><a class="pg-btn pg-btn-outline" href="#tools">Cancelar</a><button class="pg-btn" type="submit"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path></svg>Salvar</button></div></div>
+</div>
+
+<div class="panel" style="gap: 16px"><p class="cap">N2 · Desativar (com edições não salvas): margem de 16 px, texto à esquerda, botões a 8 px</p>
+<div class="dlg-frame vp" style="margin: 0 -16px; border-left: 0; border-right: 0; border-radius: 0"><div class="pg-dialog vp" role="dialog" aria-modal="true" aria-labelledby="n2-t" aria-describedby="n2-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="n2-t">Desativar tool</h2><p id="n2-d" aria-live="polite">O orquestrador deixa de carregar a tool “Consulta de pedido”, mas a configuração continua salva. Você pode reativá-la aqui quando quiser.</p></div>
+<p class="dlg-note"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><span>Você tem edições não salvas. Elas continuam no formulário; esta ação não as grava.</span></p>
+<div class="dlg-foot stack"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Cancelar</button><button class="pg-btn" type="button">Desativar</button></div>
+</div></div></div>
+
+<div class="panel" style="gap: 16px"><p class="cap">N3 · Conflito (agent) em 390: valores empilhados, lista com rolagem (40dvh), cabeçalho e botões sempre visíveis</p>
+<div class="dlg-frame vp" style="margin: 0 -16px; border-left: 0; border-right: 0; border-radius: 0"><div class="pg-dialog vp" role="dialog" aria-modal="true" aria-labelledby="n3-t" aria-describedby="n3-d">
+<button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="dlg-head"><h2 class="pg-dialog-title" id="n3-t">O agente mudou</h2><p id="n3-d" aria-live="polite">Uma versão mais nova (v5) foi salva enquanto você editava a v3. 4 campos do formulário diferem da versão atual.</p></div>
+<div role="region" aria-label="Campos que diferem" tabindex="0"><ul class="diff" style="max-height: 337px">
+<li><p class="lbl">Modelo</p><dl class="cmp one"><div><dt>O seu valor</dt><dd><span class="m">gpt-4.1</span></dd></div><div><dt>Atual</dt><dd><span class="m">gpt-4.1-mini</span></dd></div></dl></li>
+<li><p class="lbl">Referência da chave de API</p><dl class="cmp one"><div><dt>O seu valor</dt><dd><span class="m">env:OPENAI_API_KEY</span></dd></div><div><dt>Atual</dt><dd><span class="m">file:/run/secrets/openai_key</span></dd></div></dl></li>
+<li><p class="lbl">Tools disponíveis</p><dl class="cmp one"><div><dt>O seu valor</dt><dd class="chips"><span class="pg-chip">cep</span><span class="pg-chip">frete</span></dd></div><div><dt>Atual</dt><dd class="chips"><span class="pg-chip">pedidos</span></dd></div></dl><p class="hint">Só as diferenças; 2 iguais nos dois.</p></li>
+<li><p class="lbl">Responder em Markdown</p><dl class="cmp one"><div><dt>O seu valor</dt><dd>Desligado</dd></div><div><dt>Atual</dt><dd>Ligado</dd></div></dl></li>
+</ul></div>
+<p class="pg-help">Recarregar descarta as suas edições. Salvar por cima substitui os valores da versão atual pelos seus.</p>
+<div class="dlg-foot stack"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><button class="pg-btn pg-btn-outline is-danger" type="button">Salvar as minhas por cima</button><button class="pg-btn" type="button">Recarregar a atual</button></div>
+</div></div></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+/* P3-03: editor de tool HTTP. Delta sobre p302.css (P3-02), theme.css e pg-ds.css. Só tokens do DS.
+   Equivalência Tailwind anotada em cada bloco (o código usa as classes, não este arquivo). */
+
+/* Coluna larga a partir de xl: xl:max-w-6xl; grade xl:grid xl:grid-cols-[minmax(0,1fr)_21rem] gap-6 items-start */
+.ed.wide { max-width: 1152px; }
+.edg { display: grid; grid-template-columns: minmax(0, 1fr) 336px; gap: var(--space-6); align-items: start; }
+.edc { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+.pv-aside { position: sticky; top: var(--space-6); }
+
+/* Rota: ajuda, erro com ações de um clique */
+.route-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.route-acts .pg-btn code { font-family: var(--font-mono); font-size: 12px; }
+
+/* Bloco de parâmetro: border rounded-lg p-3; nome | tipo | obrigatório | lixeira; descrição | valor padrão */
+.plist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.pblk { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+.pgrid { display: grid; grid-template-columns: minmax(0, 1fr) 144px 136px 36px; gap: var(--space-3) var(--space-2); align-items: end; }
+.pgrid .c-desc { grid-column: 1; }
+.pgrid .c-def { grid-column: 2 / 5; }
+.lbl-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 24px; }
+.req-cell { display: flex; align-items: center; gap: var(--space-2); height: var(--control-h); }
+.req-cell .pg-ico { width: 14px; height: 14px; color: var(--muted-foreground); }
+.pg-chip.on-route { color: var(--primary); background: var(--primary-soft); border-color: transparent; }
+.note-line { margin: 0; display: flex; gap: var(--space-1); align-items: flex-start; }
+.note-line .pg-ico { width: 14px; height: 14px; margin-top: 1px; flex: none; }
+
+/* Headers: nome | valor | estado | lixeira */
+.hcols, .hrow-ctl { display: grid; grid-template-columns: 224px minmax(0, 1fr) 96px 36px; gap: var(--space-2); align-items: center; }
+.hcols span { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+.hv { display: flex; gap: var(--space-2); align-items: center; min-width: 0; }
+.hv .pg-input { flex: 1; min-width: 0; }
+.pg-input[readonly] { background: var(--muted); }
+.pg-input.mask { letter-spacing: 2px; color: var(--muted-foreground); }
+
+/* Preview (somente leitura): sem foco, sem aria-live */
+.pv { display: flex; flex-direction: column; gap: var(--space-3); }
+.pv-lab { margin: 0 0 var(--space-1); font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); }
+.pv-box { margin: 0; background: var(--muted); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3); font-family: var(--font-mono); font-size: 12px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--foreground); }
+.pv-m { font-weight: 600; color: var(--primary); }
+.pv-k { color: var(--muted-foreground); }
+.pv-def { background: var(--primary-soft); border-radius: 3px; padding: 0 2px; }
+.pv-ph { border: 1px dashed var(--input); border-radius: 3px; padding: 0 2px; color: var(--muted-foreground); }
+.pv-mask { letter-spacing: 2px; color: var(--muted-foreground); }
+.pv-legend { margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+
+/* Celular: bloco de parâmetro e de header empilhados */
+.phone .pgrid { grid-template-columns: minmax(0, 1fr) 44px; }
+.phone .pgrid > * { grid-column: 1 / -1; }
+.phone .pgrid .c-name { grid-column: 1; }
+.phone .pgrid .c-del { grid-column: 2; }
+.phone .hrow { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+.phone .hrow-ctl { grid-template-columns: minmax(0, 1fr) 44px; row-gap: var(--space-2); }
+.phone .hrow-ctl .c-name { grid-column: 1; }
+.phone .hrow-ctl .c-del { grid-column: 2; }
+.phone .hrow-ctl .c-val { grid-column: 1 / -1; }
+.phone .hrow-ctl .c-state { grid-column: 1 / -1; }
+.phone .hv .pg-btn { flex: none; }
+.phone .route-acts .pg-btn { width: 100%; justify-content: center; }
+.phone .pv-aside { position: static; }

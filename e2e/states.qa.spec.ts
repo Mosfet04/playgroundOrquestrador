@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 
-import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // QA P1-05: o que o dev não cobriu em e2e/states.spec.ts. /api/agents* e
-// /api/tools* leem o Mongo até a P3: aqui respondem por page.route.
+// /api/tools* respondem por page.route.
 
 const page1 = <T,>(data: T[]) => ({
   success: true,
@@ -179,37 +179,6 @@ test('/tools/<id> com 503: "Tentar de novo" e o link de volta; sucesso abre o ed
   await expect(page.getByRole('heading', { level: 1, name: 'Editar tool' })).toBeFocused()
 })
 
-test('/dashboard: só os tokens falham, o erro fica no card e os KPIs aparecem', async ({ page }) => {
-  await page.route(/\/api\/dashboard\/stats/, (route) =>
-    route.fulfill({
-      json: {
-        success: true,
-        data: {
-          activeAgents: 2,
-          totalAgents: 3,
-          uniqueUsers: 0,
-          totalSessions: 0,
-          totalAgentSessions: 0,
-          totalTeamSessions: 0,
-          sessionsInPeriod: 0,
-          totalTokens: 0,
-          models: [],
-          embeddingModels: [],
-          activityOverTime: []
-        }
-      }
-    })
-  )
-  await page.route(/\/api\/dashboard\/tokens/, (route) => route.abort())
-  await page.goto('/dashboard')
-
-  await expect(page.getByText('Agentes ativos', { exact: true })).toBeVisible()
-  const alert = main(page).getByRole('alert')
-  await expect(alert).toHaveCount(1)
-  await expect(alert).toContainText('Não foi possível carregar o consumo de tokens')
-  await expect(page.getByText('Não foi possível carregar o dashboard')).toHaveCount(0)
-})
-
 test.describe('404 de rota', () => {
   test('sub-rota sem página e caminho hostil: 404 na casca, sem executar nada', async ({ page }) => {
     const dialogs: string[] = []
@@ -249,19 +218,12 @@ test.describe('404 de rota', () => {
   })
 })
 
-test('/playground em 390 px com o fake desligado: o erro aparece sem abrir o Sheet, sem rolagem horizontal', async ({
+test('/playground em 390 px com o orquestrador fora: o erro aparece sem abrir o Sheet, sem rolagem horizontal', async ({
   page
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.addInitScript((endpoint) => {
-    window.localStorage.setItem(
-      'endpoint-storage',
-      JSON.stringify({ state: { selectedEndpoint: endpoint }, version: 0 })
-    )
-  }, FAKE_ORCHESTRATOR_URL)
-  await page.route(
-    (url) => url.origin !== APP_URL,
-    (route) => route.abort()
+  await page.route('**/api/playground/agents', (route) =>
+    route.fulfill({ status: 503, json: { success: false, error: 'unreachable' } })
   )
   await page.goto('/playground')
 

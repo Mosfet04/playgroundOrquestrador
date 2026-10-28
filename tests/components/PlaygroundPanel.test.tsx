@@ -8,12 +8,12 @@ import PlaygroundPage from '@/app/(app)/playground/page'
 import { AppShell } from '@/components/layout/AppShell'
 import { usePlaygroundStore } from '@/store'
 
-import { AGENTOS_URL } from '../msw/handlers'
+import { BFF } from '../msw/handlers'
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 
 // R1 (review do P1-03): abaixo de lg o painel do playground monta uma 2ª
-// Sidebar no Sheet. Ela não pode refazer a carga (status, agentes, sessão):
+// Sidebar no Sheet. Ela não pode refazer a carga (agentes, sessão):
 // isso trocava a mensagem parcial de um stream pelo histórico do servidor.
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/playground' }))
@@ -50,19 +50,20 @@ beforeEach(() => {
   // que depende dele, entraria em laço.
   window.history.replaceState(null, '', '/playground?agent=agent-1&session=session-a1')
   usePlaygroundStore.setState(initialStoreState, true)
-  usePlaygroundStore.setState({ selectedEndpoint: AGENTOS_URL, hydrated: true })
-  requests.length = 0
+    requests.length = 0
   server.events.on('request:start', ({ request }) => {
     requests.push(`${request.method} ${new URL(request.url).pathname}`)
   })
   server.use(
-    http.get(`${AGENTOS_URL}/sessions/:id`, () =>
+    http.get(`${BFF}/sessions/:id`, () =>
       HttpResponse.json({
-        session_id: 'session-a1',
+        success: true,
+        data: {
         chat_history: [
           { role: 'user', content: 'Pergunta do histórico', created_at: 1 },
           { role: 'assistant', content: 'Resposta do histórico', created_at: 2 }
         ]
+        }
       })
     )
   )
@@ -85,9 +86,8 @@ describe('/playground: painel no Sheet', () => {
     )
 
     expect(await screen.findByText('Resposta do histórico')).toBeInTheDocument()
-    await waitFor(() => expect(countOf('/agents')).toBe(1))
-    expect(countOf('/status')).toBe(1)
-    expect(countOf('/sessions/session-a1')).toBe(1)
+    await waitFor(() => expect(countOf(`${BFF}/agents`)).toBe(1))
+    expect(countOf(`${BFF}/sessions/session-a1`)).toBe(1)
 
     // Mensagem parcial de um stream em andamento.
     act(() =>
@@ -108,9 +108,8 @@ describe('/playground: painel no Sheet', () => {
     // Dá vez aos efeitos e às respostas do MSW de uma eventual recarga.
     await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
 
-    expect(countOf('/sessions/session-a1')).toBe(1)
-    expect(countOf('/status')).toBe(1)
-    expect(countOf('/agents')).toBe(1)
+    expect(countOf(`${BFF}/sessions/session-a1`)).toBe(1)
+    expect(countOf(`${BFF}/agents`)).toBe(1)
     expect(screen.getByText('Resposta parcial')).toBeInTheDocument()
   })
 })

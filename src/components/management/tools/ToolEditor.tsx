@@ -31,7 +31,7 @@ export function ToolEditor({ id }: { id?: string }) {
       icon={Wrench}
       getLabel={(tool) => tool.name}
     >
-      {(tool) => <ToolForm tool={tool} onSuccess={backToList} />}
+      {(tool, controls) => <ToolForm tool={tool} controls={controls} onSuccess={backToList} />}
     </EntityLoader>
   )
 }

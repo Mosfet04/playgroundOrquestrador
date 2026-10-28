@@ -1,10 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-
-import Image from 'next/image'
-import Link from 'next/link'
-
 import { cn } from '@/lib/utils'
 
 import type {
@@ -20,10 +15,10 @@ import type {
   BlockquoteProps,
   AnchorLinkProps,
   HeadingProps,
-  ImgProps,
   ParagraphProps
 } from './types'
 
+import { ImageLink, SafeLink } from './SafeLink'
 import { PARAGRAPH_SIZES } from '../Paragraph/constants'
 
 const filterProps = (props: object) => {
@@ -116,10 +111,8 @@ const Blockquote = ({ className, ...props }: BlockquoteProps) => (
 )
 
 const AnchorLink = ({ className, ...props }: AnchorLinkProps) => (
-  <a
+  <SafeLink
     className={cn(className, 'cursor-pointer text-xs underline')}
-    target="_blank"
-    rel="noopener noreferrer"
     {...filterProps(props)}
   />
 )
@@ -148,39 +141,6 @@ const Heading6 = ({ className, ...props }: HeadingProps) => (
   <h6 className={cn(className, PARAGRAPH_SIZES.lead)} {...filterProps(props)} />
 )
 
-const Img = ({ src, alt }: ImgProps) => {
-  const [error, setError] = useState(false)
-
-  if (!src) return null
-
-  return (
-    <div className="w-full max-w-xl">
-      {error ? (
-        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-md bg-muted text-muted-foreground">
-          <Paragraph className="text-foreground">Image unavailable</Paragraph>
-          <Link
-            href={src}
-            target="_blank"
-            className="max-w-md truncate underline"
-          >
-            {src}
-          </Link>
-        </div>
-      ) : (
-        <Image
-          src={src}
-          width={96}
-          height={56}
-          alt={alt ?? 'Rendered image'}
-          className="size-full rounded-md object-cover"
-          onError={() => setError(true)}
-          unoptimized
-        />
-      )}
-    </div>
-  )
-}
-
 export const inlineComponents = {
   h1: Heading1,
   h2: Heading2,
@@ -199,6 +159,6 @@ export const inlineComponents = {
   hr: HorizontalRule,
   blockquote: Blockquote,
   a: AnchorLink,
-  img: Img,
+  img: ImageLink,
   p: Paragraph
 }

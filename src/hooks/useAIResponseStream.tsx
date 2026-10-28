@@ -1,17 +1,37 @@
 import { useCallback } from 'react'
+import { z } from 'zod'
+
+import { redirectToLogin } from '@/api/playground'
 import { type RunResponse } from '@/types/playground'
 import { type StreamingError } from '@/store'
 
-/**
- * Processes a single JSON chunk by passing it to the provided callback.
- * @param chunk - A parsed JSON object of type RunResponse.
- * @param onChunk - Callback to handle the chunk.
- */
-function processChunk(
-  chunk: RunResponse,
-  onChunk: (chunk: RunResponse) => void
-) {
-  onChunk(chunk)
+// Fronteira do stream (P2-03): evento sem `event` é descartado; número que
+// não é número (tempo, tokens, created_at) vira ausente, sem quebrar a
+// conversa. O resto do evento segue como veio (texto, mídia, raciocínio).
+const optionalNumber = z.number().optional().catch(undefined)
+const toolSchema = z.looseObject({
+  metrics: z.object({ duration: optionalNumber }).optional().catch(undefined)
+})
+const runEventSchema = z.looseObject({
+  event: z.string(),
+  session_id: z.string().optional().catch(undefined),
+  created_at: optionalNumber,
+  tool: toolSchema.optional().catch(undefined),
+  tools: z.array(toolSchema).optional().catch(undefined),
+  metrics: z
+    .object({
+      duration: optionalNumber,
+      input_tokens: optionalNumber,
+      output_tokens: optionalNumber
+    })
+    .optional()
+    .catch(undefined)
+})
+
+function processChunk(json: unknown, onChunk: (chunk: RunResponse) => void) {
+  const parsed = runEventSchema.safeParse(json)
+  // Campos usados já validados acima; os demais o handler confere no uso.
+  if (parsed.success) onChunk(parsed.data as unknown as RunResponse)
 }
 
 /**
@@ -71,13 +91,16 @@ function parseBuffer(
     // If we found a complete JSON object, process it
     if (jsonEndIndex !== -1) {
       const jsonString = buffer.slice(jsonStartIndex, jsonEndIndex + 1)
+      // Objeto completo que o JSON.parse recusa (NaN/Infinity do allow_nan do
+      // agno, vírgula sobrando) é descartado e o stream segue (review P2-03).
+      let json: unknown
       try {
-        const parsed = JSON.parse(jsonString) as RunResponse
-        processChunk(parsed, onChunk)
-      } catch {
-        // Skip invalid JSON, continue accumulating
-        break
+        json = JSON.parse(jsonString)
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error
+        console.warn('Evento do stream descartado: JSON inválido')
       }
+      if (json !== undefined) processChunk(json, onChunk)
       buffer = buffer.slice(jsonEndIndex + 1).trim()
       jsonStartIndex = buffer.indexOf('{')
       jsonEndIndex = -1
@@ -104,85 +127,62 @@ export default function useAIResponseStream() {
   const streamResponse = useCallback(
     async (options: {
       apiUrl: string
-      headers?: Record<string, string>
-      requestBody: FormData | Record<string, unknown>
+      requestBody: Record<string, unknown>
+      // Abortado (troca de conversa, saída): nenhum callback depois disso.
+      signal: AbortSignal
       onChunk: (chunk: RunResponse) => void
       onError: (error: StreamingError) => void
       onComplete: () => void
     }): Promise<void> => {
-      const {
-        apiUrl,
-        headers = {},
-        requestBody,
-        onChunk,
-        onError,
-        onComplete
-      } = options
+      const { apiUrl, requestBody, signal, onError, onComplete } = options
+      const onChunk = (chunk: RunResponse) => {
+        if (!signal.aborted) options.onChunk(chunk)
+      }
 
       // Buffer to accumulate partial JSON data.
       let buffer = ''
 
+      let response: Response
       try {
-        const response = await fetch(apiUrl, {
+        response = await fetch(apiUrl, {
           method: 'POST',
-          headers: {
-            // Set content-type only for non-FormData requests.
-            ...(!(requestBody instanceof FormData) && {
-              'Content-Type': 'application/json'
-            }),
-            ...headers
-          },
-          body:
-            requestBody instanceof FormData
-              ? requestBody
-              : JSON.stringify(requestBody)
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal
         })
-
-        // Resposta de erro do orquestrador: só o `detail` em texto segue para
-        // a UI, como dado (P1-04b).
-        if (!response.ok) {
-          const body: unknown = await response.json().catch(() => null)
-          const detail =
-            typeof body === 'object' &&
-            body !== null &&
-            'detail' in body &&
-            typeof body.detail === 'string'
-              ? body.detail
-              : undefined
-          onError({ kind: 'runError', detail })
-          return
-        }
-
-        if (!response.body) {
-          throw new Error('No response body')
-        }
-
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-
-        // Recursively process the stream.
-        const processStream = async (): Promise<void> => {
-          const { done, value } = await reader.read()
-          if (done) {
-            // Process any final data in the buffer.
-            buffer = parseBuffer(buffer, onChunk)
-            onComplete()
-            return
-          }
-          // Decode, sanitize, and accumulate the chunk
-          buffer += decoder.decode(value, { stream: true })
-
-          // Parse any complete JSON objects available in the buffer.
-          buffer = parseBuffer(buffer, onChunk)
-          await processStream()
-        }
-        await processStream()
       } catch (error) {
-        // Sem resposta (rede, corpo vazio ou stream interrompido): a exceção
-        // fica no console, não vai à UI (P1-04b).
-        console.error('Error reading the chat stream:', error)
+        if (signal.aborted) return
+        // Sem resposta do servidor do playground: a exceção fica no console.
+        console.error('Error starting the chat stream:', error)
         onError({ kind: 'network' })
+        return
       }
+      // Sessão expirada: login, sem bolha de erro (docs/design/P2-03.md).
+      if (response.status === 401) return redirectToLogin()
+      // O BFF não ecoa o corpo do orquestrador: só o tipo pelo status.
+      if (!response.ok || !response.body) {
+        onError({
+          kind: [503, 504].includes(response.status) ? 'unavailable' : 'runError'
+        })
+        return
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      try {
+        for (;;) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          buffer = parseBuffer(buffer, onChunk)
+        }
+        parseBuffer(buffer, onChunk)
+      } catch (error) {
+        if (signal.aborted) return
+        // Conexão caiu no meio: quem chama vê o fim sem o RunCompleted.
+        console.error('Error reading the chat stream:', error)
+      }
+      onComplete()
     },
     []
   )

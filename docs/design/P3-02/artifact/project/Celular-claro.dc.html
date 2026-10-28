@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Editor de agent · celular claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app phone" style="height: 1720px">
+  <header class="m-hdr">
+    <button class="pg-btn pg-btn-ghost tap" type="button" aria-label="Abrir menu"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg></button>
+    <h1 style="font-size: 16px">Agentes<span class="sub">suporte-local</span></h1>
+  </header>
+  <form class="ed scroll" aria-labelledby="h1m">
+    <div class="ed-head" style="flex-direction: column; gap: 8px">
+      <a class="pg-btn pg-btn-ghost" href="#agents" style="align-self: flex-start; padding: 0 8px"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>Voltar</a>
+      <div><h1 id="h1m">Editar agente</h1><p>Edite as configurações do agente</p></div>
+    </div>
+
+    <section class="sec" aria-labelledby="c-id">
+      <div class="sec-head"><h2 id="c-id">Identidade</h2><p>Como o agente aparece na lista e no chat.</p></div>
+      <div class="fld"><label class="pg-label" for="cid">ID do agente <span class="req">*</span></label><input class="pg-input mono" id="cid" value="suporte-local" disabled></div>
+      <div class="fld"><label class="pg-label" for="cnome">Nome <span class="req">*</span></label><input class="pg-input" id="cnome" value="Suporte local"></div>
+    </section>
+
+    <section class="sec" aria-labelledby="c-model">
+      <div class="sec-head"><h2 id="c-model">Modelo</h2><p>Provedor, modelo e como o orquestrador se conecta a ele.</p></div>
+      <div class="g2">
+        <div class="fld"><label class="pg-label" for="cp">Provedor <span class="req">*</span></label><button class="pg-select" type="button" id="cp" role="combobox" aria-expanded="false"><span class="mono">openai_compatible</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+        <div class="fld"><label class="pg-label" for="cm">Modelo <span class="req">*</span></label><input class="pg-input mono" id="cm" value="qwen2.5:14b-instruct"></div>
+        <div class="fld"><label class="pg-label" for="cb">URL base <span class="req">*</span></label><input class="pg-input mono" id="cb" value="https://llm.interno:8000/v1" aria-describedby="cb-h"><p class="pg-help" id="cb-h">http(s)://host[:porta][/caminho], sem usuário, senha, query nem fragmento.</p></div>
+        <div class="fld"><label class="pg-label" for="ck">Referência da chave de API</label><input class="pg-input mono" id="ck" value="env:LOCAL_LLM_API_KEY" autocomplete="off" spellcheck="false" aria-describedby="ck-h"><p class="pg-help" id="ck-h">Só a referência, nunca a chave. Formatos: <code>env:&lt;PROVEDOR&gt;_API_KEY</code> · <code>file:&lt;caminho em SECRETS_DIR&gt;</code>. Vazio: o agente não define chave própria.</p></div>
+      </div>
+
+      <div class="sub" role="group" aria-labelledby="cmp">
+        <div class="sub-head">
+          <div class="t"><b id="cmp">Parâmetros do modelo</b><p class="pg-help">Nomes aceitos por openai_compatible. Valor: número com ponto (0.7), true/false ou texto.</p></div>
+          <button class="pg-btn pg-btn-outline" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Adicionar parâmetro</button>
+        </div>
+        <ul class="params" aria-label="Parâmetros do modelo">
+          <li class="prow"><div class="prow-ctl">
+            <div class="c-name"><button class="pg-select" type="button" aria-label="Nome do parâmetro 1"><span class="mono">temperature</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover temperature"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+            <div class="c-val"><label class="sr" for="v1">Valor de temperature</label><input class="pg-input mono" id="v1" value="0.2" placeholder="Valor" aria-describedby="ty1"><span class="pg-chip" id="ty1">número</span></div>
+          </div></li>
+          <li class="prow"><div class="prow-ctl">
+            <div class="c-name"><button class="pg-select" type="button" aria-label="Nome do parâmetro 2"><span class="mono">stop</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover stop"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+            <div class="c-val"><label class="sr" for="v2">Valor de stop</label><input class="pg-input mono" id="v2" value="###" placeholder="Valor" aria-describedby="ty2"><span class="pg-chip" id="ty2">texto</span></div>
+          </div></li>
+          <li class="prow"><div class="prow-ctl">
+            <div class="c-name"><button class="pg-select" type="button" aria-label="Nome do parâmetro 3" aria-describedby="cw3"><span class="mono">keep_alive</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover keep_alive"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div>
+            <div class="c-val"><label class="sr" for="v3">Valor de keep_alive</label><input class="pg-input mono" id="v3" value="5m" placeholder="Valor" aria-describedby="ty3"><span class="pg-chip" id="ty3">texto</span></div>
+          </div>
+          <p class="pg-warn" id="cw3"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>openai_compatible não aceita <code>keep_alive</code>. O orquestrador decide ao salvar; remova se não for usar.</span></p></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="c-ins">
+      <div class="sec-head"><h2 id="c-ins">Instruções</h2><p>O prompt de sistema que orienta o agente em toda conversa.</p></div>
+      <div class="fld"><label class="pg-label" for="cpr">Prompt do sistema</label><textarea class="ta" id="cpr" style="font-size: 16px; min-height: 120px">Você é o suporte de pedidos da loja. Responda em português, em até 4 frases.</textarea></div>
+    </section>
+  </form>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

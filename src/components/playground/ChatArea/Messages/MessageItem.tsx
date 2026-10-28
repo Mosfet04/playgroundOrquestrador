@@ -17,19 +17,18 @@ interface MessageProps {
 const AgentMessage = ({ message, streaming }: MessageProps & { streaming: boolean }) => {
   const { streamingErrorMessage } = usePlaygroundStore()
   const t = useTranslations('playground')
-  if (message.streamingError) {
-    // O tipo do erro é traduzido aqui (muda junto com o idioma); o detalhe é
-    // o texto do orquestrador, mostrado como dado (P1-04b).
-    return (
-      <p className="text-destructive">
-        {t('streamError')}{' '}
-        {streamingErrorMessage
-          ? t(`streamErrorKind.${streamingErrorMessage.kind}`)
-          : t('streamErrorHint')}
-        {streamingErrorMessage?.detail && <> {streamingErrorMessage.detail}</>}
-      </p>
-    )
-  }
+  // O tipo do erro é traduzido aqui (muda junto com o idioma); o detalhe é o
+  // texto do orquestrador, mostrado como dado (P1-04b). O texto parcial do
+  // stream interrompido fica acima (P2-03).
+  const error = message.streamingError && (
+    <p className="text-destructive">
+      {t('streamError')}{' '}
+      {streamingErrorMessage
+        ? t(`streamErrorKind.${streamingErrorMessage.kind}`)
+        : t('streamErrorHint')}
+      {streamingErrorMessage?.detail && <> {streamingErrorMessage.detail}</>}
+    </p>
+  )
 
   const audio = message.response_audio
   const text = message.content || audio?.transcript
@@ -61,6 +60,7 @@ const AgentMessage = ({ message, streaming }: MessageProps & { streaming: boolea
       ) : (
         audio?.transcript && audio.content && <Audios audio={[audio]} />
       )}
+      {error}
     </>
   )
 }

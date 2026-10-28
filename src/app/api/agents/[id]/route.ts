@@ -1,162 +1,56 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { agentsCollection } from '@/lib/mongodb'
-import { AgentConfig } from '@/types/management'
+import type { NextRequest } from 'next/server'
+
+import { deactivateAgent, deleteAgent, getAgent, replaceAgent } from '@/server/orchestrator/agents'
 
 import { parseJsonBody } from '../../parseJsonBody'
+import {
+  badRequest,
+  configError,
+  deleteMode,
+  idSchema,
+  ifMatchVersion,
+  ok,
+  orchestratorError
+} from '../../respond'
 import { agentUpdateSchema } from '../schema'
 
-type RouteParams = { params: Promise<{ id: string }> }
+export const runtime = 'nodejs'
 
-// GET - Buscar agente por ID
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
+type Context = { params: Promise<{ id: string }> }
 
-    const agent = await agentsCollection.findOne({ id })
+// O route handler já recebe o param decodificado (Next 15.2; só as páginas o
+// recebem codificado): decodificar de novo trocaria `a%41` por `aA` (review R1).
+const routeId = async ({ params }: Context) => idSchema.safeParse((await params).id)
 
-    if (!agent) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Agente não encontrado' 
-        },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: agent
-    })
-  } catch (error) {
-    console.error('Error fetching agent:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Erro interno do servidor' 
-      },
-      { status: 500 }
-    )
-  }
+// P2-06: detalhe, troca e exclusão pela API Admin (chave admin). PUT e DELETE
+// levam a versão lida no If-Match.
+export async function GET(_request: NextRequest, context: Context) {
+  const id = await routeId(context)
+  if (!id.success) return badRequest()
+  const result = await getAgent(id.data)
+  return result.ok ? ok(result.data) : orchestratorError(result.error)
 }
 
-// PUT - Atualizar agente
-export async function PUT(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-    const parsed = await parseJsonBody(request, agentUpdateSchema)
-    if (!parsed.success) return parsed.response
-    const body = parsed.data
-
-    // Verificar se o agente existe
-    const existingAgent = await agentsCollection.findOne({ id })
-    if (!existingAgent) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Agente não encontrado' 
-        },
-        { status: 404 }
-      )
-    }
-
-    // Preparar dados para atualização
-    const updateData: Partial<AgentConfig> = {
-      nome: body.nome,
-      model: body.model,
-      factoryIaModel: body.factoryIaModel,
-      descricao: body.descricao,
-      prompt: body.prompt,
-      active: body.active,
-      tools_ids: body.tools_ids || [],
-      updated_at: new Date()
-    }
-
-    // Atualizar configuração RAG se fornecida
-    if (body.rag_active) {
-      updateData.rag_config = {
-        active: true,
-        doc_name: body.rag_doc_name || '',
-        model: body.rag_model || '',
-        factoryIaModel: body.rag_factoryIaModel || 'openai'
-      }
-    } else {
-      updateData.rag_config = undefined
-    }
-
-    const result = await agentsCollection.updateOne(
-      { id },
-      { $set: updateData }
-    )
-
-    if (result.matchedCount === 0) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Agente não encontrado' 
-        },
-        { status: 404 }
-      )
-    }
-
-    // Buscar o agente atualizado
-    const updatedAgent = await agentsCollection.findOne({ id })
-
-    return NextResponse.json({
-      success: true,
-      data: updatedAgent,
-      message: 'Agente atualizado com sucesso'
-    })
-  } catch (error) {
-    console.error('Error updating agent:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Erro interno do servidor' 
-      },
-      { status: 500 }
-    )
-  }
+export async function PUT(request: NextRequest, context: Context) {
+  const id = await routeId(context)
+  const version = ifMatchVersion(request)
+  if (!id.success || version === null) return badRequest()
+  const parsed = await parseJsonBody(request, agentUpdateSchema)
+  if (!parsed.success) return parsed.response
+  const result = await replaceAgent(id.data, parsed.data, version)
+  return result.ok ? ok(result.data) : configError(result)
 }
 
-// DELETE - Deletar agente
-export async function DELETE(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params
-
-    const result = await agentsCollection.deleteOne({ id })
-
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Agente não encontrado' 
-        },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Agente deletado com sucesso'
-    })
-  } catch (error) {
-    console.error('Error deleting agent:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Erro interno do servidor' 
-      },
-      { status: 500 }
-    )
+export async function DELETE(request: NextRequest, context: Context) {
+  const id = await routeId(context)
+  const version = ifMatchVersion(request)
+  const mode = deleteMode(request)
+  if (!id.success || version === null || mode === null) return badRequest()
+  // `?soft=true` desativa (DELETE lógico, devolve o documento); sem ela, exclui de vez.
+  if (mode === 'soft') {
+    const soft = await deactivateAgent(id.data, version)
+    return soft.ok ? ok(soft.data) : configError(soft)
   }
+  const result = await deleteAgent(id.data, version)
+  return result.ok ? ok() : configError(result)
 }

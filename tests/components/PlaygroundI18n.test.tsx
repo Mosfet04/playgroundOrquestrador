@@ -18,7 +18,7 @@ import useSessionLoader from '@/hooks/useSessionLoader'
 import { usePlaygroundStore } from '@/store'
 import type { PlaygroundChatMessage } from '@/types/playground'
 
-import { AGENTOS_URL } from '../msw/handlers'
+import { BFF, agentsFixture, teamsFixture } from '../msw/handlers'
 import { server } from '../msw/server'
 import { IntlProvider, renderWithIntl } from '../helpers/intl'
 
@@ -67,19 +67,20 @@ describe('troca de idioma com a conversa aberta', () => {
 
   beforeEach(() => {
     window.history.replaceState(null, '', '/playground?agent=agent-1&session=session-a1')
-    usePlaygroundStore.setState({ selectedEndpoint: AGENTOS_URL, hydrated: true })
-    requests.length = 0
+        requests.length = 0
     server.events.on('request:start', ({ request }) => {
       requests.push(`${request.method} ${new URL(request.url).pathname}`)
     })
     server.use(
-      http.get(`${AGENTOS_URL}/sessions/:id`, () =>
+      http.get(`${BFF}/sessions/:id`, () =>
         HttpResponse.json({
-          session_id: 'session-a1',
+          success: true,
+          data: {
           chat_history: [
             { role: 'user', content: 'Pergunta do histórico', created_at: 1 },
             { role: 'assistant', content: 'Resposta do histórico', created_at: 2 }
           ]
+          }
         })
       )
     )
@@ -103,7 +104,7 @@ describe('troca de idioma com a conversa aberta', () => {
     const { rerender } = render(page('pt-BR'))
 
     expect(await screen.findByText('Resposta do histórico')).toBeInTheDocument()
-    await waitFor(() => expect(countOf('/sessions')).toBe(1))
+    await waitFor(() => expect(countOf(`${BFF}/sessions`)).toBe(1))
     expect(screen.getByRole('button', { name: 'Nova conversa' })).toBeInTheDocument()
     expect(screen.getByText('Sessões')).toHaveClass('uppercase')
     const composer = screen.getByPlaceholderText('Escreva uma mensagem para Assistente')
@@ -115,7 +116,7 @@ describe('troca de idioma com a conversa aberta', () => {
         { role: 'agent', content: 'Resposta parcial', created_at: 4 }
       ])
     )
-    const loads = ['/status', '/agents', '/sessions', '/sessions/session-a1'].map(countOf)
+    const loads = ['/agents', '/sessions', '/sessions/session-a1'].map((path) => countOf(`${BFF}${path}`))
 
     rerender(page('en'))
 
@@ -127,7 +128,7 @@ describe('troca de idioma com a conversa aberta', () => {
     expect(screen.getByText('Resposta parcial')).toBeInTheDocument()
     // Dá vez aos efeitos e ao MSW de uma eventual recarga.
     await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
-    expect(['/status', '/agents', '/sessions', '/sessions/session-a1'].map(countOf)).toEqual(
+    expect(['/agents', '/sessions', '/sessions/session-a1'].map((path) => countOf(`${BFF}${path}`))).toEqual(
       loads
     )
     expect(window.location.search).toContain('agent=agent-1')
@@ -162,7 +163,12 @@ describe('bolha de erro do stream', () => {
   it.each([
     [{ kind: 'noEntity' as const }, 'Selecione um agente ou team antes de enviar.'],
     [{ kind: 'cancelled' as const }, 'Execução cancelada.'],
-    [{ kind: 'network' as const }, 'Sem resposta do endpoint.'],
+    [{ kind: 'network' as const }, 'Sem resposta do servidor.'],
+    [
+      { kind: 'unavailable' as const },
+      'O orquestrador não respondeu. Confira se ele está no ar e envie de novo.'
+    ],
+    [{ kind: 'interrupted' as const }, 'A resposta foi interrompida antes do fim.'],
     [null, 'Recarregue a página ou tente de novo mais tarde.']
   ])('%o: frase do meio', (error, phrase) => {
     usePlaygroundStore.setState({ streamingErrorMessage: error })
@@ -193,8 +199,8 @@ describe('textos do chat', () => {
 
   it('chat vazio traduzido e sem o texto nem os links da Agno (P1-05)', () => {
     usePlaygroundStore.setState({
-      isEndpointLoading: false,
-      isEndpointActive: true,
+      isOrchestratorLoading: false,
+      isOrchestratorActive: true,
       agents: [{ value: 'agent-1', label: 'Assistente', model: { provider: 'OpenAI' } }]
     })
     const { unmount } = renderWithIntl(
@@ -226,31 +232,56 @@ describe('textos do chat', () => {
 })
 
 describe('sessões', () => {
-  const blank = (searchParams: string) =>
+  const blank = (searchParams: string, locale: AppLocale = 'pt-BR') =>
     renderWithIntl(
       <NuqsTestingAdapter searchParams={searchParams}>
         <SessionBlankState />
-      </NuqsTestingAdapter>
+      </NuqsTestingAdapter>,
+      { locale }
     )
 
-  it('endpoint desconectado', () => {
-    usePlaygroundStore.setState({ isEndpointActive: false })
+  beforeEach(() => {
+    usePlaygroundStore.setState({ agents: agentsFixture, teams: teamsFixture })
+  })
+
+  it('orquestrador desconectado (P2-03)', () => {
+    usePlaygroundStore.setState({ isOrchestratorActive: false })
     blank('?agent=agent-1')
 
     expect(
-      screen.getByText('Endpoint desconectado. Conecte o endpoint para ver o histórico.')
+      screen.getByText('Orquestrador desconectado. O histórico aparece quando ele voltar.')
     ).toBeInTheDocument()
   })
 
+  // V-P2-03-4: no modo Team a caixa não fala em "agente".
+  it.each([
+    ['pt-BR', 'Conecte um storage ao team para ver as sessões.'],
+    ['en', 'Connect storage to your team to see sessions.']
+  ] as const)('%s: team sem storage', (locale, text) => {
+    usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false, mode: 'team' })
+    blank('?team=team-1', locale)
+
+    const link = screen.getByRole('link', { name: 'storage' })
+    expect(link.parentElement).toHaveTextContent(text)
+    expect(link.parentElement).not.toHaveTextContent(/agente|agent\b/i)
+  })
+
+  it('team da URL que a lista não tem: "Selecione um team…"', () => {
+    usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false, mode: 'team' })
+    blank('?team=nao-existe')
+
+    expect(screen.getByText('Selecione um team para ver o histórico.')).toBeInTheDocument()
+  })
+
   it('sem agente', () => {
-    usePlaygroundStore.setState({ isEndpointActive: true })
+    usePlaygroundStore.setState({ isOrchestratorActive: true })
     blank('')
 
     expect(screen.getByText('Selecione um agente para ver o histórico.')).toBeInTheDocument()
   })
 
   it('sem storage, com o link "storage"', () => {
-    usePlaygroundStore.setState({ isEndpointActive: true, hasStorage: false })
+    usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false })
     blank('?agent=agent-1')
 
     const link = screen.getByRole('link', { name: 'storage' })
@@ -260,7 +291,7 @@ describe('sessões', () => {
   })
 
   it('sem sessões', () => {
-    usePlaygroundStore.setState({ isEndpointActive: true, hasStorage: true })
+    usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: true })
     blank('?agent=agent-1')
 
     expect(
@@ -291,7 +322,6 @@ describe('sessões', () => {
 
     beforeEach(() => {
       usePlaygroundStore.setState({
-        selectedEndpoint: AGENTOS_URL,
         mode: 'agent',
         sessionsData: [{ session_id: 'session-a1', title: 'Minha sessão', created_at: 1 }]
       })
@@ -299,7 +329,7 @@ describe('sessões', () => {
 
     it('lixeira com o título no nome, modal e toast de sucesso traduzidos', async () => {
       server.use(
-        http.delete(`${AGENTOS_URL}/sessions/:id`, () => new HttpResponse(null, { status: 204 }))
+        http.delete(`${BFF}/sessions/:id`, () => new HttpResponse(null, { status: 204 }))
       )
       const user = userEvent.setup()
       item()
@@ -317,7 +347,7 @@ describe('sessões', () => {
 
     it('falha com status: a frase com o código, sem o texto do servidor', async () => {
       server.use(
-        http.delete(`${AGENTOS_URL}/sessions/:id`, () =>
+        http.delete(`${BFF}/sessions/:id`, () =>
           HttpResponse.text('stack interna', { status: 500 })
         )
       )
@@ -339,8 +369,7 @@ describe('sessões', () => {
 describe('falha ao carregar sessões (BUG-P1-04b-1)', () => {
   it('marca a falha no store, sem toast, e deixa a lista vazia', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    usePlaygroundStore.setState({ selectedEndpoint: AGENTOS_URL })
-    server.use(http.get(`${AGENTOS_URL}/sessions`, () => new HttpResponse(null, { status: 500 })))
+    server.use(http.get(`${BFF}/sessions`, () => new HttpResponse(null, { status: 500 })))
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <IntlProvider locale="en">
         {children}
@@ -358,34 +387,18 @@ describe('falha ao carregar sessões (BUG-P1-04b-1)', () => {
 })
 
 describe('painel', () => {
-  it('botões só com ícone têm nome acessível e URL inválida avisa no idioma', async () => {
-    const user = userEvent.setup()
-    usePlaygroundStore.setState({ hydrated: true })
-    renderWithIntl(
+  // P2-03 (V-P2-03-1): sem o bloco Endpoint; nenhuma URL, host ou porta.
+  it('botões só com ícone têm nome acessível; sem Endpoint nem URL', () => {
+    const { container } = renderWithIntl(
       <NuqsTestingAdapter>
         <Sidebar />
-        <Toaster />
       </NuqsTestingAdapter>
     )
 
-    expect(
-      screen.getByRole('button', { name: 'Recolher painel de sessões' })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Recarregar agentes e sessões' })
-    ).toBeInTheDocument()
-    // o endpoint abre a edição pelo teclado, com nome acessível (R1) e a URL
-    // como descrição (R8), com o status em palavra (P1-05; "conectando" antes
-    // do fim da 1ª tentativa, P1-06)
-    const edit = screen.getByRole('button', { name: 'Editar endpoint' })
-    expect(edit).toHaveAccessibleDescription('http://localhost:7777 conectando')
-    edit.focus()
-    await user.keyboard('{Enter}')
-    const input = screen.getByRole('textbox')
-    await user.clear(input)
-    await user.type(input, 'não é url')
-    await user.click(screen.getByRole('button', { name: 'Salvar endpoint' }))
-
-    expect(await screen.findByText('Informe uma URL válida')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Recolher painel de sessões' })).toBeInTheDocument()
+    expect(screen.queryByText('Endpoint')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /endpoint|Recarregar/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(container.innerHTML).not.toMatch(/localhost|7777/)
   })
 })

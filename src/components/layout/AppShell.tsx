@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { cn, focusRing } from '@/lib/utils'
 import { AppHeader } from './AppHeader'
 import { Brand, Navigation } from './Navigation'
+import { SignOutButton } from './SignOutButton'
 
 // O nome do agente/tool só chega depois do fetch da página de detalhe; a
 // página o entrega à trilha do cabeçalho por aqui.
@@ -57,6 +58,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Brand />
           </div>
           <Navigation notFound={notFound} />
+          <div className="mt-auto border-t border-border p-3">
+            <SignOutButton />
+          </div>
         </div>
         <div className="app-main flex min-w-0 flex-1 flex-col">
           <AppHeader pageLabel={pageLabel} notFound={notFound} />

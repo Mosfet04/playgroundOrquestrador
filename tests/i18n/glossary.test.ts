@@ -48,7 +48,7 @@ describe('glossário (docs/design/P1-04.md)', () => {
     const titles = pt.filter(
       ([key]) =>
         !/^(metadata|home\.tips|home\.nextSteps)\b/.test(key) &&
-        /(^|\.)(title|[a-zA-Z]*Title|basicInfo|modelSettings|rag|tools|http|parameters|headers|activity|sessionsByType|tokensByEntity|aiModels|embeddingModels)$/.test(key)
+        /(^|\.)(title|[a-zA-Z]*Title|basicInfo|modelSettings|rag|tools|http|parameters|headers|activity|sessionsByType|aiModels|embeddingModels)$/.test(key)
     )
     const titleCased = titles.filter(([, value]) =>
       value

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Decisão D-P2-01-1 · campos do login</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p201.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app" style="min-height: 640px">
+  <div class="dec">
+    <div class="st">
+      <p class="cap"><b>A</b> · só senha (env com uma senha)</p>
+      <section class="pg-card lg-card">
+        <div class="lg-head"><h1>Entrar</h1><p>Use a senha configurada no servidor do playground.</p></div>
+        <form class="lg-form" novalidate>
+          <div class="notice notice-err" role="alert">
+            <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
+            <div class="notice-txt"><b>Senha incorreta.</b><span>Confira e tente de novo.</span></div>
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="da">Senha</label>
+            <input class="pg-input is-focus" id="da" type="password" autocomplete="current-password" value="">
+          </div>
+          <button class="pg-btn lg-submit" type="submit">Entrar</button>
+        </form>
+      </section>
+    </div>
+    <div class="st">
+      <p class="cap"><b>B</b> · usuário e senha (recomendada)</p>
+      <section class="pg-card lg-card">
+        <div class="lg-head"><h1>Entrar</h1><p>Use a credencial configurada no servidor do playground.</p></div>
+        <form class="lg-form" novalidate>
+          <div class="notice notice-err" role="alert">
+            <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
+            <div class="notice-txt"><b>Usuário ou senha incorretos.</b><span>Confira os dois campos e tente de novo.</span></div>
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="dbu">Usuário</label>
+            <input class="pg-input" id="dbu" autocomplete="username" value="admin">
+          </div>
+          <div class="pg-field">
+            <label class="pg-label" for="dbp">Senha</label>
+            <input class="pg-input is-focus" id="dbp" type="password" autocomplete="current-password" value="">
+          </div>
+          <button class="pg-btn lg-submit" type="submit">Entrar</button>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

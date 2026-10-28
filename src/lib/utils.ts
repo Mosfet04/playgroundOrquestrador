@@ -21,8 +21,9 @@ export const isValidUrl = (url: string): boolean => {
   }
 }
 
-// Trecho de URL (ex.: `params.id` do App Router, que o Next 15.2 entrega
-// codificado). Sequência % inválida volta como veio.
+// Trecho de URL (ex.: `params.id` das páginas do App Router, que o Next 15.2
+// entrega codificado; nos route handlers ele já chega decodificado). Sequência
+// % inválida volta como veio.
 export const decodeUrlSegment = (segment: string): string => {
   try {
     return decodeURIComponent(segment)
@@ -30,10 +31,6 @@ export const decodeUrlSegment = (segment: string): string => {
     return segment
   }
 }
-
-// Texto do usuário usado em `$regex` do Mongo casa como literal.
-export const escapeRegExp = (text: string): string =>
-  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 export const getJsonMarkdown = (content: object = {}) => {
   let jsonBlock = ''

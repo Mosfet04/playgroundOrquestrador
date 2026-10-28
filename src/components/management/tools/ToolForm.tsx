@@ -1,118 +1,163 @@
 'use client'
 
-import { useState } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useEffect, useRef, useState } from 'react'
+import { useFieldArray, useForm } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { TextArea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { Tool, CreateToolForm, PARAMETER_TYPES } from '@/types/management'
-import { DeleteEntityButton } from '../common/DeleteEntityButton'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { referencePrefixes } from '@/lib/secretRef'
+import { routeOrigin } from '@/lib/toolRoute'
+import { Tool, ToolFormField, isToolFormField } from '@/types/management'
+import { ConflictDialog } from '../common/ConflictDialog'
+import { EntityActions } from '../common/EntityActions'
+import type { EntityControls } from '../common/EntityLoader'
+import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
+import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
+import { useConfigSchema } from '../common/useConfigSchema'
+import { BasicInfoSection } from './BasicInfoSection'
+import { HttpSection } from './HttpSection'
+import { type FocusRequest, ParametersSection } from './ParametersSection'
+import { RequestPreview } from './RequestPreview'
+import { diffTool } from './toolDiff'
+import { ToolFormValues, toFormValues, toPayload, toolProblems } from './toolFormValues'
 
 interface ToolFormProps {
   tool?: Tool | null
+  /** Só na edição: recarregar, trocar a versão ou só atualizá-la (P3-06). */
+  controls?: EntityControls<Tool>
   onSuccess: () => void
 }
 
-const httpMethods = [
-  { value: 'GET', label: 'GET' },
-  { value: 'POST', label: 'POST' },
-  { value: 'PUT', label: 'PUT' },
-  { value: 'DELETE', label: 'DELETE' },
-  { value: 'PATCH', label: 'PATCH' }
-]
+// Sem schema (carregando ou falha) os prefixos de referência são desconhecidos:
+// o que é referência segue sendo `env:`/`file:` só para classificar e mostrar.
+const FALLBACK_PREFIXES = ['env:', 'file:']
 
-export function ToolForm({ tool, onSuccess }: ToolFormProps) {
+const isParameterField = (field: ToolFormField): field is `parameters.${number}` =>
+  field.startsWith('parameters.')
+
+export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
   const [loading, setLoading] = useState(false)
-  const [headers, setHeaders] = useState<Record<string, string>>(
-    tool?.headers || tool?.http_config?.headers || {}
-  )
+  // Desativar, Reativar ou Excluir em andamento (P3-06): Salvar e Cancelar esperam.
+  const [acting, setActing] = useState(false)
+  const saveRef = useRef<HTMLButtonElement>(null)
+  const [created, setCreated] = useState<string[]>([])
+  const addHeaderRef = useRef<HTMLButtonElement | null>(null)
+  const addParameterRef = useRef<HTMLButtonElement | null>(null)
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
 
   const isEditing = !!tool
   const t = useTranslations('tools')
+  const tf = useTranslations('tools.form')
   const tc = useTranslations('common')
   const requestError = useRequestError()
+  const { state: schemaState, retrying, reload: reloadSchema } = useConfigSchema()
+  // Opções do orquestrador (P3-01): sem schema os selects ficam desabilitados;
+  // config só leitura desabilita o formulário todo.
+  const schema = schemaState.status === 'ready' ? schemaState.schema : undefined
+  const writable = schema?.writable ?? true
+  // O `fieldset disabled` não segura o pointerdown num <button> (Chromium): o
+  // Radix abriria o menu; o Select precisa estar desabilitado por si.
+  const selectsDisabled = !schema || !writable
+  const prefixes = schema ? referencePrefixes(schema.apiKeyRefFormats) : FALLBACK_PREFIXES
+  // O `***` só se mantém na origem em que foi gravado.
+  const loadedOrigin = tool ? routeOrigin(tool.route) : null
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    control,
-    formState: { errors }
-  } = useForm<CreateToolForm>({
-    defaultValues: {
-      id: tool?.id || '',
-      name: tool?.name || '',
-      description: tool?.description || '',
-      route: tool?.route || (tool?.http_config ? `${tool.http_config.base_url}${tool.http_config.endpoint}` : ''),
-      http_method: tool?.http_method || tool?.http_config?.method || 'GET',
-      instructions: tool?.instructions || '',
-      headers: tool?.headers || tool?.http_config?.headers || {},
-      parameters: tool?.parameters || tool?.http_config?.parameters || [],
-      active: tool?.active !== undefined ? tool.active : true,
-      // Campos legacy para compatibilidade
-      base_url: tool?.http_config?.base_url || '',
-      method: tool?.http_config?.method || tool?.http_method || 'GET',
-      endpoint: tool?.http_config?.endpoint || ''
-    }
-  })
+  const form = useForm<ToolFormValues>({ defaultValues: toFormValues(tool) })
+  const { handleSubmit, setValue, getValues, setError, setFocus, clearErrors, control, watch } = form
+  const parameters = useFieldArray({ control, name: 'parameters' })
+  const problems = toolProblems(watch(), prefixes)
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'parameters'
-  })
+  // Tool nova: método padrão que o orquestrador não oferece vira o 1º das
+  // opções (o gravado fora delas só se preserva na edição).
+  useEffect(() => {
+    if (!schema || isEditing) return
+    if (!schema.httpMethods.includes(getValues('http_method')))
+      setValue('http_method', schema.httpMethods[0] ?? '')
+  }, [schema, isEditing, getValues, setValue])
 
-  // Headers management
-  const [newHeaderKey, setNewHeaderKey] = useState('')
-  const [newHeaderValue, setNewHeaderValue] = useState('')
+  // Foco no campo que só existe depois do render (parâmetro criado, removido).
+  useEffect(() => {
+    if (!focusRequest) return
+    if (focusRequest === 'add-parameter') addParameterRef.current?.focus()
+    else setFocus(focusRequest)
+    setFocusRequest(null)
+  }, [focusRequest, setFocus])
 
-  const addHeader = () => {
-    if (newHeaderKey && newHeaderValue) {
-      setHeaders(prev => ({
-        ...prev,
-        [newHeaderKey]: newHeaderValue
-      }))
-      setNewHeaderKey('')
-      setNewHeaderValue('')
-    }
+  // Um clique cria o parâmetro da rota: obrigatório, tipo string (D-P3-03-2).
+  const createParams = (names: string[]) => {
+    const first = parameters.fields.length
+    parameters.append(
+      names.map((name) => ({ name, type: 'string', description: '', required: true, default_text: '' }))
+    )
+    setCreated(names)
+    setFocusRequest(`parameters.${first}.description`)
   }
 
-  const removeHeader = (key: string) => {
-    setHeaders(prev => {
-      const newHeaders = { ...prev }
-      delete newHeaders[key]
-      return newHeaders
-    })
+  // Erro do orquestrador no campo recusado, sem o valor. `headers` é um grupo
+  // (o orquestrador não diz qual): erro no grupo e foco no 1º valor;
+  // `parameters.<posição>` vai à linha, com foco no nome.
+  const markRejected = (field: ToolFormField, data: ToolFormValues) => {
+    const error = { type: 'server', message: tc('rejectedByOrchestrator') }
+    if (field === 'headers') {
+      setError('root.headers', { type: 'server', message: t('form.headersRejected') })
+      if (data.headers.length > 0) setFocus('headers.0.value')
+      else addHeaderRef.current?.focus()
+    } else if (isParameterField(field)) {
+      setError(field, error)
+      setFocus(`parameters.${Number(field.slice('parameters.'.length))}.name`)
+    } else setError(field, error, { shouldFocus: true })
   }
 
-  // Submit do formulário
-  const onSubmit = async (data: CreateToolForm) => {
+  // Nada é enviado enquanto houver problema local; o foco vai ao primeiro, na
+  // ordem da tela (rota, headers, parâmetros).
+  const focusFirstProblem = (found: ReturnType<typeof toolProblems>) => {
+    if (found.missing.length > 0 || found.spaced.length > 0) {
+      setFocus('route')
+      return true
+    }
+    const header = found.headers.findIndex((problem) => problem.name || problem.value)
+    if (header >= 0) {
+      const field = found.headers[header].name ? 'name' : 'value'
+      setFocus(`headers.${header}.${field}`)
+      return true
+    }
+    const parameter = found.defaults.findIndex(Boolean)
+    if (parameter >= 0) {
+      setFocus(`parameters.${parameter}.default_text`)
+      return true
+    }
+    return false
+  }
+
+  // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
+  // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
+  // O estado nunca vem do formulário: salvar não liga nem desliga a tool.
+  const submit = async (
+    data: ToolFormValues,
+    base?: { version: number; active: boolean },
+    dismiss?: () => void
+  ): Promise<OverwriteOutcome> => {
     try {
       setLoading(true)
-
-      const payload = {
-        ...data,
-        headers
-      }
+      const target = base ?? tool
 
       const url = isEditing ? `/api/tools/${encodeURIComponent(tool.id)}` : '/api/tools'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // A versão lida vai no If-Match (P2-06): se mudou, o orquestrador recusa (412).
+      // Header oculto (`***`) volta como veio: o orquestrador mantém o gravado.
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(target ? { 'If-Match': `"${target.version}"` } : {})
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(toPayload({ ...data, active: target?.active ?? true }))
       })
 
       const result = response.ok ? await response.json() : null
@@ -120,26 +165,59 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
       if (result?.success) {
         toast.success(t('saved'))
         onSuccess()
-      } else {
+        return 'saved'
+      }
+      // 412: o diálogo de conflito decide (sem toast).
+      if (isEditing && response.status === 412) return 'conflict'
+      // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
+      const field = await rejectedField(response, isToolFormField)
+      if (field) {
+        // Salvar por cima: o diálogo fecha antes, para o foco ir ao campo com erro.
+        dismiss?.()
+        markRejected(field, data)
+      }
+      // 404 no "salvar por cima": o diálogo diz que foi excluída.
+      if (!(base && response.status === 404))
+        // 409 só é "id já existe" na criação.
         toast.error(
           requestError(response.status, {
             failed: t('saveError'),
-            conflict: t('conflict'),
+            conflict: isEditing ? undefined : t('conflict'),
             notFound: t('notFound')
           })
         )
-      }
+      return response.status === 404 ? 'missing' : 'failed'
     } catch (error) {
       console.error('Error saving tool:', error)
       toast.error(requestError(undefined, { failed: t('saveError') }))
+      return 'failed'
     } finally {
       setLoading(false)
     }
   }
 
+  // O que difere entre o formulário e uma versão da config (P3-06), pelos
+  // mesmos valores que o salvar enviaria.
+  const compare = (other: Tool) =>
+    diffTool(toPayload(getValues()), toPayload(toFormValues(other)), tf, prefixes)
+
+  const conflict = useSaveConflict<Tool>({
+    url: `/api/tools/${encodeURIComponent(tool?.id ?? '')}`,
+    compare,
+    overwrite: (current, dismiss) => submit(getValues(), current, dismiss),
+    controls
+  })
+
+  // Submit do formulário
+  const onSubmit = async (data: ToolFormValues) => {
+    const found = toolProblems(data, prefixes)
+    if (focusFirstProblem(found)) return
+    if ((await submit(data)) === 'conflict' && tool) conflict.start(tool.version)
+  }
+
   return (
     <div>
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6 p-6 xl:max-w-6xl">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" asChild className="gap-2">
@@ -149,336 +227,123 @@ export function ToolForm({ tool, onSuccess }: ToolFormProps) {
             </Link>
           </Button>
           <div>
-            <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
-              {isEditing ? t('form.editTitle') : t('form.newTitle')}
-            </h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
+                {isEditing ? t('form.editTitle') : t('form.newTitle')}
+              </h1>
+              {tool && (
+                <StatusBadge active={tool.active}>
+                  {tool.active ? t('active') : t('inactive')}
+                </StatusBadge>
+              )}
+            </div>
             <p className="text-muted-foreground">
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
         </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Informações Básicas */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('form.basicInfo')}</CardTitle>
-            <CardDescription>
-              {t('form.basicInfoDescription')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="id">{t('form.id')}</Label>
-                <Input
-                  id="id"
-                  {...register('id', { required: tc('idRequired') })}
-                  disabled={isEditing}
-                  placeholder={tc('example', { value: 'weather-api' })}
-                />
-                {errors.id && (
-                  <p className="text-sm text-destructive">{errors.id.message}</p>
-                )}
-              </div>
+        <ConfigSchemaNotice
+          status={schemaState.status}
+          writable={writable}
+          retrying={retrying}
+          onRetry={reloadSchema}
+        />
 
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('form.name')}</Label>
-                <Input
-                  id="name"
-                  {...register('name', { required: tc('nameRequired') })}
-                  placeholder={tc('example', { value: 'Weather API' })}
-                />
-                {errors.name && (
-                  <p className="text-sm text-destructive">{errors.name.message}</p>
-                )}
-              </div>
-            </div>
+        {/* O erro do servidor num campo sem regra (Select, headers) não
+            sai na validação: limpo antes, ele não trava o próximo envio. */}
+        <form
+          onSubmit={(event) => {
+            clearErrors()
+            return handleSubmit(onSubmit)(event)
+          }}
+        >
+          {/* Do xl em diante: formulário à esquerda e Requisição fixa à direita. */}
+          <fieldset
+            disabled={!writable}
+            className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-start"
+          >
+            <BasicInfoSection form={form} isEditing={isEditing} />
+            <HttpSection
+              form={form}
+              schema={schema}
+              loadingSchema={schemaState.status === 'loading'}
+              locked={selectsDisabled}
+              missing={problems.missing}
+              spaced={problems.spaced}
+              created={created}
+              onCreateParams={createParams}
+              prefixes={prefixes}
+              headerProblems={problems.headers}
+              loadedOrigin={loadedOrigin}
+              addHeaderRef={addHeaderRef}
+            />
+            <ParametersSection
+              form={form}
+              list={parameters}
+              schema={schema}
+              locked={selectsDisabled}
+              defaultErrors={problems.defaults}
+              requestFocus={setFocusRequest}
+              addRef={addParameterRef}
+            />
+            <RequestPreview form={form} prefixes={prefixes} />
 
-            <div className="space-y-2">
-              <Label htmlFor="description">{t('form.description')}</Label>
-              <TextArea
-                id="description"
-                {...register('description', {
-                  validate: (value) =>
-                    value.trim() !== '' || tc('descriptionRequired')
-                })}
-                placeholder={t('form.descriptionPlaceholder')}
-                rows={3}
-              />
-              {errors.description && (
-                <p className="text-sm text-destructive">{errors.description.message}</p>
+            {/* Botões de ação */}
+            {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+            <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between xl:col-start-1">
+              {tool && controls && (
+                <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+                  <EntityActions
+                    kind="tools"
+                    id={tool.id}
+                    name={tool.name}
+                    version={tool.version}
+                    active={tool.active}
+                    isDirty={() => compare(tool).length > 0}
+                    disabled={loading}
+                    reactivateBody={() =>
+                      JSON.stringify(toPayload({ ...toFormValues(tool), active: true }))
+                    }
+                    onDeleted={onSuccess}
+                    onChanged={controls.update}
+                    onReload={controls.reload}
+                    onBusyChange={setActing}
+                  />
+                </div>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="instructions">{t('form.instructions')}</Label>
-              <TextArea
-                id="instructions"
-                {...register('instructions')}
-                placeholder={t('form.instructionsPlaceholder')}
-                rows={2}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="active">{t('form.active')}</Label>
-              <Switch
-                id="active"
-                checked={watch('active')}
-                onCheckedChange={(checked) => setValue('active', checked)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Configuração HTTP */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('form.http')}</CardTitle>
-            <CardDescription>
-              {t('form.httpDescription')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t('form.method')}</Label>
-                <Select
-                  value={watch('http_method')}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  onValueChange={(value) => setValue('http_method', value as any)}
+              <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+                <Button
+                  variant="outline"
+                  asChild
+                  className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('form.methodPlaceholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {httpMethods.map((method) => (
-                      <SelectItem key={method.value} value={method.value}>
-                        {method.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="route">{t('form.route')}</Label>
-                <Input
-                  id="route"
-                  {...register('route', { required: t('form.routeRequired') })}
-                  placeholder={t('form.routePlaceholder')}
-                />
-                {errors.route && (
-                  <p className="text-sm text-destructive">{errors.route.message}</p>
-                )}
+                  <Link href="/tools" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                    {tc('cancel')}
+                  </Link>
+                </Button>
+                <Button
+                  ref={saveRef}
+                  type="submit"
+                  disabled={loading || acting || schemaState.status !== 'ready'}
+                  className="h-10 gap-2 sm:h-9"
+                >
+                  <Save className="w-4 h-4" />
+                  {loading ? tc('saving') : tc('save')}
+                </Button>
               </div>
             </div>
-
-            {/* Campos legacy para compatibilidade reversa
-            <div className="border-t pt-4">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                Configuração Legacy (opcional)
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="base_url">URL Base</Label>
-                  <Input
-                    id="base_url"
-                    {...register('base_url')}
-                    placeholder="https://api.exemplo.com"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="endpoint">Endpoint</Label>
-                  <Input
-                    id="endpoint"
-                    {...register('endpoint')}
-                    placeholder="/v1/weather"
-                  />
-                </div>
-              </div>
-            </div> */}
-
-            {/* Headers */}
-            <div className="space-y-4">
-              <Label>{t('form.headers')}</Label>
-              
-              {Object.entries(headers).length > 0 && (
-                <div className="space-y-2">
-                  {Object.entries(headers).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-2 p-2 border rounded">
-                      <span className="font-medium">{key}:</span>
-                      <span className="flex-1">{value}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeHeader(key)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  placeholder={t('form.headerKeyPlaceholder')}
-                  value={newHeaderKey}
-                  onChange={(e) => setNewHeaderKey(e.target.value)}
-                />
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={t('form.headerValuePlaceholder')}
-                    value={newHeaderValue}
-                    onChange={(e) => setNewHeaderValue(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    onClick={addHeader}
-                    size="sm"
-                    aria-label={t('form.addHeader')}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Parâmetros */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{t('form.parameters')}</CardTitle>
-                <CardDescription>
-                  {t('form.parametersDescription')}
-                </CardDescription>
-              </div>
-              <Button
-                type="button"
-                onClick={() => append({
-                  name: '',
-                  type: 'string',
-                  description: '',
-                  required: false
-                })}
-                className="gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                {t('form.addParameter')}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {fields.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                {t('form.noParameters')}
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
-                    <div className="space-y-2">
-                      <Label>{t('form.parameterName')}</Label>
-                      <Input
-                        {...register(`parameters.${index}.name` as const, {
-                          required: tc('nameRequired')
-                        })}
-                        placeholder={t('form.parameterNamePlaceholder')}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>{t('form.parameterType')}</Label>
-                      <Select
-                        value={watch(`parameters.${index}.type`)}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onValueChange={(value) => setValue(`parameters.${index}.type`, value as any)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PARAMETER_TYPES.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>{t('form.parameterDescription')}</Label>
-                      <Input
-                        {...register(`parameters.${index}.description` as const, {
-                          required: tc('descriptionRequired')
-                        })}
-                        placeholder={t('form.parameterDescriptionPlaceholder')}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>{t('form.parameterRequired')}</Label>
-                      <div className="flex items-center justify-between">
-                        <Switch
-                          checked={watch(`parameters.${index}.required`)}
-                          onCheckedChange={(checked) => setValue(`parameters.${index}.required`, checked)}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Botões de ação */}
-        {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
-        <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {tool && (
-            <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-              <DeleteEntityButton
-                url={`/api/tools/${encodeURIComponent(tool.id)}`}
-                texts={{
-                  label: t('deleteLabel'),
-                  title: t('deleteTitle'),
-                  description: t('deleteDescription', { name: tool.name }),
-                  deleted: t('deleted'),
-                  failed: t('deleteError'),
-                  notFound: t('notFound')
-                }}
-                disabled={loading}
-                onDeleted={onSuccess}
-              />
-            </div>
-          )}
-          <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-            <Button variant="outline" asChild className="h-10 sm:h-9">
-              <Link href="/tools">{tc('cancel')}</Link>
-            </Button>
-            <Button type="submit" disabled={loading} className="h-10 gap-2 sm:h-9">
-              <Save className="w-4 h-4" />
-              {loading ? tc('saving') : tc('save')}
-            </Button>
-          </div>
-        </div>
-      </form>
+          </fieldset>
+        </form>
+        {tool && controls && (
+          <ConflictDialog
+            {...conflict.dialog}
+            kind="tools"
+            name={tool.name}
+            listHref="/tools"
+            saveRef={saveRef}
+          />
+        )}
       </div>
     </div>
   )

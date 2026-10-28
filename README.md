@@ -11,36 +11,40 @@ Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/o
 ## O que tem hoje
 
 - **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls (tempo e erro de cada uma), tempo e tokens de cada resposta, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo).
-- **Agentes** (`/agents`, `/agents/new`, `/agents/<id>`): criar, editar, excluir, buscar e filtrar; modelo, prompt, tools associadas e RAG.
-- **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): método, URL, endpoint, headers e parâmetros.
-- **Dashboard** (`/dashboard`): agentes ativos, usuários, sessões de agent e de team, tokens por entidade e atividade no período.
+- **Agentes** (`/agents`, `/agents/new`, `/agents/<id>`): criar, editar, desativar/reativar, excluir, buscar e filtrar; modelo, prompt, tools associadas e RAG.
+- **Teams** (`/teams`, `/teams/new`, `/teams/<id>`): criar, editar, desativar/reativar, excluir, buscar e filtrar; membros (agents), modo de coordenação, modelo do líder e execução.
+- **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): criar, editar, desativar/reativar e excluir; método, rota com `{param}` ligada aos parâmetros, headers, parâmetros com valor padrão e o preview da requisição.
+- **Dashboard** (`/dashboard`): agentes ativos, pico diário de usuários, sessões de agent e de team, tokens, modelos e atividade por dia, com filtro de período (Hoje, 7, 30 e 90 dias, em dias UTC).
 - **Primeiros passos** (`/`): guia com atalhos para criar agente, tool e testar.
 - Cada seção tem endereço próprio (favoritar, nova aba, voltar do navegador); tema claro/escuro; pt-BR e EN.
-- Estados de carregando, vazio e erro em todas as telas: com o orquestrador ou o MongoDB fora, a tela mostra o erro com "Tentar de novo", e um endereço inexistente mostra o 404 dentro do app.
+- **Login** (`/login`): o playground inteiro (páginas e `/api/*`) só abre com sessão, de um usuário único configurado no servidor. A sessão dura 12 h, sem renovação; "Sair" fica no fim da navegação (no celular, no rodapé do menu).
+- Estados de carregando, vazio e erro em todas as telas: com o orquestrador fora, a tela mostra o erro com "Tentar de novo", e um endereço inexistente mostra o 404 dentro do app.
 
 ## Como funciona hoje
 
 ```mermaid
 graph LR
-    B[Navegador] -->|gestão: /api/agents, /api/tools, /api/dashboard| N[Next.js API Routes]
-    N --> M[(MongoDB do orquestrador)]
-    B -->|chat: /agents, /teams, /sessions, runs| O[Orquestrador / AgentOS]
-    O --> M
+    B[Navegador] -->|gestão, dashboard e chat: /api/*| N[BFF: Next.js API Routes]
+    N -->|/admin/config/*, /metrics, /agents, /teams, /sessions, runs| O[Orquestrador / AgentOS]
+    O --> M[(Config e sessões do orquestrador)]
 ```
 
-- **Gestão** (agentes, tools, dashboard): as rotas `src/app/api/**` leem e gravam direto no MongoDB do orquestrador, com validação zod na entrada.
-- **Chat**: o navegador fala direto com o AgentOS do orquestrador no endpoint do painel (padrão `http://localhost:7777`, salvo no `localStorage`). O orquestrador libera `http://localhost:3000` no CORS por padrão. Se o orquestrador exigir chave (`API_KEY_RUN`), o chat não funciona ainda: o envio da chave chega com o BFF (fase P2).
-- **Quando a mudança vale**: o orquestrador monta agentes e tools ao iniciar. O que você cria ou edita aqui fica gravado no MongoDB e passa a valer no chat **depois de reiniciar o orquestrador**. A aplicação a quente pela API Admin do orquestrador é o plano das fases P2–P4 ([roadmap](docs/roadmap/README.md)).
+- **Dashboard**: `/api/dashboard/stats` chama o `GET /metrics` (agregados por dia, em UTC) e o `GET /admin/config/agents` do orquestrador com a chave admin, sem Mongo. Como o `GET /metrics` só lê agregados prontos, o BFF pede antes o recálculo (`POST /metrics/refresh`), no máximo 1 vez por minuto por processo; se o refresh falhar, a leitura segue com o que houver. Sessões, tokens e modelos somam os dias do período; "Máx. usuários/dia" é o pico diário (o orquestrador não conta usuários únicos no período). O consumo de tokens por agente ou team espera as métricas por agente do orquestrador (F8).
+- **Gestão** (agentes, teams e tools): as rotas `src/app/api/agents|teams|tools` validam o corpo com zod e chamam a API Admin do orquestrador (`/admin/config/agents|teams|tools`) com a chave admin; o playground não acessa o Mongo. O formulário de hoje é traduzido para o documento snake_case do orquestrador (`factoryIaModel` vira `factory_ia_model`, os campos `rag_*` viram o `rag_config` inteiro: documento, estratégia, embedder, `model_params`, `base_url` e `api_key_ref`; RAG desligado grava `active: false` com os valores, e sem valor nenhum grava `null`). A chave de API (modelo, líder, embedder e headers) é sempre uma referência `env:`/`file:` escolhida num seletor; o valor da chave nunca passa pelo playground. Lista, busca e filtros correm no BFF sobre a lista inteira. A versão lida (`version`) volta no `If-Match` ao salvar e ao excluir: se outra pessoa mudou a config no meio, o salvar falha com o código 412. Salvar um agent troca o documento inteiro, então o BFF lê o atual e sobrescreve só os campos do formulário (o que a tela não mostra, como uma chave futura do orquestrador, fica). O orquestrador valida: o campo que ele recusa (422) aparece no formulário com "Valor recusado pelo orquestrador", sem o valor. "Excluir" apaga de vez (`?hard=true`); "Desativar" é `DELETE /api/<agents|teams|tools>/<id>?soft=true` (qualquer outro valor de `soft` é 400), que chama o orquestrador sem `hard` (grava `active: false`, devolve o documento com a versão nova e recusa com 409 se o agent é membro de team). O orquestrador não guarda datas: a coluna "Atualizado" mostra "—".
+- **Chat**: o navegador só fala com o playground. As rotas `src/app/api/playground/**` (BFF) chamam o AgentOS do orquestrador em `ORCHESTRATOR_URL`, com a chave run (excluir sessão usa a admin), e repassam o stream do run sem buffer. O `user_id` das sessões é o usuário do login. Não há endpoint no painel: a URL e as chaves ficam só no servidor.
+- **Quando a mudança vale**: o que você cria ou edita aqui fica na config do orquestrador e vale no chat **logo depois de salvar** (a API Admin só grava o que monta e troca o runtime em seguida).
 
-## Dados no MongoDB
+## Formato da config
 
-#### `agents_config`
+O playground não lê nem grava o banco: o formato é o da API Admin do orquestrador (documento snake_case com `version`). Exemplo de agent e de tool como o GET devolve:
+
+#### Agent (`/admin/config/agents/<id>`)
 ```json
 {
   "id": "assistant-general",
   "nome": "Assistente Geral",
+  "factory_ia_model": "ollama",
   "model": "llama3.2:latest",
-  "factoryIaModel": "ollama",
   "descricao": "Assistente para tarefas gerais",
   "prompt": "Você é um assistente útil...",
   "active": true,
@@ -49,44 +53,56 @@ graph LR
     "active": true,
     "doc_name": "knowledge_base",
     "model": "text-embedding-3-small",
-    "factoryIaModel": "openai"
+    "factory_ia_model": "openai",
+    "search_strategy": "semantic"
   },
-  "created_at": "2025-08-17T10:00:00.000Z",
-  "updated_at": "2025-08-17T10:00:00.000Z"
+  "version": 3
 }
 ```
 
-#### `tools`
+#### Team (`/admin/config/teams/<id>`)
+```json
+{
+  "id": "suporte",
+  "nome": "Suporte",
+  "descricao": "Atende o cliente",
+  "prompt": "Escolha o melhor membro.",
+  "active": true,
+  "member_ids": ["assistant-general", "pesquisador"],
+  "mode": "route",
+  "factory_ia_model": "openai",
+  "model": "gpt-4o",
+  "user_memory_active": true,
+  "summary_active": false,
+  "version": 2
+}
+```
+
+#### Tool (`/admin/config/tools/<id>`)
 ```json
 {
   "id": "weather-api",
   "name": "Weather API",
   "description": "Obtém informações meteorológicas",
-  "http_config": {
-    "base_url": "https://api.openweathermap.org",
-    "method": "GET",
-    "endpoint": "/data/2.5/weather",
-    "headers": { "API-Key": "<valor-do-header>" },
-    "parameters": [
-      { "name": "q", "type": "string", "description": "Nome da cidade", "required": true },
-      { "name": "units", "type": "string", "description": "Unidade de temperatura", "required": false }
-    ]
-  },
-  "created_at": "2025-08-17T10:00:00.000Z",
-  "updated_at": "2025-08-17T10:00:00.000Z"
+  "route": "https://api.openweathermap.org/data/2.5/weather",
+  "http_method": "GET",
+  "headers": { "X-Conta": "***", "X-Api-Key": "env:OPENWEATHER_API_KEY" },
+  "parameters": [
+    { "name": "q", "type": "string", "description": "Nome da cidade", "required": true },
+    { "name": "units", "type": "string", "description": "Unidade de temperatura", "required": false }
+  ],
+  "active": true,
+  "version": 1
 }
 ```
 
 Tipos de parâmetro aceitos (os do orquestrador): `string`, `integer`, `float`, `boolean`, `object`, `array`. A `description` da tool e de cada parâmetro é obrigatória.
 
-> **Atenção:** o valor dos headers fica em texto no MongoDB e aparece no editor da tool. Até a referência a segredo (`env:`/`file:`) chegar (P2+), não guarde ali uma chave que não possa ser lida por quem acessa o banco ou o playground.
-
-#### `agno_sessions` e `agno_memories`
-Sessões (agents e teams, com as métricas de tokens que o dashboard lê) e memórias de usuário do Agno. Até a v2.4 se chamavam `storage` e `user_memories`.
+**Headers da tool:** valor em texto volta mascarado (`***`) e o valor gravado nunca chega ao navegador; salvar sem mexer reenvia a máscara e o orquestrador mantém o valor (desde que a origem da rota não mude). Header de credencial (`Authorization`, `Cookie`, `*-Key`, `*-Token`) só aceita referência a segredo (`env:<VARIAVEL>` ou `file:/caminho`), que volta como está.
 
 ## Início rápido
 
-**Pré-requisitos:** Node.js 22.18+ ou 24+, pnpm 10.33.0 (só pnpm) e o orquestrador rodando com o MongoDB dele ([README do orquestrador](https://github.com/Mosfet04/orquestradorIAPythonArgo)).
+**Pré-requisitos:** Node.js 22.18+ ou 24+, pnpm 10.33.0 (só pnpm) e o orquestrador rodando ([README do orquestrador](https://github.com/Mosfet04/orquestradorIAPythonArgo)).
 
 ```bash
 git clone <este-repositorio>
@@ -94,36 +110,63 @@ cd playgroundOrquestrador
 pnpm install
 ```
 
-Crie o `.env.local` com o mesmo MongoDB do orquestrador (são as duas únicas variáveis que o playground lê, em `src/lib/mongodb.ts`):
+Crie o `.env.local` com as variáveis abaixo.
+
+### Variáveis de ambiente
+
+| Variável | O que é |
+|---|---|
+| `ORCHESTRATOR_URL` | URL do orquestrador, `http(s)://` (ex.: `http://localhost:7777`) |
+| `ORCHESTRATOR_API_KEY_RUN`, `ORCHESTRATOR_API_KEY_ADMIN` | as chaves `API_KEY_RUN` e `API_KEY_ADMIN` do orquestrador |
+| `SESSION_SECRET` | segredo que assina o cookie de sessão, com 32 caracteres ou mais (ex.: `openssl rand -base64 48`) |
+| `AUTH_USERNAME` | usuário do login |
+| `AUTH_PASSWORD_HASH` | hash scrypt da senha do login, gerado por `pnpm auth:hash` (nunca a senha em claro) |
+
+As variáveis são validadas em `src/server/env.ts` e só existem no servidor: o navegador nunca as recebe. Faltando alguma, o servidor recusa as requisições e o log cita só o nome da variável, nunca o valor (no `pnpm dev`, ao subir; no `pnpm start`, a partir da 1ª requisição, que é quando o Next roda o `src/instrumentation.ts`). A URL e as chaves do orquestrador são usadas só pelo cliente do servidor (`src/server/orchestrator/`): health, o chat (`/api/playground/*`), o dashboard (`/api/dashboard/*`) e a gestão (`/api/agents*`, `/api/teams*`, `/api/tools*`) e as opções dos formulários (`/api/config/schema`).
+
+Para gerar o hash, passe a senha pelo stdin (não fica no histórico do shell):
+
+```bash
+read -rs PW && printf '%s' "$PW" | pnpm -s auth:hash; unset PW
+# scrypt:<sal>:<hash> -> valor de AUTH_PASSWORD_HASH
+```
 
 ```env
-MONGO_CONNECTION_STRING=mongodb://localhost:27017
-MONGO_DATABASE_NAME=agno
+ORCHESTRATOR_URL=http://localhost:7777
+ORCHESTRATOR_API_KEY_RUN=<API_KEY_RUN do orquestrador>
+ORCHESTRATOR_API_KEY_ADMIN=<API_KEY_ADMIN do orquestrador>
+SESSION_SECRET=<segredo aleatório de 32+ caracteres>
+AUTH_USERNAME=admin
+AUTH_PASSWORD_HASH=<saída do pnpm auth:hash>
 ```
+
+O login aceita 5 tentativas por IP a cada 15 min (a 6ª recebe 429; entrar com a senha certa zera a contagem). O contador fica na memória do processo: vale para uma réplica só e zera ao reiniciar. O IP é o último do `X-Forwarded-For`: **sirva o playground atrás de um proxy que grave ou acrescente esse header** (nginx, Caddy, o balanceador da nuvem). Sem ele, o cliente escolhe o valor e o limite por IP não se sustenta.
+
+A sessão é só o cookie assinado com `SESSION_SECRET`: não há revogação no servidor. Trocar o `SESSION_SECRET` derruba todas as sessões abertas (todos entram de novo).
 
 ```bash
 pnpm dev          # http://localhost:3000
 ```
 
-No `/playground`, confira o endpoint do orquestrador no painel (padrão `http://localhost:7777`).
+O `/playground` usa o orquestrador de `ORCHESTRATOR_URL`; para trocar, mude a variável e reinicie o playground.
 
-**Dados de exemplo (opcional):** os scripts são do `mongosh` e usam o banco `agno`.
+**Dados de exemplo (opcional):** use o seed do orquestrador (`mongo-init/` para o Mongo, `config.example.yaml` para o store YAML; ver o [README do orquestrador](https://github.com/Mosfet04/orquestradorIAPythonArgo)), ou crie pelas telas de Agentes e Tools.
 
-```bash
-mongosh "mongodb://localhost:27017" sample-data.js          # 3 agentes e 4 tools de exemplo
-mongosh "mongodb://localhost:27017" cleanup-sample-data.js  # remove os exemplos
-```
-
-**Produção:** `pnpm build` e `pnpm start` (as variáveis `MONGO_*` precisam existir também no build). O repositório não tem Dockerfile.
+**Produção:** `pnpm build` e `pnpm start` (as variáveis só precisam existir no `start`). Sirva por HTTPS: fora do `pnpm dev` o cookie de sessão é `Secure`. O repositório não tem Dockerfile.
 
 ## Como usar
 
-1. Em **Tools → Nova tool**, cadastre a chamada HTTP. Exemplo: ID `weather-api`, método `GET`, URL base `https://api.openweathermap.org`, endpoint `/data/2.5/weather`, header `API-Key` (o valor fica em texto no MongoDB, ver o aviso em "Dados no MongoDB"), parâmetros `q` (string, obrigatório) e `units` (string, opcional).
+1. Em **Tools → Nova tool**, cadastre a chamada HTTP. Exemplo: ID `weather-api`, método `GET`, rota `https://api.openweathermap.org/data/2.5/weather`, header `X-Api-Key` com `env:OPENWEATHER_API_KEY` (referência a uma variável do orquestrador, ver "Headers da tool"), parâmetros `q` (string, obrigatório) e `units` (string, opcional).
 2. Em **Agentes → Novo agente**, escolha provedor e modelo (ex.: Ollama, `llama3.2:latest`), escreva o prompt, marque as tools e, se quiser, ligue o RAG.
-3. Reinicie o orquestrador para ele carregar o que mudou.
-4. No **Playground**, escolha o agente e converse.
+3. No **Playground**, escolha o agente e converse (a mudança vale logo depois de salvar).
 
-**Provedores no formulário de agente:** Ollama, OpenAI, Anthropic, Google Gemini, Groq e Azure OpenAI; no RAG: Ollama, OpenAI, Google Gemini e Azure OpenAI. As chaves dos provedores ficam no orquestrador, não aqui. Para oferecer outro provedor, inclua-o em `modelProviders` ou `ragProviders` (`src/components/management/agents/AgentForm.tsx`), com um valor que o orquestrador aceite.
+**Opções dos formulários:** provedores do modelo e do embedding (RAG), métodos HTTP e tipos de parâmetro vêm do `GET /admin/schema` do orquestrador (via `/api/config/schema`, chave admin, sem cache), não de lista no playground; um provedor novo ou plugin aparece depois que o orquestrador reinicia. O provedor aparece pelo nome que o orquestrador usa. Enquanto o schema carrega, os selects ficam desabilitados; se falhar, o formulário mostra a mensagem com "Tentar de novo" e não deixa salvar. Se o orquestrador diz que a config é só leitura (`config_store.writable = false`), o formulário avisa e desabilita campos, salvar e excluir. Um valor gravado que o orquestrador não oferece mais continua selecionado, e o orquestrador decide ao salvar. As chaves dos provedores ficam no orquestrador, não aqui.
+
+**Editor de agent (P3-02):** cobre o documento inteiro do agent. Modelo: provedor, modelo, URL base (aparece e é obrigatória quando o provedor tem `requires_base_url`), referência da chave de API e parâmetros do modelo. A referência é só `env:<PROVEDOR>_API_KEY` ou `file:/caminho` (os formatos vêm do schema); um valor sem esse prefixo é recusado no navegador e nunca sai dele. Parâmetros: linhas nome + valor; o nome é um dos `model_params` do provedor escolhido e o tipo do valor é inferido (número com ponto, `true`/`false` ou texto; não expressa número como texto, ex. `stop: "1"`). Execução: Markdown, data e hora, histórico (com `num_history_runs` na faixa do schema), raciocínio, memória do usuário e resumo da sessão, cada um com o padrão do orquestrador. Salvar envia o documento do formulário: parâmetro removido ou URL base/referência vazia saem do documento; o RAG e chaves que o formulário não conhece são preservados.
+
+**Conflito e desativar (P3-06):** se outra pessoa salvou a mesma config no meio da edição, o salvar (412) abre um diálogo que relê a versão atual pelo BFF e lista os campos do formulário que diferem (o seu valor × o atual; referência de segredo e `***` como estão, valor em texto de header nunca). Saídas: "Voltar ao formulário", "Recarregar a atual" (descarta as suas edições) e "Salvar as minhas por cima" (grava com a versão atual no `If-Match`, preservando o estado ativo dela; outro 412 relê e avisa). O estado ativo saiu do formulário: o cabeçalho mostra o badge Ativo/Inativo e o rodapé tem "Desativar" (com confirmação, a página fica) ou "Reativar" (grava o documento carregado com `active: true`); os dois não gravam as edições do formulário. 412 em Excluir, Desativar ou Reativar mostra um aviso com "Recarregar"; agent membro de team não desativa (o diálogo lista os teams).
+
+**Editor de team (P3-04):** cobre o documento inteiro do team. Membros: os agents do `GET /api/agents` (até 100) como linhas marcáveis, com busca no navegador; ao menos um (senão o formulário não envia) e a ordem gravada se mantém, com os novos no fim; um id gravado que já não existe aparece marcado com aviso até ser desmarcado, e o salvar fica desabilitado enquanto a lista de agents carrega ou falha. Modo: um cartão por valor de `team.mode` do schema, com a descrição; um valor gravado fora da lista é preservado até o usuário trocar. Modelo do líder e Execução reusam as seções do agent (Execução com Markdown, histórico, memória do usuário, ligada por padrão no team, e resumo). Excluir um agent que é membro de team é recusado pelo orquestrador (409 `used_by`): o BFF repassa só os ids dos teams e o diálogo de excluir lista cada um com link para `/teams/<id>`, em nova aba.
 
 ## Interface
 
@@ -137,18 +180,22 @@ mongosh "mongodb://localhost:27017" cleanup-sample-data.js  # remove os exemplos
 ```
 src/
 ├── app/
-│   ├── api/                 # rotas da API (agents, tools, dashboard), validação zod
+│   ├── api/                 # rotas da API (agents, teams, tools, dashboard, auth), validação zod
+│   ├── login/               # tela de login (fora da casca)
 │   └── (app)/               # rotas com a casca (navegação + cabeçalho): /, /playground,
-│                            # /agents[/new|/<id>], /tools[/new|/<id>], /dashboard;
+│                            # /agents[/new|/<id>], /teams[/new|/<id>], /tools[/new|/<id>], /dashboard;
 │                            # error.tsx, not-found.tsx e o catch-all do 404
 ├── components/
 │   ├── layout/              # casca, navegação, cabeçalho, tema e idioma
-│   ├── management/          # agentes, tools, dashboard e primeiros passos
+│   ├── management/          # agentes, teams, tools, dashboard e primeiros passos
 │   ├── playground/          # chat e painel de sessões
 │   └── ui/                  # componentes base (shadcn) e estados (loading.tsx)
 ├── hooks/                   # stream do chat, sessões, ações do playground
 ├── i18n/                    # next-intl: idioma pelo cookie (request.ts)
-├── lib/                     # utilitários (mongodb.ts, utils.ts...)
+├── lib/                     # utilitários puros (utils.ts, safeUrl.ts...)
+├── server/                  # só servidor ('server-only'): env validado, sessão, senha, rate limit,
+│                            # cliente do orquestrador (orchestrator/)
+├── middleware.ts            # sessão obrigatória em páginas e /api/*, Origin nas mutações
 └── types/
 ```
 
@@ -161,30 +208,29 @@ pnpm test:e2e      # Playwright (Chromium) contra o orquestrador falso (e2e/fake
                    # 1ª vez: pnpm exec playwright install chromium
 pnpm build
 pnpm format        # Prettier (checagem)
+pnpm contract:check   # tipos do orquestrador em dia com o snapshot do contrato
+pnpm contract:update  # baixa o snapshot de um orquestrador local e regenera os tipos
 ```
 
-A CI (`.github/workflows/ci.yml`) roda `lint`, `typecheck`, `test`, `build` e `test:e2e` em push na `main` e em todo PR.
+A CI (`.github/workflows/ci.yml`) roda `lint`, `typecheck`, `contract:check`, `test`, `build` e `test:e2e` em push na `main` e em todo PR.
+
+**Contrato do orquestrador.** O BFF fala com o orquestrador só por `src/server/orchestrator/client.ts` (chave `run` ou `admin` por chamada, timeout e erro com código próprio; a resposta é validada com zod). Os tipos (`src/server/orchestrator/openapi.d.ts`, gerado pelo `openapi-typescript`; não edite) vêm do snapshot versionado `docs/contracts/orchestrator-openapi.json`. Quando o orquestrador mudar a API, suba-o local em development (só lá existe o `/openapi.json`) e rode `ORCHESTRATOR_URL=http://127.0.0.1:7777 pnpm contract:update` (sem a variável, usa essa URL). Se o orquestrador estiver com `API_KEY_RUN`/`API_KEY_ADMIN`, a rota pede a chave run: exporte `ORCHESTRATOR_API_KEY_RUN` no shell antes (vai só no header; sem ela, ou com a errada, o script para com HTTP 401 e diz isso); revise o diff do snapshot e commite os dois arquivos. O snapshot atual foi gerado com a config vazia (`CONFIG_STORE=yaml` e um YAML sem agents, teams e tools), que já traz as rotas do AgentOS.
 
 Sem `CI`, o `pnpm test:e2e` sobe o app com `next dev` (prazos maiores por causa da compilação sob demanda). Com `CI=true`, roda `next build` + `next start`, como na CI:
 
 ```bash
-CI=true MONGO_CONNECTION_STRING=mongodb://127.0.0.1:1/ci-fake MONGO_DATABASE_NAME=ci-fake pnpm test:e2e
+CI=true pnpm test:e2e
 ```
 
-Os valores `MONGO_*` são de mentira (porta 1, sem Mongo): o build só precisa que existam. O build sobrescreve a pasta `.next`: pare qualquer `next dev` do projeto antes e suba o dev de novo depois.
+O CRUD de agents do e2e roda num projeto próprio (`config-agents`), depois do resto, porque o dashboard conta os agents da mesma config do orquestrador falso. O env do servidor nos testes (usuário, hash, segredo e chaves de teste, nunca reais) fica em `e2e/test-env.ts`: o Vitest e o Playwright o usam, e o projeto `setup` do Playwright entra uma vez pela tela de login e grava a sessão em `e2e/.auth/` para os demais testes. A CI confere que nenhum desses valores aparece em `.next/static`. O build sobrescreve a pasta `.next`: pare qualquer `next dev` do projeto antes e suba o dev de novo depois.
 
 Plano de trabalho em [`docs/roadmap/`](docs/roadmap/README.md), decisões em [`docs/decisions/`](docs/decisions/) e regras do projeto em [`CLAUDE.md`](CLAUDE.md). Para contribuir, veja o [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Solução de problemas
 
-- **Listas e dashboard com "Não foi possível carregar…"**: confira o MongoDB e o `.env.local`:
-  ```bash
-  mongosh "mongodb://localhost:27017/agno" --eval "db.getCollectionNames()"
-  mongosh "mongodb://localhost:27017/agno" --eval "db.agents_config.countDocuments()"
-  curl http://localhost:3000/api/agents
-  ```
-- **Playground com "Não foi possível conectar ao orquestrador"**: confira o endpoint no painel e o orquestrador (`curl http://localhost:7777/health`). Com o playground em outra origem que não `http://localhost:3000`, inclua-a em `CORS_ALLOWED_ORIGINS` no orquestrador.
-- **Agente criado não aparece no chat**: reinicie o orquestrador (ver "Quando a mudança vale").
+- **Listas e dashboard com "Não foi possível carregar…"**: confira `ORCHESTRATOR_URL`, `ORCHESTRATOR_API_KEY_ADMIN` e o orquestrador (`curl http://localhost:7777/health`). "código 502": o orquestrador respondeu com erro ou recusou a chave admin.
+- **Playground com "Não foi possível conectar ao orquestrador"**: confira `ORCHESTRATOR_URL` e o orquestrador (`curl http://localhost:7777/health`). Chip "offline": o orquestrador não respondeu; "código 502": respondeu com erro ou recusou a chave (confira `ORCHESTRATOR_API_KEY_RUN`).
+- **Salvar abre "O agente/team/tool mudou"**: a config mudou depois que você abriu o editor (412); o diálogo mostra o que difere e deixa recarregar a atual ou salvar as suas por cima. Se a leitura da versão atual falhar, use "Tentar de novo".
 
 ## Licença e créditos
 
@@ -199,50 +245,58 @@ Web UI for the [Agno Python AI Orchestrator](https://github.com/Mosfet04/orquest
 ### What it does today
 
 - **Chat playground** (`/playground`): chat with the orchestrator's agents and teams, with streaming, tool calls (time and error of each), time and tokens of each response, session history (Agno 2.5 `chat_history` and the legacy format) and media.
-- **Agents** (`/agents`, `/agents/new`, `/agents/<id>`) and **HTTP tools** (`/tools`, …): create, edit, delete, search and filter.
+- **Agents** (`/agents`, `/agents/new`, `/agents/<id>`), **teams** (`/teams`, …) and **HTTP tools** (`/tools`, …): create, edit, delete, search and filter. A team has members (agents), a coordination mode, a leader model and execution settings.
 - **Dashboard** (`/dashboard`) and **getting started** guide (`/`).
-- Every section has its own URL; light/dark theme; pt-BR and EN. Loading, empty and error states everywhere: with the orchestrator or MongoDB down you get the error with "Try again", and an unknown address shows the in-app 404.
+- **Sign-in** (`/login`): the whole playground (pages and `/api/*`) requires a session for a single user configured on the server; sessions last 12 h, no renewal. "Sign out" is at the end of the navigation.
+- Every section has its own URL; light/dark theme; pt-BR and EN. Loading, empty and error states everywhere: with the orchestrator down you get the error with "Try again", and an unknown address shows the in-app 404.
 
 ### How it works today
 
-- **Management** (agents, tools, dashboard): the `src/app/api/**` routes read and write the orchestrator's MongoDB directly, validating input with zod.
-- **Chat**: the browser talks to the orchestrator's AgentOS at the endpoint set in the panel (default `http://localhost:7777`). The orchestrator allows `http://localhost:3000` in CORS by default. If it requires a key (`API_KEY_RUN`), chat doesn't work yet: sending the key comes with the BFF (phase P2).
-- **When changes apply**: the orchestrator builds agents and tools at startup, so what you create or edit here takes effect in chat **after restarting the orchestrator**. Hot apply through the orchestrator's Admin API is planned for phases P2–P4 ([roadmap](docs/roadmap/README.md)).
+- **Management** (agents, teams, tools, dashboard): the `src/app/api/**` routes validate input with zod and call the orchestrator's Admin API (`/admin/config/*`) and `/metrics` with the admin key; the playground never touches Mongo. The version read goes back in `If-Match` on save, delete and deactivate (code 412 if someone changed it meanwhile; on save, a dialog compares the form with the current version and offers to reload it or overwrite it with your changes); a field the orchestrator rejects (422) is shown on the form without the value; "Delete" removes for good (`?hard=true`); "Deactivate" is `DELETE …?soft=true` (sets `active: false`, returns the document) and "Reactivate" saves the loaded document with `active: true`; tool header values come back masked (`***`) and saving them unchanged keeps the stored value.
+- **Form options**: model and embedding providers, HTTP methods and parameter types come from the orchestrator's `GET /admin/schema` (via `/api/config/schema`, admin key, no cache), not from lists in the playground. While it loads the selects are disabled; if it fails the form shows a message with "Try again" and cannot be saved; a read-only config store (`config_store.writable = false`) disables the whole form. A stored value the orchestrator no longer offers stays selected and the orchestrator decides on save.
+- **Agent editor**: covers the whole agent document: model (provider, model, base URL when the provider requires it, API key reference, model parameters as name + value rows with the value type inferred), instructions, execution options (Markdown, date and time, history with the schema range, reasoning, user memory, session summary) and tools. The API key is only a reference (`env:` / `file:`); a pasted key is refused in the browser. Saving sends the form's document; the RAG and keys the form doesn't know are preserved.
+- **Team editor**: covers the whole team document: members (the agents from `GET /api/agents`, up to 100, as checkable rows with client-side search; at least one, stored order kept, new ones last; a stored id that no longer exists is shown checked with a warning; save is disabled while the agent list loads or fails), coordination mode (one card per `team.mode` value from the schema; a stored value outside the list is kept until changed), the leader model and execution (reused from the agent; user memory defaults to on for a team). Deleting an agent that is a team member is refused by the orchestrator (409 `used_by`): the BFF passes only the team ids and the delete dialog lists each one with a link to `/teams/<id>` in a new tab.
+- **Chat**: the browser only talks to the playground. The `src/app/api/playground/**` routes (BFF) call the orchestrator's AgentOS at `ORCHESTRATOR_URL` with the run key (deleting a session uses the admin key) and pass the run stream through unbuffered. The sessions' `user_id` is the logged-in user. There is no endpoint field in the panel: the URL and keys stay on the server.
+- **When changes apply**: what you create or edit here is stored in the orchestrator's config and takes effect in chat **right after saving**.
 
-The MongoDB collections (`agents_config`, `tools`, `agno_sessions`, `agno_memories`) are described in the Portuguese section above.
+The config format (Admin API documents) is described in the Portuguese section above.
 
 ### Quick start
 
-Requirements: Node.js 22.18+ or 24+, pnpm 10.33.0 (pnpm only) and the orchestrator running with its MongoDB.
+Requirements: Node.js 22.18+ or 24+, pnpm 10.33.0 (pnpm only) and the orchestrator running.
 
 ```bash
 pnpm install
-# .env.local (the only two variables the playground reads)
-#   MONGO_CONNECTION_STRING=mongodb://localhost:27017
-#   MONGO_DATABASE_NAME=agno
+# .env.local (see "Variáveis de ambiente" above for the table)
+#   ORCHESTRATOR_URL=http://localhost:7777
+#   ORCHESTRATOR_API_KEY_RUN=<orchestrator API_KEY_RUN>
+#   ORCHESTRATOR_API_KEY_ADMIN=<orchestrator API_KEY_ADMIN>
+#   SESSION_SECRET=<random secret, 32+ characters>
+#   AUTH_USERNAME=admin
+#   AUTH_PASSWORD_HASH=<output of: read -rs PW && printf '%s' "$PW" | pnpm -s auth:hash; unset PW>
 pnpm dev                                                   # http://localhost:3000
-mongosh "mongodb://localhost:27017" sample-data.js         # optional sample data (database "agno")
-mongosh "mongodb://localhost:27017" cleanup-sample-data.js # removes it
+# optional sample data: the orchestrator's seed (mongo-init/, config.example.yaml)
 ```
 
-Production: `pnpm build` and `pnpm start` (`MONGO_*` must be set at build time too). There is no Dockerfile.
+Server variables are validated in `src/server/env.ts` and never reach the browser; if one is missing, the server refuses requests and the log names the variable, never its value. Sign-in allows 5 attempts per IP every 15 min (in-memory counter: single replica only); the IP is the last `X-Forwarded-For` entry, so serve it behind a proxy that sets that header, otherwise the limit doesn't hold. Server env is checked at startup in `pnpm dev` and from the first request in `pnpm start`. Rotating `SESSION_SECRET` signs everyone out (there is no server-side revocation).
+
+Production: `pnpm build` and `pnpm start` (variables are only needed at start). Serve over HTTPS: outside `pnpm dev` the session cookie is `Secure`. There is no Dockerfile.
 
 ### Usage
 
-1. **Tools → New tool**: register the HTTP call (method, base URL, endpoint, headers, parameters). Header values are stored as plain text in MongoDB and shown in the editor until secret references arrive (P2+).
+1. **Tools → New tool**: register the HTTP call (method, route, headers, parameters). Credential headers (`Authorization`, `*-Key`, `*-Token`) take only a secret reference (`env:<VAR>` or `file:/path`); plain-text values come back masked.
 2. **Agents → New agent**: pick provider and model, write the prompt, select tools, optionally enable RAG. Provider API keys live in the orchestrator.
-3. Restart the orchestrator so it loads the changes.
-4. **Playground**: pick the agent and chat.
+3. **Playground**: pick the agent and chat (changes apply right after saving).
 
 ### Development
 
-Stack: Next.js 15 (App Router), React 18, TypeScript, Tailwind + shadcn/ui, zustand, nuqs, next-intl, react-hook-form, zod (API routes), recharts. Commands: `pnpm lint`, `pnpm typecheck`, `pnpm test` (Vitest), `pnpm test:e2e` (Playwright against the fake orchestrator; `CI=true` runs it against a production build), `pnpm build`. Colors only via Design System tokens; UI text only via the `messages/*.json` catalogs. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Stack: Next.js 15 (App Router), React 18, TypeScript, Tailwind + shadcn/ui, zustand, nuqs, next-intl, react-hook-form, zod (API routes), recharts. Commands: `pnpm lint`, `pnpm typecheck`, `pnpm test` (Vitest), `pnpm test:e2e` (Playwright against the fake orchestrator; `CI=true` runs it against a production build), `pnpm build`, `pnpm contract:check` (orchestrator types up to date with the `docs/contracts/orchestrator-openapi.json` snapshot) and `pnpm contract:update` (downloads `/openapi.json` from a local orchestrator in development, `ORCHESTRATOR_URL` or `http://127.0.0.1:7777`, and regenerates the types; if the orchestrator has API keys set, export `ORCHESTRATOR_API_KEY_RUN` first, sent only as the Bearer header). Colors only via Design System tokens; UI text only via the `messages/*.json` catalogs. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Troubleshooting
 
-- Lists/dashboard show "Couldn't load…": check MongoDB and `.env.local` (`curl http://localhost:3000/api/agents`).
-- Playground shows "Couldn't connect to the orchestrator": check the endpoint and `curl http://localhost:7777/health`; for an origin other than `http://localhost:3000`, add it to the orchestrator's `CORS_ALLOWED_ORIGINS`.
-- New agent missing in chat: restart the orchestrator.
+- Lists/dashboard show "Couldn't load…": check `ORCHESTRATOR_URL`, `ORCHESTRATOR_API_KEY_ADMIN` and `curl http://localhost:7777/health`.
+- Playground shows "Couldn't connect to the orchestrator": check `ORCHESTRATOR_URL` and `curl http://localhost:7777/health`; "code 502" means the orchestrator answered with an error or refused the key (check `ORCHESTRATOR_API_KEY_RUN`).
+- Save opens "The agent/team/tool changed": the config changed after you opened the editor (412); the dialog shows what differs and lets you reload the current version or overwrite it with yours. If reading the current version fails, use "Try again".
 
 License: [MIT](./LICENSE).
 
@@ -277,3 +331,5 @@ License: [MIT](./LICENSE).
 - `layout.tsx`: `viewport` exportado separadamente conforme recomendação do Next.js
 - Correção de keys duplicadas no dashboard (`model.name` → chave composta com provider e index)
 - Adicionados `eslint-disable` para supressões necessárias de `@typescript-eslint/no-explicit-any`
+
+**Editor de tool (P3-03):** a rota aceita `{param}` só no caminho e na query (no host o orquestrador recusa). Placeholder sem parâmetro de mesmo nome faz o orquestrador descartar a tool no runtime, então o editor recusa o envio e oferece criar o parâmetro (obrigatório, `string`); parâmetro cujo nome está na rota vai sempre obrigatório. O `default_value` do parâmetro é convertido pelo tipo (número, booleano, JSON) e só serve de exemplo: o orquestrador não o envia na chamada. O card "Requisição" mostra, sem chamar a rota, como o orquestrador monta a chamada (`{x}` pelo valor padrão percent-encoded, demais parâmetros em query para GET/DELETE ou corpo JSON para POST/PUT/PATCH, header em texto mascarado). Header de nome sensível com valor novo em texto é recusado no navegador (a regra de nomes é a do orquestrador, duplicada).

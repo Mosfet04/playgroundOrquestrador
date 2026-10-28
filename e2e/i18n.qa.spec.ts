@@ -1,6 +1,7 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { expect, request, test, type BrowserContext, type Page } from '@playwright/test'
 
-import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { APP_URL, AUTH_STATE } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // QA P1-04. Complementa e2e/i18n.spec.ts: cookie hostil no request, idioma
@@ -31,19 +32,15 @@ const tool = {
 const stats = {
   activeAgents: 1,
   totalAgents: 1,
-  uniqueUsers: 2,
+  peakDailyUsers: 2,
   totalSessions: 3,
   totalAgentSessions: 2,
   totalTeamSessions: 1,
-  sessionsInPeriod: 3,
   totalTokens: 1234567,
   models: [{ name: 'llama3.2', provider: 'ollama', count: 2 }],
   embeddingModels: [{ name: 'embed-x', provider: 'openai', count: 1 }],
   activityOverTime: [{ time: '2026-10-15', sessions: 3, agentSessions: 2, teamSessions: 1 }]
 }
-const tokenRows = [
-  { name: 'alfa', type: 'agent', inputTokens: 100, outputTokens: 50, totalTokens: 150 }
-]
 const list = <T,>(data: T[]) => ({
   success: true,
   data: { data, total: data.length, page: 1, limit: 100, totalPages: 1 }
@@ -65,9 +62,6 @@ async function mockApi(page: Page) {
   await serve('tools', [tool])
   await page.route(/\/api\/dashboard\/stats/, (route) =>
     route.fulfill({ json: { success: true, data: stats } })
-  )
-  await page.route(/\/api\/dashboard\/tokens/, (route) =>
-    route.fulfill({ json: { success: true, data: tokenRows } })
   )
 }
 
@@ -122,37 +116,53 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page)
 })
 
+// P2-01: o `request` do Playwright troca o header Cookie explícito pelos
+// cookies do storageState. Aqui o header vai como escrito, junto da sessão do
+// setup (e2e/auth.setup.ts), num contexto sem cookies.
+async function getWithCookie(path: string, cookie: string, headers: Record<string, string> = {}) {
+  const { cookies } = JSON.parse(readFileSync(AUTH_STATE, 'utf8')) as {
+    cookies: { name: string; value: string }[]
+  }
+  const session = cookies.find(({ name }) => name === 'session')?.value
+  const context = await request.newContext({
+    baseURL: APP_URL,
+    storageState: { cookies: [], origins: [] }
+  })
+  try {
+    const response = await context.get(path, {
+      headers: { ...headers, cookie: `session=${session}; ${cookie}` }
+    })
+    return { status: response.status(), text: await response.text() }
+  } finally {
+    await context.dispose()
+  }
+}
+
 test.describe('cookie hostil no request (sem browser)', () => {
   test.use({ locale: 'en-US' })
 
   // Só o que o pipeline real exercita (parse do header Cookie do servidor);
   // os valores inválidos comuns estão em tests/i18n/request.test.ts.
   for (const value of ['en%00', 'x'.repeat(4000)]) {
-    test(`locale=${value.slice(0, 30)} -> 200 em pt-BR`, async ({ request }) => {
-      const response = await request.get('/agents', {
-        headers: { cookie: `locale=${value}`, 'accept-language': 'en-US,en;q=0.9' }
+    test(`locale=${value.slice(0, 30)} -> 200 em pt-BR`, async () => {
+      const { status, text } = await getWithCookie('/agents', `locale=${value}`, {
+        'accept-language': 'en-US,en;q=0.9'
       })
-      expect(response.status()).toBe(200)
-      const text = await response.text()
+      expect(status).toBe(200)
       expect(text).toMatch(/<html[^>]*lang="pt-BR"/)
       expect(text).toContain('Playground do Orquestrador')
     })
   }
 
-  test('cookie duplicado: vale um idioma válido, sem erro', async ({ request }) => {
-    const response = await request.get('/agents', {
-      headers: { cookie: 'locale=fr; locale=en' }
-    })
-    expect(response.status()).toBe(200)
-    expect(await response.text()).toMatch(/<html[^>]*lang="(pt-BR|en)"/)
+  test('cookie duplicado: vale um idioma válido, sem erro', async () => {
+    const { status, text } = await getWithCookie('/agents', 'locale=fr; locale=en')
+    expect(status).toBe(200)
+    expect(text).toMatch(/<html[^>]*lang="(pt-BR|en)"/)
   })
 })
 
-test('GET /agents com cookie en no request devolve <html lang="en"> já no HTML do servidor', async ({
-  request
-}) => {
-  const response = await request.get('/agents', { headers: { cookie: 'locale=en' } })
-  const text = await response.text()
+test('GET /agents com cookie en no request devolve <html lang="en"> já no HTML do servidor', async () => {
+  const { text } = await getWithCookie('/agents', 'locale=en')
   expect(text).toMatch(/<html[^>]*lang="en"/)
   expect(text).toContain('Agents · Orchestrator Playground')
   expect(text).not.toContain('Agentes · Playground do Orquestrador')
@@ -382,14 +392,12 @@ test.describe('sessão do chat não recarrega na troca de idioma', () => {
     page
   }) => {
     await page.route(
-      (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
+      (url) => url.origin !== APP_URL,
       (route) => route.abort()
     )
     await page.goto('/playground')
+    await hydrated(page)
     const sidebar = page.locator('aside')
-    await sidebar.getByText('http://localhost:7777').click()
-    await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
-    await sidebar.getByRole('textbox').press('Enter')
     await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
     await page.getByRole('option', { name: 'Agente Beta' }).click()
     // o placeholder muda com o idioma (P1-04b): o composer é o único textarea

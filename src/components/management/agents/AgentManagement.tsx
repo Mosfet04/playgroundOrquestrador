@@ -3,7 +3,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { ChevronRight, Plus, Search, Filter } from 'lucide-react'
+import { ChevronRight, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { Table, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { AgentConfig, AgentFilters } from '@/types/management'
 import { CountChips, listCounts, rowLinkClass, ShowingOf, UpdatedAt } from '../common/EntityList'
+import { ListAvatar } from '../common/ListAvatar'
 import {
   Chip,
   EmptyState,
@@ -24,30 +25,6 @@ import { StatusBadge } from '@/components/ui/status-badge'
 
 const SEPARATOR = ' · '
 
-// Avatar de 28 px com as iniciais: gradiente da marca; inativo em `secondary`.
-function AgentAvatar({ agent }: { agent: AgentConfig }) {
-  const initials = agent.nome
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => Array.from(word)[0])
-    .join('')
-    .toUpperCase()
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'flex size-7 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-medium',
-        agent.active
-          ? 'bg-gradient-to-br from-primary to-signal text-primary-foreground'
-          : 'bg-secondary text-secondary-foreground'
-      )}
-    >
-      {initials}
-    </span>
-  )
-}
-
 export function AgentManagement() {
   const [agents, setAgents] = useState<AgentConfig[]>([])
   // Total do filtro no BFF; a página traz no máximo 100 (decisão 0014).
@@ -57,7 +34,6 @@ export function AgentManagement() {
   const [loadError, setLoadError] = useState<{ status?: number } | null>(null)
   const [filters, setFilters] = useState<AgentFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
   const t = useTranslations('agents')
   const tc = useTranslations('common')
   const searchRef = useRef<HTMLInputElement>(null)
@@ -116,9 +92,9 @@ export function AgentManagement() {
     <TableRow>
       <TableHead>{t('columnAgent')}</TableHead>
       <TableHead>{t('columnModel')}</TableHead>
-      <TableHead className="text-right">{t('columnTools')}</TableHead>
-      <TableHead>{tc('status')}</TableHead>
-      <TableHead>{tc('updated')}</TableHead>
+      <TableHead className="w-24 text-right">{t('columnTools')}</TableHead>
+      <TableHead className="w-28">{tc('status')}</TableHead>
+      <TableHead className="w-32">{tc('updated')}</TableHead>
       <TableHead className="w-9">
         <span className="sr-only">{tc('open')}</span>
       </TableHead>
@@ -160,25 +136,9 @@ export function AgentManagement() {
       {/* Filtros e Busca */}
       <Card>
         <CardHeader className="p-4 pb-2 lg:p-6">
-          <div className="flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <CardTitle>
-              {tc('filters')}
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-xs lg:hidden"
-            >
-              <Filter className="w-3 h-3 mr-1" />
-              {showFilters ? t('hideFilters') : t('showFilters')}
-            </Button>
-          </div>
+          <CardTitle>{tc('filters')}</CardTitle>
         </CardHeader>
-        <CardContent className={cn(
-          "space-y-4 p-4 pt-0 lg:block lg:p-6 lg:pt-0",
-          !showFilters && "hidden"
-        )}>
+        <CardContent className="space-y-4 p-4 pt-0 lg:p-6 lg:pt-0">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="search">
@@ -273,7 +233,7 @@ export function AgentManagement() {
                   <TableRow key={agent.id} className="group relative hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <AgentAvatar agent={agent} />
+                        <ListAvatar name={agent.nome} active={agent.active} />
                         <div className="flex min-w-0 flex-col">
                           <Link href={agentHref(agent)} className={rowLinkClass}>
                             {agent.nome}
@@ -315,7 +275,7 @@ export function AgentManagement() {
                 key={agent.id}
                 className="group relative flex h-16 items-center gap-3 px-3 hover:bg-muted/50"
               >
-                <AgentAvatar agent={agent} />
+                <ListAvatar name={agent.nome} active={agent.active} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <div className="flex min-w-0 items-center gap-2">
                     <Link href={agentHref(agent)} className={cn(rowLinkClass, 'truncate')}>

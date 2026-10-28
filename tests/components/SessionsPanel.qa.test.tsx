@@ -7,7 +7,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import PlaygroundPage from '@/app/(app)/playground/page'
 import { usePlaygroundStore } from '@/store'
 
-import { AGENTOS_URL } from '../msw/handlers'
+import { BFF } from '../msw/handlers'
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 
@@ -33,7 +33,6 @@ beforeAll(() => {
 
 beforeEach(() => {
   usePlaygroundStore.setState(initialStoreState, true)
-  usePlaygroundStore.setState({ selectedEndpoint: AGENTOS_URL, hydrated: true })
 })
 
 afterEach(() => {
@@ -54,7 +53,7 @@ describe('painel de sessões, pela página', () => {
   it('agente sem storage (agent-2): link "storage" em nova aba, sem erro, sem toast e sem pedir /sessions', async () => {
     const sessionCalls: string[] = []
     server.use(
-      http.get(`${AGENTOS_URL}/sessions`, ({ request }) => {
+      http.get(`${BFF}/sessions`, ({ request }) => {
         sessionCalls.push(request.url)
         return HttpResponse.json({ data: [] })
       })
@@ -75,7 +74,7 @@ describe('painel de sessões, pela página', () => {
 
   it('agente com storage e zero sessões: "Nenhuma sessão ainda…", sem o link de storage', async () => {
     server.use(
-      http.get(`${AGENTOS_URL}/sessions`, () =>
+      http.get(`${BFF}/sessions`, () =>
         HttpResponse.json({
           data: [],
           meta: { page: 1, limit: 20, total_pages: 0, total_count: 0, search_time_ms: 0 }
@@ -97,14 +96,14 @@ describe('painel de sessões, pela página', () => {
     expect(screen.queryByRole('link', { name: 'storage' })).not.toBeInTheDocument()
   })
 
-  it('modo Team salvo com ?agent= na URL (sem team): "Selecione um team…", nunca as sessões do agente', async () => {
+  // P2-03: a URL manda no modo. O modo Team que ficou em memória não esconde
+  // o ?agent= da URL (antes mostrava "Selecione um team…").
+  it('modo Team em memória com ?agent= na URL: modo Agente e as sessões do agente', async () => {
     usePlaygroundStore.setState({ mode: 'team' })
     renderPlayground('/playground?agent=agent-1')
 
-    expect(
-      await screen.findByText('Selecione um team para ver o histórico.')
-    ).toBeInTheDocument()
-    expect(screen.queryByText('Selecione um agente para ver o histórico.')).not.toBeInTheDocument()
-    expect(screen.queryByText('Primeira conversa')).not.toBeInTheDocument()
+    expect(await screen.findByText('Primeira conversa')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Agente' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByText('Selecione um team para ver o histórico.')).not.toBeInTheDocument()
   })
 })

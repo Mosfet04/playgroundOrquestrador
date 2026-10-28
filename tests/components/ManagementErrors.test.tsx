@@ -51,7 +51,7 @@ async function submitNewAgent(status: number, locale: 'pt-BR' | 'en' = 'pt-BR') 
     { locale }
   )
   await user.type(screen.getByLabelText(/^(ID do agente|Agent ID)/), 'alfa')
-  await user.type(screen.getByLabelText(/^(Nome|Name)/), 'Alfa')
+  await user.type(screen.getByLabelText(/^(Nome|Name) \*/), 'Alfa')
   await user.type(screen.getByLabelText(/^(Modelo|Model) \*/), 'llama3.2')
   await user.click(screen.getByRole('button', { name: /^(Salvar|Save)$/ }))
 }

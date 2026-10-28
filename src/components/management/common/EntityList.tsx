@@ -29,7 +29,7 @@ export function CountChips({
   namespace,
   counts
 }: {
-  namespace: 'agents' | 'tools'
+  namespace: 'agents' | 'teams' | 'tools'
   counts?: Counts
 }) {
   const t = useTranslations(namespace)

@@ -7,12 +7,11 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import ChatInput from '@/components/playground/ChatArea/ChatInput'
 import Messages from '@/components/playground/ChatArea/Messages/Messages'
 import Sidebar from '@/components/playground/Sidebar/Sidebar'
-import { getAllPlaygroundSessionsAPI } from '@/api/playground'
 import { usePlaygroundStore } from '@/store'
 import type { PlaygroundChatMessage, ToolCall } from '@/types/playground'
 
 import { renderWithIntl } from '../helpers/intl'
-import { AGENTOS_URL } from '../msw/handlers'
+import { BFF } from '../msw/handlers'
 import { server } from '../msw/server'
 
 // QA P1-06: o que o dev não cobriu. Dado hostil do orquestrador (duração nula
@@ -57,8 +56,8 @@ beforeEach(() => {
 describe('chip de tool: duração hostil', () => {
   // BUG-P1-06-2 (corrigido): `duration: null` passa por `=== undefined` e vira
   // número (Intl formata null como 0): a tool em curso aparece concluída em
-  // "0 s". Idem string não numérica ("NaN s"). O stream não é validado com zod
-  // (pré-existente; P2-03 move o chat para o BFF).
+  // "0 s". Idem string não numérica ("NaN s"). Desde o P2-03 o stream passa
+  // por zod (useAIResponseStream); o chip segue defensivo para o histórico.
   it('BUG-P1-06-2: duração nula no stream: continua "executando"', () => {
     renderMessages([agentMessage({ tool_calls: [tool('t', { metrics: { duration: null } })] })], true)
 
@@ -109,8 +108,8 @@ describe('entidade com nome hostil', () => {
 
   it('resposta e cartão mostram o nome como texto, com iniciais', () => {
     usePlaygroundStore.setState({
-      isEndpointActive: true,
-      isEndpointLoading: false,
+      isOrchestratorActive: true,
+      isOrchestratorLoading: false,
       agents: [{ value: 'a1', label: hostile, model: { provider: 'x', model: 'm' } }]
     })
     const { container } = renderWithIntl(
@@ -129,9 +128,8 @@ describe('entidade com nome hostil', () => {
 describe('sessão com data inválida', () => {
   const renderPanel = (created_at: unknown) => {
     usePlaygroundStore.setState({
-      hydrated: true,
-      isEndpointActive: true,
-      isEndpointLoading: false,
+      isOrchestratorActive: true,
+      isOrchestratorLoading: false,
       hasStorage: true,
       agents: [{ value: 'suporte-n1', label: 'Suporte N1', model: { provider: 'x' }, storage: true }],
       sessionsData: [{ session_id: 's1', title: 'Conversa sem data', created_at: created_at as number }]
@@ -145,8 +143,8 @@ describe('sessão com data inválida', () => {
 
   // BUG-P1-06-1 (corrigido): `format.dateTime(new Date(NaN))` do use-intl não
   // lança, devolve "Invalid Date", que aparecia como horário na linha. O
-  // orquestrador pode mandar `created_at` ausente ou texto que não é data;
-  // getAllPlaygroundSessionsAPI converte para NaN.
+  // orquestrador pode mandar `created_at` ausente ou texto que não é data
+  // (desde a P2-03 o BFF já troca por 0, tests/app/api/playgroundChat.test.ts).
   it.each([[Number.NaN], [undefined], [1e20]])(
     'BUG-P1-06-1: created_at %s: a linha fica sem horário, não "Invalid Date"',
     (createdAt) => {
@@ -157,18 +155,6 @@ describe('sessão com data inválida', () => {
       expect(document.body).not.toHaveTextContent(/Invalid/)
     }
   )
-
-  it('a API devolve NaN para created_at em texto que não é data (origem do BUG-P1-06-1)', async () => {
-    server.use(
-      http.get(`${AGENTOS_URL}/sessions`, () =>
-        HttpResponse.json({ data: [{ session_id: 's1', session_name: 'x', created_at: 'garbage' }] })
-      )
-    )
-
-    const [session] = await getAllPlaygroundSessionsAPI(AGENTOS_URL, 'agent-1')
-
-    expect(Number.isNaN(session.created_at)).toBe(true)
-  })
 })
 
 describe('composer: Enter', () => {
@@ -176,15 +162,12 @@ describe('composer: Enter', () => {
   beforeEach(() => {
     runs = 0
     usePlaygroundStore.setState({
-      selectedEndpoint: AGENTOS_URL,
-      isEndpointActive: true,
-      isEndpointLoading: false,
+      isOrchestratorActive: true,
+      isOrchestratorLoading: false,
       agents: [{ value: 'agent-1', label: 'Assistente', model: { provider: 'OpenAI', model: 'gpt-4o' } }]
     })
     server.use(
-      http.get('https://api.ipify.org', () => HttpResponse.json({ ip: '203.0.113.1' })),
-      http.get('https://m1.openfpcdn.io/*', () => new HttpResponse(null)),
-      http.post(`${AGENTOS_URL}/agents/agent-1/runs`, () => {
+      http.post(`${BFF}/agents/agent-1/runs`, () => {
         runs += 1
         return new HttpResponse(
           'event: RunContent\ndata: {"event":"RunContent","content":"ok","content_type":"str","created_at":1}\n\n',

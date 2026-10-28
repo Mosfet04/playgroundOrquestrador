@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Erros do BFF no chat · desktop claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p105.css">
+<link rel="stylesheet" href="p106.css">
+<link rel="stylesheet" href="p203.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app states" style="min-height: 980px">
+  <section class="pg-col" style="gap: 12px">
+    <h2>1 · Erro na resposta (bolha do P1-04b, frases novas)</h2>
+    <div class="st-grid">
+      <div class="st-case"><p class="ann">503 no envio · orquestrador fora · a conversa fica, o composer segue habilitado</p>
+        <div class="msgs">
+          <div class="msg-user">Abre a troca do item 2.</div>
+          <div class="msg-agent"><span class="pg-avatar pg-grad" aria-hidden="true">SN</span><div class="body"><span class="who">Suporte N1 <span>claude-sonnet-4</span></span><p class="err-text">Algo deu errado durante a resposta. O orquestrador não respondeu. Confira se ele está no ar e envie de novo.</p></div></div>
+        </div>
+      </div>
+      <div class="st-case"><p class="ann">stream interrompido · o texto parcial fica · sem cursor, sem "gerando", sem métricas</p>
+        <div class="msgs">
+          <div class="msg-user">Resume a política de troca.</div>
+          <div class="msg-agent"><span class="pg-avatar pg-grad" aria-hidden="true">SN</span><div class="body"><span class="who">Suporte N1 <span>claude-sonnet-4</span></span><p>Pedidos feitos no app podem ser trocados em até 30 dias depois da entrega. O item precisa estar</p><p class="err-text">Algo deu errado durante a resposta. A resposta foi interrompida antes do fim.</p></div></div>
+        </div>
+      </div>
+      <div class="st-case"><p class="ann">sem resposta do servidor do playground (rede) · antes do 1º token</p>
+        <div class="msgs">
+          <div class="msg-user">Status do pedido 48213?</div>
+          <div class="msg-agent"><span class="pg-avatar pg-grad" aria-hidden="true">SN</span><div class="body"><span class="who">Suporte N1 <span>claude-sonnet-4</span></span><p class="err-text">Algo deu errado durante a resposta. Sem resposta do servidor.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pg-col" style="gap: 12px">
+    <h2>2 · Sessão expirada (401 em qualquer chamada do chat)</h2>
+    <div class="st-grid two">
+      <div class="st-case"><p class="ann">o envio recebe 401 do BFF · navegação completa, sem bolha de erro</p>
+        <div class="msgs">
+          <div class="msg-user">Abre a troca do item 2.</div>
+        </div>
+        <p class="ann" style="color: var(--foreground)">→ /login?reason=expired&amp;next=%2Fplayground%3Fagent%3Dsuporte-n1%26session%3D7f3c…</p>
+        <p class="ann">next = caminho + query atuais (agent ou team, session). O texto do composer e a mensagem não enviada se perdem.</p>
+      </div>
+      <div class="st-case"><p class="ann">/login com reason=expired (E7 do P2-01) · depois de entrar, volta à mesma sessão</p>
+        <div class="pg-card" style="width: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+          <h3 style="margin: 0; font-size: 18px; line-height: 28px; font-weight: 600">Entrar</h3>
+          <div role="status" style="display: flex; gap: 8px; padding: 12px; border: 1px solid var(--border); background: var(--muted); border-radius: var(--radius-md)">
+            <svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--muted-foreground); flex: none; margin-top: 2px"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <div><p style="margin: 0; font-weight: 500">Sua sessão expirou.</p><p style="margin: 0; color: var(--muted-foreground)">Entre de novo para voltar à página em que estava.</p></div>
+          </div>
+          <div class="pg-col" style="gap: 6px"><label class="pg-label" for="u-e">Usuário</label><input class="pg-input" id="u-e" autocomplete="username" value="admin"></div>
+          <div class="pg-col" style="gap: 6px"><label class="pg-label" for="p-e">Senha</label><input class="pg-input" id="p-e" type="password" autocomplete="current-password"></div>
+          <button class="pg-btn" type="button" style="width: 100%">Entrar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pg-col" style="gap: 12px">
+    <h2>3 · Falhas do BFF que reusam estados existentes (só referência)</h2>
+    <div class="st-grid">
+      <div class="st-case"><p class="ann">sessões: 503/timeout ao listar (P1-05, item 4)</p>
+        <div class="pp-blank is-err"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg><p>Não foi possível carregar as sessões</p><button class="pg-btn pg-btn-link" type="button">Tentar de novo</button></div>
+      </div>
+      <div class="st-case"><p class="ann">carga inicial: orquestrador respondeu com erro → chip "código {n}" no lugar de "offline"</p>
+        <span class="pg-row"><span class="pg-chip"><span class="pg-muted">código</span>502</span><span class="pg-chip"><span class="pg-dot dot-err" aria-hidden="true"></span>offline</span></span>
+        <p class="ann">offline = sem resposta (rede, unreachable, timeout) · código = status devolvido pelo BFF</p>
+      </div>
+      <div class="st-case"><p class="ann">excluir sessão: 503 → toast existente (deleteSessionError); 401 → /login</p>
+        <div class="pg-toast" role="status" style="position: static; width: auto"><div class="pg-toast-body"><p class="pg-toast-title" style="margin: 0">Não foi possível excluir a sessão</p></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

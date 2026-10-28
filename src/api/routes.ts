@@ -1,37 +1,15 @@
+// Rotas do BFF do chat (P2-03): o browser só fala com o próprio app; URL e
+// chaves do orquestrador ficam em src/server.
+const BASE = '/api/playground'
+
+export type ChatKind = 'agent' | 'team'
+
 export const APIRoutes = {
-  GetPlaygroundAgents: (PlaygroundApiUrl: string) =>
-    `${PlaygroundApiUrl}/agents`,
-  AgentRun: (PlaygroundApiUrl: string, agentId: string) =>
-    `${PlaygroundApiUrl}/agents/${agentId}/runs`,
-  PlaygroundStatus: (PlaygroundApiUrl: string) =>
-    `${PlaygroundApiUrl}/status`,
-  GetPlaygroundSessions: (PlaygroundApiUrl: string, componentId: string, type: string = 'agent') =>
-    `${PlaygroundApiUrl}/sessions?type=${type}&component_id=${encodeURIComponent(componentId)}&limit=20&page=1&sort_by=updated_at&sort_order=desc`,
-  GetPlaygroundSession: (
-    PlaygroundApiUrl: string,
-    sessionId: string
-  ) =>
-    `${PlaygroundApiUrl}/sessions/${sessionId}?type=agent`,
-
-  DeletePlaygroundSession: (
-    PlaygroundApiUrl: string,
-    sessionId: string
-  ) =>
-    `${PlaygroundApiUrl}/sessions/${sessionId}?type=agent`,
-
-  GetPlayGroundTeams: (PlaygroundApiUrl: string) =>
-    `${PlaygroundApiUrl}/teams`,
-  TeamRun: (PlaygroundApiUrl: string, teamId: string) =>
-    `${PlaygroundApiUrl}/teams/${teamId}/runs`,
-  GetPlaygroundTeamSessions: (PlaygroundApiUrl: string, teamId: string) =>
-    `${PlaygroundApiUrl}/sessions?type=team&component_id=${encodeURIComponent(teamId)}&limit=20&page=1&sort_by=updated_at&sort_order=desc`,
-  GetPlaygroundTeamSession: (
-    PlaygroundApiUrl: string,
-    sessionId: string
-  ) =>
-    `${PlaygroundApiUrl}/sessions/${sessionId}?type=team`,
-  DeletePlaygroundTeamSession: (
-    PlaygroundApiUrl: string,
-    sessionId: string
-  ) => `${PlaygroundApiUrl}/sessions/${sessionId}?type=team`
+  Entities: (kind: ChatKind) => `${BASE}/${kind}s`,
+  Run: (kind: ChatKind, id: string) =>
+    `${BASE}/${kind}s/${encodeURIComponent(id)}/runs`,
+  Sessions: (kind: ChatKind, componentId: string) =>
+    `${BASE}/sessions?${new URLSearchParams({ type: kind, component_id: componentId })}`,
+  Session: (sessionId: string, kind?: ChatKind) =>
+    `${BASE}/sessions/${encodeURIComponent(sessionId)}${kind ? `?type=${kind}` : ''}`
 }

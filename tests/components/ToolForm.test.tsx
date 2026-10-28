@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -24,12 +24,7 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = () => undefined
 })
 
-// O rótulo "Tipo" não está associado ao Select (sem htmlFor), então o
-// combobox é achado pelo bloco do rótulo.
-const typeSelect = () =>
-  within(screen.getByText(/^Tipo/).parentElement as HTMLElement).getByRole(
-    'combobox'
-  )
+const typeSelect = () => screen.getByRole('combobox', { name: /^Tipo/ })
 
 function captureSave() {
   const bodies: unknown[] = []
@@ -71,7 +66,7 @@ describe('ToolForm', () => {
     await user.type(screen.getByLabelText(/^Nome/), 'Clima')
     await user.type(screen.getByLabelText(/^Rota/), 'https://clima.example.com/v1')
     await user.type(screen.getByLabelText(/^Descrição/), 'Consulta o clima')
-    await user.click(screen.getByRole('button', { name: 'Adicionar' }))
+    await user.click(screen.getByRole('button', { name: 'Adicionar parâmetro' }))
     await user.type(screen.getByPlaceholderText('nome_parametro'), 'latitude')
     await user.click(typeSelect())
     await user.click(await screen.findByRole('option', { name: 'float' }))

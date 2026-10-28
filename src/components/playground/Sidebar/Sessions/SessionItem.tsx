@@ -3,10 +3,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { SessionEntry } from '@/types/playground'
 import { Button } from '../../../ui/button'
 import useSessionLoader from '@/hooks/useSessionLoader'
-import {
-  deletePlaygroundSessionAPI,
-  deletePlaygroundTeamSessionAPI
-} from '@/api/playground'
+import { PlaygroundRequestError, deletePlaygroundSessionAPI } from '@/api/playground'
 import { usePlaygroundStore } from '@/store'
 import { toast } from 'sonner'
 import Icon from '@/components/ui/icon'
@@ -50,8 +47,7 @@ const SessionItem = ({
   const [teamId] = useQueryState('team')
   const [, setSessionId] = useQueryState('session')
   const { getSession } = useSessionLoader()
-  const { selectedEndpoint, sessionsData, setSessionsData, mode } =
-    usePlaygroundStore()
+  const { setSessionsData, mode } = usePlaygroundStore()
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const { clearChat } = useChatActions()
@@ -62,6 +58,9 @@ const SessionItem = ({
   const handleGetSession = async () => {
     if (!(agentId || teamId)) return
 
+    // Outra sessão é outra conversa: o run em andamento é abortado antes de
+    // trocar o histórico (D-P2-03-4, decisão 0020).
+    usePlaygroundStore.getState().runAbortController?.abort()
     onSessionClick()
     await getSession(
       {
@@ -78,75 +77,59 @@ const SessionItem = ({
     if (!(agentId || teamId)) return
     setIsDeleting(true)
     try {
-      let response
-      if (mode === 'team' && teamId) {
-        response = await deletePlaygroundTeamSessionAPI(
-          selectedEndpoint,
-          teamId,
-          session_id
-        )
-      } else if (mode === 'agent' && agentId) {
-        response = await deletePlaygroundSessionAPI(
-          selectedEndpoint,
-          agentId,
-          session_id
-        )
-      } else {
-        throw new Error('No valid agent or team context for deletion')
+      await deletePlaygroundSessionAPI(session_id)
+      setSessionsData(
+        (prev) => prev?.filter((s) => s.session_id !== session_id) ?? null
+      )
+      // If the deleted session was the active one, clear the chat
+      if (currentSessionId === session_id) {
+        setSessionId(null)
+        clearChat()
       }
-
-      if (response?.ok && sessionsData) {
-        setSessionsData(sessionsData.filter((s) => s.session_id !== session_id))
-        // If the deleted session was the active one, clear the chat
-        if (currentSessionId === session_id) {
-          setSessionId(null)
-          clearChat()
-        }
-        toast.success(t('sessionDeleted'))
-      } else {
-        // O corpo da resposta não vai à UI: só a frase e o código (P1-04b).
-        toast.error(
-          tc('withCode', {
-            message: t('deleteSessionError'),
-            status: response.status
-          })
-        )
-      }
+      toast.success(t('sessionDeleted'))
     } catch (error) {
+      // O corpo da resposta não vai à UI: só a frase e o código (P1-04b).
       console.error('Error deleting session:', error)
-      toast.error(t('deleteSessionError'))
+      const status = error instanceof PlaygroundRequestError ? error.status : undefined
+      toast.error(
+        status === undefined
+          ? t('deleteSessionError')
+          : tc('withCode', { message: t('deleteSessionError'), status })
+      )
     } finally {
       setIsDeleteModalOpen(false)
       setIsDeleting(false)
     }
   }
-  // Linha = botão; a lixeira toma o lugar do horário no hover e no foco.
+  // Linha = botão. Em lg+ a lixeira toma o lugar do horário no hover e no
+  // foco; abaixo (Sheet, toque sem hover) fica sempre visível, 44×44, depois
+  // do horário (docs/design/P2-03.md).
   return (
     <>
-      <div className="group relative">
+      <div className="group relative flex items-center gap-1">
         <button
           type="button"
           aria-current={isSelected ? 'true' : undefined}
           onClick={handleGetSession}
           className={cn(
-            'flex min-h-11 w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground lg:min-h-9',
+            'flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground lg:min-h-9',
             focusRing,
             isSelected ? 'bg-primary-soft font-medium' : 'group-hover:bg-accent'
           )}
         >
           <span className="truncate">{title}</span>
-          <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground group-focus-within:invisible group-hover:invisible">
+          <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground lg:group-focus-within:invisible lg:group-hover:invisible">
             {time}
           </span>
         </button>
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-1 top-1/2 size-7 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+          className="size-11 shrink-0 max-lg:text-muted-foreground lg:absolute lg:right-1 lg:top-1/2 lg:size-7 lg:-translate-y-1/2 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
           onClick={() => setIsDeleteModalOpen(true)}
           aria-label={t('deleteSession', { title })}
         >
-          <Icon type="trash" size="xs" />
+          <Icon type="trash" size="xs" className="max-lg:text-muted-foreground" />
         </Button>
       </div>
       <DeleteSessionModal

@@ -1,12 +1,12 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 
-import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // QA do P1-03: o que o navigation.spec.ts do dev não cobre (id hostil,
 // carregando/500, teclado na navegação, criação por rota, voltar do
-// playground com parâmetros, salvar + voltar). Até a P3 as rotas /api/* leem o
-// Mongo: respondem por page.route.
+// playground com parâmetros, salvar + voltar). As rotas /api/* respondem por
+// page.route.
 
 const agent = {
   id: 'agente alfa',
@@ -33,7 +33,7 @@ const mainNav = (page: Page) =>
 const trail = (page: Page) =>
   page.getByRole('navigation', { name: 'Você está em' })
 
-/** Mock de /api/agents*, /api/tools* e /api/dashboard/*. `requested` guarda as URLs de detalhe pedidas. */
+/** Mock de /api/agents* e /api/tools*. `requested` guarda as URLs de detalhe pedidas. */
 async function mockApi(
   page: Page,
   agents: (typeof agent)[],
@@ -41,9 +41,6 @@ async function mockApi(
 ) {
   const requested: string[] = []
   await page.route(/\/api\/tools(\?.*)?$/, (route) => route.fulfill({ json: emptyTools }))
-  await page.route(/\/api\/dashboard\//, (route) =>
-    route.fulfill({ status: 503, json: { success: false, error: 'indisponível' } })
-  )
   await page.route(/\/api\/agents(\/[^?]*)?(\?.*)?$/, async (route) => {
     const { pathname } = new URL(route.request().url())
     const raw = pathname.slice('/api/agents/'.length)
@@ -238,15 +235,12 @@ test('Playground -> Início -> Voltar devolve ?agent= e ?session= e as mensagens
   page
 }) => {
   await page.route(
-    (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
+    (url) => url.origin !== APP_URL,
     (route) => route.abort()
   )
   await page.goto('/playground')
   await hydrated(page)
   const sidebar = page.locator('aside')
-  await sidebar.getByText('http://localhost:7777').click()
-  await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
-  await sidebar.getByRole('textbox').press('Enter')
   await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
   await page.getByRole('option', { name: 'Agente Beta' }).click()
   const chatInput = page.getByPlaceholder('Escreva uma mensagem para Agente Beta')

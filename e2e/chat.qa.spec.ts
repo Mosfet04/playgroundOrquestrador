@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 
-import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
 // QA P1-06 (docs/design/P1-06.md, § 8): o chat no browser. Complementa
@@ -18,8 +18,9 @@ import { hydrated } from './hydration'
 const HOLD = 'segure até liberar'
 
 const open = async (page: Page, { path = '/playground', mobile = false } = {}) => {
+  // P2-03: só o app (o chat vai pelo BFF).
   await page.route(
-    (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
+    (url) => url.origin !== APP_URL,
     (route) => route.abort()
   )
   await page.goto(path)
@@ -31,12 +32,8 @@ const open = async (page: Page, { path = '/playground', mobile = false } = {}) =
       await trigger.click()
       await expect(page.getByRole('dialog')).toBeVisible({ timeout: 1000 })
     }).toPass()
+    await page.keyboard.press('Escape')
   } else await hydrated(page)
-  const scope = mobile ? page.getByRole('dialog') : page.locator('aside')
-  await scope.getByText('http://localhost:7777').click()
-  await scope.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
-  await scope.getByRole('textbox').press('Enter')
-  if (mobile) await page.keyboard.press('Escape')
 }
 
 const pickBeta = async (page: Page) => {
@@ -70,14 +67,14 @@ test.describe('desktop 1440', () => {
         aside.getByRole('group', { name: 'Conversar com' }),
         aside.getByRole('combobox', { name: 'Agente: Agente Alfa' }),
         aside.getByRole('button', { name: 'Nova conversa' }),
-        aside.getByText('Sessões', { exact: true }),
-        aside.getByText('Endpoint', { exact: true })
+        aside.getByText('Sessões', { exact: true })
       ].map(async (locator) => (await locator.boundingBox())!.y)
     )
-    // rótulo <= segmentado < cartão < nova conversa < sessões < endpoint
+    // rótulo <= segmentado < cartão < nova conversa < sessões (sem Endpoint, P2-03)
     expect(ys[0]).toBeLessThanOrEqual(ys[1])
     expect(ys.slice(1)).toEqual([...ys.slice(1)].sort((a, b) => a - b))
-    expect(new Set(ys.slice(1)).size).toBe(5)
+    expect(new Set(ys.slice(1)).size).toBe(4)
+    await expect(aside.getByText('Endpoint', { exact: true })).toHaveCount(0)
 
     await expect(aside.getByText('Agent UI')).toHaveCount(0)
     await expect(aside.getByText('Modo', { exact: true })).toHaveCount(0)
@@ -208,7 +205,7 @@ test.describe('desktop 1440', () => {
     await expect(log.getByText('próxima')).toHaveCount(0)
   })
 
-  test('V-P1-06-7: reduced-motion para cursor, "gerando", "executando" e a animação do Endpoint conectando', async ({
+  test('V-P1-06-7: reduced-motion para cursor, "gerando" e "executando"', async ({
     page
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -216,7 +213,13 @@ test.describe('desktop 1440', () => {
     await expect(composer(page)).toBeEnabled()
     await pickBeta(page)
     await send(page, HOLD)
-    await expect(page.getByText('executando')).toBeVisible()
+    // O "executando" da 1ª tool dura um chunk do fake: esperar só o texto deixa
+    // o evaluate cair entre as duas tools, com só o ponto do "gerando". A 2ª
+    // (abrir_troca) fica executando enquanto o stream está retido.
+    const tools = page.getByRole('log').getByRole('list', { name: 'Chamadas de tool' })
+    await expect(tools.getByRole('listitem').nth(0)).toContainText('0,18 s')
+    await expect(tools.getByRole('listitem').nth(1)).toContainText('executando')
+    await expect(page.getByText('gerando', { exact: true })).toBeVisible()
 
     const animations = await page.evaluate(() => {
       const names = (selector: string, pseudo?: string) =>
@@ -236,36 +239,24 @@ test.describe('desktop 1440', () => {
     expect(animations.caret).toBe('none')
   })
 
-  test('V-P1-06-10: Conectando… não passa por destructive; offline termina destructive', async ({
+  // P2-03: sem o ponto do Endpoint; o "Conectando…" fica até a carga pelo
+  // BFF terminar, e a falha termina no bloco offline com o composer travado.
+  test('V-P1-06-10: Conectando… até a carga terminar; offline termina no bloco de erro', async ({
     page
   }) => {
-    // Retém o /status do fake até liberar e então derruba.
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
-    await page.route(`${FAKE_ORCHESTRATOR_URL}/**`, async (route) => {
+    await page.route('**/api/playground/agents', async (route) => {
       await gate
-      await route.abort()
+      await route.fulfill({ status: 503, json: { success: false, error: 'unreachable' } })
     })
     await open(page)
 
-    const aside = page.locator('aside')
-    const dotClass = () =>
-      aside
-        .getByRole('button', { name: 'Editar endpoint' })
-        .locator('[aria-hidden="true"]')
-        .getAttribute('class')
-    // enquanto a tentativa está pendente: nunca bg-destructive
-    for (let i = 0; i < 5; i++) {
-      await expect(aside.getByText('conectando')).toBeAttached()
-      if ((await dotClass())?.includes('bg-destructive')) {
-        // só vale se a tentativa já terminou: não pode acontecer com o gate fechado
-        throw new Error('ponto destructive durante a tentativa pendente')
-      }
-      await page.waitForTimeout(100)
-    }
+    await expect(page.getByText('Conectando ao orquestrador…')).toBeVisible()
+    await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0)
     release()
-    await expect(aside.getByText('offline')).toBeAttached()
-    expect(await dotClass()).toContain('bg-destructive')
+    const alert = page.getByRole('alert').filter({ hasText: 'Não foi possível conectar ao orquestrador' })
+    await expect(alert.getByText('offline')).toBeVisible()
     await expect(
       page.getByRole('button', { name: 'Enviar mensagem (orquestrador desconectado)' })
     ).toBeDisabled()
@@ -280,29 +271,21 @@ test.describe('desktop 1440', () => {
   test('V-P1-06-4 (team): cartão, composer e avatar mostram o team', async ({
     page
   }) => {
-    await page.route(`${FAKE_ORCHESTRATOR_URL}/teams`, (route) =>
-      route.fulfill({
-        json: [
-          {
-            id: 'time-suporte',
-            name: 'Time Suporte',
-            model: { provider: 'Fake', model: 'fake-team-model' },
-            members: []
-          }
-        ]
-      })
-    )
+    // O team vem do fake (P2-03), pelo BFF.
     await open(page)
     const aside = page.locator('aside')
     await expect(composer(page)).toBeEnabled()
-    await aside.getByRole('button', { name: 'Team' }).click()
-    await expect(aside.getByRole('button', { name: 'Team' })).toHaveAttribute('aria-pressed', 'true')
+    await aside.getByRole('button', { name: 'Team', exact: true }).click()
+    await expect(aside.getByRole('button', { name: 'Team', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
     await expect(aside.getByRole('button', { name: 'Agente', exact: true })).toHaveAttribute(
       'aria-pressed',
       'false'
     )
     await expect(aside.getByRole('combobox', { name: 'Team: Time Suporte' })).toContainText(
-      'Fake/fake-team-model'
+      'Fake/fake-model'
     )
     await expect(
       page.getByRole('textbox', { name: 'Mensagem para Time Suporte' })
@@ -314,27 +297,27 @@ test.describe('desktop 1440', () => {
   test('entrada hostil: nome com HTML e mensagem com <script> viram texto, sem executar', async ({
     page
   }) => {
-    await page.route(`${FAKE_ORCHESTRATOR_URL}/agents`, async (route) => {
+    await page.route('**/api/playground/agents', async (route) => {
       const response = await route.fetch()
-      const agents = await response.json()
-      agents[0].name = '<img src=x onerror="window.__pwned=1"> Alfa'
-      await route.fulfill({ response, json: agents })
+      const body = await response.json()
+      body.data[0].label = '<img src=x onerror="window.__pwned=1"> Alfa'
+      await route.fulfill({ response, json: body })
     })
     await open(page)
     await expect(composer(page)).toBeEnabled()
-    await send(page, '<script>window.__pwned=2</script><b>negrito</b>')
+    await send(page, '<script>window.__pwned=2</script><b>negrito</b> **forte**')
 
     await expect(page.getByText('1,4 s · 812 tokens')).toBeVisible()
     await expect(
-      page.getByRole('log').getByText('<script>window.__pwned=2</script><b>negrito</b>', {
+      page.getByRole('log').getByText('<script>window.__pwned=2</script><b>negrito</b> **forte**', {
         exact: true
       })
     ).toBeVisible()
     await expect(page.locator('main img[src="x"], aside img[src="x"], main script')).toHaveCount(0)
-    // O <b> da resposta do agente é do markdown (rehype-raw + sanitize
-    // padrão): P2-04. A bolha do usuário e o resto do chat não interpretam.
-    // Aqui só se confere que o negrito herda 16/24 do bloco.
-    const bold = await page.getByRole('log').locator('b').evaluate((el) => {
+    // P2-04: o HTML cru do eco do agente não vira elemento (sem <b>); o
+    // **forte** é markdown e herda 16/24 do bloco.
+    await expect(page.getByRole('log').locator('b')).toHaveCount(0)
+    const bold = await page.getByRole('log').locator('strong').evaluate((el) => {
       const style = getComputedStyle(el)
       return { fontSize: style.fontSize, lineHeight: style.lineHeight, letterSpacing: style.letterSpacing }
     })
@@ -408,11 +391,11 @@ test.describe('celular 390', () => {
   test('V-P1-06-12: nome de agente enorme sem espaços não gera rolagem horizontal', async ({
     page
   }) => {
-    await page.route(`${FAKE_ORCHESTRATOR_URL}/agents`, async (route) => {
+    await page.route('**/api/playground/agents', async (route) => {
       const response = await route.fetch()
-      const agents = await response.json()
-      agents[0].name = 'N'.repeat(200)
-      await route.fulfill({ response, json: agents })
+      const body = await response.json()
+      body.data[0].label = 'N'.repeat(200)
+      await route.fulfill({ response, json: body })
     })
     await open(page, { mobile: true })
     await expect(page.getByRole('textbox', { name: /^Mensagem para N+/ })).toBeEnabled()

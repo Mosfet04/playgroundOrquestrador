@@ -31,9 +31,8 @@ beforeAll(() => {
 beforeEach(() => {
   usePlaygroundStore.setState(initialStoreState, true)
   usePlaygroundStore.setState({
-    hydrated: true,
-    isEndpointActive: true,
-    isEndpointLoading: false,
+    isOrchestratorActive: true,
+    isOrchestratorLoading: false,
     hasStorage: true,
     agents,
     sessionsData: [
@@ -55,7 +54,7 @@ const follows = (a: HTMLElement, b: HTMLElement) =>
   Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
 
 describe('painel', () => {
-  it('na ordem: "Conversar com" + recolher, Agente | Team, cartão, Nova conversa, Sessões e Endpoint', () => {
+  it('na ordem: "Conversar com" + recolher, Agente | Team, cartão, Nova conversa e Sessões; sem Endpoint (V-P2-03-1)', () => {
     renderSidebar()
 
     const label = screen.getByText('Conversar com')
@@ -69,12 +68,15 @@ describe('painel', () => {
     expect(card).toHaveTextContent('SNSuporte N1Anthropic/claude-sonnet-4')
     const newChat = screen.getByRole('button', { name: 'Nova conversa' })
     const sessions = screen.getByText('Sessões')
-    const endpoint = screen.getByText('Endpoint')
 
-    const order = [label, collapse, group, card, newChat, sessions, endpoint]
+    const order = [label, collapse, group, card, newChat, sessions]
     order.slice(1).forEach((element, index) => expect(follows(order[index], element)).toBe(true))
     expect(screen.queryByText('Agent UI')).not.toBeInTheDocument()
     expect(screen.queryByText('Modo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Endpoint')).not.toBeInTheDocument()
+    expect(screen.queryByText(/localhost|7777/)).not.toBeInTheDocument()
+    // A lista vai até o fim do painel: Sessões é o último bloco.
+    expect(sessions.closest('aside')?.lastElementChild?.lastElementChild).toContainElement(sessions)
   })
 
   it('sem entidade selecionada: o cartão mostra "Selecione um agente", sem avatar', () => {
@@ -135,24 +137,23 @@ describe('painel', () => {
     expect(screen.getByRole('button', { name: 'Recolher painel de sessões' })).toHaveFocus()
   })
 
+  // V-P2-03-2 (design QA): offline, só "Conversar com" + recolher; sem "Nova conversa".
+  it('orquestrador fora: sem Agente | Team, cartão nem "Nova conversa"', () => {
+    usePlaygroundStore.setState({ isOrchestratorActive: false, isOrchestratorLoading: false })
+    renderSidebar()
+
+    expect(screen.getByText('Conversar com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Recolher painel de sessões' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nova conversa' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Conversar com' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+  })
+
   it('no Sheet: a ação de fechar no lugar do recolher', () => {
     renderSidebar(undefined, <button type="button">Fechar</button>)
 
     expect(screen.getByRole('button', { name: 'Fechar' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Recolher painel de sessões' })).not.toBeInTheDocument()
-  })
-
-  it.each([
-    ['conectando', { isEndpointLoading: true, isEndpointActive: false }, 'text-signal'],
-    ['online', { isEndpointLoading: false, isEndpointActive: true }, 'bg-success'],
-    ['offline', { isEndpointLoading: false, isEndpointActive: false }, 'bg-destructive']
-  ])('Endpoint %s: palavra para leitor de tela e o ponto da cor', (word, state, dotClass) => {
-    usePlaygroundStore.setState(state)
-    renderSidebar()
-
-    const edit = screen.getByRole('button', { name: 'Editar endpoint' })
-    expect(edit).toHaveAccessibleDescription(`http://localhost:7777 ${word}`)
-    expect(edit.querySelector('[aria-hidden="true"]')).toHaveClass(dotClass)
   })
 })
 
@@ -184,6 +185,23 @@ describe('sessões', () => {
     ).toHaveFocus()
   })
 
+  // V-P2-03-10: abaixo de lg (toque, sem hover) a lixeira fica sempre
+  // visível, 44×44, depois do horário; em lg+ volta ao hover do P1-06.
+  it('lixeira: 44×44 visível abaixo de lg, 28 px no hover em lg+', () => {
+    renderSidebar()
+
+    const trash = screen.getByRole('button', { name: 'Excluir sessão "Prazo de troca no app"' })
+    expect(trash).toHaveClass('size-11', 'lg:size-7', 'lg:opacity-0', 'lg:group-hover:opacity-100')
+    expect(trash).not.toHaveClass('opacity-0')
+    // o ícone em muted-foreground abaixo de lg (o Icon fixa text-foreground no svg)
+    expect(trash.querySelector('svg')).toHaveClass('max-lg:text-muted-foreground')
+    const time = within(screen.getByRole('button', { name: /^Prazo de troca no app/ })).getByText(
+      /^\d{2}:\d{2}$/
+    )
+    expect(time).toHaveClass('lg:group-hover:invisible')
+    expect(time).not.toHaveClass('group-hover:invisible')
+  })
+
   it('EN: "yesterday"', () => {
     renderWithIntl(
       <NuqsTestingAdapter searchParams="?agent=suporte-n1">
@@ -205,8 +223,7 @@ describe('caixa de sessões vazia: ícones distintos', () => {
     )
 
   it.each([
-    ['sem endpoint', { selectedEndpoint: '' }, '?agent=suporte-n1', 'lucide-plug'],
-    ['offline', { isEndpointActive: false }, '?agent=suporte-n1', 'lucide-unplug'],
+    ['offline', { isOrchestratorActive: false }, '?agent=suporte-n1', 'lucide-unplug'],
     ['sem entidade', {}, '', 'lucide-bot'],
     ['sem storage', { hasStorage: false }, '?agent=suporte-n1', 'lucide-database'],
     ['falha', { sessionsError: true }, '?agent=suporte-n1', 'lucide-circle-alert'],

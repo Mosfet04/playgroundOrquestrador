@@ -8,8 +8,8 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 |---|---|---|---|
 | P0 Fundação | só pnpm, typecheck verde, Vitest/MSW, Playwright + fake orchestrator, CI, hardening mínimo das rotas atuais | — | [P0-fundacao.md](P0-fundacao.md) |
 | P1 Design system e navegação | Design System no Claude Design, tokens claro/escuro, rotas por URL, i18n pt-BR/EN, estados de erro | P0 | [P1-design-navegacao.md](P1-design-navegacao.md) |
-| P2 BFF e auth | login, cliente do orquestrador no servidor, chat via BFF, markdown seguro, fim do Mongo | P1, FA-02 | [P2-P5.md](P2-P5.md) |
-| P3 Editores com paridade | formulários dirigidos por `/admin/schema`: agent, tool, team, RAG, segredos, concorrência | P2, FA-02/03/05/06 | [P2-P5.md](P2-P5.md) |
+| P2 BFF e auth | login, cliente do orquestrador no servidor, chat via BFF, markdown seguro, fim do Mongo | P1, FA-02 | [P2-bff-auth.md](P2-bff-auth.md) |
+| P3 Editores com paridade | formulários dirigidos por `/admin/schema`: agent, tool, team, RAG, segredos, concorrência | P2, FA-02/03/05/06 | [P3-editores.md](P3-editores.md) |
 | P4 UX realtime | status de aplicação, diff, "testar agora", histórico, configurações da plataforma | P3, FA-04/05 | [P2-P5.md](P2-P5.md) |
 | P5 Fase B | campos hoje fixos no orquestrador, tools MCP | P4, FA-07, F4-02 | [P2-P5.md](P2-P5.md) |
 
@@ -32,6 +32,18 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P1-05b | concluído (tabela/linhas, chips com limit=100, excluir no editor, ajustes do P1-05) |
 | P1-06 | concluído (painel, bolhas, chip de tool, stream, composer, métricas do stream, LIM-P1-03-1 corrigida, ajustes do P1-05) |
 | P1-07 | concluído (5× verde e tempos medidos localmente com `CI=true`; confirmar no GitHub Actions após o push, ver docs/qa/P1-07.md) |
+| P2-01 | concluído (login usuário+senha, sessão jose 12 h, middleware, Origin em mutações, Sair; rate limit em memória exige réplica única e proxy que grave XFF) |
+| P2-02 | concluído (cliente `src/server/orchestrator`, snapshot OpenAPI + tipos, `contract:update/check` na CI, health pelo BFF; chave no fake na P2-03, decisão 0018) |
+| P2-03 | concluído (chat pelo BFF `/api/playground/*`, stream sem buffer com abort, `user_id` da sessão, fake exige a chave, Endpoint/FingerprintJS/ipify/crypto-js removidos; limitações no item) |
+| P2-04 | concluído (markdown do agente sem HTML: `rehype-raw` removido, HTML cru vira texto, links só http(s)/mailto com `rel` seguro, imagem vira link sem carregar; decisões 0021 e 0022) |
+| P2-05 | concluído (dashboard pelo `/metrics` do AgentOS e `/admin/config/agents` com chave admin, refresh 1x/min pelo BFF, filtro por dia UTC, pico diário de usuários, card de tokens por agente fora até a F8; decisão 0023) |
+| P2-06 | concluído (CRUD de agents e tools pela `/admin/config` com chave admin, If-Match e 422 no campo, exclusão hard, pacote `mongodb` e scripts de seed fora; decisão 0024) |
+| P3-01 | concluído (opções de provider, embedder, método HTTP e tipo de parâmetro vindas do `/admin/schema` pelo BFF; valor gravado fora das opções preservado; store só leitura trava o formulário; decisão 0025) |
+| P3-02 | concluído (editor de agent com o documento inteiro: `model_params` por provider com tipo inferido, `base_url` quando o provider exige, `api_key_ref` só como referência, campos de execução com default e faixa do schema, memória e resumo; PUT sem mesclagem dos campos cobertos; decisão 0026) |
+| P3-03 | concluído (editor de tool HTTP: rota `{param}` ligada a parâmetro obrigatório com ação de criar, `default_value` por tipo, headers texto/referência/`***` com nome sensível recusado no browser, preview da requisição como o orquestrador monta; decisão 0027) |
+| P3-04 | concluído (teams pela API Admin: BFF `/api/teams`, lista, editor com o documento inteiro — membros, modo em cartões, modelo do líder, prompt e execução —, Teams na navegação, excluir agent membro mostra os teams do 409 `used_by`; lista comum de agents/teams/tools como follow-up; decisão 0028) |
+| P3-05 | concluído (seletor de segredo único — formato `env:`/`file:` + alvo com a regra do orquestrador — no modelo do agent, do líder, no embedder e nos headers com modo Texto \| Segredo e "Usar segredo"; RAG com o documento inteiro — estratégia, parâmetros, URL base e referência do embedder —, desligado guarda os valores com `active: false`; decisão 0029) |
+| P3-06 | concluído (conflito no 412 em agent, team e tool com a comparação "o seu valor × atual" — Recarregar a atual ou Salvar as minhas por cima, segredo nunca exibido —; Desativar/Reativar ao lado de Excluir com selo de estado, switch "Ativo" removido; BFF `DELETE ?soft=true` e `soft` inválido ⇒ 400; colunas fixas, margem do Dialog, busca em 390 px, altura das Instruções; decisão 0030) |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

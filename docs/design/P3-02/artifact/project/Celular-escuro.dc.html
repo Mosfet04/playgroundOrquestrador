@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Execução e rodapé · celular escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7397ff}a:hover{color:#a3bbff}
+</style>
+</helmet>
+<div class="pg-app dark phone" style="height: 1560px">
+  <header class="m-hdr">
+    <button class="pg-btn pg-btn-ghost tap" type="button" aria-label="Abrir menu"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg></button>
+    <h1 style="font-size: 16px">Agentes<span class="sub">suporte-local</span></h1>
+  </header>
+  <form class="ed scroll" aria-label="Editar agente, parte final">
+    <section class="sec" aria-labelledby="e-mp">
+      <div class="sub" style="border-top: 0; padding-top: 0">
+        <div class="sub-head"><div class="t"><b id="e-mp">Parâmetros do modelo</b><p class="pg-help">Nomes aceitos por openai. Valor: número com ponto (0.7), true/false ou texto.</p></div><button class="pg-btn pg-btn-outline" type="button">Adicionar parâmetro</button></div>
+        <ul class="params" aria-label="Parâmetros do modelo">
+          <li class="prow"><div class="prow-ctl">
+            <div class="c-name"><button class="pg-select" type="button" aria-label="Nome do parâmetro 1"><span class="mono">reasoning_effort</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+            <div class="c-del"><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover reasoning_effort"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg></button></div>
+            <div class="c-val"><label class="sr" for="ev1">Valor de reasoning_effort</label><input class="pg-input mono is-focus" id="ev1" value="altíssimo" aria-invalid="true" aria-describedby="ety1 ee1"><span class="pg-chip" id="ety1">texto</span></div>
+          </div>
+          <p class="pg-error" id="ee1"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Valor recusado pelo orquestrador</span></p></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="e-exec">
+      <div class="sec-head"><h2 id="e-exec">Execução</h2><p>Contexto que o agente recebe e como ele responde.</p></div>
+      <ul class="sws">
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="emd" aria-describedby="emd-d"></button><div class="sw-txt"><label for="emd">Responder em Markdown</label><p class="pg-help" id="emd-d">Títulos, listas e código formatados no chat.</p><span class="sw-dft">Padrão: ligado</span></div></div></li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="edt" aria-describedby="edt-d"></button><div class="sw-txt"><label for="edt">Enviar data e hora atuais</label><p class="pg-help" id="edt-d">O agente sabe que dia e hora são.</p><span class="sw-dft">Padrão: ligado</span></div></div></li>
+        <li class="sw">
+          <div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="eh" aria-describedby="eh-d" aria-controls="er"></button><div class="sw-txt"><label for="eh">Enviar histórico da sessão</label><p class="pg-help" id="eh-d">As últimas execuções da sessão vão junto com cada pergunta.</p><span class="sw-dft">Padrão: ligado</span></div></div>
+          <div class="sw-child"><label class="pg-label" for="er">Execuções no histórico</label><input class="pg-input mono num" id="er" type="number" inputmode="numeric" min="1" max="50" value="0" aria-invalid="true" aria-describedby="er-e"><p class="pg-error" id="er-e"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span>Use um inteiro de 1 a 50</span></p></div>
+        </li>
+        <li class="sw">
+          <div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="ers" aria-describedby="ers-d ers-w"></button><div class="sw-txt"><label for="ers">Raciocínio passo a passo</label><p class="pg-help" id="ers-d">O modelo pensa em etapas antes de responder.</p><span class="sw-dft">Padrão: desligado</span></div></div>
+          <p class="pg-warn" id="ers-w"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><span>Mais chamadas ao modelo por resposta, e as tools podem ser chamadas nessa fase. Evite com tool que altera dados (POST, PUT, DELETE).</span></p>
+        </li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="emm" aria-describedby="emm-d"></button><div class="sw-txt"><label for="emm">Memória do usuário</label><p class="pg-help" id="emm-d">Guarda fatos sobre o usuário entre sessões.</p><span class="sw-dft">Padrão: desligado</span></div></div></li>
+        <li class="sw"><div class="sw-top"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="esm" aria-describedby="esm-d"></button><div class="sw-txt"><label for="esm">Resumo da sessão</label><p class="pg-help" id="esm-d">Resume a conversa para manter o contexto em sessões longas.</p><span class="sw-dft">Padrão: desligado</span></div></div></li>
+      </ul>
+    </section>
+
+    <section class="sec" aria-labelledby="e-rag">
+      <div class="sec-head"><h2 id="e-rag">Configuração RAG</h2><p>Configure o sistema de Retrieval-Augmented Generation</p></div>
+      <div class="pg-switch-row"><button class="pg-switch" type="button" role="switch" aria-checked="false" id="erag"></button><label for="erag">Habilitar RAG</label></div>
+    </section>
+
+    <div class="foot">
+      <div class="del-wrap"><button class="pg-btn pg-btn-outline del-btn" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg>Excluir agente</button></div>
+      <div class="r"><a class="pg-btn pg-btn-outline" href="#agents">Cancelar</a><button class="pg-btn" type="submit">Salvar</button></div>
+    </div>
+  </form>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

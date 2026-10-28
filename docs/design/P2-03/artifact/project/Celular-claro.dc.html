@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Composer de 32 px · celular claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p105.css">
+<link rel="stylesheet" href="p106.css">
+<link rel="stylesheet" href="p203.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app phone">
+  <header class="m-hdr">
+    <button class="pg-btn pg-btn-ghost tap" type="button" aria-label="Abrir menu" aria-expanded="false"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg></button>
+    <h1>Playground<span class="sub">suporte-n1 · claude-sonnet-4</span></h1>
+    <button class="pg-btn pg-btn-ghost tap" type="button" aria-label="Abrir sessões e agente" aria-expanded="false"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path></svg></button>
+  </header>
+  <section class="chat-main" aria-label="Conversa" style="flex: 1; min-height: 0">
+    <div class="msgs" role="log" aria-live="polite" aria-busy="false" style="padding: 20px 16px; gap: 20px">
+      <div class="msg-user">Qual o prazo de troca para pedidos feitos no app?</div>
+      <div class="msg-agent">
+        <span class="pg-avatar pg-grad" aria-hidden="true">SN</span>
+        <div class="body">
+          <span class="who">Suporte N1</span>
+          <ul class="chips" aria-label="Chamadas de tool">
+            <li><span class="pg-chip" title="Tool concluída em 0,18 s"><svg class="pg-ico ico-sig" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg><b>consultar-politica</b><span class="pg-muted">0,18 s</span><svg class="pg-ico ico-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span class="sr">concluída</span></span></li>
+          </ul>
+          <p>Até 30 dias depois da entrega. Me passe o número do pedido que eu verifico.</p>
+          <span class="meta">1,4 s · 812 tokens</span>
+        </div>
+      </div>
+      <div class="msg-user">Pedido 48213, item 2.</div>
+      <div class="msg-agent">
+        <span class="pg-avatar pg-grad" aria-hidden="true">SN</span>
+        <div class="body">
+          <span class="who">Suporte N1</span>
+          <p>Entregue em 09/10: a troca do item 2 vale até 08/11. Quer que eu abra agora?</p>
+          <span class="meta">2,1 s · 1.036 tokens</span>
+        </div>
+      </div>
+    </div>
+    <div class="composer" style="padding: 12px 12px 16px">
+      <form class="composer-box" aria-label="Enviar mensagem">
+        <label class="sr" for="msg-m">Mensagem para Suporte N1</label>
+        <textarea id="msg-m" class="one-line" rows="1" placeholder="Escreva uma mensagem para Suporte N1"></textarea>
+        <div class="composer-foot"><span class="pg-chip"><span class="pg-muted">para</span>suporte-n1</span><span class="spacer"></span><button class="pg-btn tap" type="submit" disabled aria-label="Enviar mensagem (escreva uma mensagem)" style="height: 44px"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg></button></div>
+      </form>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

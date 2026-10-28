@@ -1,0 +1,74 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-26T23:00:00Z"
+  },
+  "title": "P3-05 RAG e seletor de segredo",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 960,
+      "h": 2520,
+      "title": "Desktop · claro · Modelo, RAG ligado e Headers (trechos do editor de agent e de tool)"
+    },
+    "RAG-escuro.dc.html": {
+      "x": 1040,
+      "y": 0,
+      "w": 960,
+      "h": 3560,
+      "title": "Desktop · escuro · RAG: desligado, erros, estratégia, 422, carregando, falha, só leitura"
+    },
+    "Seletor-escuro.dc.html": {
+      "x": 2080,
+      "y": 0,
+      "w": 960,
+      "h": 1760,
+      "title": "Desktop · escuro · Seletor de segredo: 12 estados"
+    },
+    "Headers-escuro.dc.html": {
+      "x": 0,
+      "y": 3680,
+      "w": 960,
+      "h": 1980,
+      "title": "Desktop · escuro · Headers: Texto | Segredo, Usar segredo, erros, schema"
+    },
+    "Celular-claro.dc.html": {
+      "x": 1040,
+      "y": 3680,
+      "w": 390,
+      "h": 2700,
+      "title": "Celular · claro · Modelo e RAG"
+    },
+    "Celular-escuro.dc.html": {
+      "x": 1510,
+      "y": 3680,
+      "w": 390,
+      "h": 1700,
+      "title": "Celular · escuro · Headers e erro do seletor"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "RAG-escuro.dc.html",
+    "Seletor-escuro.dc.html",
+    "Headers-escuro.dc.html",
+    "Celular-claro.dc.html",
+    "Celular-escuro.dc.html"
+  ],
+  "notes": {
+    "t1": {
+      "x": 0,
+      "y": -300,
+      "text": "P3-05 · RAG completo e seletor de segredo único (modelo, líder, embedder, header)",
+      "kind": "title1",
+      "maxW": 3040
+    }
+  },
+  "designSystems": []
+}

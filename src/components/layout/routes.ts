@@ -3,6 +3,7 @@ import {
   Bot,
   House,
   MessageSquare,
+  Users,
   Wrench,
   type LucideIcon
 } from 'lucide-react'
@@ -11,8 +12,8 @@ import type { Messages } from 'next-intl'
 
 import { decodeUrlSegment } from '@/lib/utils'
 
-// Mapa de rotas da P1-03 (docs/design/P1-03.md). /teams e /settings entram
-// quando as telas existirem (P3-04, P4-05); grupo sem item não aparece.
+// Mapa de rotas da P1-03 (docs/design/P1-03.md). /settings entra quando a
+// tela existir (P4-05); grupo sem item não aparece.
 // Rótulos são chaves do catálogo `nav` (P1-04): quem desenha traduz.
 
 export type NavLabel = keyof Messages['nav']
@@ -37,6 +38,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'configure',
     items: [
       { href: '/agents', label: 'agents', icon: Bot, newLabel: 'newAgent' },
+      { href: '/teams', label: 'teams', icon: Users, newLabel: 'newTeam' },
       { href: '/tools', label: 'tools', icon: Wrench, newLabel: 'newTool' }
     ]
   },

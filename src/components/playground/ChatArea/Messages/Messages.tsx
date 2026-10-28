@@ -176,7 +176,8 @@ const MessageMetrics = ({ metrics }: { metrics: RunMetrics }) => {
 const ToolCallChip = ({ tool, running }: { tool: ToolCall; running: boolean }) => {
   const t = useTranslations('playground')
   const format = useFormatter()
-  // O stream não passa por zod (P2-03): duração não numérica conta como ausente.
+  // O histórico e testes montam tool calls sem passar pela fronteira do stream:
+  // duração não numérica conta como ausente.
   const raw: unknown = tool.metrics?.duration
   const duration = typeof raw === 'number' && Number.isFinite(raw) ? raw : undefined
   const name = <span className="font-medium">{tool.tool_name}</span>

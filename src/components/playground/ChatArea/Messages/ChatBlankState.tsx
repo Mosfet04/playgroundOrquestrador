@@ -15,7 +15,7 @@ import { usePlaygroundStore } from '@/store'
 // Conversa sem mensagens (docs/design/P1-05.md, /playground): conectando,
 // orquestrador fora, sem entidades, nada selecionado ou a entidade escolhida.
 const ChatBlankState = () => {
-  const { isEndpointLoading, isEndpointActive, selectedEndpoint, agents, teams } =
+  const { isOrchestratorLoading, isOrchestratorActive, orchestratorErrorStatus, agents, teams } =
     usePlaygroundStore()
   const { initializePlayground } = useChatActions()
   const entity = useSelectedEntity()
@@ -25,7 +25,7 @@ const ChatBlankState = () => {
   // erro fica montado, com o botão em "Tentando…" (Fluxo 3 da spec).
   const [retrying, setRetrying] = useState(false)
 
-  if (isEndpointLoading && !retrying)
+  if (isOrchestratorLoading && !retrying)
     return (
       <div className="flex flex-1 items-center justify-center p-8">
         <LiveStatus>{t('connecting')}</LiveStatus>
@@ -34,11 +34,11 @@ const ChatBlankState = () => {
 
   // Na nova tentativa o bloco fica até ela terminar: no meio dela o endpoint
   // já pode estar ativo sem os agentes carregados (falso "sem agentes").
-  if (!isEndpointActive || retrying)
+  if (!isOrchestratorActive || retrying)
     return (
       <LoadErrorState
         title={t('offlineTitle')}
-        detail={selectedEndpoint}
+        status={orchestratorErrorStatus}
         onRetry={async () => {
           setRetrying(true)
           try {
@@ -46,7 +46,7 @@ const ChatBlankState = () => {
           } finally {
             setRetrying(false)
           }
-          return usePlaygroundStore.getState().isEndpointActive
+          return usePlaygroundStore.getState().isOrchestratorActive
         }}
         className="mx-auto w-full max-w-[640px]"
       />

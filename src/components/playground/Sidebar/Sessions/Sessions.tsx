@@ -20,8 +20,8 @@ const Sessions = () => {
 
   // A carga das sessões (lista e a de ?session=) fica no ChatArea.
   const {
-    isEndpointActive,
-    isEndpointLoading,
+    isOrchestratorActive,
+    isOrchestratorLoading,
     hasStorage,
     sessionsData,
     isSessionsLoading,
@@ -44,9 +44,9 @@ const Sessions = () => {
 
   const sessions = Array.isArray(sessionsData) ? sessionsData : []
   // Com falha anterior, a nova tentativa fica na caixa de erro ("Tentando…").
-  const isLoading = (isSessionsLoading && !sessionsError) || isEndpointLoading
+  const isLoading = (isSessionsLoading && !sessionsError) || isOrchestratorLoading
   const isBlank =
-    !isEndpointActive ||
+    !isOrchestratorActive ||
     !(mode === 'team' ? teamId : agentId) ||
     sessionsError ||
     !hasStorage ||
@@ -55,7 +55,8 @@ const Sessions = () => {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <p className={panelLabelClass}>{t('sessions')}</p>
-      <div className="min-h-0 flex-1 overflow-y-auto font-sans">
+      {/* p-1 -m-1: folga para o anel de foco (linha e lixeira) sem mexer no layout. */}
+      <div className="-m-1 min-h-0 flex-1 overflow-y-auto p-1 font-sans">
         {isLoading ? (
           <div className="flex flex-col gap-1">
             {Array.from({ length: 5 }, (_, index) => (

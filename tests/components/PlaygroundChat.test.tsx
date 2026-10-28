@@ -231,10 +231,26 @@ describe('indicador de stream', () => {
     ])
 
     expect(
-      screen.getByText('Algo deu errado durante a resposta. Sem resposta do endpoint.')
+      screen.getByText('Algo deu errado durante a resposta. Sem resposta do servidor.')
     ).toHaveClass('text-destructive')
     expect(container.querySelector('.stream-caret')).toBeNull()
     expect(screen.queryByText('gerando')).not.toBeInTheDocument()
+    expect(screen.queryByText('1,0 s')).not.toBeInTheDocument()
+  })
+
+  // V-P2-03-7: stream cortado mantém o texto parcial, com o erro abaixo.
+  it('stream interrompido: texto parcial e, abaixo, "interrompida", sem cursor nem métricas', () => {
+    usePlaygroundStore.setState({ isStreaming: false, streamingErrorMessage: { kind: 'interrupted' } })
+    const { container } = renderMessages([
+      agentMessage({ content: 'Texto parcial', streamingError: true, metrics: { duration: 1 } })
+    ])
+
+    const partial = screen.getByText('Texto parcial')
+    const error = screen.getByText(
+      'Algo deu errado durante a resposta. A resposta foi interrompida antes do fim.'
+    )
+    expect(partial.compareDocumentPosition(error) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(container.querySelector('.stream-caret')).toBeNull()
     expect(screen.queryByText('1,0 s')).not.toBeInTheDocument()
   })
 })
@@ -322,12 +338,13 @@ describe('anúncio do stream: casos de borda', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
-  it('erro do stream: não anuncia "concluída"', () => {
+  it('erro do stream: anuncia "falhou", não "concluída" (P2-03)', () => {
     usePlaygroundStore.setState({ agents })
     render(areaAt('?agent=a1'))
     stream(agentMessage({ content: '', streamingError: true }))
 
-    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(screen.getByRole('status')).toHaveTextContent(/^A resposta de .+ falhou$/)
+    expect(screen.getByRole('log')).not.toHaveAttribute('aria-busy')
   })
 })
 
@@ -343,8 +360,8 @@ describe('composer', () => {
 
   const online = () =>
     usePlaygroundStore.setState({
-      isEndpointActive: true,
-      isEndpointLoading: false,
+      isOrchestratorActive: true,
+      isOrchestratorLoading: false,
       agents: [{ value: 'agent-1', label: 'Assistente', model: { provider: 'OpenAI', model: 'gpt-4o' } }]
     })
 
@@ -374,13 +391,13 @@ describe('composer', () => {
   it.each([
     [
       'offline',
-      { isEndpointActive: false, isEndpointLoading: false },
+      { isOrchestratorActive: false, isOrchestratorLoading: false },
       'Conecte o orquestrador para conversar',
       'Enviar mensagem (orquestrador desconectado)'
     ],
     [
       'conectando',
-      { isEndpointActive: false, isEndpointLoading: true },
+      { isOrchestratorActive: false, isOrchestratorLoading: true },
       'Escreva uma mensagem para agent-1',
       'Enviar mensagem (orquestrador desconectado)'
     ]
@@ -408,8 +425,8 @@ describe('composer', () => {
 describe('conversa vazia', () => {
   it('avatar de 40 px com as iniciais do agente', () => {
     usePlaygroundStore.setState({
-      isEndpointLoading: false,
-      isEndpointActive: true,
+      isOrchestratorLoading: false,
+      isOrchestratorActive: true,
       agents: [{ value: 'suporte-n1', label: 'Suporte N1', model: { provider: 'Anthropic' } }]
     })
     renderWithIntl(

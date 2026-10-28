@@ -25,11 +25,9 @@ export function EntitySelector() {
     mode,
     agents,
     teams,
-    setMessages,
-    setHasStorage,
-    setSelectedTeamId
+    setHasStorage
   } = usePlaygroundStore()
-  const { focusChatInput } = useChatActions()
+  const { clearChat, focusChatInput } = useChatActions()
   const [agentId, setAgentId] = useQueryState('agent', {
     parse: (value) => value || undefined,
     history: 'push'
@@ -38,7 +36,6 @@ export function EntitySelector() {
     parse: (value) => value || undefined,
     history: 'push'
   })
-  const [, setSessionId] = useQueryState('session')
   const t = useTranslations('playground')
 
   const currentEntities = mode === 'team' ? teams : agents
@@ -50,9 +47,6 @@ export function EntitySelector() {
       const entity = currentEntities.find((item) => item.value === currentValue)
       if (entity) {
         setHasStorage(!!entity.storage)
-        if (mode === 'team') {
-          setSelectedTeamId(entity.value)
-        }
         if (entity.model.provider) {
           focusChatInput()
         }
@@ -70,17 +64,14 @@ export function EntitySelector() {
     setHasStorage(!!selectedEntity?.storage)
 
     if (mode === 'team') {
-      setSelectedTeamId(newValue)
       setTeamId(newValue)
       setAgentId(null)
     } else {
-      setSelectedTeamId(null)
       setAgentId(newValue)
       setTeamId(null)
     }
 
-    setMessages([])
-    setSessionId(null)
+    clearChat()
 
     if (selectedEntity?.model.provider) {
       focusChatInput()

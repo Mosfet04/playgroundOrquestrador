@@ -1,18 +1,23 @@
+// Períodos do filtro, com granularidade de dia (decisão 0023); valem para todos
+// os cards. Uma lista só, do cliente e do BFF.
+export const DASHBOARD_PERIODS = ['today', '7d', '30d', '90d'] as const
+export type DashboardPeriod = (typeof DASHBOARD_PERIODS)[number]
+
 export interface DashboardStats {
   // Estatísticas gerais
   activeAgents: number
   totalAgents: number
-  uniqueUsers: number
+  // Pico diário de usuários no período (decisão 0023)
+  peakDailyUsers: number
   totalSessions: number
   totalAgentSessions: number
   totalTeamSessions: number
-  sessionsInPeriod: number
   totalTokens: number
-  
+
   // Modelos utilizados
   models: ModelUsage[]
   embeddingModels: ModelUsage[]
-  
+
   // Atividade ao longo do tempo
   activityOverTime: ActivityPoint[]
 }
@@ -28,40 +33,4 @@ export interface ActivityPoint {
   sessions: number
   agentSessions?: number
   teamSessions?: number
-  tokens?: number
-}
-
-export interface TokenMetrics {
-  agentId: string
-  agentName: string
-  entityType?: 'agent' | 'team'
-  inputTokens: number
-  outputTokens: number
-  totalTokens: number
-  sessions: number
-}
-
-export interface UserMetrics {
-  userId: string
-  sessions: number
-  totalTokens: number
-  lastActivity: string
-}
-
-export interface SessionMetrics {
-  sessionId: string
-  agentId: string
-  agentName: string
-  userId: string
-  startTime: string
-  endTime?: string
-  totalTokens: number
-  messageCount: number
-}
-
-// Filtros para dashboard
-export interface DashboardFilters {
-  timeRange: string
-  agentId?: string
-  userId?: string
 }

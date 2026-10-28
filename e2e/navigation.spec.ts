@@ -1,11 +1,10 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 
-import { APP_URL, FAKE_ORCHESTRATOR_URL } from '../playwright.config'
+import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
 
-// P1-03: cada seção tem URL própria (deep link, voltar, recarga). Até a P3,
-// /api/agents*, /api/tools* e /api/dashboard/* leem o Mongo: aqui respondem
-// por page.route.
+// P1-03: cada seção tem URL própria (deep link, voltar, recarga). Aqui
+// /api/agents* e /api/tools* respondem por page.route.
 
 const agent = {
   id: 'agente alfa',
@@ -51,10 +50,6 @@ const serveCollection = <T extends { id: string }>(kind: string, items: T[]) =>
 const mockManagementApi = async (page: Page) => {
   await page.route(/\/api\/agents(\/[^?]*)?(\?.*)?$/, serveCollection('agents', [agent]))
   await page.route(/\/api\/tools(\/[^?]*)?(\?.*)?$/, serveCollection('tools', [tool]))
-  // O dashboard também lê o Mongo; aqui só importa a casca da rota.
-  await page.route(/\/api\/dashboard\//, (route) =>
-    route.fulfill({ status: 503, json: { success: false, error: 'indisponível' } })
-  )
 }
 
 const mainNav = (page: Page) =>
@@ -158,17 +153,14 @@ test('cada rota tem o <title> do mapa e um só item ativo', async ({ page }) => 
 test('/playground?agent=…&session=… sobrevive à recarga com o agente e as mensagens', async ({
   page
 }) => {
-  // Só o app e o fake: o chat também chama rede externa (ipify, FingerprintJS).
+  // Só o app: o chat vai pelo BFF (P2-03).
   await page.route(
-    (url) => ![APP_URL, FAKE_ORCHESTRATOR_URL].includes(url.origin),
+    (url) => url.origin !== APP_URL,
     (route) => route.abort()
   )
   await page.goto('/playground')
   await hydrated(page)
   const sidebar = page.locator('aside')
-  await sidebar.getByText('http://localhost:7777').click()
-  await sidebar.getByRole('textbox').fill(FAKE_ORCHESTRATOR_URL)
-  await sidebar.getByRole('textbox').press('Enter')
   await sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' }).click()
   await page.getByRole('option', { name: 'Agente Beta' }).click()
 
@@ -263,7 +255,9 @@ test.describe('celular', () => {
 
     await page.getByRole('button', { name: 'Abrir sessões e agente' }).click()
     const panel = page.getByRole('dialog', { name: 'Sessões e agente' })
-    await expect(panel.getByText('Endpoint', { exact: true })).toBeVisible()
+    await expect(panel.getByText('Sessões', { exact: true })).toBeVisible()
+    // P2-03: o Sheet não tem o bloco Endpoint.
+    await expect(panel.getByText('Endpoint', { exact: true })).toHaveCount(0)
   })
 
   test('o Sheet fecha quando a janela passa de 1024 px', async ({ page }) => {

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>D-P2-03-1 · status da conexão</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/playground/components/bundle.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p105.css">
+<link rel="stylesheet" href="p106.css">
+<link rel="stylesheet" href="p203.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#2b57d9}a:hover{color:#1f44b3}
+</style>
+</helmet>
+<div class="pg-app dec">
+  <div class="dec-opt">
+    <h2>A · Nenhum indicador no P2-03</h2>
+    <p class="dec-rec">recomendada</p>
+    <div class="dec-frame">
+      <div class="side">
+        <div class="side-top"><span class="pg-mark pg-grad" aria-hidden="true"></span><div class="brand"><b>Orquestrador</b><span>playground</span></div></div>
+        <nav class="side-body" aria-label="Navegação (opção A)">
+          <a class="nav-item" href="#a-play" aria-current="page">Playground</a>
+          <a class="nav-item" href="#a-agents">Agentes</a>
+        </nav>
+        <div class="side-foot out">
+          <button class="nav-item nav-btn" type="button">Sair</button>
+        </div>
+      </div>
+      <div class="chat-panel no-ep" style="padding: 12px; gap: 12px">
+        <p class="panel-label" style="margin: 0">Sessões</p>
+        <nav class="sess" aria-label="Sessões (opção A)">
+          <div class="row"><a href="#a1" aria-current="page"><span>Prazo de troca no app</span><span>17:22</span></a></div>
+          <div class="row"><a href="#a2"><span>Status do pedido 48213</span><span>16:05</span></a></div>
+        </nav>
+      </div>
+    </div>
+    <p class="ann">O painel termina na lista. Fora do ar aparece só onde importa: bloco de erro na conversa, caixa de sessões e composer desabilitado. O status global fica para o P4-05.</p>
+  </div>
+  <div class="dec-opt">
+    <h2>B · Status no rodapé da navegação (V1 do P1-01, sem host)</h2>
+    <p class="ann">padrão já aprovado, adiado pela D-P1-03-3</p>
+    <div class="dec-frame">
+      <div class="side">
+        <div class="side-top"><span class="pg-mark pg-grad" aria-hidden="true"></span><div class="brand"><b>Orquestrador</b><span>playground</span></div></div>
+        <nav class="side-body" aria-label="Navegação (opção B)">
+          <a class="nav-item" href="#b-play" aria-current="page">Playground</a>
+          <a class="nav-item" href="#b-agents">Agentes</a>
+        </nav>
+        <div class="side-foot" role="status" style="padding: 12px 16px 4px; border-bottom: 0">
+          <span class="live live-ok"><span class="pg-dot pg-dot-live" aria-hidden="true"></span>orquestrador online</span>
+        </div>
+        <div class="side-foot out" style="margin-top: 0">
+          <button class="nav-item nav-btn" type="button">Sair</button>
+        </div>
+      </div>
+      <div class="chat-panel no-ep" style="padding: 12px; gap: 12px">
+        <p class="panel-label" style="margin: 0">Sessões</p>
+        <nav class="sess" aria-label="Sessões (opção B)">
+          <div class="row"><a href="#b1" aria-current="page"><span>Prazo de troca no app</span><span>17:22</span></a></div>
+          <div class="row"><a href="#b2"><span>Status do pedido 48213</span><span>16:05</span></a></div>
+        </nav>
+      </div>
+    </div>
+    <p class="ann">Ponto + palavra em todas as páginas, alimentado por GET /api/orchestrator/health. Pede política de atualização (quando consultar) e casca cliente; aumenta o escopo do item.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+/* P3-02: editor de agent por seções. Delta sobre theme.css (P1-01) e pg-ds.css (DS). Só tokens do DS.
+   Equivalência Tailwind anotada em cada bloco (o código usa as classes, não este arquivo). */
+
+/* Coluna do editor: max-w-4xl mx-auto p-6 space-y-6 */
+.ed { width: 100%; max-width: 896px; margin: 0 auto; padding: var(--space-8) var(--space-6) var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); box-sizing: border-box; }
+.ed-head { display: flex; align-items: flex-start; gap: var(--space-4); }
+.ed-head h1 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; }
+.ed-head p { margin: 0; color: var(--muted-foreground); }
+
+/* Card de seção: Card + CardHeader + CardContent (p-6, space-y-4) */
+.sec { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.sec-head { display: flex; flex-direction: column; gap: var(--space-1); }
+.sec-head h2 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
+.sec-head p { margin: 0; color: var(--muted-foreground); }
+
+/* grid grid-cols-1 md:grid-cols-2 gap-4 */
+.g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.fld { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.mono, .pg-input.mono { font-family: var(--font-mono); }
+.pg-help code, .pg-warn code, .pg-error code { font-family: var(--font-mono); font-size: 12px; }
+.req { color: var(--muted-foreground); font-weight: 400; }
+.ta { font: inherit; min-height: 160px; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--input); background: var(--card); color: var(--foreground); width: 100%; box-sizing: border-box; resize: vertical; }
+
+/* Subgrupo dentro do card (border-t pt-4) */
+.sub { border-top: 1px solid var(--border); padding-top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.sub-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.sub-head .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sub-head .t b { font-weight: 500; }
+
+/* Linhas de model_params: ul > li, grid [nome 14rem][valor 1fr][tipo auto][remover auto] */
+.params { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.params-cols { display: grid; grid-template-columns: 224px minmax(0, 1fr) 80px 36px; gap: var(--space-2); padding: 0 0 0 0; }
+.params-cols span { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+.prow { display: flex; flex-direction: column; gap: var(--space-1); }
+.prow-ctl { display: grid; grid-template-columns: 224px minmax(0, 1fr) 80px 36px; gap: var(--space-2); align-items: center; }
+.prow-ctl .pg-chip { justify-content: center; }
+.prow .pg-select[aria-invalid="true"] { border-color: var(--destructive); }
+.pg-select[disabled] { opacity: .5; cursor: not-allowed; background: var(--muted); }
+.pg-select .ph { color: var(--muted-foreground); }
+.pg-btn.icon36 { width: 36px; height: 36px; padding: 0; color: var(--muted-foreground); }
+.empty-line { margin: 0; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--muted); color: var(--muted-foreground); }
+.grp-err { margin: 0; }
+
+/* Execução: lista de switches com ajuda; o filho (num_history_runs) recua até o rótulo (pl-12) */
+.sws { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sw { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 0; border-top: 1px solid var(--border); }
+.sw:first-child { border-top: 0; padding-top: 0; }
+.sw:last-child { padding-bottom: 0; }
+.sw-top { display: flex; align-items: flex-start; gap: var(--space-3); }
+.sw-top .pg-switch { margin-top: 0; }
+.sw-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.sw-txt label { font-weight: 500; }
+.sw-dft { font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--muted-foreground); white-space: nowrap; }
+.sw-child { padding-left: 48px; display: flex; flex-direction: column; gap: var(--space-2); }
+.sw-child .num { width: 96px; }
+.sw-child.off label { color: var(--muted-foreground); }
+.sw .pg-warn { padding-left: 48px; }
+.pg-switch[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* Aviso do schema (ConfigSchemaNotice, P3-01) */
+.notice-err { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); border: 1px solid color-mix(in srgb, var(--destructive) 50%, transparent); border-radius: var(--radius-lg); padding: var(--space-4); color: var(--destructive); }
+.notice-err p, .notice-ro { margin: 0; }
+.notice-ro { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--muted); padding: var(--space-4); }
+
+/* Rodapé (P1-05b) */
+.foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.foot .r { display: flex; gap: var(--space-4); }
+.del-btn { color: var(--destructive); }
+
+/* Prancha de estados: painéis lado a lado */
+.board { padding: var(--space-6); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); box-sizing: border-box; }
+.panel { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.panel > .cap { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); }
+.sk-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; }
+.sk-sw { width: 36px; height: 20px; border-radius: var(--radius-full); }
+.status-line { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--muted-foreground); }
+.dot { width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--signal); }
+
+/* Celular (< md): uma coluna, controles h-10, input 16 px, linha de param empilhada em card */
+.phone .ed { padding: var(--space-4); gap: var(--space-4); max-width: none; }
+.phone .sec { padding: var(--space-4); }
+.phone .g2 { grid-template-columns: minmax(0, 1fr); }
+.phone .pg-input, .phone .pg-select, .phone .pg-btn { height: var(--control-h-touch); }
+.phone .pg-input { font-size: 16px; }
+.phone .prow { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); gap: var(--space-2); }
+.phone .prow-ctl { grid-template-columns: minmax(0, 1fr) 44px; grid-template-areas: "name del" "val val"; row-gap: var(--space-2); }
+.phone .prow-ctl .c-name { grid-area: name; }
+.phone .prow-ctl .c-del { grid-area: del; }
+.phone .prow-ctl .c-val { grid-area: val; display: flex; gap: var(--space-2); align-items: center; }
+.phone .prow-ctl .c-val .pg-input { flex: 1; min-width: 0; }
+.phone .pg-btn.icon36 { width: 44px; height: 44px; }
+.phone .sub-head .pg-btn { width: 100%; }
+.phone .foot { flex-direction: column-reverse; align-items: stretch; }
+.phone .foot .r { flex-direction: column-reverse; gap: var(--space-2); }
+.phone .foot .pg-btn { width: 100%; }
+.phone .foot .del-wrap { border-top: 1px solid var(--border); padding-top: var(--space-4); }
+.phone .sw-child { padding-left: 48px; }
+.phone .scroll { flex: 1; min-height: 0; overflow: hidden; }

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Seletor de segredo e RAG · desktop claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p303.css">
+<link rel="stylesheet" href="p305.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app" style="width: 960px; min-height: 2520px"><div class="ed">
+
+<section class="sec" aria-labelledby="a-model"><div class="sec-head"><h2 id="a-model">Modelo</h2><p>Provedor, modelo e como o orquestrador se conecta a ele.</p></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="a-pv">Provedor <span class="req">*</span></label><button class="pg-select" type="button" id="a-pv" role="combobox" aria-expanded="false"><span class="mono">openai</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="fld"><label class="pg-label" for="a-md">Modelo <span class="req">*</span></label><input class="pg-input mono" id="a-md" value="gpt-4.1"></div>
+<div class="sref sec-wide" role="group" aria-labelledby="a-l" aria-describedby="a-h a-o">
+<span class="pg-label" id="a-l">Referência da chave de API</span>
+<div class="pg-secret"><button class="pg-select" type="button" role="combobox" aria-label="Formato" aria-expanded="false"><span>env:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input" aria-label="Variável de ambiente" value="OPENAI_API_KEY" autocomplete="off" spellcheck="false"></div>
+<p class="sref-out" id="a-o">Gravada como <span class="pg-chip">env:OPENAI_API_KEY</span></p>
+<p class="pg-help" id="a-h">Só a referência, nunca a chave. Variável de ambiente do servidor do orquestrador, em MAIÚSCULAS e terminando em <code>_API_KEY</code>. Vazio: o agente não define chave própria.</p>
+</div>
+</div></section>
+
+<section class="sec" aria-labelledby="a-rag"><div class="sec-head"><h2 id="a-rag">Configuração RAG</h2><p>Base de conhecimento consultada pelo agente: documento, busca e o modelo que gera os embeddings.</p></div>
+<div class="rag-top"><button class="pg-switch" type="button" role="switch" aria-checked="true" id="a-rs" aria-describedby="a-rsd"></button><div class="sw-txt"><label for="a-rs">Habilitar RAG</label><p class="pg-help" id="a-rsd">Desligue para pausar o RAG sem perder a configuração.</p></div></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="a-dn">Nome do documento <span class="req">*</span></label><input class="pg-input mono" id="a-dn" value="catalogo_produtos"></div>
+<div class="fld"><label class="pg-label" for="a-st">Estratégia de busca <span class="req">*</span></label><button class="pg-select" type="button" id="a-st" role="combobox" aria-expanded="false"><span class="mono">semantic</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+</div>
+<div class="sub" role="group" aria-labelledby="a-emb"><div class="sub-head"><div class="t"><b id="a-emb">Embedder</b><p class="pg-help">Modelo que transforma o texto em vetores para a busca.</p></div></div>
+<div class="g2">
+<div class="fld"><label class="pg-label" for="a-ep">Provedor de embedding <span class="req">*</span></label><button class="pg-select" type="button" id="a-ep" role="combobox" aria-expanded="false"><span class="mono">openai</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<div class="fld"><label class="pg-label" for="a-em">Modelo de embedding <span class="req">*</span></label><input class="pg-input mono" id="a-em" value="text-embedding-3-small"></div>
+<div class="sref sec-wide" role="group" aria-labelledby="a-el" aria-describedby="a-eh a-eo">
+<span class="pg-label" id="a-el">Referência da chave do embedder</span>
+<div class="pg-secret"><button class="pg-select" type="button" role="combobox" aria-label="Formato" aria-expanded="false"><span>file:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input" aria-label="Caminho do arquivo" value="/run/secrets/openai_embed_key" autocomplete="off" spellcheck="false"></div>
+<p class="sref-out" id="a-eo">Gravada como <span class="pg-chip">file:/run/secrets/openai_embed_key</span></p>
+<p class="pg-help" id="a-eh">Só a referência, nunca a chave. Caminho absoluto de um arquivo do servidor do orquestrador que guarda a chave. Vazio: o embedder não define chave própria.</p>
+</div>
+</div></div>
+<div class="sub" role="group" aria-labelledby="a-pt"><div class="sub-head"><div class="t"><b id="a-pt">Parâmetros do embedder</b><p class="pg-help">Nomes aceitos por openai. Valor: número com ponto (0.7), true/false ou texto.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Adicionar parâmetro</button></div>
+<div class="params-cols" aria-hidden="true"><span>Nome</span><span>Valor</span><span>Tipo</span><span></span></div>
+<ul class="params" aria-label="Parâmetros do embedder"><li class="prow"><div class="prow-ctl"><button class="pg-select" type="button" role="combobox" aria-label="Nome do parâmetro 1" aria-expanded="false"><span class="mono">dimensions</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input mono" aria-label="Valor de dimensions" value="512"><span class="pg-chip" style="justify-content: center">número</span><button class="pg-btn pg-btn-ghost icon36" type="button" aria-label="Remover dimensions"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div></li></ul></div>
+</section>
+
+<section class="sec" aria-labelledby="a-http"><div class="sec-head"><h2 id="a-http">HTTP (trecho)</h2><p>Método, rota e headers da requisição.</p></div>
+<div class="sub" role="group" aria-labelledby="a-ht" style="border-top: 0; padding-top: 0"><div class="sub-head"><div class="t"><b id="a-ht">Headers HTTP</b><p class="pg-help" id="a-hh">Texto ou Segredo (referência <code>env:, file:</code>). Nome sensível (Authorization, Cookie, …-Key, …-Token) aceita só Segredo. Trocar o modo limpa o valor.</p></div><button class="pg-btn pg-btn-outline pg-btn-sm" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Adicionar header</button></div>
+<div class="hcols m" aria-hidden="true"><span>Nome</span><span>Modo</span><span>Valor</span><span>Estado</span><span></span></div>
+<ul class="hrows" aria-label="Headers HTTP" aria-describedby="a-hh">
+
+<li class="hrow"><div class="hrow-ctl m"><input class="pg-input mono c-name" aria-label="Nome do header 1" value="Content-Type"><button class="pg-select c-mode" type="button" role="combobox" aria-label="Modo do valor de Content-Type" aria-expanded="false"><span>Texto</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="hv c-val"><input class="pg-input mono" aria-label="Valor de Content-Type" value="application/json" aria-describedby="h1s"></div><span class="pg-chip c-state" id="h1s" style="justify-content: center">texto</span><button class="pg-btn pg-btn-ghost icon36 c-del" type="button" aria-label="Remover Content-Type"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div></li>
+
+<li class="hrow"><div class="hrow-ctl m"><input class="pg-input mono c-name" aria-label="Nome do header 2" value="X-Api-Key"><button class="pg-select c-mode" type="button" role="combobox" aria-label="Modo do valor de X-Api-Key" aria-expanded="false"><span>Segredo</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="hv c-val"><div class="pg-secret" role="group" aria-label="Referência de X-Api-Key"><button class="pg-select" type="button" role="combobox" aria-label="Formato (X-Api-Key)" aria-expanded="false"><span>env:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input" aria-label="Variável de ambiente (X-Api-Key)" value="LOJA_API_KEY" autocomplete="off" spellcheck="false" aria-describedby="h2s h2o"></div></div><span class="pg-chip c-state" id="h2s" style="justify-content: center">referência</span><button class="pg-btn pg-btn-ghost icon36 c-del" type="button" aria-label="Remover X-Api-Key"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div><p class="sref-out hrow-sub" id="h2o">Gravada como <span class="pg-chip">env:LOJA_API_KEY</span></p></li>
+
+<li class="hrow"><div class="hrow-ctl m"><input class="pg-input mono c-name" aria-label="Nome do header 3" value="Cookie"><button class="pg-select c-mode" type="button" role="combobox" aria-label="Modo do valor de Cookie" aria-expanded="false" disabled><span>Texto</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="hv c-val"><input class="pg-input mono mask" aria-label="Valor de Cookie" value="***" readonly aria-describedby="h3s"><button class="pg-btn pg-btn-outline" type="button">Substituir</button></div><span class="pg-chip c-state" id="h3s" style="justify-content: center"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>oculto</span><button class="pg-btn pg-btn-ghost icon36 c-del" type="button" aria-label="Remover Cookie"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div></li>
+
+<li class="hrow"><div class="hrow-ctl m"><input class="pg-input mono c-name" aria-label="Nome do header 4" value="X-Signature-Key"><button class="pg-select c-mode" type="button" role="combobox" aria-label="Modo do valor de X-Signature-Key" aria-expanded="false"><span>Segredo</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="hv c-val"><div class="pg-secret" role="group" aria-label="Referência de X-Signature-Key"><button class="pg-select" type="button" role="combobox" aria-label="Formato (X-Signature-Key)" aria-expanded="false"><span>file:</span><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><input class="pg-input" aria-label="Caminho do arquivo (X-Signature-Key)" value="/run/secrets/loja_signature" autocomplete="off" spellcheck="false" aria-describedby="h4s h4o"></div></div><span class="pg-chip c-state" id="h4s" style="justify-content: center">referência</span><button class="pg-btn pg-btn-ghost icon36 c-del" type="button" aria-label="Remover X-Signature-Key"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div><p class="sref-out hrow-sub" id="h4o">Gravada como <span class="pg-chip">file:/run/secrets/loja_signature</span></p></li>
+
+</ul>
+<p class="pg-help note-line"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><span>*** é o valor gravado, oculto. Ele é mantido até você substituir, e só se a origem da rota (<code>https://api.loja.example</code>) não mudar.</span></p>
+</div></section>
+
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":2520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

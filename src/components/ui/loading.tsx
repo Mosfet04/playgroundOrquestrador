@@ -59,12 +59,15 @@ export function LiveStatus({ children }: { children: ReactNode }) {
 export function ListSkeleton({
   label,
   head,
-  chipClassName
+  chipClassName,
+  extraChipColumns = 0
 }: {
   label: string
   head: ReactNode
   /** Largura do chip da 2ª coluna (modelo ou requisição). */
   chipClassName: string
+  /** Colunas de chip a mais depois da 2ª (ex.: o modo na lista de teams). */
+  extraChipColumns?: number
 }) {
   const rows = [0, 1, 2]
   return (
@@ -88,6 +91,11 @@ export function ListSkeleton({
                 <TableCell>
                   <Skeleton className={cn('h-6', chipClassName)} />
                 </TableCell>
+                {Array.from({ length: extraChipColumns }, (_, column) => (
+                  <TableCell key={column}>
+                    <Skeleton className="h-6 w-20" />
+                  </TableCell>
+                ))}
                 <TableCell>
                   <Skeleton className="ml-auto h-3 w-6" />
                 </TableCell>

@@ -97,6 +97,9 @@ export enum RunEvent {
   RunContent = 'RunContent',
   RunCompleted = 'RunCompleted',
   RunError = 'RunError',
+  // agno 2.5: fim do run do agente por cancelamento. O RunPaused (aprovação de
+  // tool) não é tratado: aparece como interrompido (limitação do P2-03).
+  RunCancelled = 'RunCancelled',
   ToolCallStarted = 'ToolCallStarted',
   ToolCallCompleted = 'ToolCallCompleted',
   UpdatingMemory = 'UpdatingMemory',
@@ -226,16 +229,6 @@ export interface ComboboxAgent {
   storage?: boolean
 }
 
-export interface ComboboxTeam {
-  value: string
-  label: string
-  model: {
-    provider: string
-    model?: string
-  }
-  storage?: boolean
-}
-
 export interface ImageData {
   revised_prompt: string
   url: string
@@ -278,26 +271,3 @@ export interface SessionEntry {
   created_at: number
 }
 
-export interface ChatEntry {
-  message: {
-    role: 'user' | 'system' | 'tool' | 'assistant'
-    content: string
-    created_at: number
-  }
-  response: {
-    content: string
-    tools?: ToolCall[]
-    extra_data?: {
-      reasoning_steps?: ReasoningSteps[]
-      reasoning_messages?: ReasoningMessage[]
-      references?: ReferenceData[]
-    }
-    images?: ImageData[]
-    videos?: VideoData[]
-    audio?: AudioData[]
-    response_audio?: {
-      transcript?: string
-    }
-    created_at: number
-  }
-}

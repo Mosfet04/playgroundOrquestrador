@@ -1,0 +1,105 @@
+/* P3-06: conflito 412, desativar/reativar e ajustes de layout. Delta sobre theme.css, pg-ds.css, p302.css e p303.css.
+   Só tokens do DS. Equivalência Tailwind anotada em cada bloco (o código usa as classes, não este arquivo). */
+
+/* Cabeçalho de edição: h1 + StatusBadge na mesma linha (flex flex-wrap items-center gap-x-3 gap-y-1) */
+.ed-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); }
+.ed-head .pg-btn-ghost { gap: var(--space-2); }
+
+/* Rodapé: grupo da esquerda com Desativar|Reativar + Excluir (flex flex-wrap gap-2); celular: coluna, w-full h-10 */
+.foot .l { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.phone .foot .l { flex-direction: column; }
+.phone .foot .l .pg-btn { width: 100%; }
+.pg-btn-outline.is-danger { color: var(--destructive); }
+.ellipsis-sep { margin: 0; text-align: center; color: var(--muted-foreground); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; }
+
+/* Moldura de diálogo da prancha: o overlay real é bg-background/80 backdrop-blur-sm sobre a página */
+.dlg-frame { position: relative; border: 1px dashed var(--input); border-radius: var(--radius-lg); padding: var(--space-3); display: flex; justify-content: center; align-items: flex-start; background: color-mix(in srgb, var(--background) 80%, transparent); min-width: 0; }
+.dlg-frame.pad { padding: var(--space-6) var(--space-3); }
+/* Abaixo de sm: w-[calc(100%-2rem)] = 16 px de cada lado; a moldura simula o viewport de 390 */
+.dlg-frame.vp { padding: var(--space-4); }
+.pg-dialog { position: relative; }
+.pg-dialog.wide { width: 576px; }
+.pg-dialog.vp { width: 100%; }
+.pg-dialog .dlg-x { position: absolute; right: 16px; top: 16px; width: 20px; height: 20px; padding: 0; border: 0; background: none; color: var(--muted-foreground); border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.pg-dialog .dlg-x:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+/* DialogHeader: text-left em qualquer largura (hoje centraliza abaixo de sm) */
+.dlg-head { display: flex; flex-direction: column; gap: var(--space-2); text-align: left; padding-right: var(--space-6); }
+.dlg-head p { margin: 0; color: var(--muted-foreground); }
+.dlg-head p b { color: var(--foreground); font-weight: 500; }
+.dlg-head code, .dlg-note code, .diff code { font-family: var(--font-mono); font-size: 12px; }
+/* DialogFooter: flex-col-reverse gap-2 sm:flex-row sm:justify-end */
+.dlg-foot { display: flex; flex-direction: row; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); }
+.dlg-foot.stack { flex-direction: column-reverse; }
+.dlg-foot.stack .pg-btn { width: 100%; height: var(--control-h-touch); }
+.dlg-note { margin: 0; display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--muted); color: var(--muted-foreground); }
+.dlg-note .pg-ico { width: 14px; height: 14px; margin-top: 3px; flex: none; }
+.dlg-warn { margin: 0; display: flex; gap: var(--space-2); align-items: flex-start; color: var(--warning); }
+.dlg-warn .pg-ico { width: 14px; height: 14px; margin-top: 3px; flex: none; }
+.dlg-err { margin: 0; display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3); border: 1px solid color-mix(in srgb, var(--destructive) 50%, transparent); border-radius: var(--radius-md); color: var(--destructive); }
+.dlg-err .pg-ico { width: 14px; height: 14px; margin-top: 3px; flex: none; }
+.dlg-load { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* Lista de diferenças: ul border rounded-md divide-y, max-h-[40dvh] sm:max-h-80 overflow-y-auto */
+.diff { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-md); max-height: 320px; overflow-y: auto; }
+.diff.tall { max-height: none; }
+.diff > li { padding: var(--space-3); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-2); }
+.diff > li:first-child { border-top: 0; }
+.diff .lbl { margin: 0; font-weight: 500; }
+.diff .lbl .sep { color: var(--muted-foreground); font-weight: 400; padding: 0 2px; }
+.diff .lbl .it { font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+/* dl em duas colunas a partir de sm; uma abaixo (grid grid-cols-1 sm:grid-cols-2 gap-3) */
+.cmp { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.cmp > div { min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.cmp dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+.cmp dd { margin: 0; min-height: 32px; padding: 6px var(--space-2); border-radius: var(--radius-md); background: var(--muted); overflow-wrap: anywhere; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.phone .cmp, .cmp.one { grid-template-columns: minmax(0, 1fr); }
+.cmp dd.m, .cmp dd .m { font-family: var(--font-mono); font-size: 12px; line-height: 16px; }
+.cmp dd .none { color: var(--muted-foreground); }
+.cmp dd .mask { font-family: var(--font-mono); letter-spacing: 2px; color: var(--muted-foreground); }
+.cmp dd .pg-chip { height: 22px; }
+.cmp dd.chips { gap: var(--space-1); }
+.cmp dd .sub { display: block; width: 100%; color: var(--muted-foreground); font-size: 12px; line-height: 16px; }
+.clamp4 { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; }
+.clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.diff .more { align-self: flex-start; font-size: 12px; line-height: 16px; }
+.diff .hint { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.diff .hint.mono { font-family: var(--font-mono); }
+.pg-btn.pg-btn-link:focus-visible { border-radius: var(--radius-sm); }
+
+/* Tabela: larguras fixas nas colunas curtas (w-24 contagem, w-28 Status, w-32 Atualizado, w-9 chevron) */
+.pg-table.fx { min-width: 0; }
+.pg-table.fx th.w-24 { width: 96px; }
+.pg-table.fx th.w-28 { width: 112px; }
+.pg-table.fx th.w-32 { width: 128px; }
+.pg-table.fx th.w-9 { width: 36px; }
+.pg-table.fx td.nw, .pg-table.fx th { white-space: nowrap; }
+.pg-table.fx td .pg-chip { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; line-height: 22px; }
+.align-wrap { position: relative; }
+/* Réguas da prancha: início das colunas Status (36+128+112) e Atualizado (36+128) a partir da borda direita */
+.align-wrap::before, .align-wrap::after { content: ""; position: absolute; top: -8px; bottom: -8px; border-left: 1px dashed var(--primary); opacity: .7; pointer-events: none; }
+.align-wrap::before { right: 276px; }
+.align-wrap::after { right: 164px; }
+.tbl-stack { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* Filtros: mesmo Card nas três listas; abaixo de lg: p-4, Buscar sempre visível */
+.fcard { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
+.fcard h2 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
+.fcard .fld { gap: var(--space-2); }
+.sbox { position: relative; }
+.sbox .pg-ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted-foreground); }
+.sbox .pg-input { width: 100%; padding-left: 40px; }
+.sw-line { display: flex; align-items: center; gap: var(--space-2); }
+.sw-line span { color: var(--muted-foreground); }
+.row-link { display: flex; align-items: center; gap: var(--space-3); height: 64px; padding: 0 var(--space-3); border-top: 1px solid var(--border); color: inherit; text-decoration: none; }
+.row-link:first-child { border-top: 0; }
+.row-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row-txt .l1 { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.row-txt .l1 b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-link > .pg-ico:last-child { color: var(--muted-foreground); }
+
+/* Instruções: min-h-44 (176 px = 8 linhas de 20 px + padding), max-h-96, autoajuste entre os dois */
+.ta.min44 { min-height: 176px; max-height: 384px; }
+.ta.one { min-height: 40px; height: 40px; resize: none; }
+
+/* Toast (sonner) com ícone */
+.toast-wrap { display: flex; justify-content: flex-end; }

@@ -1,9 +1,7 @@
 'use client'
 
-import { FC, useState } from 'react'
+import { FC } from 'react'
 
-import Image from 'next/image'
-import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
 import type {
@@ -19,7 +17,6 @@ import type {
   BlockquoteProps,
   AnchorLinkProps,
   HeadingProps,
-  ImgProps,
   ParagraphProps,
   TableHeaderCellProps,
   TableProps,
@@ -30,6 +27,7 @@ import type {
   PreparedTextProps
 } from './types'
 
+import { ImageLink, SafeLink } from './SafeLink'
 import { HEADING_SIZES } from '../Heading/constants'
 import { PARAGRAPH_SIZES } from '../Paragraph/constants'
 
@@ -142,10 +140,8 @@ const Blockquote = ({ className, ...props }: BlockquoteProps) => (
 )
 
 const AnchorLink = ({ className, ...props }: AnchorLinkProps) => (
-  <a
+  <SafeLink
     className={cn(className, 'cursor-pointer underline')}
-    target="_blank"
-    rel="noopener noreferrer"
     {...filterProps(props)}
   />
 )
@@ -179,39 +175,6 @@ const Heading6 = ({ className, ...props }: HeadingProps) => (
     {...filterProps(props)}
   />
 )
-
-const Img = ({ src, alt }: ImgProps) => {
-  const [error, setError] = useState(false)
-
-  if (!src) return null
-
-  return (
-    <div className="w-full max-w-xl">
-      {error ? (
-        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-md bg-muted text-muted-foreground">
-          <Paragraph className="text-foreground">Image unavailable</Paragraph>
-          <Link
-            href={src}
-            target="_blank"
-            className="max-w-md truncate underline"
-          >
-            {src}
-          </Link>
-        </div>
-      ) : (
-        <Image
-          src={src}
-          width={1280}
-          height={720}
-          alt={alt ?? 'Rendered image'}
-          className="size-full rounded-md object-cover"
-          onError={() => setError(true)}
-          unoptimized
-        />
-      )}
-    </div>
-  )
-}
 
 const Table = ({ className, ...props }: TableProps) => (
   <div className="w-full max-w-[560px] overflow-hidden rounded-md border border-border">
@@ -275,7 +238,7 @@ export const components = {
   blockquote: Blockquote,
   code: InlineCode,
   a: AnchorLink,
-  img: Img,
+  img: ImageLink,
   p: Paragraph,
   table: Table,
   thead: TableHead,

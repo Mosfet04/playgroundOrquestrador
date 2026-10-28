@@ -1,74 +1,38 @@
 import { useCallback } from 'react'
-import { toast } from 'sonner'
 
 import { usePlaygroundStore } from '../store'
 
+import { type PlaygroundChatMessage } from '@/types/playground'
 import {
-  ComboboxAgent,
-  ComboboxTeam,
-  type PlaygroundChatMessage
-} from '@/types/playground'
-import {
-  getPlaygroundAgentsAPI,
-  getPlaygroundStatusAPI,
-  getPlaygroundTeamsAPI
+  PlaygroundRequestError,
+  getPlaygroundEntitiesAPI
 } from '@/api/playground'
 import { useQueryState } from 'nuqs'
-import { usePlaygroundTranslationsRef } from './usePlaygroundTranslationsRef'
 
 const useChatActions = () => {
   const { chatInputRef } = usePlaygroundStore()
-  const selectedEndpoint = usePlaygroundStore((state) => state.selectedEndpoint)
   const [, setSessionId] = useQueryState('session')
   const setMessages = usePlaygroundStore((state) => state.setMessages)
-  const setIsEndpointActive = usePlaygroundStore(
-    (state) => state.setIsEndpointActive
+  const setIsOrchestratorActive = usePlaygroundStore(
+    (state) => state.setIsOrchestratorActive
   )
-  const setIsEndpointLoading = usePlaygroundStore(
-    (state) => state.setIsEndpointLoading
+  const setIsOrchestratorLoading = usePlaygroundStore(
+    (state) => state.setIsOrchestratorLoading
+  )
+  const setOrchestratorErrorStatus = usePlaygroundStore(
+    (state) => state.setOrchestratorErrorStatus
   )
   const setAgents = usePlaygroundStore((state) => state.setAgents)
   const setTeams = usePlaygroundStore((state) => state.setTeams)
   const setHasStorage = usePlaygroundStore((state) => state.setHasStorage)
-  const setSelectedTeamId = usePlaygroundStore(
-    (state) => state.setSelectedTeamId
-  )
   const setMode = usePlaygroundStore((state) => state.setMode)
   const [agentId, setAgentId] = useQueryState('agent')
   const [teamId, setTeamId] = useQueryState('team')
-  const t = usePlaygroundTranslationsRef()
 
-  const getStatus = useCallback(async () => {
-    try {
-      const status = await getPlaygroundStatusAPI(selectedEndpoint)
-      return status
-    } catch {
-      return 503
-    }
-  }, [selectedEndpoint])
-
-  const getAgents = useCallback(async () => {
-    try {
-      const agents = await getPlaygroundAgentsAPI(selectedEndpoint)
-      return agents
-    } catch (error) {
-      console.error('Error loading agents:', error)
-      toast.error(t.current('agentsLoadError'))
-      return []
-    }
-  }, [selectedEndpoint, t])
-
-  const getTeams = useCallback(async () => {
-    try {
-      const teams = await getPlaygroundTeamsAPI(selectedEndpoint)
-      return teams
-    } catch {
-      // Silently return empty - teams may not be supported by the backend
-      return []
-    }
-  }, [selectedEndpoint])
-
+  // Nova conversa (ou outra entidade): o run em andamento é abortado
+  // (D-P2-03-4, decisão 0020).
   const clearChat = useCallback(() => {
+    usePlaygroundStore.getState().runAbortController?.abort()
     setMessages([])
     setSessionId(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -88,79 +52,60 @@ const useChatActions = () => {
     [setMessages]
   )
 
+  // Agents e teams pelo BFF (P2-03). Qualquer das listas falhando é o
+  // orquestrador fora: o status (ou "offline") vai para o bloco de erro.
   const initializePlayground = useCallback(async () => {
-    setIsEndpointLoading(true)
+    setIsOrchestratorLoading(true)
+    // A URL manda no modo; com ?agent= e ?team= juntos vale ?agent=.
+    if (agentId) setMode('agent')
+    else if (teamId) setMode('team')
     try {
-      const status = await getStatus()
-      let agents: ComboboxAgent[] = []
-      let teams: ComboboxTeam[] = []
-      if (status === 200) {
-        setIsEndpointActive(true)
-        // Fetch agents first (primary for agno v2.5), then teams
-        agents = await getAgents()
-        teams = await getTeams()
+      const [agents, teams] = await Promise.all([
+        getPlaygroundEntitiesAPI('agent'),
+        getPlaygroundEntitiesAPI('team')
+      ])
+      setIsOrchestratorActive(true)
+      setOrchestratorErrorStatus(undefined)
 
-        if (!agentId && !teamId) {
-          const currentMode = usePlaygroundStore.getState().mode
-
-          if (currentMode === 'agent' && agents.length > 0) {
-            const firstAgent = agents[0]
-            setAgentId(firstAgent.value)
-            setHasStorage(!!firstAgent.storage)
-            setSelectedTeamId(null)
-          } else if (currentMode === 'team' && teams.length > 0) {
-            const firstTeam = teams[0]
-            setTeamId(firstTeam.value)
-            setSelectedTeamId(firstTeam.value)
-            setHasStorage(!!firstTeam.storage)
-          } else {
-            // Fallback: prioritize agents over teams
-            if (agents.length > 0) {
-              setMode('agent')
-              const firstAgent = agents[0]
-              setAgentId(firstAgent.value)
-              setHasStorage(!!firstAgent.storage)
-              setSelectedTeamId(null)
-            } else if (teams.length > 0) {
-              setMode('team')
-              const firstTeam = teams[0]
-              setTeamId(firstTeam.value)
-              setSelectedTeamId(firstTeam.value)
-              setHasStorage(!!firstTeam.storage)
-            }
-          }
+      if (!agentId && !teamId) {
+        const currentMode = usePlaygroundStore.getState().mode
+        const pickTeam =
+          teams.length > 0 && (currentMode === 'team' || agents.length === 0)
+        if (pickTeam) {
+          setMode('team')
+          setTeamId(teams[0].value)
+          setHasStorage(!!teams[0].storage)
+        } else if (agents.length > 0) {
+          setMode('agent')
+          setAgentId(agents[0].value)
+          setHasStorage(!!agents[0].storage)
         }
-      } else {
-        // ?agent=/?team= (e o modo) ficam: a sessão da URL volta com o
-        // orquestrador (LIM-P1-03-1, D-P1-06-4).
-        setIsEndpointActive(false)
-        setHasStorage(false)
-        setSelectedTeamId(null)
       }
       setAgents(agents)
       setTeams(teams)
       return { agents, teams }
     } catch (error) {
+      // ?agent=/?team= (e o modo) ficam: a sessão da URL volta com o
+      // orquestrador (LIM-P1-03-1, D-P1-06-4).
       console.error('Error initializing playground:', error)
-      setIsEndpointActive(false)
+      setOrchestratorErrorStatus(
+        error instanceof PlaygroundRequestError ? error.status : undefined
+      )
+      setIsOrchestratorActive(false)
       setHasStorage(false)
-      setSelectedTeamId(null)
       setAgents([])
       setTeams([])
     } finally {
-      setIsEndpointLoading(false)
+      setIsOrchestratorLoading(false)
     }
   }, [
-    getStatus,
-    getAgents,
-    getTeams,
-    setIsEndpointActive,
-    setIsEndpointLoading,
+    setIsOrchestratorActive,
+    setIsOrchestratorLoading,
+    setOrchestratorErrorStatus,
     setAgents,
     setTeams,
     setAgentId,
     setHasStorage,
-    setSelectedTeamId,
     setMode,
     setTeamId,
     agentId,
@@ -170,9 +115,7 @@ const useChatActions = () => {
   return {
     clearChat,
     addMessage,
-    getAgents,
     focusChatInput,
-    getTeams,
     initializePlayground
   }
 }

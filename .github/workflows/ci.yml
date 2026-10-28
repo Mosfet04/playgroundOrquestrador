@@ -36,15 +36,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
+      # P2-02: tipos de src/server/orchestrator/openapi.d.ts em dia com o
+      # snapshot docs/contracts/orchestrator-openapi.json.
+      - run: pnpm contract:check
       - run: pnpm test
 
-      # src/lib/mongodb.ts lança no import sem MONGO_*. O build só cria o
-      # MongoClient (não conecta), então valores de mentira bastam: a porta 1
-      # em 127.0.0.1 não tem Mongo e nenhuma conexão real é feita na CI.
+      # P2-06: sem Mongo; o build não precisa de env (o do servidor é lido
+      # nas requisições).
       - run: pnpm build
-        env:
-          MONGO_CONNECTION_STRING: mongodb://127.0.0.1:1/ci-fake
-          MONGO_DATABASE_NAME: ci-fake
 
   e2e:
     name: test:e2e
@@ -85,10 +84,18 @@ jobs:
         run: pnpm exec playwright install-deps chromium
 
       # Com CI=true (padrão do Actions), o Playwright builda e serve o app com
-      # next build + next start (playwright.config.ts, decisão 0013). O build
-      # importa src/lib/mongodb.ts: mesmos valores de mentira do job checks,
-      # sem Mongo e sem conexão real.
+      # next build + next start (playwright.config.ts, decisão 0013). O env
+      # do servidor (login, chaves) é o de teste, de e2e/test-env.ts, passado
+      # pelo playwright.config.ts.
       - run: pnpm test:e2e
-        env:
-          MONGO_CONNECTION_STRING: mongodb://127.0.0.1:1/ci-fake
-          MONGO_DATABASE_NAME: ci-fake
+
+      # P2-01: nenhum valor do env de teste no bundle do browser (os segredos
+      # de e2e/test-env.ts têm a marca `e2e-segredo`; o hash começa com `scrypt:`).
+      - name: Nenhum segredo no bundle do browser
+        run: |
+          # Sem o build, o grep sairia com 2 e o passo passaria.
+          test -d .next/static || { echo '::error::.next/static não existe'; exit 1; }
+          if grep -rqE 'e2e-segredo|scrypt:' .next/static; then
+            echo '::error::valor do env do servidor em .next/static'
+            exit 1
+          fi

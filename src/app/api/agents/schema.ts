@@ -1,8 +1,13 @@
 import { z } from 'zod'
 
-const requiredText = z.string().trim().min(1)
+import type { AgentInput } from '@/server/orchestrator/agents'
 
-// Campos aceitos de POST/PUT /api/agents (os do AgentForm); o resto é descartado.
+const requiredText = z.string().trim().min(1)
+// Parâmetros do modelo ou do embedder (D-P3-02-2): nome → texto, número ou booleano.
+const paramsSchema = z.record(requiredText, z.union([z.string(), z.number(), z.boolean()]))
+
+// Campos aceitos de POST/PUT /api/agents (os do AgentForm); o resto é
+// descartado. O BFF os traduz para o documento da API Admin (P2-06).
 export const agentBodySchema = z.object({
   id: requiredText,
   nome: requiredText,
@@ -16,8 +21,26 @@ export const agentBodySchema = z.object({
   rag_active: z.boolean().optional(),
   rag_doc_name: z.string().optional(),
   rag_model: z.string().optional(),
-  rag_factoryIaModel: z.string().optional()
-})
+  rag_factoryIaModel: z.string().optional(),
+  // P3-05: o resto do RAG, com as regras de `model_params`, `base_url` e
+  // `api_key_ref` abaixo; vazio ⇒ ausente.
+  rag_search_strategy: z.string().trim().optional(),
+  rag_model_params: paramsSchema.optional(),
+  rag_base_url: z.string().trim().optional(),
+  rag_api_key_ref: z.string().trim().optional(),
+  // P3-02: nome → texto, número ou booleano (D-P3-02-2); vazio ⇒ ausente. Só a
+  // referência da chave (`env:`/`file:`), nunca o valor: o orquestrador valida.
+  model_params: paramsSchema.optional(),
+  base_url: z.string().trim().optional(),
+  api_key_ref: z.string().trim().optional(),
+  markdown: z.boolean().optional(),
+  add_history_to_context: z.boolean().optional(),
+  num_history_runs: z.number().int().optional(),
+  add_datetime_to_context: z.boolean().optional(),
+  reasoning: z.boolean().optional(),
+  user_memory_active: z.boolean().optional(),
+  summary_active: z.boolean().optional()
+}) satisfies z.ZodType<AgentInput>
 
 // No PUT o id vem da rota.
 export const agentUpdateSchema = agentBodySchema.omit({ id: true })

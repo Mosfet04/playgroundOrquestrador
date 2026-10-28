@@ -34,7 +34,8 @@ const agent = {
   descricao: 'Responde perguntas',
   prompt: 'Você é o Alfa.',
   active: true,
-  tools_ids: []
+  tools_ids: [],
+  version: 4
 }
 const tool = {
   id: 'clima',
@@ -73,14 +74,14 @@ describe('excluir no editor de agente', () => {
     expect(screen.queryByRole('button', { name: 'Excluir agente' })).not.toBeInTheDocument()
   })
 
-  it('confirmar: DELETE no id codificado, toast "Agente excluído" e volta para /agents', async () => {
+  it('confirmar: DELETE no id codificado com a versão no If-Match, toast "Agente excluído" e volta para /agents', async () => {
     const push = vi.spyOn(router, 'push')
     const deleted: string[] = []
     server.use(
       noTools,
       serveAgent,
       http.delete('*/api/agents/:id', ({ request }) => {
-        deleted.push(new URL(request.url).pathname)
+        deleted.push(new URL(request.url).pathname, request.headers.get('if-match') ?? '')
         return HttpResponse.json({ success: true, message: 'ok' })
       })
     )
@@ -96,7 +97,7 @@ describe('excluir no editor de agente', () => {
 
     expect(await screen.findByText('Agente excluído')).toBeInTheDocument()
     expect(push).toHaveBeenCalledWith('/agents')
-    expect(deleted).toEqual(['/api/agents/agente%20alfa%2F1'])
+    expect(deleted).toEqual(['/api/agents/agente%20alfa%2F1', '"4"'])
   })
 
   it('Cancelar e Esc fecham o Dialog e devolvem o foco a "Excluir agente"', async () => {
@@ -131,7 +132,7 @@ describe('excluir no editor de agente', () => {
     const user = userEvent.setup()
     renderAgentEditor(agent.id)
 
-    const name = await screen.findByLabelText(/^Nome/)
+    const name = await screen.findByLabelText('Nome *')
     await user.clear(name)
     await user.type(name, 'Alfa editado')
     await user.click(screen.getByRole('button', { name: 'Excluir agente' }))
@@ -141,7 +142,7 @@ describe('excluir no editor de agente', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.queryByText('cru')).not.toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
-    expect(screen.getByLabelText(/^Nome/)).toHaveValue('Alfa editado')
+    expect(screen.getByLabelText('Nome *')).toHaveValue('Alfa editado')
   })
 
   it('"Excluir agente" fica desabilitado enquanto salva', async () => {

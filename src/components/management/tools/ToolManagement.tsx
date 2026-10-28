@@ -98,9 +98,9 @@ export function ToolManagement() {
     <TableRow>
       <TableHead>{t('columnTool')}</TableHead>
       <TableHead>{t('columnRequest')}</TableHead>
-      <TableHead className="text-right">{t('columnParameters')}</TableHead>
-      <TableHead>{tc('status')}</TableHead>
-      <TableHead>{tc('updated')}</TableHead>
+      <TableHead className="w-24 text-right">{t('columnParameters')}</TableHead>
+      <TableHead className="w-28">{tc('status')}</TableHead>
+      <TableHead className="w-32">{tc('updated')}</TableHead>
       <TableHead className="w-9">
         <span className="sr-only">{tc('open')}</span>
       </TableHead>
@@ -141,10 +141,10 @@ export function ToolManagement() {
 
       {/* Filtros e Busca */}
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4 pb-2 lg:p-6">
           <CardTitle>{tc('filters')}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 pt-0 lg:p-6 lg:pt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">{tc('search')}</Label>

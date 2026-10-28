@@ -95,6 +95,7 @@ describe('Navigation: item ativo', () => {
       ['Início', '/'],
       ['Playground', '/playground'],
       ['Agentes', '/agents'],
+      ['Teams', '/teams'],
       ['Tools', '/tools'],
       ['Dashboard', '/dashboard']
     ])
@@ -213,6 +214,25 @@ describe('AppShell', () => {
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument()
     expect(menuButton).toHaveFocus()
+  })
+
+  // P2-01 (V-P2-01-10): "Sair" é o último bloco da coluna da navegação e, no
+  // Sheet, vem depois de Tema e Idioma.
+  it('"Sair" fica depois da navegação lateral e no fim do Sheet', async () => {
+    route.pathname = '/agents'
+    const user = userEvent.setup()
+    renderWithIntl(<AppShell>conteúdo</AppShell>)
+
+    const signOut = screen.getByRole('button', { name: 'Sair' })
+    expect(mainNav().compareDocumentPosition(signOut)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(mainNav()).not.toContainElement(signOut)
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
+    const sheet = screen.getByRole('dialog', { name: 'Menu' })
+    const sheetSignOut = within(sheet).getByRole('button', { name: 'Sair' })
+    expect(
+      within(sheet).getByRole('combobox', { name: 'Idioma' }).compareDocumentPosition(sheetSignOut)
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
   it('"Fechar menu" fecha o Sheet', async () => {

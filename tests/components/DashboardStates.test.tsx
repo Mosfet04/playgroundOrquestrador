@@ -1,15 +1,15 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Dashboard } from '@/components/management/dashboard/Dashboard'
 
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 
-// P1-05 (V-P1-05-8/9): carregando, erro do stats (sem skeleton infinito), erro
-// só dos tokens dentro do card e o dashboard sem dados.
+// P1-05 (V-P1-05-8/9): carregando, erro do stats (sem skeleton infinito) e o
+// dashboard sem dados. P2-05: o período vai em ?period= e vale para a página.
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -31,11 +31,10 @@ beforeAll(() => {
 const emptyStats = {
   activeAgents: 0,
   totalAgents: 0,
-  uniqueUsers: 0,
+  peakDailyUsers: 0,
   totalSessions: 0,
   totalAgentSessions: 0,
   totalTeamSessions: 0,
-  sessionsInPeriod: 0,
   totalTokens: 0,
   models: [],
   embeddingModels: [],
@@ -48,10 +47,6 @@ const stats = (status = 200) =>
       ? HttpResponse.json({ success: true, data: emptyStats })
       : HttpResponse.json({ success: false, error: 'x' }, { status })
   )
-const tokens = (ok = true) =>
-  http.get('*/api/dashboard/tokens', () =>
-    ok ? HttpResponse.json({ success: true, data: [] }) : HttpResponse.error()
-  )
 
 describe('Dashboard: estados', () => {
   it('carregando: skeleton com aria-busy e "Carregando dashboard…" em role="status"', async () => {
@@ -59,8 +54,7 @@ describe('Dashboard: estados', () => {
       http.get('*/api/dashboard/stats', async () => {
         await delay('infinite')
         return HttpResponse.json({})
-      }),
-      tokens()
+      })
     )
     renderWithIntl(<Dashboard />)
 
@@ -70,7 +64,7 @@ describe('Dashboard: estados', () => {
   })
 
   it('stats com falha: bloco de erro com "Tentar de novo", não o skeleton', async () => {
-    server.use(http.get('*/api/dashboard/stats', () => HttpResponse.error()), tokens())
+    server.use(http.get('*/api/dashboard/stats', () => HttpResponse.error()))
     renderWithIntl(<Dashboard />)
 
     const alert = await screen.findByRole('alert')
@@ -82,7 +76,7 @@ describe('Dashboard: estados', () => {
   })
 
   it('stats com success: false (500): bloco de erro com "código 500"; tentar de novo carrega', async () => {
-    server.use(stats(500), tokens())
+    server.use(stats(500))
     const user = userEvent.setup()
     renderWithIntl(<Dashboard />)
 
@@ -95,65 +89,131 @@ describe('Dashboard: estados', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('só os tokens com falha: o erro fica no card de tokens e os KPIs aparecem', async () => {
-    server.use(stats(), tokens(false))
-    renderWithIntl(<Dashboard />)
+  // Carga inicial rápida; depois 30d (lento) e, antes de ele responder, 7d
+  // (rápido): a resposta lenta chega por último e não pode sobrescrever a nova.
+  describe('troca de período: só a requisição mais recente escreve', () => {
+    const slow = (slowResponse: () => Response) => {
+      const asked: (string | null)[] = []
+      server.use(
+        http.get('*/api/dashboard/stats', async ({ request }) => {
+          const period = new URL(request.url).searchParams.get('period')
+          asked.push(period)
+          if (period === '7d')
+            return HttpResponse.json({ success: true, data: { ...emptyStats, totalTokens: 777 } })
+          if (period === '30d') {
+            await delay(400)
+            return slowResponse()
+          }
+          return HttpResponse.json({ success: true, data: emptyStats })
+        })
+      )
+      return asked
+    }
 
-    const alert = await screen.findByRole('alert')
-    expect(
-      within(alert).getByRole('heading', { name: 'Não foi possível carregar o consumo de tokens' })
-    ).toBeInTheDocument()
-    expect(screen.getByText('Agentes ativos')).toBeInTheDocument()
-    expect(screen.getByText('Consumo de tokens por entidade')).toBeInTheDocument()
+    const pick = async (user: ReturnType<typeof userEvent.setup>, option: string) => {
+      await user.click(screen.getByRole('combobox'))
+      await user.click(await screen.findByRole('option', { name: option }))
+    }
+
+    beforeEach(() => {
+      Element.prototype.hasPointerCapture = () => false
+      Element.prototype.scrollIntoView = () => undefined
+    })
+
+    it('resposta lenta do período anterior não sobrescreve a nova', async () => {
+      const asked = slow(() =>
+        HttpResponse.json({ success: true, data: { ...emptyStats, totalTokens: 111 } })
+      )
+      const user = userEvent.setup()
+      renderWithIntl(<Dashboard />)
+
+      await screen.findByText('Agentes ativos')
+      await pick(user, 'Últimos 30 dias')
+      await pick(user, 'Últimos 7 dias')
+
+      expect(await screen.findByText('777')).toBeInTheDocument()
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      expect(screen.getByText('777')).toBeInTheDocument()
+      expect(screen.queryByText('111')).not.toBeInTheDocument()
+      expect(asked).toEqual(['today', '30d', '7d'])
+    })
+
+    it('falha lenta do período anterior não derruba o novo (nenhum alert)', async () => {
+      slow(() => HttpResponse.json({ success: false, error: 'server_error' }, { status: 502 }))
+      const user = userEvent.setup()
+      renderWithIntl(<Dashboard />)
+
+      await screen.findByText('Agentes ativos')
+      await pick(user, 'Últimos 30 dias')
+      await pick(user, 'Últimos 7 dias')
+
+      expect(await screen.findByText('777')).toBeInTheDocument()
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      expect(screen.getByText('777')).toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
   })
 
-  it('tokens ainda carregando (R3): sem o falso "Sem dados no período" no card de tokens', async () => {
-    server.use(
-      stats(),
-      http.get('*/api/dashboard/tokens', async () => {
-        await delay('infinite')
-        return HttpResponse.json({ success: true, data: [] })
-      })
-    )
-    renderWithIntl(<Dashboard />)
-
-    await screen.findByText('Nenhum agente usa RAG.')
-    expect(screen.getAllByText('Sem dados no período')).toHaveLength(2)
-  })
-
-  it('troca de período (N3): a falha lenta do período anterior não apaga o novo', async () => {
+  it('período: sem "Última hora" e a área dos cards fica aria-busy enquanto o pedido está em curso', async () => {
     Element.prototype.hasPointerCapture = () => false
     Element.prototype.scrollIntoView = () => undefined
     server.use(
-      stats(),
-      http.get('*/api/dashboard/tokens', async ({ request }) => {
-        if (new URL(request.url).searchParams.get('timeFilter') === '7d')
-          return HttpResponse.json({ success: true, data: [] })
-        await delay(600)
-        return HttpResponse.error()
+      http.get('*/api/dashboard/stats', async ({ request }) => {
+        if (new URL(request.url).searchParams.get('period') === '90d') await delay(400)
+        return HttpResponse.json({ success: true, data: emptyStats })
       })
     )
     const user = userEvent.setup()
     renderWithIntl(<Dashboard />)
 
     await user.click(await screen.findByRole('combobox'))
-    await user.click(await screen.findByRole('option', { name: 'Últimos 7 dias' }))
+    expect(screen.getByRole('option', { name: 'Hoje' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Última hora' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('option', { name: 'Últimos 90 dias' }))
 
-    await waitFor(() => expect(screen.getAllByText('Sem dados no período')).toHaveLength(3))
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    const area = screen.getByText('Agentes ativos').closest('[aria-busy]')
+    expect(area).toHaveAttribute('aria-busy', 'true')
+    await waitFor(() => expect(area).toHaveAttribute('aria-busy', 'false'))
+  })
+
+  it('troca de período com falha: o erro entra no lugar dos cards, o seletor fica e "Tentar de novo" pede o período escolhido', async () => {
+    Element.prototype.hasPointerCapture = () => false
+    Element.prototype.scrollIntoView = () => undefined
+    const asked: (string | null)[] = []
+    server.use(
+      http.get('*/api/dashboard/stats', ({ request }) => {
+        const period = new URL(request.url).searchParams.get('period')
+        asked.push(period)
+        return period === '30d'
+          ? HttpResponse.json({ success: false, error: 'server_error' }, { status: 502 })
+          : HttpResponse.json({ success: true, data: emptyStats })
+      })
+    )
+    const user = userEvent.setup()
+    renderWithIntl(<Dashboard />)
+
+    await user.click(await screen.findByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: 'Últimos 30 dias' }))
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByText('código 502')).toBeInTheDocument()
+    expect(screen.queryByText('Agentes ativos')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox')).toHaveTextContent('Últimos 30 dias')
+
+    await user.click(within(alert).getByRole('button', { name: 'Tentar de novo' }))
+    await waitFor(() => expect(asked).toEqual(['today', '30d', '30d']))
   })
 
   it('sem dados: KPIs em 0, "Sem dados no período" nos gráficos e as linhas de modelos', async () => {
-    server.use(stats(), tokens())
+    server.use(stats())
     renderWithIntl(<Dashboard />)
 
-    expect(await screen.findByText('Nenhum modelo em uso pelos agentes ativos.')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum modelo usado no período.')).toBeInTheDocument()
     expect(screen.getByText('Nenhum agente usa RAG.')).toBeInTheDocument()
-    expect(screen.getAllByText('Sem dados no período')).toHaveLength(3)
+    expect(screen.getAllByText('Sem dados no período')).toHaveLength(2)
     expect(
       screen.getAllByText('Converse com um agente no playground para gerar métricas.')
-    ).toHaveLength(3)
+    ).toHaveLength(2)
     expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(4)
     expect(document.querySelector('.recharts-cartesian-axis')).toBeNull()
   })

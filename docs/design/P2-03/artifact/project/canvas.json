@@ -1,0 +1,31 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-22T12:00:00Z"},
+  "title": "P2-03 Chat via BFF",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "Desktop · claro · Painel sem Endpoint", "expand": "fill"},
+    "Painel-escuro.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Desktop · escuro · Modo Team sem storage", "expand": "fill"},
+    "Offline-claro.dc.html": {"x": 0, "y": 1020, "w": 1440, "h": 900, "title": "Desktop · claro · Orquestrador fora", "expand": "fill"},
+    "Erros-claro.dc.html": {"x": 1520, "y": 1020, "w": 1440, "h": 980, "title": "Desktop · claro · Erros que o BFF devolve no chat", "expand": "fill"},
+    "Celular-claro.dc.html": {"x": 0, "y": 2120, "w": 390, "h": 844, "title": "Celular · claro · Composer de 32 px"},
+    "Celular-sheet-escuro.dc.html": {"x": 470, "y": 2120, "w": 390, "h": 844, "title": "Celular · escuro · Sheet com lixeira de 44 px"},
+    "Decisao-status.dc.html": {"x": 940, "y": 2120, "w": 960, "h": 640, "title": "D-P2-03-1 · Status da conexão: nenhum (A) x rodapé da navegação (B)"}
+  },
+  "order": [
+    "Main.dc.html",
+    "Painel-escuro.dc.html",
+    "Offline-claro.dc.html",
+    "Erros-claro.dc.html",
+    "Celular-claro.dc.html",
+    "Celular-sheet-escuro.dc.html",
+    "Decisao-status.dc.html"
+  ],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "P2-03 · Chat via BFF (delta do P1-06)", "kind": "title1", "maxW": 2960}
+  },
+  "designSystems": [
+    {"title": "Playground do Orquestrador", "namespace": "playground", "artifact": "https://claude.ai/artifact/Cy1ufZWym7KDKjgFFb7Bme", "version": null, "copiedAt": "2026-10-22T12:00:00Z"}
+  ]
+}

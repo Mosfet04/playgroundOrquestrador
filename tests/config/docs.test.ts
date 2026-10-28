@@ -55,9 +55,15 @@ describe('README e textos de UI sem as promessas falsas', () => {
     for (const version of cited) expect(version).toBe(major)
   })
 
-  it('diz que a mudança só vale no chat depois de reiniciar o orquestrador (pt-BR e EN)', () => {
-    expect(readme).toMatch(/reinici\w* o orquestrador/i)
-    expect(readme).toMatch(/restart\w* the orchestrator/i)
+  // P2-06 (D-P2-06-5): a API Admin aplica a mudança ao salvar; sem Mongo no playground.
+  it('diz que a mudança vale no chat logo depois de salvar (pt-BR e EN), sem mandar reiniciar', () => {
+    expect(readme).toMatch(/vale no chat \*{0,2}logo depois de salvar/i)
+    expect(readme).toMatch(/takes effect in chat \*{0,2}right after saving/i)
+    expect(readme).not.toMatch(/reinici\w* o orquestrador|restart\w* the orchestrator/i)
+  })
+
+  it('não pede env nem script do Mongo (MONGO_*, mongosh)', () => {
+    expect(readme).not.toMatch(/MONGO_|mongosh|sample-data\.js/)
   })
 
   it('não promete env que nada lê (MONGODB_URI)', () => {

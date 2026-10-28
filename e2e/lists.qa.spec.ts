@@ -5,8 +5,8 @@ import { hydrated } from './hydration'
 
 // QA P1-05b. Complementa e2e/lists.spec.ts: tools (teto, estados, 404 com
 // ícone, falha do excluir), EN em 390 px, teclado, 768 px (limite do md) e
-// tema escuro. /api/agents* e /api/tools* respondem por page.route (leem o
-// Mongo até a P3).
+// tema escuro. /api/agents* e /api/tools* respondem por page.route (o CRUD pelo
+// fake orchestrator está em config-crud*.spec.ts).
 
 const agent = (n: number, active = true) => ({
   id: `agente-${n}`,
@@ -221,6 +221,9 @@ test.describe('EN em 390 px', () => {
     await hydrated(page)
     const remove = page.getByRole('button', { name: 'Delete agent' })
     const save = page.getByRole('button', { name: 'Save' })
+    // Salvar só habilita com o schema lido; até lá a seção Execução é skeleton e
+    // o rodapé ainda desce (P3-02).
+    await expect(save).toBeEnabled()
     const [removeBox, saveBox] = [await remove.boundingBox(), await save.boundingBox()]
     if (!removeBox || !saveBox) throw new Error('botões do rodapé')
     expect(removeBox.y).toBeGreaterThan(saveBox.y)
