@@ -19,7 +19,8 @@ const STATUS: Record<OrchestratorErrorCode, number> = {
   forbidden: 502,
   rejected: 502,
   server_error: 502,
-  invalid_response: 502
+  invalid_response: 502,
+  not_confirmed: 502
 }
 
 export const orchestratorError = (error: OrchestratorErrorCode) =>
@@ -28,7 +29,9 @@ export const orchestratorError = (error: OrchestratorErrorCode) =>
 // Recusas da API Admin (CRUD de agents/tools, P2-06): id existente ou em uso
 // (409), versão divergente (412) e corpo recusado (422, com o campo do
 // formulário quando há). Sem o detalhe; de quem usa a entidade, só os ids dos
-// teams de um agent membro (409, D-P3-04-2).
+// teams de um agent membro (409, D-P3-04-2). Config que não monta no runtime
+// (422 sem campo, P4-01) é `not_applied`: nada gravado, a versão anterior
+// segue no ar; o tipo do erro só se for identificador (D-P4-01-2).
 const CONFIG_REFUSALS: Record<number, string> = {
   409: 'conflict',
   412: 'version_conflict',
@@ -36,6 +39,15 @@ const CONFIG_REFUSALS: Record<number, string> = {
 }
 
 export function configError(failure: OrchestratorFailure) {
+  if (failure.status === 422 && failure.notBuildable && !failure.field)
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'not_applied',
+        ...(failure.errorType ? { errorType: failure.errorType } : {})
+      },
+      { status: 422 }
+    )
   const error =
     failure.error === 'rejected' && failure.status !== undefined
       ? CONFIG_REFUSALS[failure.status]
@@ -79,6 +91,15 @@ export const ok = (data?: unknown) =>
   NextResponse.json(
     data === undefined ? { success: true } : { success: true, data }
   )
+
+// Escrita aceita (P4-01): o documento, quando há (o hard delete não tem), e a
+// revisão do runtime que já a serve, quando o orquestrador a mandou.
+export const written = ({ data, runtimeRevision }: { data?: unknown; runtimeRevision?: number }) =>
+  NextResponse.json({
+    success: true,
+    ...(data === undefined ? {} : { data }),
+    ...(runtimeRevision === undefined ? {} : { runtimeRevision })
+  })
 
 export const idSchema = z.string().min(1).max(256)
 export const kindSchema = z.enum(['agent', 'team'])

@@ -146,9 +146,9 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
     })
 
   // Substituir e a origem da rota: mudar a origem sem trocar a linha oculta é
-  // recusado pelo orquestrador (422 em headers), com o erro no grupo.
-  await page.getByRole('link', { name: 'Pedidos do e2e' }).first().click()
-  await hydrated(page)
+  // recusado pelo orquestrador (422 em headers), com o erro no grupo. A edição
+  // salva fica no editor, já com o documento salvo (D-P4-01-4).
+  await expect(page.getByLabel('Valor de X-Conta (gravado, oculto)')).toHaveValue('***')
   await page.getByLabel(/^Rota/).fill('https://outro.example/v1/orders/{order_id}')
   await expect(page.getByText(/A origem da rota mudou/)).toContainText('Accept')
   await page.getByRole('button', { name: 'Salvar' }).click()
@@ -172,8 +172,6 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
     })
 
   // Limpeza: excluir de vez.
-  await page.getByRole('link', { name: 'Pedidos do e2e' }).first().click()
-  await hydrated(page)
   await page.getByRole('button', { name: 'Excluir tool' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
   await expect(page.getByText('Tool excluída')).toBeVisible()

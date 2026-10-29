@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -62,7 +62,8 @@ describe('AgentEditor', () => {
     expect(requested).toEqual(['/api/agents/agente%20alfa%2F1'])
   })
 
-  it('"Voltar" e "Cancelar" são links para a lista; salvar volta para /agents', async () => {
+  // D-P4-01-4: salvar uma edição fica no editor, com o status de aplicação.
+  it('"Voltar" e "Cancelar" são links para a lista; salvar fica no editor', async () => {
     const push = vi.spyOn(router, 'push')
     server.use(
       noTools,
@@ -70,7 +71,7 @@ describe('AgentEditor', () => {
         HttpResponse.json({ success: true, data: agent })
       ),
       http.put('*/api/agents/:id', ({ params }) =>
-        HttpResponse.json({ success: params.id === agent.id, message: 'ok' })
+        HttpResponse.json({ success: params.id === agent.id, data: agent })
       )
     )
     const user = userEvent.setup()
@@ -81,7 +82,8 @@ describe('AgentEditor', () => {
     expect(screen.getByRole('link', { name: 'Cancelar' })).toHaveAttribute('href', '/agents')
 
     await user.click(screen.getByRole('button', { name: /salvar|atualizar/i }))
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/agents'))
+    expect(await screen.findByText('Agente salvo.')).toBeInTheDocument()
+    expect(push).not.toHaveBeenCalled()
   })
 
   it('sem id mostra o form de criação, sem buscar agente', async () => {

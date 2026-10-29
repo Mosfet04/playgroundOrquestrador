@@ -206,7 +206,8 @@ describe('412 ao salvar (agent)', () => {
     expect(seen.puts[1].ifMatch).toBe('"5"')
   })
 
-  it('Salvar as minhas por cima: PUT com o If-Match e o active da versão atual; toast e volta à lista', async () => {
+  // D-P4-01-4: a edição salva fica no editor, com o status de aplicação.
+  it('Salvar as minhas por cima: PUT com o If-Match e o active da versão atual; fica no editor com o status', async () => {
     const push = vi.spyOn(router, 'push')
     server.use(noTools)
     const seen = serve(
@@ -220,11 +221,12 @@ describe('412 ao salvar (agent)', () => {
     await within(dialog).findByRole('region', { name: 'Campos que diferem' })
     await user.click(within(dialog).getByRole('button', { name: 'Salvar as minhas por cima' }))
 
-    expect(await screen.findByText('Agente salvo')).toBeInTheDocument()
+    expect(await screen.findByText('Agente salvo.')).toBeInTheDocument()
     expect(seen.puts).toHaveLength(2)
     expect(seen.puts[1].ifMatch).toBe('"5"')
     expect(seen.puts[1].body).toMatchObject({ nome: 'Meu nome', active: false })
-    expect(push).toHaveBeenCalledWith('/agents')
+    expect(push).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' })).toHaveFocus())
   })
 
   it('outro 412 durante o salvar por cima: o diálogo fica, relê e avisa "Mudou de novo" com a versão nova', async () => {

@@ -132,7 +132,9 @@ describe('AgentForm: If-Match e 422 no campo', () => {
 
     await user.click(screen.getByRole('button', { name: 'Salvar' }))
 
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+    // A edição salva fica no editor (D-P4-01-4).
+    expect(await screen.findByText('Agente salvo.')).toBeInTheDocument()
+    expect(onSuccess).not.toHaveBeenCalled()
     expect(saved).toHaveLength(2)
     expect(screen.queryByText(REJECTED)).not.toBeInTheDocument()
   })

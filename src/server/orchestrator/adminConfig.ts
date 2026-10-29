@@ -49,42 +49,57 @@ const itemPath = (kind: ConfigKind, id: string) =>
 export const getConfig = <T>(kind: ConfigKind, id: string, schema: z.ZodType<T>) =>
   callOrchestrator(itemPath(kind, id), { key: 'admin', schema })
 
-export const createConfig = <T>(kind: ConfigKind, body: object, schema: z.ZodType<T>) =>
-  callOrchestrator(`/admin/config/${kind}`, { key: 'admin', method: 'POST', body, schema })
+// 5xx numa escrita (FA-04): a config pode ter sido gravada sem trocar o
+// runtime, e o BFF não tem como saber; vira `not_confirmed` (P4-01). A
+// leitura que o PUT faz antes segue `server_error`: essa não escreveu.
+const unconfirmedIf5xx = <T>(result: OrchestratorResult<T>): OrchestratorResult<T> =>
+  result.ok || result.error !== 'server_error' ? result : { ...result, error: 'not_confirmed' }
 
-export const replaceConfig = <T>(
+export const createConfig = async <T>(kind: ConfigKind, body: object, schema: z.ZodType<T>) =>
+  unconfirmedIf5xx(
+    await callOrchestrator(`/admin/config/${kind}`, { key: 'admin', method: 'POST', body, schema })
+  )
+
+export const replaceConfig = async <T>(
   kind: ConfigKind,
   id: string,
   body: object,
   version: number,
   schema: z.ZodType<T>
 ) =>
-  callOrchestrator(itemPath(kind, id), {
-    key: 'admin',
-    method: 'PUT',
-    body,
-    ifMatch: version,
-    schema
-  })
+  unconfirmedIf5xx(
+    await callOrchestrator(itemPath(kind, id), {
+      key: 'admin',
+      method: 'PUT',
+      body,
+      ifMatch: version,
+      schema
+    })
+  )
 
 // Exclusão de vez (`?hard=true`, D-P2-06-3): o "Excluir" da UI apaga.
-export const deleteConfig = (kind: ConfigKind, id: string, version: number) =>
-  callOrchestrator(itemPath(kind, id), {
-    key: 'admin',
-    method: 'DELETE',
-    query: { hard: 'true' },
-    ifMatch: version,
-    schema: z.undefined()
-  })
+export const deleteConfig = async (kind: ConfigKind, id: string, version: number) =>
+  unconfirmedIf5xx(
+    await callOrchestrator(itemPath(kind, id), {
+      key: 'admin',
+      method: 'DELETE',
+      query: { hard: 'true' },
+      ifMatch: version,
+      schema: z.undefined()
+    })
+  )
 
 // DELETE lógico (sem `hard`, D-P3-06-3): o orquestrador grava `active: false`
 // e devolve o documento com a versão nova; em uso, 409 `used_by`.
-export const deactivateConfig = <T>(
+export const deactivateConfig = async <T>(
   kind: ConfigKind,
   id: string,
   version: number,
   schema: z.ZodType<T>
-) => callOrchestrator(itemPath(kind, id), { key: 'admin', method: 'DELETE', ifMatch: version, schema })
+) =>
+  unconfirmedIf5xx(
+    await callOrchestrator(itemPath(kind, id), { key: 'admin', method: 'DELETE', ifMatch: version, schema })
+  )
 
 // Página do resultado já filtrado (a API Admin não filtra nem busca).
 export function pageOf<T>(items: T[], page: number, limit: number) {

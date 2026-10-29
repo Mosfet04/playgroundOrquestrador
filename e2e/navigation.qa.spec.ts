@@ -47,7 +47,9 @@ async function mockApi(
     if (!raw) return route.fulfill({ json: listOf(agents) })
     if (route.request().method() === 'PUT') {
       requested.push(`PUT ${raw}`)
-      return route.fulfill({ json: { success: true, message: 'Agente salvo' } })
+      // Como o BFF: o documento salvo (P4-01, a edição passa a ser ele).
+      const saved = agents.find((entry) => encodeURIComponent(entry.id) === raw)
+      return route.fulfill({ json: { success: true, data: saved } })
     }
     requested.push(raw)
     if (handlers.detail) return handlers.detail(route)
@@ -184,7 +186,9 @@ test('/agents/new: deep link, recarga e voltar para a lista', async ({ page }) =
   ).toBeVisible()
 })
 
-test('salvar o editor navega para a lista (push): voltar reabre o editor', async ({ page }) => {
+// D-P4-01-4: salvar uma edição fica no editor, sem entrada nova no
+// histórico; só criar e excluir voltam à lista.
+test('salvar uma edição fica no editor: voltar leva à lista', async ({ page }) => {
   const requested = await mockApi(page, [agent])
   await page.goto('/agents')
   await hydrated(page)
@@ -193,12 +197,12 @@ test('salvar o editor navega para a lista (push): voltar reabre o editor', async
   await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
   await hydrated(page)
   await page.getByRole('button', { name: /Atualizar|Salvar/ }).click()
-  await expect(page).toHaveURL('/agents')
+  await expect(page.getByText('Agente salvo.')).toBeVisible()
+  await expect(page).toHaveURL('/agents/agente%20alfa')
   expect(requested).toContain('PUT agente%20alfa')
 
   await page.goBack()
-  await expect(page).toHaveURL('/agents/agente%20alfa')
-  await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
+  await expect(page).toHaveURL('/agents')
 })
 
 test('teclado: Tab até um item da navegação e Enter navega; o item destino fica ativo', async ({

@@ -1,11 +1,14 @@
 import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppShell, usePageLabel } from '@/components/layout/AppShell'
 import { Navigation } from '@/components/layout/Navigation'
 
 import { renderWithIntl } from '../helpers/intl'
+import { RUNTIME_URL } from '../msw/handlers'
+import { server } from '../msw/server'
 
 // Sem o App Router no jsdom: o pathname vem do mock (next/navigation 15.2).
 const route = vi.hoisted(() => ({ pathname: '/' }))
@@ -233,6 +236,40 @@ describe('AppShell', () => {
     expect(
       within(sheet).getByRole('combobox', { name: 'Idioma' }).compareDocumentPosition(sheetSignOut)
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  // P4-01 (§4): a revisão do runtime fica acima de "Sair", na coluna da
+  // navegação e no Sheet (depois de Idioma); o cabeçalho não ganha nada. Uma
+  // leitura por carga da casca: abrir o Sheet não relê.
+  it('a revisão do runtime fica acima de "Sair" na navegação e no Sheet, com uma leitura só', async () => {
+    let reads = 0
+    server.use(
+      http.get(RUNTIME_URL, () => {
+        reads++
+        return HttpResponse.json({ success: true, data: { revision: 4 } })
+      })
+    )
+    route.pathname = '/agents'
+    const user = userEvent.setup()
+    renderWithIntl(<AppShell>conteúdo</AppShell>)
+
+    const revision = await screen.findByText('Revisão do runtime: 4')
+    expect(revision.compareDocumentPosition(screen.getByRole('button', { name: 'Sair' }))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    )
+    expect(mainNav()).not.toContainElement(revision)
+    expect(screen.getByRole('banner')).not.toHaveTextContent('runtime')
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
+    const sheet = screen.getByRole('dialog', { name: 'Menu' })
+    const sheetRevision = within(sheet).getByText('Revisão do runtime: 4')
+    expect(
+      within(sheet).getByRole('combobox', { name: 'Idioma' }).compareDocumentPosition(sheetRevision)
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(
+      sheetRevision.compareDocumentPosition(within(sheet).getByRole('button', { name: 'Sair' }))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(reads).toBe(1)
   })
 
   it('"Fechar menu" fecha o Sheet', async () => {

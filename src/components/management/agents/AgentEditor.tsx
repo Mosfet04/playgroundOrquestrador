@@ -8,8 +8,8 @@ import { AgentConfig } from '@/types/management'
 import { EntityLoader } from '../common/EntityLoader'
 import { AgentForm } from './AgentForm'
 
-// /agents/new (sem id) e /agents/[id]: salvar ou excluir com sucesso volta
-// para a lista.
+// /agents/new (sem id) e /agents/[id]: criar ou excluir com sucesso volta
+// para a lista; salvar uma edição fica no editor (D-P4-01-4).
 export function AgentEditor({ id }: { id?: string }) {
   const router = useRouter()
   const t = useTranslations('agents')

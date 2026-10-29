@@ -241,9 +241,11 @@ describe('V-23: erros e avisos do Segredo', () => {
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ 'X-Api-Key': 'env:loja_key' })
 
-    await user.type(within(row).getByRole('textbox', { name: 'Variável de ambiente (X-Api-Key)' }), 'x')
+    // Salvo, o formulário passa a ser o documento salvo (P4-01): a linha é nova.
+    const [saved] = rows()
+    await user.type(within(saved).getByRole('textbox', { name: 'Variável de ambiente (X-Api-Key)' }), 'x')
     await user.click(saveButton())
-    expect(await within(row).findByText(/^Use MAIÚSCULAS, dígitos e _/)).toBeVisible()
+    expect(await within(saved).findByText(/^Use MAIÚSCULAS, dígitos e _/)).toBeVisible()
     expect(bodies).toHaveLength(1)
   })
 })

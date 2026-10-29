@@ -26,7 +26,13 @@
     "playgroundPanel": "Sessões e agente",
     "openPlaygroundPanel": "Abrir sessões e agente",
     "brandName": "Orquestrador",
-    "brandTag": "playground"
+    "brandTag": "playground",
+    "runtimeLabel": "runtime · rev.",
+    "runtimeUnavailableShort": "indisponível",
+    "runtimeRevision": "Revisão do runtime: {revision}",
+    "runtimeLoading": "Carregando a revisão do runtime",
+    "runtimeUnavailable": "Revisão do runtime indisponível",
+    "runtimeUnavailableHint": "Não foi possível ler a revisão do runtime."
   },
   "theme": {
     "label": "Tema",
@@ -112,7 +118,18 @@
     "dirtyNote": "Você tem edições não salvas. Elas continuam no formulário; esta ação não as grava.",
     "deactivate": "Desativar",
     "deactivating": "Desativando…",
-    "reactivating": "Reativando…"
+    "reactivating": "Reativando…",
+    "sentence": "{text}.",
+    "appliedRevision": "Mudança aplicada na revisão <n>{revision}</n> do runtime.",
+    "applied": "Mudança aplicada no runtime.",
+    "notAppliedTitle": "Não aplicada: o orquestrador não conseguiu carregar esta configuração.",
+    "notAppliedBody": "Nada foi salvo e a versão anterior segue no ar. Revise o que mudou e salve de novo.",
+    "technicalDetail": "Detalhe técnico",
+    "notConfirmedTitle": "Não confirmada: o orquestrador falhou depois de receber a mudança.",
+    "checkInList": "Conferir na lista",
+    "notAppliedAction": "O orquestrador não conseguiu carregar a configuração resultante. Nada mudou e a versão anterior segue no ar.",
+    "notConfirmedAction": "{action, select, delete {Exclusão não confirmada} deactivate {Desativação não confirmada} other {Reativação não confirmada}}",
+    "notConfirmedActionBody": "O orquestrador falhou depois de receber o pedido. A mudança pode ter sido gravada sem entrar no ar; recarregue a página para conferir."
   },
   "secretRef": {
     "format": "Formato",
@@ -287,7 +304,10 @@
       "ragStrategyRequired": "Escolha a estratégia de busca",
       "ragUnavailable": "As opções do RAG vêm do orquestrador. Use “Tentar de novo” no aviso acima.",
       "apiKeyRefEmpty": "Vazio: o agente não define chave própria."
-    }
+    },
+    "reload": "Recarregar agente",
+    "notConfirmedBody": "A configuração pode ter sido salva sem entrar no ar. Recarregue o agente para ver o que ficou salvo.",
+    "notConfirmedCreated": "O agente pode ter sido criado sem entrar no ar. Confira na lista antes de salvar de novo."
   },
   "teams": {
     "title": "Gerenciamento de teams",
@@ -383,7 +403,10 @@
       "systemPromptPlaceholder": "Você coordena os membros do team e…",
       "executionDescription": "Contexto que o team recebe e como ele responde.",
       "apiKeyRefEmpty": "Vazio: o team não define chave própria."
-    }
+    },
+    "reload": "Recarregar team",
+    "notConfirmedBody": "A configuração pode ter sido salva sem entrar no ar. Recarregue o team para ver o que ficou salvo.",
+    "notConfirmedCreated": "O team pode ter sido criado sem entrar no ar. Confira na lista antes de salvar de novo."
   },
   "tools": {
     "title": "Gerenciamento de tools",
@@ -531,7 +554,10 @@
       "headerUseSecret": "Usar segredo",
       "headerUseSecretAria": "Usar segredo em {name}",
       "headerUnnamed": "header {index}"
-    }
+    },
+    "reload": "Recarregar tool",
+    "notConfirmedBody": "A configuração pode ter sido salva sem entrar no ar. Recarregue a tool para ver o que ficou salvo.",
+    "notConfirmedCreated": "A tool pode ter sido criada sem entrar no ar. Confira na lista antes de salvar de novo."
   },
   "dashboard": {
     "title": "Dashboard",

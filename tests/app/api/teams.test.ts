@@ -347,7 +347,8 @@ describe('POST /api/teams', () => {
     ['campo do agent', { detail: LEAK, field: 'tools_ids' }],
     ['parâmetro por nome', { detail: LEAK, field: 'model_params.temperature' }],
     ['propriedade de Object', { detail: LEAK, field: 'constructor' }],
-    ['sem campo', { detail: LEAK, error_type: 'ValueError' }]
+    // Com `error_type` (não monta no runtime) é `not_applied`: runtimeRevision.test.ts (P4-01).
+    ['sem campo', { detail: LEAK }]
   ])('422 com %s ⇒ 422 sem campo', async (_, body) => {
     serveItem('post', refusal(422, body))
 

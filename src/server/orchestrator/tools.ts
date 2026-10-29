@@ -111,7 +111,7 @@ const toFormField = (field: string, indexes?: number[]) =>
 
 const mapped = (result: OrchestratorResult<ToolDocument>): OrchestratorResult<Tool> => {
   const checked = withFormField(result, toFormField)
-  return checked.ok ? { ok: true, data: toTool(checked.data) } : checked
+  return checked.ok ? { ...checked, data: toTool(checked.data) } : checked
 }
 
 export async function listTools(filters: ToolFilters, page: number, limit: number) {

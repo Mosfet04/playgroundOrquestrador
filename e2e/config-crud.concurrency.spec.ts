@@ -56,8 +56,9 @@ test('412 ao salvar: mostra o que difere e "Salvar as minhas por cima" grava com
 
   await dialog.getByRole('button', { name: 'Salvar as minhas por cima' }).click()
 
-  await expect(page.getByText('Agente salvo').last()).toBeVisible()
-  await expect(page).toHaveURL('/agents')
+  // A edição salva fica no editor (D-P4-01-4).
+  await expect(page.getByText(/^Agente salvo\. Mudança aplicada/)).toBeVisible()
+  await expect(page).toHaveURL(`/agents/${id}`)
   expect(await stored(id)).toMatchObject({ nome: 'Meu nome', version: 3, active: true })
 
   // Reabrir mostra os valores de quem sobrescreveu.
@@ -252,8 +253,10 @@ test('tool, duas abas: o 412 compara sem nenhum valor de segredo e "por cima" gr
     for (const body of reads) expect(body).not.toContain(OLD)
 
     await dialog.getByRole('button', { name: 'Salvar as minhas por cima' }).click()
-    await expect(page.getByText('Tool salva').last()).toBeVisible()
-    await expect(page).toHaveURL('/tools')
+    // A edição salva fica no editor (D-P4-01-4), com o header de novo oculto.
+    await expect(page.getByText(/^Tool salva\. Mudança aplicada/)).toBeVisible()
+    await expect(page).toHaveURL(`/tools/${id}`)
+    await expect(page.getByLabel('Valor de X-Conta (gravado, oculto)')).toHaveValue('***')
     version = 3
     expect(await storedKind('tools', id)).toMatchObject({
       name: 'Nome da minha aba',

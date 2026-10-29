@@ -67,7 +67,12 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
   await page.getByRole('checkbox', { name: /Agente Beta/ }).uncheck()
   await page.getByRole('radio', { name: 'tasks' }).check()
   await page.getByLabel(/^Nome/).fill('Team do e2e editado')
+  const put = page.waitForResponse(
+    (candidate) => candidate.url().includes(`/api/teams/${id}`) && candidate.request().method() === 'PUT'
+  )
   await page.getByRole('button', { name: 'Salvar' }).click()
+  const { runtimeRevision } = (await (await put).json()) as { runtimeRevision: number }
+  expect(runtimeRevision).toEqual(expect.any(Number))
 
   // O toast da criação ainda está na tela: espera o PUT pela versão gravada.
   await expect
@@ -80,9 +85,13 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
     version: 2
   })
 
-  // Exclui: os agents membros ficam.
-  await page.getByRole('link', { name: 'Team do e2e editado' }).first().click()
-  await hydrated(page)
+  // A edição salva fica no editor (D-P4-01-4). Exclui: os agents membros ficam.
+  // QA (R3): o N do header no status e na casca, sem reler o runtime.
+  await expect(page.locator('[aria-live="polite"][aria-atomic="true"]')).toContainText(
+    `Team salvo. Mudança aplicada na revisão ${runtimeRevision} do runtime.`
+  )
+  await expect(page.getByText(`Revisão do runtime: ${runtimeRevision}`, { exact: true })).toBeAttached()
+  await expect(page).toHaveURL(`/teams/${id}`)
   await page.getByRole('button', { name: 'Excluir team' }).click()
   await expect(page.getByRole('dialog')).toContainText('Os agents membros não são excluídos.')
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()

@@ -433,9 +433,47 @@ const readJson = async (req: IncomingMessage): Promise<unknown> => {
   }
 }
 
-const sendConfig = (res: ServerResponse, status: number, kind: ConfigKind, doc: ConfigDoc) => {
-  res.writeHead(status, { 'Content-Type': 'application/json', ETag: `"${doc.version}"` })
+const sendConfig = (
+  res: ServerResponse,
+  status: number,
+  kind: ConfigKind,
+  doc: ConfigDoc,
+  headers: Record<string, string> = {}
+) => {
+  res.writeHead(status, { 'Content-Type': 'application/json', ETag: `"${doc.version}"`, ...headers })
   res.end(JSON.stringify(shown(kind, doc)))
+}
+
+// Troca a quente (FA-04): a revisão do runtime sobe a cada escrita aceita e
+// vai no header `Runtime-Revision`; GET /admin/health a mostra em
+// `runtime_revision`. Começa em 1, como um processo que já montou a config.
+let runtimeRevision = 1
+// Gatilhos da P4-01, pelo nome (`nome`/`name`) do documento enviado ou, no
+// DELETE, do gravado: a config não monta (422 com `error_type`, nada gravado),
+// o mesmo com um `error_type` que não é identificador, falha depois de gravar
+// (500, gravado e runtime anterior no ar) e escrita aceita sem o header.
+const NOT_BUILDABLE = '[nao-monta]'
+const NOT_BUILDABLE_UNTYPED = '[nao-monta-sem-tipo]'
+const FAIL_AFTER_WRITE = '[falha-apos-gravar]'
+const NO_REVISION = '[sem-revisao]'
+
+// Escrita da config pelo caminho do FA-04: monta antes de gravar, grava,
+// troca o runtime e responde com a revisão nova.
+function commit(
+  res: ServerResponse,
+  doc: ConfigDoc,
+  write: () => void,
+  respond: (headers: Record<string, string>) => void
+) {
+  const label = String(doc.nome ?? doc.name ?? '')
+  const notBuildable = (errorType: string) =>
+    sendJson(res, 422, { detail: 'Configuração não monta no runtime', error_type: errorType })
+  if (label.includes(NOT_BUILDABLE)) return notBuildable('ValueError')
+  if (label.includes(NOT_BUILDABLE_UNTYPED)) return notBuildable('erro <fora do formato>')
+  write()
+  if (label.includes(FAIL_AFTER_WRITE)) return sendJson(res, 500, { detail: 'Internal Server Error' })
+  runtimeRevision++
+  respond(label.includes(NO_REVISION) ? {} : { 'Runtime-Revision': String(runtimeRevision) })
 }
 
 async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL) {
@@ -476,8 +514,12 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
       refuse({ status: 409, body: { detail: 'Já existe config com este id' } })
     else {
       const created = { ...doc.value, version: 1 }
-      store.push(created)
-      sendConfig(res, 201, kind, created)
+      commit(
+        res,
+        created,
+        () => store.push(created),
+        (headers) => sendConfig(res, 201, kind, created, headers)
+      )
     }
     return true
   }
@@ -512,8 +554,12 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     if (!doc.ok) refuse(doc.refusal)
     else {
       const replaced = { ...doc.value, version: current.version + 1 }
-      store[index] = replaced
-      sendConfig(res, 200, kind, replaced)
+      commit(
+        res,
+        replaced,
+        () => (store[index] = replaced),
+        (headers) => sendConfig(res, 200, kind, replaced, headers)
+      )
     }
     return true
   }
@@ -524,13 +570,21 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     return true
   }
   if (url.searchParams.get('hard') === 'true') {
-    store.splice(index, 1)
-    res.writeHead(204).end()
+    commit(
+      res,
+      current,
+      () => store.splice(index, 1),
+      (headers) => res.writeHead(204, headers).end()
+    )
     return true
   }
   const deactivated = { ...current, active: false, version: current.version + 1 }
-  store[index] = deactivated
-  sendConfig(res, 200, kind, deactivated)
+  commit(
+    res,
+    current,
+    () => (store[index] = deactivated),
+    (headers) => sendConfig(res, 200, kind, deactivated, headers)
+  )
   return true
 }
 
@@ -723,6 +777,8 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
 
   if (route === 'GET /aborts') return sendJson(res, 200, abortedRuns)
   if (route === 'GET /admin/schema') return sendJson(res, 200, SCHEMA_DOCUMENT)
+  if (route === 'GET /admin/health')
+    return sendJson(res, 200, { status: 'healthy', runtime_revision: runtimeRevision })
   const raw = TEST_CONFIG_ROUTE.exec(route)
   if (raw) {
     const doc = configs[raw[1] as ConfigKind].find((item) => item.id === decodeURIComponent(raw[2]))

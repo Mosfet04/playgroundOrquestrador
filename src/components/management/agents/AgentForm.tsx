@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
+import { useApplyRevision } from '@/components/layout/RuntimeRevision'
 import { Button } from '@/components/ui/button'
 import { withDefaults } from '@/lib/formDiff'
 import { Input } from '@/components/ui/input'
@@ -18,6 +19,8 @@ import {
   Tool,
   isAgentFormField
 } from '@/types/management'
+import { applyFailure, errorBody } from '../common/applyResult'
+import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
@@ -58,6 +61,7 @@ interface AgentFormProps {
   agent?: AgentConfig | null
   /** Só na edição: recarregar, trocar a versão ou só atualizá-la (P3-06). */
   controls?: EntityControls<AgentConfig>
+  /** Criar ou excluir com sucesso (volta à lista); a edição salva fica (D-P4-01-4). */
   onSuccess: () => void
 }
 
@@ -73,10 +77,13 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
   const requestError = useRequestError()
   const saveRef = useRef<HTMLButtonElement>(null)
   const { state: schemaState, retrying, reload: reloadSchema } = useConfigSchema()
+  const applyRevision = useApplyRevision()
+  const appliedText = useAppliedText()
 
   const isEditing = !!agent
 
   const form = useForm<AgentFormValues>({ defaultValues: toFormValues(agent) })
+  const applyStatus = useApplyStatus(form, saveRef)
   const {
     register,
     handleSubmit,
@@ -207,6 +214,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
   ): Promise<OverwriteOutcome> => {
     try {
       setLoading(true)
+      applyStatus.clear()
       const target = base ?? agent
       const payload = toPayload({ ...data, active: target?.active ?? true }, selectedToolIds)
 
@@ -226,14 +234,30 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
       const result = response.ok ? await response.json() : null
 
       if (result?.success) {
-        toast.success(t('saved'))
-        onSuccess()
+        const revision = applyRevision(result)
+        // A edição fica no editor, que passa a ser o documento salvo (o
+        // formulário já tem os valores enviados); criar volta à lista (D-P4-01-4).
+        if (isEditing) {
+          controls?.set(result.data as AgentConfig)
+          applyStatus.show({ status: 'applied', revision })
+        } else {
+          toast.success(t('saved'), { description: appliedText(revision) })
+          onSuccess()
+        }
         return 'saved'
       }
       // 412: o diálogo de conflito decide (sem toast).
       if (isEditing && response.status === 412) return 'conflict'
+      const rejection = await errorBody(response)
+      // Não aplicada ou não confirmada (P4-01): o status substitui o toast.
+      const failure = applyFailure(response.status, rejection)
+      if (failure) {
+        dismiss?.()
+        applyStatus.show(failure)
+        return 'failed'
+      }
       // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
-      const field = await rejectedField(response, isAgentFormField)
+      const field = rejectedField(response.status, rejection, isAgentFormField)
       if (field) {
         // Salvar por cima: o diálogo fecha antes, para o foco ir ao campo com erro.
         dismiss?.()
@@ -426,6 +450,8 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
                     id={`tool-${tool.id}`}
                     checked={selectedToolIds.includes(tool.id)}
                     onChange={(e) => {
+                      // As tools ficam fora do formulário: marcar também é edição.
+                      applyStatus.clear()
                       if (e.target.checked) {
                         setSelectedToolIds([...selectedToolIds, tool.id])
                       } else {
@@ -447,48 +473,57 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
           <FieldError message={errors.tools_ids?.message} />
         </SectionCard>
 
-        {/* Botões de ação */}
-        {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
-        <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {agent && controls && (
-            <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-              <EntityActions
-                kind="agents"
-                id={agent.id}
-                name={agent.nome}
-                version={agent.version}
-                active={agent.active}
-                isDirty={() => compare(agent).length > 0}
-                disabled={loading}
-                reactivateBody={() =>
-                  JSON.stringify(toPayload({ ...toFormValues(agent), active: true }, agent.tools_ids))
-                }
-                onDeleted={onSuccess}
-                onChanged={controls.update}
-                onReload={controls.reload}
-                onBusyChange={setActing}
-              />
+        {/* Status do último Salvar (P4-01) e botões de ação. */}
+        <div>
+          <ApplyStatus
+            kind="agents"
+            result={applyStatus.result}
+            onReload={controls?.reload}
+            isDirty={() => !!agent && compare(agent).length > 0}
+          />
+          {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {agent && controls && (
+              <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+                <EntityActions
+                  kind="agents"
+                  id={agent.id}
+                  name={agent.nome}
+                  version={agent.version}
+                  active={agent.active}
+                  isDirty={() => compare(agent).length > 0}
+                  disabled={loading}
+                  reactivateBody={() =>
+                    JSON.stringify(toPayload({ ...toFormValues(agent), active: true }, agent.tools_ids))
+                  }
+                  onStart={applyStatus.clear}
+                  onDeleted={onSuccess}
+                  onChanged={controls.update}
+                  onReload={controls.reload}
+                  onBusyChange={setActing}
+                />
+              </div>
+            )}
+            <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+              <Button
+                variant="outline"
+                asChild
+                className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+              >
+                <Link href="/agents" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                  {tc('cancel')}
+                </Link>
+              </Button>
+              <Button
+                ref={saveRef}
+                type="submit"
+                disabled={loading || acting || schemaState.status !== 'ready'}
+                className="h-10 gap-2 sm:h-9"
+              >
+                <Save className="w-4 h-4" />
+                {loading ? tc('saving') : tc('save')}
+              </Button>
             </div>
-          )}
-          <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-            <Button
-              variant="outline"
-              asChild
-              className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-            >
-              <Link href="/agents" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
-                {tc('cancel')}
-              </Link>
-            </Button>
-            <Button
-              ref={saveRef}
-              type="submit"
-              disabled={loading || acting || schemaState.status !== 'ready'}
-              className="h-10 gap-2 sm:h-9"
-            >
-              <Save className="w-4 h-4" />
-              {loading ? tc('saving') : tc('save')}
-            </Button>
           </div>
         </div>
         </fieldset>

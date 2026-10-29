@@ -85,7 +85,11 @@ export const schemaFixture = {
   writable: true
 }
 
+// Revisão do runtime que a casca lê ao montar (P4-01, src/app/api/orchestrator/runtime).
+export const RUNTIME_URL = '*/api/orchestrator/runtime'
+
 export const handlers = [
+  http.get(RUNTIME_URL, () => HttpResponse.json({ success: true, data: { revision: 1 } })),
   http.get(SCHEMA_URL, () =>
     HttpResponse.json({ success: true, data: schemaFixture })
   ),

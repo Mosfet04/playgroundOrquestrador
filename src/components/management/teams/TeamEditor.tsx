@@ -8,7 +8,8 @@ import type { TeamConfig } from '@/types/management'
 import { EntityLoader } from '../common/EntityLoader'
 import { TeamForm } from './TeamForm'
 
-// /teams/new (sem id) e /teams/[id]: salvar ou excluir com sucesso volta para a lista.
+// /teams/new (sem id) e /teams/[id]: criar ou excluir com sucesso volta para a
+// lista; salvar uma edição fica no editor (D-P4-01-4).
 export function TeamEditor({ id }: { id?: string }) {
   const router = useRouter()
   const t = useTranslations('teams')

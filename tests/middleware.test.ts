@@ -168,6 +168,16 @@ describe('middleware: /api', () => {
     })
   })
 
+  it('revisão do runtime (P4-01) sem cookie: 401 JSON', async () => {
+    const response = await middleware(request('/api/orchestrator/runtime'))
+
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({
+      success: false,
+      error: 'unauthorized'
+    })
+  })
+
   it('sem cookie: 401 JSON', async () => {
     const response = await middleware(request('/api/agents'))
 

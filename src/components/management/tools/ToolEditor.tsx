@@ -8,8 +8,8 @@ import { Tool } from '@/types/management'
 import { EntityLoader } from '../common/EntityLoader'
 import { ToolForm } from './ToolForm'
 
-// /tools/new (sem id) e /tools/[id]: salvar ou excluir com sucesso volta
-// para a lista.
+// /tools/new (sem id) e /tools/[id]: criar ou excluir com sucesso volta
+// para a lista; salvar uma edição fica no editor (D-P4-01-4).
 export function ToolEditor({ id }: { id?: string }) {
   const router = useRouter()
   const t = useTranslations('tools')

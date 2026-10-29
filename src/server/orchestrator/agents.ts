@@ -238,7 +238,7 @@ const mapped = (
   result: OrchestratorResult<AgentDocument>
 ): OrchestratorResult<AgentConfig> => {
   const checked = withFormField(result, toFormField)
-  return checked.ok ? { ok: true, data: toAgent(checked.data) } : checked
+  return checked.ok ? { ...checked, data: toAgent(checked.data) } : checked
 }
 
 export async function listAgents(

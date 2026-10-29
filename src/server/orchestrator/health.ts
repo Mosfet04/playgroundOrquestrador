@@ -12,3 +12,10 @@ const healthSchema = z.object({ status: z.string() }) satisfies z.ZodType<
 
 export const getOrchestratorHealth = () =>
   callOrchestrator('/health', { key: 'run', schema: healthSchema })
+
+// GET /admin/health (chave admin, FA-04): só a revisão do runtime em vigor; os
+// checks ficam aqui. O snapshot não tipa o corpo, por isso o zod é o contrato.
+const runtimeSchema = z.object({ runtime_revision: z.number().int().nonnegative() })
+
+export const getRuntimeRevision = () =>
+  callOrchestrator('/admin/health', { key: 'admin', schema: runtimeSchema })

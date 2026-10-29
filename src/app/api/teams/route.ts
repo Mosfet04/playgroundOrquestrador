@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { createTeam, listTeams } from '@/server/orchestrator/teams'
 
 import { parseJsonBody } from '../parseJsonBody'
-import { badRequest, configError, ok, orchestratorError } from '../respond'
+import { badRequest, configError, ok, orchestratorError, written } from '../respond'
 import { teamBodySchema } from './schema'
 
 export const runtime = 'nodejs'
@@ -34,5 +34,5 @@ export async function POST(request: NextRequest) {
   const parsed = await parseJsonBody(request, teamBodySchema)
   if (!parsed.success) return parsed.response
   const result = await createTeam(parsed.data)
-  return result.ok ? ok(result.data) : configError(result)
+  return result.ok ? written(result) : configError(result)
 }

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Status, indicador e toasts · desktop escuro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p306.css">
+<link rel="stylesheet" href="p401.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app dark" style="width: 1000px; min-height: 1700px; padding: 24px; display: flex; flex-direction: column; gap: 32px">
+
+<div class="panel"><p class="cap">E0 · Aplicada com número: agent (foco devolvido ao Salvar)</p>
+<div class="foot-wrap">
+<div class="apply-region" aria-live="polite" aria-atomic="true"><div class="apply ok"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><p class="apply-line" style="margin: 0"><b>Agente salvo.</b> <span class="rest">Mudança aplicada na revisão <span class="n">8</span> do runtime.</span></p></div></div>
+<div class="foot"><div class="del-wrap"><div class="l"><button class="pg-btn pg-btn-outline" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.36 6.64A9 9 0 0 1 20.77 15"></path><path d="M6.16 6.16a9 9 0 1 0 12.68 12.68"></path><path d="M12 2v4"></path><path d="m2 2 20 20"></path></svg>Desativar agente</button><button class="pg-btn pg-btn-outline is-danger" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>Excluir agente</button></div></div><div class="r"><a class="pg-btn pg-btn-outline" href="#agents">Cancelar</a><button class="pg-btn" type="submit" style="outline: 2px solid var(--ring); outline-offset: 2px"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path></svg>Salvar</button></div></div>
+</div></div>
+
+<div class="panel"><p class="cap">E2 · Não aplicada com errorType (nome qualificado também cabe: quebra no chip)</p>
+<div class="apply-region" aria-live="polite" aria-atomic="true"><div class="apply err"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg><div class="apply-body"><p class="apply-title">Não aplicada: o orquestrador não conseguiu carregar esta configuração.</p><p class="apply-text">Nada foi salvo e a versão anterior segue no ar. Revise o que mudou e salve de novo.</p><p class="apply-detail"><span>Detalhe técnico</span><code class="code-chip">pydantic_core.ValidationError</code></p></div></div></div>
+</div>
+
+<div class="panel"><p class="cap">E4 · Não confirmada na edição: agent</p>
+<div class="apply-region" aria-live="polite" aria-atomic="true"><div class="apply warn"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><div class="apply-body"><p class="apply-title">Não confirmada: o orquestrador falhou depois de receber a mudança.</p><p class="apply-text">A configuração pode ter sido salva sem entrar no ar. Recarregue o agente para ver o que ficou salvo.</p><div class="apply-actions"><button class="pg-btn pg-btn-outline" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>Recarregar agente</button><p class="pg-help">Recarregar descarta as edições não salvas do formulário.</p></div></div></div></div>
+</div>
+
+<div class="panel"><p class="cap">T1–T7 · Toasts (sonner, canto inferior direito): resultado de aplicação de Excluir, Desativar, Reativar e Criar</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+<div class="toast-stack">
+<p class="crop-cap" style="margin: 0">T1 · Excluir aplicado (volta à lista)</p>
+<div class="pg-toast pg-toast-success" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><div class="pg-toast-body"><span class="pg-toast-title">Agente excluído</span><span class="pg-toast-desc">Mudança aplicada na revisão 9 do runtime.</span></div></div>
+<p class="crop-cap" style="margin: 0">T2 · Desativar aplicado, sem número</p>
+<div class="pg-toast pg-toast-success" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><div class="pg-toast-body"><span class="pg-toast-title">Tool desativada</span><span class="pg-toast-desc">Mudança aplicada no runtime.</span></div></div>
+<p class="crop-cap" style="margin: 0">T3 · Reativar aplicado</p>
+<div class="pg-toast pg-toast-success" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><div class="pg-toast-body"><span class="pg-toast-title">Team reativado</span><span class="pg-toast-desc">Mudança aplicada na revisão 11 do runtime.</span></div></div>
+<p class="crop-cap" style="margin: 0">T7 · Criar aplicado (D-P4-01-4 = A: criação volta à lista)</p>
+<div class="pg-toast pg-toast-success" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><div class="pg-toast-body"><span class="pg-toast-title">Agente salvo</span><span class="pg-toast-desc">Mudança aplicada na revisão 12 do runtime.</span></div></div>
+</div>
+<div class="toast-stack">
+<p class="crop-cap" style="margin: 0">T4 · Desativar não aplicado (422 not_applied), com errorType</p>
+<div class="pg-toast pg-toast-error" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg><div class="pg-toast-body"><span class="pg-toast-title">Não foi possível desativar o agente</span><span class="pg-toast-desc"><span>O orquestrador não conseguiu carregar a configuração resultante. Nada mudou e a versão anterior segue no ar.</span><span>Detalhe técnico: <code class="code-chip">KeyError</code></span></span></div></div>
+<p class="crop-cap" style="margin: 0">T5 · Excluir não confirmado (502 not_confirmed): fica no editor</p>
+<div class="pg-toast pg-toast-warning" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><div class="pg-toast-body"><span class="pg-toast-title">Exclusão não confirmada</span><span class="pg-toast-desc">O orquestrador falhou depois de receber o pedido. A mudança pode ter sido gravada sem entrar no ar; recarregue a página para conferir.</span></div></div>
+<p class="crop-cap" style="margin: 0">T6 · Reativar não confirmado</p>
+<div class="pg-toast pg-toast-warning" role="status"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg><div class="pg-toast-body"><span class="pg-toast-title">Reativação não confirmada</span><span class="pg-toast-desc">O orquestrador falhou depois de receber o pedido. A mudança pode ter sido gravada sem entrar no ar; recarregue a página para conferir.</span></div></div>
+</div>
+</div>
+</div>
+
+<div class="panel"><p class="cap">R1–R3 · Revisão do runtime no rodapé da navegação, escuro</p>
+<div class="crop-row">
+<div><p class="crop-cap">R1 · Carregando</p><div class="side-crop"><div class="nav-foot"><p class="rt" aria-busy="true"><span aria-hidden="true">runtime · rev.</span><span class="pg-sk" aria-hidden="true"></span><span class="sr">Carregando a revisão do runtime</span></p><button class="pg-btn pg-btn-ghost" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>Sair</button></div></div></div>
+<div><p class="crop-cap">R2 · Valor (de 8 para 9 após excluir, sem request)</p><div class="side-crop"><div class="nav-foot"><p class="rt"><span aria-hidden="true">runtime · rev. <b>9</b></span><span class="sr">Revisão do runtime: 9</span></p><button class="pg-btn pg-btn-ghost" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>Sair</button></div></div></div>
+<div><p class="crop-cap">R3 · Indisponível</p><div class="side-crop"><div class="nav-foot"><p class="rt" title="Não foi possível ler a revisão do runtime."><span aria-hidden="true">runtime · rev. indisponível</span><span class="sr">Revisão do runtime indisponível</span></p><button class="pg-btn pg-btn-ghost" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>Sair</button></div></div></div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

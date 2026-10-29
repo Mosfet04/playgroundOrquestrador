@@ -126,7 +126,7 @@ const toFormField = (field: string): TeamFormField | undefined =>
 
 const mapped = (result: OrchestratorResult<TeamDocument>): OrchestratorResult<TeamConfig> => {
   const checked = withFormField(result, toFormField)
-  return checked.ok ? { ok: true, data: toTeam(checked.data) } : checked
+  return checked.ok ? { ...checked, data: toTeam(checked.data) } : checked
 }
 
 export async function listTeams(filters: TeamFilters, page: number, limit: number) {

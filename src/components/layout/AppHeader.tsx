@@ -19,6 +19,7 @@ import { cn, focusRing } from '@/lib/utils'
 import { useSelectedEntity } from '@/hooks/useSelectedEntity'
 import { LanguageSelect } from './LanguageSelect'
 import { Brand, Navigation } from './Navigation'
+import { RuntimeRevision } from './RuntimeRevision'
 import { SignOutButton } from './SignOutButton'
 import { ThemeSelect } from './ThemeSelect'
 import { describeRoute, type RouteInfo } from './routes'
@@ -91,6 +92,7 @@ function MenuSheet({ notFound }: { notFound: boolean }) {
           <ThemeSelect />
           <LanguageSelect />
           <div aria-hidden="true" className="-mx-4 border-t border-border" />
+          <RuntimeRevision className="px-0" />
           <div className="-mx-3">
             <SignOutButton />
           </div>

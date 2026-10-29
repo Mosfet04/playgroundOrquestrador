@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
 
+import { useApplyRevision } from '@/components/layout/RuntimeRevision'
 import { Button } from '@/components/ui/button'
 import { withDefaults } from '@/lib/formDiff'
 import { Input } from '@/components/ui/input'
@@ -15,6 +16,8 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { TextArea } from '@/components/ui/textarea'
 import { isTeamFormField, type TeamConfig, type TeamFormField } from '@/types/management'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
+import { applyFailure, errorBody } from '../common/applyResult'
+import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
@@ -36,6 +39,7 @@ interface TeamFormProps {
   team?: TeamConfig | null
   /** Só na edição: recarregar, trocar a versão ou só atualizá-la (P3-06). */
   controls?: EntityControls<TeamConfig>
+  /** Criar ou excluir com sucesso (volta à lista); a edição salva fica (D-P4-01-4). */
   onSuccess: () => void
 }
 
@@ -57,6 +61,9 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
   const isEditing = !!team
 
   const form = useForm<TeamFormValues>({ defaultValues: toFormValues(team) })
+  const applyStatus = useApplyStatus(form, saveRef)
+  const applyRevision = useApplyRevision()
+  const appliedText = useAppliedText()
   const { register, handleSubmit, setValue, getValues, setError, setFocus, clearErrors, control } = form
   const { errors } = form.formState
 
@@ -116,6 +123,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
   ): Promise<OverwriteOutcome> => {
     try {
       setLoading(true)
+      applyStatus.clear()
       const target = base ?? team
       const url = isEditing ? `/api/teams/${encodeURIComponent(team.id)}` : '/api/teams'
       // A versão lida vai no If-Match (P2-06): se mudou, o orquestrador recusa (412).
@@ -130,14 +138,30 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
       const result = response.ok ? await response.json() : null
 
       if (result?.success) {
-        toast.success(t('saved'))
-        onSuccess()
+        const revision = applyRevision(result)
+        // A edição fica no editor, que passa a ser o documento salvo (o
+        // formulário já tem os valores enviados); criar volta à lista (D-P4-01-4).
+        if (isEditing) {
+          controls?.set(result.data as TeamConfig)
+          applyStatus.show({ status: 'applied', revision })
+        } else {
+          toast.success(t('saved'), { description: appliedText(revision) })
+          onSuccess()
+        }
         return 'saved'
       }
       // 412: o diálogo de conflito decide (sem toast).
       if (isEditing && response.status === 412) return 'conflict'
+      const rejection = await errorBody(response)
+      // Não aplicada ou não confirmada (P4-01): o status substitui o toast.
+      const failure = applyFailure(response.status, rejection)
+      if (failure) {
+        dismiss?.()
+        applyStatus.show(failure)
+        return 'failed'
+      }
       // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
-      const field = await rejectedField(response, isTeamFormField)
+      const field = rejectedField(response.status, rejection, isTeamFormField)
       if (field) {
         // Salvar por cima: o diálogo fecha antes, para o foco ir ao campo com erro.
         dismiss?.()
@@ -340,47 +364,57 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
               locked={selectsDisabled}
             />
 
-            {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
-            <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-              {team && controls && (
-                <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-                  <EntityActions
-                    kind="teams"
-                    id={team.id}
-                    name={team.nome}
-                    version={team.version}
-                    active={team.active}
-                    isDirty={() => compare(team).length > 0}
-                    disabled={loading}
-                    reactivateBody={() =>
-                      JSON.stringify(toPayload({ ...toFormValues(team), active: true }))
-                    }
-                    onDeleted={onSuccess}
-                    onChanged={controls.update}
-                    onReload={controls.reload}
-                    onBusyChange={setActing}
-                  />
+            {/* Status do último Salvar (P4-01) e botões de ação. */}
+            <div>
+              <ApplyStatus
+                kind="teams"
+                result={applyStatus.result}
+                onReload={controls?.reload}
+                isDirty={() => !!team && compare(team).length > 0}
+              />
+              {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+              <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+                {team && controls && (
+                  <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+                    <EntityActions
+                      kind="teams"
+                      id={team.id}
+                      name={team.nome}
+                      version={team.version}
+                      active={team.active}
+                      isDirty={() => compare(team).length > 0}
+                      disabled={loading}
+                      reactivateBody={() =>
+                        JSON.stringify(toPayload({ ...toFormValues(team), active: true }))
+                      }
+                      onStart={applyStatus.clear}
+                      onDeleted={onSuccess}
+                      onChanged={controls.update}
+                      onReload={controls.reload}
+                      onBusyChange={setActing}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                  >
+                    <Link href="/teams" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                      {tc('cancel')}
+                    </Link>
+                  </Button>
+                  <Button
+                    ref={saveRef}
+                    type="submit"
+                    disabled={loading || acting || schemaState.status !== 'ready' || members.state.status !== 'ready'}
+                    className="h-10 gap-2 sm:h-9"
+                  >
+                    <Save className="size-4" aria-hidden="true" />
+                    {loading ? tc('saving') : tc('save')}
+                  </Button>
                 </div>
-              )}
-              <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-                <Button
-                  variant="outline"
-                  asChild
-                  className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-                >
-                  <Link href="/teams" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
-                    {tc('cancel')}
-                  </Link>
-                </Button>
-                <Button
-                  ref={saveRef}
-                  type="submit"
-                  disabled={loading || acting || schemaState.status !== 'ready' || members.state.status !== 'ready'}
-                  className="h-10 gap-2 sm:h-9"
-                >
-                  <Save className="size-4" aria-hidden="true" />
-                  {loading ? tc('saving') : tc('save')}
-                </Button>
               </div>
             </div>
           </fieldset>

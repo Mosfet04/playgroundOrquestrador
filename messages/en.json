@@ -26,7 +26,13 @@
     "playgroundPanel": "Sessions and agent",
     "openPlaygroundPanel": "Open sessions and agent",
     "brandName": "Orchestrator",
-    "brandTag": "playground"
+    "brandTag": "playground",
+    "runtimeLabel": "runtime · rev.",
+    "runtimeUnavailableShort": "unavailable",
+    "runtimeRevision": "Runtime revision: {revision}",
+    "runtimeLoading": "Loading the runtime revision",
+    "runtimeUnavailable": "Runtime revision unavailable",
+    "runtimeUnavailableHint": "Couldn't read the runtime revision."
   },
   "theme": {
     "label": "Theme",
@@ -112,7 +118,18 @@
     "dirtyNote": "You have unsaved edits. They stay in the form; this action doesn't save them.",
     "deactivate": "Deactivate",
     "deactivating": "Deactivating…",
-    "reactivating": "Reactivating…"
+    "reactivating": "Reactivating…",
+    "sentence": "{text}.",
+    "appliedRevision": "Change applied in runtime revision <n>{revision}</n>.",
+    "applied": "Change applied to the runtime.",
+    "notAppliedTitle": "Not applied: the orchestrator couldn't load this configuration.",
+    "notAppliedBody": "Nothing was saved and the previous version is still live. Review your changes and save again.",
+    "technicalDetail": "Technical detail",
+    "notConfirmedTitle": "Not confirmed: the orchestrator failed after receiving the change.",
+    "checkInList": "Check in the list",
+    "notAppliedAction": "The orchestrator couldn't load the resulting configuration. Nothing changed and the previous version is still live.",
+    "notConfirmedAction": "{action, select, delete {Deletion not confirmed} deactivate {Deactivation not confirmed} other {Reactivation not confirmed}}",
+    "notConfirmedActionBody": "The orchestrator failed after receiving the request. The change may have been saved without going live; reload the page to check."
   },
   "secretRef": {
     "format": "Format",
@@ -287,7 +304,10 @@
       "ragStrategyRequired": "Choose the search strategy",
       "ragUnavailable": "RAG options come from the orchestrator. Use “Try again” in the notice above.",
       "apiKeyRefEmpty": "Empty: the agent sets no key of its own."
-    }
+    },
+    "reload": "Reload agent",
+    "notConfirmedBody": "The configuration may have been saved without going live. Reload the agent to see what was saved.",
+    "notConfirmedCreated": "The agent may have been created without going live. Check the list before saving again."
   },
   "teams": {
     "title": "Teams management",
@@ -383,7 +403,10 @@
       "systemPromptPlaceholder": "You coordinate the team members and…",
       "executionDescription": "What context the team gets and how it replies.",
       "apiKeyRefEmpty": "Empty: the team sets no key of its own."
-    }
+    },
+    "reload": "Reload team",
+    "notConfirmedBody": "The configuration may have been saved without going live. Reload the team to see what was saved.",
+    "notConfirmedCreated": "The team may have been created without going live. Check the list before saving again."
   },
   "tools": {
     "title": "Tool management",
@@ -531,7 +554,10 @@
       "headerUseSecret": "Use secret",
       "headerUseSecretAria": "Use a secret for {name}",
       "headerUnnamed": "header {index}"
-    }
+    },
+    "reload": "Reload tool",
+    "notConfirmedBody": "The configuration may have been saved without going live. Reload the tool to see what was saved.",
+    "notConfirmedCreated": "The tool may have been created without going live. Check the list before saving again."
   },
   "dashboard": {
     "title": "Dashboard",
