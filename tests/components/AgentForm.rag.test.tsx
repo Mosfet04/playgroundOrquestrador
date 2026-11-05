@@ -11,6 +11,7 @@ import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
 import { SCHEMA_URL, schemaFixture } from '../msw/handlers'
 import { server } from '../msw/server'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // Teste longo de interação: com a suíte em paralelo passa dos 5 s padrão.
 const LONG = 15_000
@@ -213,7 +214,8 @@ describe('RagSection: campos (V-11..V-15)', () => {
 
     expect(card().getByLabelText('URL base')).toHaveValue('http://embed.local/v1')
     expect(card().getByText(/openai não usa URL base/)).toBeVisible()
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({ rag_base_url: 'http://embed.local/v1' })
@@ -249,7 +251,7 @@ describe('RagSection: salvar o documento inteiro (D-P3-05-2)', () => {
     await user.click(card().getByRole('combobox', { name: 'Nome do parâmetro 1' }))
     await user.click(screen.getByRole('option', { name: 'dimensions' }))
     await user.type(card().getByRole('textbox', { name: 'Valor de dimensions' }), '384')
-    await user.click(save())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({
@@ -269,7 +271,8 @@ describe('RagSection: salvar o documento inteiro (D-P3-05-2)', () => {
     const sent = serveSave()
     const user = await ready()
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0]).toMatchObject({ method: 'PUT' })
@@ -294,7 +297,8 @@ describe('RagSection: salvar o documento inteiro (D-P3-05-2)', () => {
     )
 
     expect(embedderProvider()).toHaveTextContent('Fake')
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({
@@ -339,7 +343,8 @@ describe('RagSection: referência da chave do embedder (D-P3-05-1, D-P3-05-5)', 
     )
 
     expect(card().getByText(/está fora da regra do orquestrador/)).toBeVisible()
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({ rag_api_key_ref: 'env:embed_key' })
@@ -349,7 +354,8 @@ describe('RagSection: referência da chave do embedder (D-P3-05-1, D-P3-05-5)', 
     serveSave(rejectWith('rag_api_key_ref'))
     const user = await ready()
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await card().findByText('Valor recusado pelo orquestrador')).toBeVisible()
     expect(ref()).toBeInvalid()
@@ -367,7 +373,8 @@ describe('RagSection: 422 por campo (V-P3-05, §4)', () => {
     serveSave(rejectWith(field))
     const user = await ready()
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await card().findByText('Valor recusado pelo orquestrador')).toBeVisible()
     await waitFor(() => expect(control()).toHaveFocus())
@@ -380,7 +387,8 @@ describe('RagSection: 422 por campo (V-P3-05, §4)', () => {
       <AgentForm agent={withRag({ base_url: 'http://embed.local/v1' })} onSuccess={() => {}} />
     )
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(card().getByLabelText('URL base')).toBeInvalid())
     await waitFor(() => expect(card().getByLabelText('URL base')).toHaveFocus())
@@ -390,7 +398,8 @@ describe('RagSection: 422 por campo (V-P3-05, §4)', () => {
     serveSave(rejectWith('rag_model_params'))
     const user = await ready()
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     const group = card().getByRole('group', { name: 'Parâmetros do embedder' })
     expect(await within(group).findByText('Valor recusado pelo orquestrador')).toBeVisible()
@@ -427,7 +436,7 @@ describe('RagSection: desligar sem perder (D-P3-05-3, V-16..V-18)', () => {
     const user = await ready()
 
     await user.click(toggle())
-    await user.click(save())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({
@@ -454,7 +463,8 @@ describe('RagSection: desligar sem perder (D-P3-05-3, V-16..V-18)', () => {
 
     expect(card().getByText('RAG desligado: o agente responde sem base de conhecimento.')).toBeVisible()
     expect(card().queryByRole('button', { name: 'Descartar valores' })).toBeNull()
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({ rag_active: false, rag_doc_name: '', rag_model: '' })
@@ -475,7 +485,7 @@ describe('RagSection: desligar sem perder (D-P3-05-3, V-16..V-18)', () => {
       card().getByText('Valores do RAG descartados. Salvar remove a configuração.')
     ).toBeInTheDocument()
 
-    await user.click(save())
+    await saveAndConfirm(user)
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({
       rag_active: false,
@@ -491,7 +501,8 @@ describe('RagSection: desligar sem perder (D-P3-05-3, V-16..V-18)', () => {
     serveSave(rejectWith('rag_api_key_ref'))
     const user = await ready(<AgentForm agent={withRag({ active: false })} onSuccess={() => {}} />)
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(
       await card().findByText(
@@ -532,7 +543,8 @@ describe('RagSection: desligar sem perder (D-P3-05-3, V-16..V-18)', () => {
       />
     )
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(card().queryByText('fake-embed exige URL base')).toBeNull()
@@ -550,7 +562,7 @@ describe('RagSection: desligar sem perder (D-P3-05-3, V-16..V-18)', () => {
 
     await user.click(card().getByRole('button', { name: 'Adicionar parâmetro' }))
     await user.click(toggle())
-    await user.click(save())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.rag_model_params).toEqual({ dimensions: 512 })
@@ -568,7 +580,8 @@ describe('RagSection: desligar sem perder (D-P3-05-3, V-16..V-18)', () => {
     const sent = serveSave()
     const user = await ready(<AgentForm agent={withRag({ active: false, doc_name: 'so-o-doc', model: '' })} onSuccess={() => {}} />)
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({ rag_active: false, rag_doc_name: 'so-o-doc', rag_model: '' })
@@ -577,7 +590,8 @@ describe('RagSection: desligar sem perder (D-P3-05-3, V-16..V-18)', () => {
   it('ligar o switch fecha os campos reabertos e tira a nota', async () => {
     serveSave(rejectWith('rag_api_key_ref'))
     const user = await ready(<AgentForm agent={withRag({ active: false })} onSuccess={() => {}} />)
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
     await card().findByText(/com campos mostrados porque um deles tem erro/)
 
     await user.click(toggle())

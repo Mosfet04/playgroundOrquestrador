@@ -91,7 +91,7 @@ export function ApplyStatus({
   /** Edição: relê a entidade (o "não confirmada" mostra "Recarregar"). */
   onReload?: () => void
   /** O formulário tem edições não salvas? (lido só no "não confirmada" da edição). */
-  isDirty?: () => boolean
+  isDirty?: boolean
 }) {
   const t = useTranslations(kind)
   const tc = useTranslations('common')
@@ -144,7 +144,7 @@ export function ApplyStatus({
                     <RotateCw aria-hidden="true" />
                     {t('reload')}
                   </Button>
-                  {isDirty?.() && (
+                  {isDirty && (
                     <p className="grow basis-48 text-xs text-muted-foreground">{tc('changedDirty')}</p>
                   )}
                 </>

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // P3-04: CRUD de teams pela API Admin do fake orchestrator e o 409 do agent
 // membro. Roda no projeto `config-agents` (playwright.config.ts), junto do CRUD
@@ -70,7 +71,7 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
   const put = page.waitForResponse(
     (candidate) => candidate.url().includes(`/api/teams/${id}`) && candidate.request().method() === 'PUT'
   )
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   const { runtimeRevision } = (await (await put).json()) as { runtimeRevision: number }
   expect(runtimeRevision).toEqual(expect.any(Number))
 
@@ -136,7 +137,8 @@ test('sem membro o form não envia; o orquestrador recusa um membro inexistente 
   await page.reload()
   await hydrated(page)
   await expect(page.getByText(/Este agent não existe mais/)).toBeVisible()
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByLabel('Descrição', { exact: true }).fill('Recusada pelo membro inexistente')
+  await saveAndConfirm(page)
 
   await expect(page.getByText('Valor recusado pelo orquestrador')).toBeVisible()
   await expect(page.getByRole('checkbox', { name: /fantasma/ })).toBeFocused()

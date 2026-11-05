@@ -45,6 +45,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P3-05 | concluído (seletor de segredo único — formato `env:`/`file:` + alvo com a regra do orquestrador — no modelo do agent, do líder, no embedder e nos headers com modo Texto \| Segredo e "Usar segredo"; RAG com o documento inteiro — estratégia, parâmetros, URL base e referência do embedder —, desligado guarda os valores com `active: false`; decisão 0029) |
 | P3-06 | concluído (conflito no 412 em agent, team e tool com a comparação "o seu valor × atual" — Recarregar a atual ou Salvar as minhas por cima, segredo nunca exibido —; Desativar/Reativar ao lado de Excluir com selo de estado, switch "Ativo" removido; BFF `DELETE ?soft=true` e `soft` inválido ⇒ 400; colunas fixas, margem do Dialog, busca em 390 px, altura das Instruções; decisão 0030) |
 | P4-01 | concluído (status de aplicação no editor — aplicada na revisão N, não aplicada com o tipo do erro e a versão anterior no ar, não confirmada com Recarregar —; edição salva fica no editor; `runtimeRevision` nas escritas, `not_applied`/`not_confirmed` no BFF; indicador "runtime · rev. N" na navegação e no Sheet por `GET /api/orchestrator/runtime` + contexto; decisão 0031) |
+| P4-02 | concluído (diálogo "Revisar antes de salvar" em agent, team e tool: Antes × Depois sem segredo, cancelar sem request, o `data` listado é o enviado; Salvar `aria-disabled` com dica sem mudança; ids como conjunto; janela do texto longo também no conflito; criação sem diálogo) |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

@@ -10,6 +10,7 @@ import { ToolEditor } from '@/components/management/tools/ToolEditor'
 
 import { renderWithIntl } from '../helpers/intl'
 import { server } from '../msw/server'
+import { saveAndConfirm } from '../helpers/saveReview'
 
 // P3-06 (D-P3-06-2): Desativar e Reativar no rodapé do editor, no lugar do
 // switch "Ativo"; 409 e 412 no Dialog da ação. Spec: docs/design/P3-06.md §4
@@ -169,7 +170,7 @@ describe('Desativar (V-P3-06-5, 6)', () => {
     await screen.findByRole('button', { name: 'Reativar agente' })
 
     expect(screen.getByLabelText('Nome *')).toHaveValue('Assistente editado')
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await saveAndConfirm(user)
     await waitFor(() => expect(puts).toHaveLength(1))
     expect(puts[0].ifMatch).toBe('"5"')
     expect(puts[0].body).toMatchObject({ nome: 'Assistente editado', active: false })

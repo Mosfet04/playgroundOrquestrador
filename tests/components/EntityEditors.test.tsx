@@ -8,6 +8,7 @@ import { ToolEditor } from '@/components/management/tools/ToolEditor'
 
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // Sem o App Router no jsdom (next/navigation 15.2): só o push é observado.
 const router = vi.hoisted(() => ({ push: (href: string) => href }))
@@ -81,7 +82,8 @@ describe('AgentEditor', () => {
     expect(screen.getByRole('link', { name: 'Voltar' })).toHaveAttribute('href', '/agents')
     expect(screen.getByRole('link', { name: 'Cancelar' })).toHaveAttribute('href', '/agents')
 
-    await user.click(screen.getByRole('button', { name: /salvar|atualizar/i }))
+    await touchName(user)
+    await saveAndConfirm(user)
     expect(await screen.findByText('Agente salvo.')).toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
   })

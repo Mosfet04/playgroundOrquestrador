@@ -10,6 +10,7 @@ import { renderWithIntl } from '../helpers/intl'
 import { captureSave, paste, saveButton, stubBrowserApis, tool } from '../helpers/toolForm'
 import { SCHEMA_URL, schemaFixture } from '../msw/handlers'
 import { server } from '../msw/server'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P3-05 (D-P3-05-4): cada header tem o modo Texto | Segredo; Segredo usa o
 // seletor; nome sensível com texto segue recusado, com a ação "Usar segredo".
@@ -109,7 +110,7 @@ describe('V-20/V-21: modo e valor', () => {
 
     await user.clear(screen.getByRole('textbox', { name: 'Variável de ambiente (X-Api-Key)' }))
     await user.type(screen.getByRole('textbox', { name: 'Variável de ambiente (X-Api-Key)' }), 'OUTRA_API_KEY')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({
@@ -127,7 +128,7 @@ describe('V-20/V-21: modo e valor', () => {
     await user.click(screen.getByRole('option', { name: 'file:' }))
     const target = screen.getByRole('textbox', { name: 'Caminho do arquivo (X-Api-Key)' })
     await paste(user, target, '/run/secrets/loja_key')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toMatchObject({ 'X-Api-Key': 'file:/run/secrets/loja_key' })
@@ -171,7 +172,7 @@ describe('V-22: nome sensível com texto e "Usar segredo"', () => {
     expect(document.body.textContent).not.toContain(TEXT)
 
     await user.type(target, 'LOJA_API_KEY')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ Authorization: 'env:LOJA_API_KEY' })
   })
@@ -182,7 +183,7 @@ describe('V-22: nome sensível com texto e "Usar segredo"', () => {
     const row = await addNamed(user, 'X-Conta')
     await paste(user, within(row).getAllByRole('textbox')[1], 'valor livre')
 
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(within(row).queryByRole('button', { name: /Usar segredo/ })).toBeNull()
@@ -237,7 +238,8 @@ describe('V-23: erros e avisos do Segredo', () => {
     const [row] = rows()
 
     expect(within(row).getByText(/está fora da regra do orquestrador/)).toBeVisible()
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ 'X-Api-Key': 'env:loja_key' })
 
@@ -274,7 +276,7 @@ describe('V-24: valor oculto e o modo', () => {
     await user.click(screen.getByRole('button', { name: 'Substituir o valor de Authorization' }))
     await chooseMode(user, 'Authorization', 'Segredo')
     await user.type(screen.getByRole('textbox', { name: 'Variável de ambiente (Authorization)' }), 'NOVA_API_KEY')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toMatchObject({ Authorization: 'env:NOVA_API_KEY' })
@@ -318,7 +320,7 @@ describe('R3: referência colada em Texto', () => {
 
     const target = within(row).getByRole('textbox', { name: 'Variável de ambiente (X-Conta)' })
     expect(target).toHaveValue('OPENAI_API_KEY')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
     expect(within(row).queryByText(/^Use MAIÚSCULAS/)).toBeNull()
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ 'X-Conta': 'env:OPENAI_API_KEY' })

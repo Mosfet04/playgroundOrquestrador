@@ -7,6 +7,7 @@ import type { Tool } from '@/types/management'
 
 import { renderWithIntl } from '../helpers/intl'
 import { captureSave, saveButton, stubBrowserApis, tool } from '../helpers/toolForm'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // QA P3-05 (D-P3-05-4): o `***` do header sobrevive a "Substituir" seguido de
 // "Manter oculto", mesmo depois de digitada uma referência nova; e o modo
@@ -39,12 +40,13 @@ describe('header oculto', () => {
       'DESCARTADA_API_KEY'
     )
     await user.click(screen.getByRole('button', { name: 'Manter o valor oculto de Authorization' }))
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ Authorization: '***', 'X-Api-Key': 'env:LOJA_API_KEY' })
     expect(JSON.stringify(bodies[0])).not.toContain('DESCARTADA')
-  })
+  }, 15_000)
 })
 
 describe('valor de segredo colado no modo Segredo', () => {

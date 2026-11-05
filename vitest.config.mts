@@ -22,6 +22,8 @@ export default defineConfig({
     include: ['tests/**/*.test.{ts,tsx}'],
     setupFiles: ['./tests/setup.ts'],
     restoreMocks: true,
+    // Na suíte inteira em paralelo, teste de formulário de ~2 s passa dos 5 s padrão (0032).
+    testTimeout: 15000,
     env: TEST_ENV
   }
 })

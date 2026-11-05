@@ -1,0 +1,74 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-03T22:00:00Z"
+  },
+  "title": "P4-02 Diff antes de salvar",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 900,
+      "title": "Desktop · claro · Salvar abre o diálogo “Revisar antes de salvar” (agent, 5 alterações)"
+    },
+    "Editor-claro.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 1000,
+      "h": 1300,
+      "title": "Desktop · claro · Rodapé do editor: sem mudança, com mudança, salvo, só leitura, criação, erro de validação (F1–F6)"
+    },
+    "Dialogo-escuro.dc.html": {
+      "x": 2440,
+      "y": 0,
+      "w": 1272,
+      "h": 1800,
+      "title": "Desktop · escuro · Diálogo: padrão, gravando, segredos, team, lista longa (D1–D6)"
+    },
+    "Dialogo-claro.dc.html": {
+      "x": 3792,
+      "y": 0,
+      "w": 1272,
+      "h": 1100,
+      "title": "Desktop · claro · Prompt longo recolhido e expandido, segredo legado (D7–D9)"
+    },
+    "Celular-claro.dc.html": {
+      "x": 0,
+      "y": 1020,
+      "w": 390,
+      "h": 2200,
+      "title": "Celular · claro · Rodapé sem mudança e diálogo empilhado (M1–M3)"
+    },
+    "Celular-escuro.dc.html": {
+      "x": 470,
+      "y": 1020,
+      "w": 390,
+      "h": 2400,
+      "title": "Celular · escuro · Segredos, gravando e varredura em EN (N1–N4)"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Editor-claro.dc.html",
+    "Dialogo-escuro.dc.html",
+    "Dialogo-claro.dc.html",
+    "Celular-claro.dc.html",
+    "Celular-escuro.dc.html"
+  ],
+  "notes": {
+    "t1": {
+      "x": 0,
+      "y": -300,
+      "text": "P4-02 · Diff antes de salvar",
+      "kind": "title1",
+      "maxW": 5064
+    }
+  },
+  "designSystems": []
+}

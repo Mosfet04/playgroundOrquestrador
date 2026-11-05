@@ -11,6 +11,7 @@ import { server } from '../msw/server'
 import { SCHEMA_URL, schemaFixture } from '../msw/handlers'
 import { entityControls } from '../helpers/controls'
 import { renderWithIntl } from '../helpers/intl'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P3-01: AgentForm e ToolForm oferecem as opções do GET /api/config/schema (o
 // /admin/schema do orquestrador), sem lista fixa. Estados: carregando
@@ -220,7 +221,8 @@ describe('AgentForm: opções do schema', () => {
     const provider = screen.getByRole('combobox', { name: /^Provedor \*/ })
     await waitFor(() => expect(provider).toBeEnabled())
     expect(provider).toHaveTextContent('retirado')
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0]).toMatchObject({ factoryIaModel: 'retirado' })
@@ -454,7 +456,8 @@ describe('ToolForm: opções do schema', () => {
     await waitFor(() => expect(method).toBeEnabled())
     expect(method).toHaveTextContent('TRACE')
     expect(selectOf(/^Tipo/)).toHaveTextContent('number')
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0]).toMatchObject({

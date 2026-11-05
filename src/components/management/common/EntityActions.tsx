@@ -84,8 +84,8 @@ export function EntityActions({
   /** Versão lida da config: vai no If-Match (P2-06). */
   version: number
   active: boolean
-  /** O formulário tem edições não salvas? (lido ao abrir o Dialog). */
-  isDirty: () => boolean
+  /** O formulário tem edições não salvas? (a nota do Dialog). */
+  isDirty: boolean
   disabled: boolean
   /** Corpo do PUT que reativa: o documento carregado com `active: true`. */
   reactivateBody: () => string
@@ -227,7 +227,7 @@ export function EntityActions({
   const blockedTeams = current?.kind === 'blocked' ? current.teams : []
   const running = busy !== null
   useEffect(() => onBusyChange(running), [running, onBusyChange])
-  const dirty = dialog !== null && isDirty()
+  const dirty = dialog !== null && isDirty
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">

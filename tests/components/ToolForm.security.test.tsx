@@ -10,6 +10,7 @@ import type { Tool } from '@/types/management'
 import { renderWithIntl } from '../helpers/intl'
 import { server } from '../msw/server'
 import { captureSave, paste, saveButton, stubBrowserApis, tool } from '../helpers/toolForm'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // QA P3-03: caminhos até o PUT/POST que os testes do dev não exercitam para o
 // header sensível (D-P3-03-3): renomear depois de digitar, "Substituir" com
@@ -107,7 +108,8 @@ describe('"Substituir" um valor oculto', () => {
     await paste(user, screen.getByLabelText('Novo valor de Authorization'), SECRET)
     await user.click(screen.getByRole('button', { name: 'Manter o valor oculto de Authorization' }))
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ 'X-Conta': '***', Authorization: '***' })
@@ -120,7 +122,7 @@ describe('"Substituir" um valor oculto', () => {
     await user.click(screen.getByRole('button', { name: 'Substituir o valor de X-Conta' }))
     await paste(user, screen.getByLabelText('Novo valor de X-Conta'), 'text/plain')
 
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ 'X-Conta': 'text/plain', Authorization: '***' })

@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { useForm, type FieldErrors, type Path } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
+import { referencePrefixes } from '@/lib/secretRef'
 import { useApplyRevision } from '@/components/layout/RuntimeRevision'
 import { Button } from '@/components/ui/button'
-import { withDefaults } from '@/lib/formDiff'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TextArea } from '@/components/ui/textarea'
@@ -29,9 +29,11 @@ import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema } from '../common/useConfigSchema'
+import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useSaveReview } from '../common/useSaveReview'
 import { diffAgent } from './agentDiff'
-import { AgentFormValues, executionDefaults, toFormValues, toPayload } from './agentFormValues'
+import { AgentFormValues, offeredEmbedder, readValues, toFormValues, toPayload } from './agentFormValues'
 import { ExecutionSection } from '../common/ExecutionSection'
 import { ModelSection } from '../common/ModelSection'
 import { SectionCard } from '../common/SectionCard'
@@ -113,8 +115,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     if (!schema) return
     if (!isEditing && !schema.chatProviders.some(({ name }) => name === getValues('factoryIaModel')))
       setValue('factoryIaModel', schema.chatProviders[0]?.name ?? '')
-    if (!storedEmbedder && !schema.embedderProviders.some(({ name }) => name === getValues('rag_factoryIaModel')))
-      setValue('rag_factoryIaModel', schema.embedderProviders[0]?.name ?? '')
+    if (!storedEmbedder) setValue('rag_factoryIaModel', offeredEmbedder(getValues('rag_factoryIaModel'), schema))
     // RAG novo (ou sem estratégia gravada): a 1ª do schema, que é o padrão do
     // orquestrador.
     if (!getValues('rag_search_strategy')) setValue('rag_search_strategy', schema.ragSearchStrategies[0] ?? '')
@@ -235,10 +236,14 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
 
       if (result?.success) {
         const revision = applyRevision(result)
-        // A edição fica no editor, que passa a ser o documento salvo (o
-        // formulário já tem os valores enviados); criar volta à lista (D-P4-01-4).
+        // A edição fica no editor, que passa a ser o documento salvo (o BFF apara
+        // e o orquestrador preenche defaults, D-P4-02-6); criar volta à lista (D-P4-01-4).
         if (isEditing) {
-          controls?.set(result.data as AgentConfig)
+          const saved = result.data as AgentConfig
+          const values = readValues(saved, schema)
+          controls?.set(saved)
+          form.reset(values)
+          setSelectedToolIds(values.tools_ids)
           applyStatus.show({ status: 'applied', revision })
         } else {
           toast.success(t('saved'), { description: appliedText(revision) })
@@ -283,17 +288,18 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     }
   }
 
-  // O que difere entre o formulário e uma versão da config (P3-06), pelos
-  // mesmos valores que o salvar enviaria (o execution ausente vale o default do schema).
-  const compare = (other: AgentConfig) =>
-    diffAgent(
-      toPayload(getValues(), selectedToolIds),
-      toPayload(
-        withDefaults(toFormValues(other), schema ? executionDefaults(schema) : {}),
-        other.tools_ids
+  // O que difere entre o formulário (ou o `data` validado) e uma versão da config
+  // (P3-06, P4-02), pelos mesmos valores que o salvar enviaria.
+  const compare = useCallback(
+    (other: AgentConfig, values: AgentFormValues = getValues()) =>
+      diffAgent(
+        toPayload(values, selectedToolIds),
+        toPayload(readValues(other, schema), other.tools_ids),
+        tf,
+        referencePrefixes(schema?.apiKeyRefFormats ?? [])
       ),
-      tf
-    )
+    [getValues, schema, selectedToolIds, tf]
+  )
 
   const conflict = useSaveConflict<AgentConfig>({
     url: `/api/agents/${encodeURIComponent(agent?.id ?? '')}`,
@@ -302,8 +308,22 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     controls
   })
 
+  const review = useSaveReview<AgentFormValues, AgentConfig>({
+    form,
+    entity: agent,
+    compare,
+    save: async (data, dismiss) => {
+      if ((await submit(data, undefined, dismiss)) === 'conflict' && agent) conflict.start(agent.version)
+    }
+  })
+
+  const saveDisabled = loading || acting || schemaState.status !== 'ready' || !writable
+  // Edição sem mudança (D-P4-02-1): o Salvar segue focável e o envio é barrado.
+  const unchanged = isEditing && !review.hasChanges && !saveDisabled
+
   const onSubmit = async (data: AgentFormValues) => {
-    if ((await submit(data)) === 'conflict' && agent) conflict.start(agent.version)
+    if (agent) review.open(agent, data)
+    else await submit(data)
   }
 
   return (
@@ -348,6 +368,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
       <form
         noValidate
         onSubmit={(event) => {
+          if (unchanged) return event.preventDefault()
           clearErrors()
           return handleSubmit(onSubmit, onInvalid)(event)
         }}
@@ -479,8 +500,11 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
             kind="agents"
             result={applyStatus.result}
             onReload={controls?.reload}
-            isDirty={() => !!agent && compare(agent).length > 0}
+            isDirty={review.hasChanges}
           />
+          {unchanged && (
+            <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
+          )}
           {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
             {agent && controls && (
@@ -491,7 +515,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
                   name={agent.nome}
                   version={agent.version}
                   active={agent.active}
-                  isDirty={() => compare(agent).length > 0}
+                  isDirty={review.hasChanges}
                   disabled={loading}
                   reactivateBody={() =>
                     JSON.stringify(toPayload({ ...toFormValues(agent), active: true }, agent.tools_ids))
@@ -517,8 +541,10 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               <Button
                 ref={saveRef}
                 type="submit"
-                disabled={loading || acting || schemaState.status !== 'ready'}
-                className="h-10 gap-2 sm:h-9"
+                disabled={saveDisabled}
+                aria-disabled={unchanged || undefined}
+                aria-describedby={unchanged ? review.hintId : undefined}
+                className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
               >
                 <Save className="w-4 h-4" />
                 {loading ? tc('saving') : tc('save')}
@@ -537,6 +563,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
           saveRef={saveRef}
         />
       )}
+      {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
       </div>
     </div>
   )

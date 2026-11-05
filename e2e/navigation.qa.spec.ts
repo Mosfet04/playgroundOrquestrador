@@ -2,6 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 
 import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // QA do P1-03: o que o navigation.spec.ts do dev não cobre (id hostil,
 // carregando/500, teclado na navegação, criação por rota, voltar do
@@ -196,7 +197,8 @@ test('salvar uma edição fica no editor: voltar leva à lista', async ({ page }
   await expect(page).toHaveURL('/agents/agente%20alfa')
   await expect(page.getByLabel(/ID do agente/)).toHaveValue(agent.id)
   await hydrated(page)
-  await page.getByRole('button', { name: /Atualizar|Salvar/ }).click()
+  await page.getByLabel('Descrição').fill('Editada')
+  await saveAndConfirm(page)
   await expect(page.getByText('Agente salvo.')).toBeVisible()
   await expect(page).toHaveURL('/agents/agente%20alfa')
   expect(requested).toContain('PUT agente%20alfa')

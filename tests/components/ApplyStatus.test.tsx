@@ -13,6 +13,7 @@ import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
 import { RUNTIME_URL } from '../msw/handlers'
 import { server } from '../msw/server'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P4-01 (spec docs/design/P4-01.md §2-3, D-P4-01-4): salvar uma edição deixa
 // o editor na tela, com o formulário no documento salvo e o status de
@@ -143,7 +144,7 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
 
     await user.clear(nameField())
     await user.type(nameField(), 'Novo nome')
-    await user.click(save)
+    await saveAndConfirm(user)
 
     expect(await within(region()).findByText(`${saved}.`)).toHaveClass('font-medium')
     expect(region()).toHaveTextContent(`${saved}. Mudança aplicada na revisão 8 do runtime.`)
@@ -156,15 +157,17 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
     expect(nameField()).toHaveValue('Novo nome')
     expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument()
 
-    await user.click(save)
+    await user.type(nameField(), ' 2')
+    await saveAndConfirm(user)
     await waitFor(() => expect(seen.ifMatch).toEqual(['"3"', '"4"']))
   })
 
   it('aplicada sem N: "Mudança aplicada no runtime." e a casca não muda', async () => {
     serve(kind, [savedAs(kind, { version: 4 })])
-    const { user, save } = await renderEditor(kind)
+    const { user } = await renderEditor(kind)
 
-    await user.click(save)
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(region()).toHaveTextContent(`${saved}. Mudança aplicada no runtime.`))
     expect(screen.getByText('Revisão do runtime: 7')).toBeInTheDocument()
@@ -176,7 +179,7 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
 
     await user.clear(nameField())
     await user.type(nameField(), 'Editado')
-    await user.click(save)
+    await saveAndConfirm(user)
 
     expect(
       await within(region()).findByText('Não aplicada: o orquestrador não conseguiu carregar esta configuração.')
@@ -194,9 +197,10 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
 
   it('não aplicada sem errorType: sem a linha do detalhe técnico', async () => {
     serve(kind, [notApplied()])
-    const { user, save } = await renderEditor(kind)
+    const { user } = await renderEditor(kind)
 
-    await user.click(save)
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await within(region()).findByText(/^Não aplicada/)
     expect(region()).not.toHaveTextContent('Detalhe técnico')
@@ -204,11 +208,11 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
 
   it('não confirmada: sem toast; "Recarregar" (com o aviso de descarte) relê e mostra o gravado, sem o status e com foco no h1', async () => {
     const seen = serve(kind, [notConfirmed], [KINDS[kind].entity, { ...KINDS[kind].entity, [nameKey]: 'Gravado', version: 4 }])
-    const { user, save } = await renderEditor(kind)
+    const { user } = await renderEditor(kind)
 
     await user.clear(nameField())
     await user.type(nameField(), 'Editado')
-    await user.click(save)
+    await saveAndConfirm(user)
 
     expect(
       await within(region()).findByText('Não confirmada: o orquestrador falhou depois de receber a mudança.')
@@ -227,32 +231,35 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
 
   it('o status some na primeira edição', async () => {
     serve(kind, [savedAs(kind, { version: 4 }, { runtimeRevision: 8 })])
-    const { user, save } = await renderEditor(kind)
+    const { user } = await renderEditor(kind)
 
-    await user.click(save)
+    await touchName(user)
+    await saveAndConfirm(user)
     await within(region()).findByText(`${saved}.`)
     await user.type(nameField(), 'x')
 
     expect(region()).toBeEmptyDOMElement()
   })
 
-  it('o status some no início de um novo Salvar, sem editar (região vazia durante "Salvando…")', async () => {
+  it('o status some no início de um novo Salvar (região vazia durante "Salvando…")', async () => {
     // Portão fora do handler: o 2º PUT fica preso até o release().
     let release!: () => void
     const held = new Promise<void>((resolve) => (release = resolve))
     serve(kind, [
-      savedAs(kind, { version: 4 }, { runtimeRevision: 8 }),
+      // Sem mudança o Salvar não envia: o não aplicada mantém as edições e o status.
+      notApplied(),
       async () => {
         await held
         return savedAs(kind, { version: 5 }, { runtimeRevision: 9 })()
       }
     ])
-    const { user, save } = await renderEditor(kind)
+    const { user } = await renderEditor(kind)
 
-    await user.click(save)
-    await waitFor(() => expect(region()).toHaveTextContent('revisão 8'))
+    await touchName(user)
+    await saveAndConfirm(user)
+    await within(region()).findByText(/^Não aplicada/)
 
-    await user.click(save)
+    await saveAndConfirm(user)
     expect(await screen.findByRole('button', { name: 'Salvando…' })).toBeDisabled()
     expect(region()).toBeEmptyDOMElement()
 
@@ -327,9 +334,10 @@ describe('casos de um tipo só', () => {
         })
       )
     )
-    const { user, save } = await renderEditor('agents')
+    const { user } = await renderEditor('agents')
 
-    await user.click(save)
+    await touchName(user)
+    await saveAndConfirm(user)
     await within(region()).findByText('Agente salvo.')
     await user.click(screen.getByRole('checkbox', { name: /Clima/ }))
 
@@ -340,13 +348,13 @@ describe('casos de um tipo só', () => {
     serve('tools', [
       savedAs('tools', { headers: { 'X-Conta': '***' }, version: 4 }, { runtimeRevision: 8 })
     ])
-    const { user, save } = await renderEditor('tools')
+    const { user } = await renderEditor('tools')
 
     await user.click(screen.getByRole('button', { name: 'Adicionar header' }))
     await user.type(screen.getByLabelText('Nome do header 1'), 'X-Conta')
     await user.click(screen.getByLabelText('Valor de X-Conta'))
     await user.paste('conta-digitada')
-    await user.click(save)
+    await saveAndConfirm(user)
 
     await within(region()).findByText('Tool salva.')
     expect(await screen.findByLabelText('Valor de X-Conta (gravado, oculto)')).toHaveValue('***')
@@ -357,9 +365,10 @@ describe('casos de um tipo só', () => {
 
   it('EN: a cópia do status vem do catálogo EN', async () => {
     serve('agents', [notApplied('ValueError')])
-    const { user, save } = await renderEditor('agents', { locale: 'en' })
+    const { user } = await renderEditor('agents', { locale: 'en' })
 
-    await user.click(save)
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(
       await within(region()).findByText("Not applied: the orchestrator couldn't load this configuration.")

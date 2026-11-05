@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -19,7 +19,9 @@ import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
 import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
+import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useSaveReview } from '../common/useSaveReview'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema } from '../common/useConfigSchema'
 import { BasicInfoSection } from './BasicInfoSection'
@@ -67,7 +69,10 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
   // O `fieldset disabled` não segura o pointerdown num <button> (Chromium): o
   // Radix abriria o menu; o Select precisa estar desabilitado por si.
   const selectsDisabled = !schema || !writable
-  const prefixes = schema ? referencePrefixes(schema.apiKeyRefFormats) : FALLBACK_PREFIXES
+  const prefixes = useMemo(
+    () => (schema ? referencePrefixes(schema.apiKeyRefFormats) : FALLBACK_PREFIXES),
+    [schema]
+  )
   // O `***` só se mantém na origem em que foi gravado.
   const loadedOrigin = tool ? routeOrigin(tool.route) : null
 
@@ -222,10 +227,13 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     }
   }
 
-  // O que difere entre o formulário e uma versão da config (P3-06), pelos
-  // mesmos valores que o salvar enviaria.
-  const compare = (other: Tool) =>
-    diffTool(toPayload(getValues()), toPayload(toFormValues(other)), tf, prefixes)
+  // O que difere entre o formulário (ou o `data` validado) e uma versão da config
+  // (P3-06, P4-02), pelos mesmos valores que o salvar enviaria.
+  const compare = useCallback(
+    (other: Tool, values: ToolFormValues = getValues()) =>
+      diffTool(toPayload(values), toPayload(toFormValues(other)), tf, prefixes),
+    [getValues, prefixes, tf]
+  )
 
   const conflict = useSaveConflict<Tool>({
     url: `/api/tools/${encodeURIComponent(tool?.id ?? '')}`,
@@ -234,11 +242,26 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     controls
   })
 
+  const review = useSaveReview<ToolFormValues, Tool>({
+    form,
+    entity: tool,
+    compare,
+    save: async (data, dismiss) => {
+      if ((await submit(data, undefined, dismiss)) === 'conflict' && tool) conflict.start(tool.version)
+    }
+  })
+
+  const saveDisabled = loading || acting || schemaState.status !== 'ready' || !writable
+  // Edição sem mudança (D-P4-02-1): o Salvar segue focável e o envio é barrado.
+  // Valor padrão inválido gravado, sem edição: o Salvar precisa levar o foco a ele.
+  const unchanged =
+    isEditing && !review.hasChanges && !saveDisabled && !problems.defaults.some(Boolean)
+
   // Submit do formulário
   const onSubmit = async (data: ToolFormValues) => {
-    const found = toolProblems(data, prefixes)
-    if (focusFirstProblem(found)) return
-    if ((await submit(data)) === 'conflict' && tool) conflict.start(tool.version)
+    if (focusFirstProblem(toolProblems(data, prefixes))) return
+    if (tool) review.open(tool, data)
+    else await submit(data)
   }
 
   return (
@@ -280,6 +303,7 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
             sai na validação: limpo antes, ele não trava o próximo envio. */}
         <form
           onSubmit={(event) => {
+            if (unchanged) return event.preventDefault()
             clearErrors()
             return handleSubmit(onSubmit)(event)
           }}
@@ -321,8 +345,11 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
                 kind="tools"
                 result={applyStatus.result}
                 onReload={controls?.reload}
-                isDirty={() => !!tool && compare(tool).length > 0}
+                isDirty={review.hasChanges}
               />
+              {unchanged && (
+                <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
+              )}
               {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
               <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
                 {tool && controls && (
@@ -333,7 +360,7 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
                       name={tool.name}
                       version={tool.version}
                       active={tool.active}
-                      isDirty={() => compare(tool).length > 0}
+                      isDirty={review.hasChanges}
                       disabled={loading}
                       reactivateBody={() =>
                         JSON.stringify(toPayload({ ...toFormValues(tool), active: true }))
@@ -359,8 +386,10 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
                   <Button
                     ref={saveRef}
                     type="submit"
-                    disabled={loading || acting || schemaState.status !== 'ready'}
-                    className="h-10 gap-2 sm:h-9"
+                    disabled={saveDisabled}
+                    aria-disabled={unchanged || undefined}
+                    aria-describedby={unchanged ? review.hintId : undefined}
+                    className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
                   >
                     <Save className="w-4 h-4" />
                     {loading ? tc('saving') : tc('save')}
@@ -379,6 +408,7 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
             saveRef={saveRef}
           />
         )}
+        {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
       </div>
     </div>
   )

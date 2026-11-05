@@ -1,7 +1,8 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 import { TEST_ENV } from './test-env'
 
 // P3-06: conflito 412 no salvar e Desativar/Reativar contra o fake
@@ -43,7 +44,7 @@ test('412 ao salvar: mostra o que difere e "Salvar as minhas por cima" grava com
 
   await saveElsewhere(id, { nome: 'Nome da outra pessoa', prompt: 'Prompt novo' })
   await page.getByLabel(/^Nome \*/).fill('Meu nome')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
 
   const dialog = page.getByRole('dialog', { name: 'O agente mudou' })
   await expect(dialog).toContainText('Uma versão mais nova (v2) foi salva enquanto você editava a v1. 2 campos do formulário diferem')
@@ -78,7 +79,7 @@ test('412 ao salvar: "Recarregar a atual" abre o formulário na versão atual, c
 
   await saveElsewhere(id, { nome: 'Versão de fora' })
   await page.getByLabel(/^Nome \*/).fill('Descartado')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await page.getByRole('dialog', { name: 'O agente mudou' }).getByRole('button', { name: 'Recarregar a atual' }).click()
 
   await expect(page.getByText('Versão atual carregada')).toBeVisible()
@@ -89,7 +90,7 @@ test('412 ao salvar: "Recarregar a atual" abre o formulário na versão atual, c
 
   // A versão lida agora é a atual: salvar de novo funciona.
   await page.getByLabel(/^Nome \*/).fill('Depois de recarregar')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await expect(page.getByText('Agente salvo').last()).toBeVisible()
   expect(await stored(id)).toMatchObject({ nome: 'Depois de recarregar', version: 3 })
 })
@@ -230,7 +231,7 @@ test('tool, duas abas: o 412 compara sem nenhum valor de segredo e "por cima" gr
 
     // Aba 2 salva primeiro.
     await other.getByLabel(/^Nome \*/).fill('Nome da outra aba')
-    await other.getByRole('button', { name: 'Salvar' }).click()
+    await saveAndConfirm(other)
     await expect(other.getByText('Tool salva').last()).toBeVisible()
     await other.close()
     version = 2
@@ -239,7 +240,7 @@ test('tool, duas abas: o 412 compara sem nenhum valor de segredo e "por cima" gr
     await page.getByLabel(/^Nome \*/).fill('Nome da minha aba')
     await page.getByRole('button', { name: 'Substituir o valor de X-Conta' }).click()
     await page.getByLabel('Novo valor de X-Conta').fill(NEW)
-    await page.getByRole('button', { name: 'Salvar' }).click()
+    await saveAndConfirm(page)
 
     const dialog = page.getByRole('dialog', { name: 'A tool mudou' })
     const list = dialog.getByRole('region', { name: 'Campos que diferem' })
@@ -304,7 +305,7 @@ test('team: 412 no salvar (Recarregar), Desativar e Reativar', async ({ page }) 
     expect(outside.status).toBe(200)
 
     await page.getByLabel(/^Nome/).fill('Meu nome de team')
-    await page.getByRole('button', { name: 'Salvar' }).click()
+    await saveAndConfirm(page)
     const dialog = page.getByRole('dialog', { name: 'O team mudou' })
     const list = dialog.getByRole('region', { name: 'Campos que diferem' })
     await expect(list).toContainText('Meu nome de team')
@@ -331,4 +332,170 @@ test('team: 412 no salvar (Recarregar), Desativar e Reativar', async ({ page }) 
     const { version } = await storedKind('teams', id)
     await fetch(`${teamsAdmin}/${id}?hard=true`, { method: 'DELETE', headers: { ...ADMIN, 'If-Match': `"${version}"` } })
   }
+})
+
+// P4-02: editar, revisar e confirmar nos três editores, contra o fake.
+test.describe('Revisar antes de salvar', () => {
+  // Só as escritas do editor: GETs de sempre não contam.
+  const writes = (page: Page) => {
+    const seen: string[] = []
+    page.on('request', (request) => {
+      if (request.method() !== 'GET' && request.url().includes('/api/')) seen.push(request.method())
+    })
+    return seen
+  }
+  const TITLE = 'Revisar antes de salvar'
+  const HINT = 'Nenhuma alteração para salvar.'
+
+  test('agent: sem mudança apagado; cancelar não envia; confirmar grava o listado e fica no editor', async ({ page }) => {
+    const id = 'e2e-revisar-agent'
+    await createAgent(id, 'Revisar')
+    const sent = writes(page)
+    await page.goto(`/agents/${id}`)
+    await hydrated(page)
+    await expect(page.getByLabel(/^Nome \*/)).toHaveValue('Revisar')
+    const save = page.getByRole('button', { name: 'Salvar' })
+    await expect(save).toHaveAttribute('aria-disabled', 'true')
+    await expect(page.getByText(HINT)).toBeVisible()
+    await page.getByLabel(/^Nome \*/).press('Enter')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+
+    await page.getByLabel(/^Nome \*/).fill('Revisado')
+    await expect(page.getByText(HINT)).toHaveCount(0)
+    await save.click()
+    const dialog = page.getByRole('dialog', { name: TITLE })
+    await expect(dialog).toContainText('1 alteração em relação à v1, a versão que você abriu.')
+    await expect(dialog.getByRole('button', { name: 'Voltar ao formulário' })).toBeFocused()
+    const list = dialog.getByRole('region', { name: 'Campos alterados' })
+    await expect(list.getByRole('listitem')).toHaveCount(1)
+    await expect(list.getByText('Antes').locator('+ dd')).toHaveText('Revisar')
+    await expect(list.getByText('Depois').locator('+ dd')).toHaveText('Revisado')
+
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(save).toBeFocused()
+    await expect(page.getByLabel(/^Nome \*/)).toHaveValue('Revisado')
+    expect(sent).toEqual([])
+
+    await saveAndConfirm(page)
+
+    await expect(page.getByText(/^Agente salvo\. Mudança aplicada/)).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page).toHaveURL(`/agents/${id}`)
+    expect(sent).toEqual(['PUT'])
+    expect(await stored(id)).toMatchObject({ nome: 'Revisado', version: 2 })
+    await expect(save).toBeFocused()
+    await expect(save).toHaveAttribute('aria-disabled', 'true')
+
+    // O documento salvo é o "Antes" seguinte.
+    await page.getByLabel(/^Nome \*/).fill('Revisado de novo')
+    await expect(page.getByText(/^Agente salvo\. Mudança aplicada/)).toHaveCount(0)
+    await save.click()
+    await expect(page.getByRole('dialog', { name: TITLE })).toContainText('em relação à v2')
+    await expect(page.getByRole('dialog', { name: TITLE }).getByText('Antes').locator('+ dd')).toHaveText('Revisado')
+  })
+
+  test('agent: só pelo teclado, o foco volta ao Salvar com o anel visível depois do 200', async ({ page }) => {
+    const id = 'e2e-revisar-teclado'
+    await createAgent(id, 'Teclado')
+    await page.goto(`/agents/${id}`)
+    await hydrated(page)
+    await expect(page.getByLabel(/^Nome \*/)).toHaveValue('Teclado')
+    await page.getByLabel(/^Nome \*/).fill('Teclado editado')
+
+    const save = page.getByRole('button', { name: 'Salvar' })
+    await save.focus()
+    await page.keyboard.press('Enter')
+    const dialog = page.getByRole('dialog', { name: TITLE })
+    await expect(dialog.getByRole('button', { name: 'Voltar ao formulário' })).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(dialog.getByRole('button', { name: 'Confirmar e salvar' })).toBeFocused()
+    await page.keyboard.press('Enter')
+
+    await expect(page.getByText(/^Agente salvo\. Mudança aplicada/)).toBeVisible()
+    await expect(save).toBeFocused()
+    await expect(save).toHaveAttribute('aria-disabled', 'true')
+    expect(await save.evaluate((button) => button.matches(':focus-visible'))).toBe(true)
+  })
+
+  test('agent: 412 ao confirmar fecha a revisão e abre o conflito; só um diálogo', async ({ page }) => {
+    const id = 'e2e-revisar-412'
+    await createAgent(id, 'Revisar 412')
+    await page.goto(`/agents/${id}`)
+    await hydrated(page)
+    await expect(page.getByLabel(/^Nome \*/)).toHaveValue('Revisar 412')
+
+    await saveElsewhere(id, { nome: 'De fora' })
+    await page.getByLabel(/^Nome \*/).fill('Meu')
+    await saveAndConfirm(page)
+
+    const conflict = page.getByRole('dialog', { name: 'O agente mudou' })
+    await expect(conflict.getByRole('button', { name: 'Voltar ao formulário' })).toBeFocused()
+    await expect(page.getByRole('dialog')).toHaveCount(1)
+    await expect(page.getByRole('dialog', { name: TITLE })).toHaveCount(0)
+    await expect(page.getByText('Não foi possível salvar')).toHaveCount(0)
+  })
+
+  test('team e tool: editar, ver o diálogo, confirmar e ver o status; segredo fora do diálogo', async ({ page }) => {
+    const teamId = 'e2e-revisar-team'
+    const teamsAdmin = `${FAKE_ORCHESTRATOR_URL}/admin/config/teams`
+    const team = await fetch(teamsAdmin, {
+      method: 'POST',
+      headers: { ...ADMIN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: teamId,
+        nome: 'Revisar team',
+        factory_ia_model: 'ollama',
+        model: 'fake-model',
+        member_ids: ['agente-alfa'],
+        mode: 'route'
+      })
+    })
+    expect(team.status).toBe(201)
+    try {
+      await page.goto(`/teams/${teamId}`)
+      await hydrated(page)
+      await expect(page.getByLabel(/^Nome/)).toHaveValue('Revisar team')
+      await page.getByLabel(/^Nome/).fill('Team revisado')
+      await saveAndConfirm(page)
+      await expect(page.getByText(/^Team salvo\. Mudança aplicada/)).toBeVisible()
+      expect(await storedKind('teams', teamId)).toMatchObject({ nome: 'Team revisado', version: 2 })
+    } finally {
+      const { version } = await storedKind('teams', teamId)
+      await fetch(`${teamsAdmin}/${teamId}?hard=true`, { method: 'DELETE', headers: { ...ADMIN, 'If-Match': `"${version}"` } })
+    }
+
+    const id = 'e2e-revisar-tool'
+    const created = await fetch(toolsAdmin, {
+      method: 'POST',
+      headers: { ...ADMIN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        name: 'Revisar tool',
+        description: 'd',
+        route: 'https://clima.example.com/v1',
+        http_method: 'GET',
+        parameters: [],
+        headers: { 'X-Conta': 'antigo' },
+        active: true
+      })
+    })
+    expect(created.status).toBe(201)
+    const typed = 'valor-digitado-no-header'
+    try {
+      await page.goto(`/tools/${id}`)
+      await hydrated(page)
+      await page.getByRole('button', { name: 'Substituir o valor de X-Conta' }).click()
+      await page.getByLabel('Novo valor de X-Conta').fill(typed)
+      await page.getByRole('button', { name: 'Salvar' }).click()
+      const dialog = page.getByRole('dialog', { name: TITLE })
+      await expect(dialog).toContainText('Valores em texto não são exibidos.')
+      expect(await dialog.innerHTML()).not.toContain(typed)
+      await dialog.getByRole('button', { name: 'Confirmar e salvar' }).click()
+      await expect(page.getByText(/^Tool salva\. Mudança aplicada/)).toBeVisible()
+    } finally {
+      const { version } = await storedKind('tools', id)
+      await fetch(`${toolsAdmin}/${id}?hard=true`, { method: 'DELETE', headers: { ...ADMIN, 'If-Match': `"${version}"` } })
+    }
+  })
 })

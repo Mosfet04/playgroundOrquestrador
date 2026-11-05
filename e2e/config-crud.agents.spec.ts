@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // P2-06: CRUD de agents pela API Admin do fake orchestrator. Roda no projeto
 // `config-agents`, depois do `chromium` (playwright.config.ts): o dashboard
@@ -37,7 +38,7 @@ test('cria, edita e exclui um agent pelo fake', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeVisible()
   await hydrated(page)
   await page.getByLabel(/^Nome \*/).fill('Agente do e2e editado')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
 
   // A edição salva fica no editor (D-P4-01-4).
   await expect(page.getByText(/^Agente salvo\. Mudança aplicada/)).toBeVisible()
@@ -79,7 +80,9 @@ test('agent do seed com prompt em lista: abre unido por linha e salvar grava tex
   await hydrated(page)
   // Reexecução local com o fake reaproveitado: a versão lida antes vale a base.
   const before = (await (await storedAgent('agente-beta')).json()).version as number
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  // Sem mudança o Salvar não envia (D-P4-02-1): o prompt vai junto de outra edição.
+  await page.getByLabel('Descrição').fill('Beta com o prompt em texto')
+  await saveAndConfirm(page)
 
   await expect(page.getByText('Agente salvo').last()).toBeVisible()
   expect(await (await storedAgent('agente-beta')).json()).toMatchObject({
@@ -195,7 +198,7 @@ test('cria e edita agent com modelo, execução, memória e resumo', async ({ pa
   // Remover o parâmetro e limpar a referência tira as chaves do documento.
   await page.getByRole('button', { name: 'Remover temperature' }).click()
   await modelReference(page).getByRole('textbox', { name: 'Variável de ambiente' }).fill('')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
 
   // O toast da criação ainda pode estar na tela: espera o PUT pela versão gravada.
   await expect
@@ -311,7 +314,7 @@ test('cria e edita agent com RAG completo; desligar e religar mantém os valores
   await rag.getByRole('switch', { name: 'Habilitar RAG' }).click()
   await expect(rag.getByText('catalogo · fake-embed/bge-small · hierarchical')).toBeVisible()
   await expect(rag.getByRole('textbox', { name: 'Nome do documento *' })).toBeHidden()
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await expect
     .poll(async () => ((await (await storedAgent(id)).json()) as { version: number }).version)
     .toBe(2)
@@ -330,7 +333,7 @@ test('cria e edita agent com RAG completo; desligar e religar mantém os valores
   await rag.getByRole('switch', { name: 'Habilitar RAG' }).click()
   await rag.getByRole('button', { name: 'Descartar valores' }).click()
   await expect(rag.getByRole('switch', { name: 'Habilitar RAG' })).toBeFocused()
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await expect
     .poll(async () => ((await (await storedAgent(id)).json()) as { version: number }).version)
     .toBe(3)
@@ -394,20 +397,21 @@ test('salvar: "aplicada na revisão N" igual à da casca, sem reler o runtime; n
   const status = page.locator('[aria-live="polite"][aria-atomic="true"]')
   const shell = (revision: number | string) =>
     page.getByText(`Revisão do runtime: ${revision}`, { exact: true })
-  const save = async () => {
+  const written = async (click: () => Promise<void>) => {
     const response = page.waitForResponse(
       (candidate) => candidate.url().includes(`/api/agents`) && candidate.request().method() !== 'GET'
     )
-    await page.getByRole('button', { name: 'Salvar' }).click()
+    await click()
     return (await response).json()
   }
+  const save = () => written(() => saveAndConfirm(page))
 
   await page.goto('/agents/new')
   await hydrated(page)
   await page.getByLabel(/^ID do agente/).fill(id)
   await page.getByLabel(/^Nome \*/).fill('Agente da revisão')
   await page.getByLabel(/^Modelo \*/).fill('fake-model')
-  const created = await save()
+  const created = await written(() => page.getByRole('button', { name: 'Salvar' }).click())
   await expect(page).toHaveURL('/agents')
   await expect(page.getByText(`Mudança aplicada na revisão ${created.runtimeRevision} do runtime.`)).toBeVisible()
 

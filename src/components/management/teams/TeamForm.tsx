@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -9,7 +9,7 @@ import { ArrowLeft, Save } from 'lucide-react'
 
 import { useApplyRevision } from '@/components/layout/RuntimeRevision'
 import { Button } from '@/components/ui/button'
-import { withDefaults } from '@/lib/formDiff'
+import { referencePrefixes } from '@/lib/secretRef'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -28,11 +28,13 @@ import { rejectedField } from '../common/rejectedField'
 import { SectionCard } from '../common/SectionCard'
 import { useConfigSchema } from '../common/useConfigSchema'
 import { useRequestError } from '../common/useRequestError'
+import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useSaveReview } from '../common/useSaveReview'
 import { MembersSection } from './MembersSection'
 import { diffTeam } from './teamDiff'
 import { ModeSection } from './ModeSection'
-import { executionDefaults, toFormValues, toPayload, type TeamFormValues } from './teamFormValues'
+import { readValues, toFormValues, toPayload, type TeamFormValues } from './teamFormValues'
 import { useMemberAgents } from './useMemberAgents'
 
 interface TeamFormProps {
@@ -139,10 +141,12 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
 
       if (result?.success) {
         const revision = applyRevision(result)
-        // A edição fica no editor, que passa a ser o documento salvo (o
-        // formulário já tem os valores enviados); criar volta à lista (D-P4-01-4).
+        // A edição fica no editor, que passa a ser o documento salvo (o BFF apara
+        // e o orquestrador preenche defaults, D-P4-02-6); criar volta à lista (D-P4-01-4).
         if (isEditing) {
-          controls?.set(result.data as TeamConfig)
+          const saved = result.data as TeamConfig
+          controls?.set(saved)
+          form.reset(readValues(saved, schema))
           applyStatus.show({ status: 'applied', revision })
         } else {
           toast.success(t('saved'), { description: appliedText(revision) })
@@ -187,15 +191,19 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     }
   }
 
-  // O que difere entre o formulário e uma versão da config (P3-06), pelos
-  // mesmos valores que o salvar enviaria (o execution ausente vale o default do schema).
-  const compare = (other: TeamConfig) =>
-    diffTeam(
-      toPayload(getValues()),
-      toPayload(withDefaults(toFormValues(other), schema ? executionDefaults(schema) : {})),
-      tt,
-      ta
-    )
+  // O que difere entre o formulário (ou o `data` validado) e uma versão da config
+  // (P3-06, P4-02), pelos mesmos valores que o salvar enviaria.
+  const compare = useCallback(
+    (other: TeamConfig, values: TeamFormValues = getValues()) =>
+      diffTeam(
+        toPayload(values),
+        toPayload(readValues(other, schema)),
+        tt,
+        ta,
+        referencePrefixes(schema?.apiKeyRefFormats ?? [])
+      ),
+    [getValues, schema, tt, ta]
+  )
 
   const conflict = useSaveConflict<TeamConfig>({
     url: `/api/teams/${encodeURIComponent(team?.id ?? '')}`,
@@ -204,8 +212,23 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     controls
   })
 
+  const review = useSaveReview<TeamFormValues, TeamConfig>({
+    form,
+    entity: team,
+    compare,
+    save: async (data, dismiss) => {
+      if ((await submit(data, undefined, dismiss)) === 'conflict' && team) conflict.start(team.version)
+    }
+  })
+
+  const saveDisabled =
+    loading || acting || schemaState.status !== 'ready' || members.state.status !== 'ready' || !writable
+  // Edição sem mudança (D-P4-02-1): o Salvar segue focável e o envio é barrado.
+  const unchanged = isEditing && !review.hasChanges && !saveDisabled
+
   const onSubmit = async (data: TeamFormValues) => {
-    if ((await submit(data)) === 'conflict' && team) conflict.start(team.version)
+    if (team) review.open(team, data)
+    else await submit(data)
   }
 
   return (
@@ -248,6 +271,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
           noValidate
           className="space-y-6"
           onSubmit={(event) => {
+            if (unchanged) return event.preventDefault()
             clearErrors()
             return handleSubmit(onSubmit)(event)
           }}
@@ -370,8 +394,11 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                 kind="teams"
                 result={applyStatus.result}
                 onReload={controls?.reload}
-                isDirty={() => !!team && compare(team).length > 0}
+                isDirty={review.hasChanges}
               />
+              {unchanged && (
+                <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
+              )}
               {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
               <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
                 {team && controls && (
@@ -382,7 +409,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                       name={team.nome}
                       version={team.version}
                       active={team.active}
-                      isDirty={() => compare(team).length > 0}
+                      isDirty={review.hasChanges}
                       disabled={loading}
                       reactivateBody={() =>
                         JSON.stringify(toPayload({ ...toFormValues(team), active: true }))
@@ -408,8 +435,10 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                   <Button
                     ref={saveRef}
                     type="submit"
-                    disabled={loading || acting || schemaState.status !== 'ready' || members.state.status !== 'ready'}
-                    className="h-10 gap-2 sm:h-9"
+                    disabled={saveDisabled}
+                    aria-disabled={unchanged || undefined}
+                    aria-describedby={unchanged ? review.hintId : undefined}
+                    className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
                   >
                     <Save className="size-4" aria-hidden="true" />
                     {loading ? tc('saving') : tc('save')}
@@ -428,6 +457,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
             saveRef={saveRef}
           />
         )}
+        {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
       </div>
     </div>
   )

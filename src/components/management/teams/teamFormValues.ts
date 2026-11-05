@@ -1,3 +1,4 @@
+import { trimFields, withDefaults } from '@/lib/formDiff'
 import type { ConfigSchema, CreateTeamForm, TeamConfig } from '@/types/management'
 import { toModelParams, toParamRows, type ParamRow } from '../common/modelFormValues'
 
@@ -27,14 +28,29 @@ export const toFormValues = (team?: TeamConfig | null): TeamFormValues => ({
   summary_active: team?.summary_active ?? false
 })
 
+// O que `teamBodySchema` apara; o `prompt` e o resto seguem como digitados.
+const TRIMMED_BY_BFF = ['nome', 'model', 'factoryIaModel', 'mode', 'base_url', 'api_key_ref'] as const
+
 export function toPayload(values: TeamFormValues): CreateTeamForm {
   const { params, ...rest } = values
-  return { ...rest, model_params: toModelParams(params) }
+  return trimFields(
+    {
+      ...rest,
+      member_ids: rest.member_ids.map((id) => id.trim()),
+      model_params: toModelParams(params)
+    },
+    TRIMMED_BY_BFF
+  )
 }
 
-// Execução ausente vale o default do schema (o formulário o aplica ao abrir; o
-// conflito (P3-06) o aplica à versão atual para comparar o mesmo com o mesmo).
-export const executionDefaults = ({ team }: ConfigSchema): Partial<TeamFormValues> => ({
+// Execução ausente vale o default do schema.
+const executionDefaults = ({ team }: ConfigSchema): Partial<TeamFormValues> => ({
   markdown: team.markdown,
   add_history_to_context: team.addHistoryToContext
 })
+
+// Uma versão da config como o formulário a mostraria aberta sem tocar: para
+// comparar o mesmo com o mesmo e para refazer o formulário depois do 200
+// (D-P4-02-6), quando os efeitos não rodam de novo.
+export const readValues = (team: TeamConfig, schema?: ConfigSchema): TeamFormValues =>
+  withDefaults(toFormValues(team), schema ? executionDefaults(schema) : {})

@@ -8,6 +8,7 @@ import type { Tool } from '@/types/management'
 
 import { renderWithIntl } from '../helpers/intl'
 import { captureSave, paste, saveButton, stubBrowserApis, tool } from '../helpers/toolForm'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P3-03: rota parametrizada ligada aos parâmetros (D-P3-03-2) e valor padrão
 // convertido pelo tipo (D-P3-03-1).
@@ -78,7 +79,7 @@ describe('rota com placeholder sem parâmetro', () => {
     expect(description).toHaveFocus()
 
     await user.type(description, 'Código do pedido')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].parameters).toEqual([
@@ -108,7 +109,8 @@ describe('rota com placeholder sem parâmetro', () => {
     )
 
     expect(screen.getByRole('switch', { name: 'Obrigatório' })).toBeChecked()
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].parameters).toMatchObject([{ name: 'order_id', required: true }])
@@ -154,7 +156,8 @@ describe('rota com placeholder sem parâmetro', () => {
 
     expect(screen.queryByText(MISSING)).toBeNull()
     expect(screen.getByText('na rota')).toBeVisible()
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].parameters).toMatchObject([{ name: 'order_id', required: true }])
@@ -194,7 +197,8 @@ describe('valor padrão por tipo', () => {
       ''
     ])
     expect(fields[3]).toHaveTextContent('false')
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].parameters).toEqual([
@@ -225,7 +229,7 @@ describe('valor padrão por tipo', () => {
     await paste(user, filter, '{"a": [1]}')
     await user.click(active)
     await user.click(await screen.findByRole('option', { name: 'true' }))
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].parameters).toMatchObject([

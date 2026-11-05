@@ -12,6 +12,7 @@ import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
 import { RUNTIME_URL } from '../msw/handlers'
 import { server } from '../msw/server'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // QA P4-01: corridas e fronteiras que os testes do dev não alcançam. Dois
 // Salvar seguidos, editor desmontado no meio do PUT e a revisão 0 (inteiro
@@ -77,7 +78,7 @@ async function renderEditor() {
 }
 
 describe('QA P4-01: status de aplicação', () => {
-  it('duplo clique no Salvar envia um PUT só (sem 412 contra a própria escrita)', async () => {
+  it('duplo clique no Confirmar envia um PUT só (sem 412 contra a própria escrita)', async () => {
     // O PUT demora como na rede: o 2º clique chega com o 1º em voo.
     const puts = serve(async () => {
       await delay(100)
@@ -85,7 +86,9 @@ describe('QA P4-01: status de aplicação', () => {
     })
     const { user, save } = await renderEditor()
 
-    await user.dblClick(save)
+    await touchName(user)
+    await user.click(save)
+    await user.dblClick(await screen.findByRole('button', { name: 'Confirmar e salvar' }))
 
     await waitFor(() => expect(region()).toHaveTextContent('revisão 8'))
     expect(puts).toEqual(['"3"'])
@@ -100,9 +103,10 @@ describe('QA P4-01: status de aplicação', () => {
       return HttpResponse.json({ success: true, data: { ...agent, version: 4 }, runtimeRevision: 9 })
     })
     const errors = vi.spyOn(console, 'error')
-    const { user, save } = await renderEditor()
+    const { user } = await renderEditor()
 
-    await user.click(save)
+    await touchName(user)
+    await saveAndConfirm(user)
     await screen.findByRole('button', { name: 'Salvando…' })
     act(() => unmountEditor())
     expect(screen.queryByRole('button', { name: /Salvar|Salvando/ })).not.toBeInTheDocument()
@@ -118,9 +122,10 @@ describe('QA P4-01: status de aplicação', () => {
 
   it('revisão 0 (fronteira, falsy) aparece no status e na casca', async () => {
     serve(() => HttpResponse.json({ success: true, data: { ...agent, version: 4 }, runtimeRevision: 0 }))
-    const { user, save } = await renderEditor()
+    const { user } = await renderEditor()
 
-    await user.click(save)
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() =>
       expect(region()).toHaveTextContent('Agente salvo. Mudança aplicada na revisão 0 do runtime.')

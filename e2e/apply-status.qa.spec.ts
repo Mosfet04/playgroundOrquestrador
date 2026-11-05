@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { APP_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // QA P4-01 (V-P4-01-8, -17, -18): em 390 px o status fica acima do Salvar e
 // quebra sem rolagem horizontal, mesmo com o detalhe técnico longo e em EN;
@@ -36,7 +37,7 @@ test('390: não confirmada e não aplicada (tipo longo) acima do Salvar, sem rol
   await openEditor(page, { success: false, error: 'not_confirmed' }, 502)
   const save = page.getByRole('button', { name: 'Salvar' })
   await page.getByLabel(/^Nome \*/).fill('Agente Alfa editado no celular')
-  await save.click()
+  await saveAndConfirm(page)
 
   const reload = status(page).getByRole('button', { name: 'Recarregar agente' })
   await expect(reload).toBeVisible()
@@ -58,7 +59,7 @@ test('390: não confirmada e não aplicada (tipo longo) acima do Salvar, sem rol
         })
       : route.continue()
   )
-  await save.click()
+  await saveAndConfirm(page)
   const code = status(page).locator('code')
   await expect(code).toHaveText(/^pydantic_core\./)
   const box = (await status(page).boundingBox())!
@@ -79,7 +80,7 @@ test('390: não confirmada e não aplicada (tipo longo) acima do Salvar, sem rol
 test('390 EN: "Not applied" sem rolagem horizontal e o indicador no Sheet', async ({ page, context }) => {
   await context.addCookies([{ name: 'locale', value: 'en', url: APP_URL }])
   await openEditor(page, { success: false, error: 'not_applied', errorType: 'ValueError' }, 422)
-  await page.getByRole('button', { name: 'Save' }).click()
+  await saveAndConfirm(page)
 
   await expect(status(page)).toContainText("Not applied: the orchestrator couldn't load this configuration.")
   expect(await noHorizontalScroll(page)).toBe(true)

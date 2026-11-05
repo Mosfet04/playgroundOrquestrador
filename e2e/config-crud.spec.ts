@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // P2-06: CRUD de tools pela API Admin do fake orchestrator (sem Mongo e sem
 // page.route): criar, editar e excluir pelo editor de hoje; header em texto
@@ -42,7 +43,7 @@ test('cria, edita (header mascarado mantido) e exclui uma tool pelo fake', async
   const put = page.waitForResponse(
     (candidate) => candidate.url().includes(`/api/tools/${ID}`) && candidate.request().method() === 'PUT'
   )
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   const { runtimeRevision } = (await (await put).json()) as { runtimeRevision: number }
   expect(runtimeRevision).toEqual(expect.any(Number))
 

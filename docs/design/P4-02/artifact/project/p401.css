@@ -1,0 +1,65 @@
+/* P4-01: status de aplicação no editor, toasts das ações e revisão do runtime na casca.
+   Delta sobre theme.css, pg-ds.css, p302.css e p306.css. Só tokens do DS; equivalência Tailwind anotada (o código usa as classes). */
+
+/* Região viva do status: sempre montada, sem altura quando vazia (o espaço até os botões vem do bloco) */
+.apply-region { display: flex; flex-direction: column; }
+
+/* ApplyStatus: rounded-lg border bg-card p-3 flex items-start gap-3 text-sm */
+.apply { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); min-width: 0; }
+.apply > .pg-ico { margin-top: 2px; }
+/* Aplicada: border-border, py-2.5, items-center, ícone CircleCheck text-success */
+.apply.ok { align-items: center; padding: 10px var(--space-3); }
+.apply.ok > .pg-ico { margin-top: 0; color: var(--success); }
+/* Não aplicada: border-destructive/50, ícone CircleAlert e título text-destructive */
+.apply.err { border-color: color-mix(in srgb, var(--destructive) 50%, transparent); }
+.apply.err > .pg-ico, .apply.err .apply-title { color: var(--destructive); }
+/* Não confirmada: border-warning/50, ícone TriangleAlert e título text-warning */
+.apply.warn { border-color: color-mix(in srgb, var(--warning) 50%, transparent); }
+.apply.warn > .pg-ico, .apply.warn .apply-title { color: var(--warning); }
+
+.apply-body { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; flex: 1; }
+.apply-body p { margin: 0; }
+.apply-title { font-weight: 500; }
+.apply-text { color: var(--muted-foreground); }
+.apply-line b { font-weight: 500; }
+.apply-line .n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.apply-line .rest { color: var(--muted-foreground); }
+
+/* Detalhe técnico: mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground; valor code-sm em rounded-sm border bg-muted px-1.5 */
+.apply-detail { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: var(--space-1) 0 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.code-chip { display: inline-flex; align-items: center; min-height: 20px; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--muted); color: var(--foreground); font-family: var(--font-mono); font-size: 12px; line-height: 16px; overflow-wrap: anywhere; }
+
+/* Ações do bloco: mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 */
+.apply-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-top: var(--space-2); }
+.apply-actions .pg-help { flex: 1 1 200px; }
+.phone .apply-actions .pg-btn { width: 100%; }
+
+/* Bloco + rodapé: o bloco fica logo acima da linha de botões, a 16 px */
+.foot-wrap { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* Toasts (sonner): os do DS; o aviso tem ícone text-warning */
+.pg-toast-warning .pg-ico { color: var(--warning); }
+.pg-toast-desc .code-chip { margin-left: 2px; }
+.pg-toast-desc span + span { display: block; margin-top: 4px; }
+.toast-stack { display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; }
+
+/* Revisão do runtime na casca: px-3 h-6 flex items-center gap-1.5 font-mono text-xs text-muted-foreground; número text-foreground font-medium tabular-nums */
+.rt { display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 var(--space-3); font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--muted-foreground); white-space: nowrap; margin: 0; }
+.rt b { font-weight: 500; color: var(--foreground); font-variant-numeric: tabular-nums; }
+.rt .pg-sk { display: inline-block; width: 24px; height: 12px; }
+/* Rodapé da navegação (desktop): mt-auto border-t p-3 flex flex-col gap-1 */
+.nav-foot { margin-top: auto; border-top: 1px solid var(--border); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); }
+.nav-foot .pg-btn-ghost, .sheet-foot .pg-btn-ghost { justify-content: flex-start; width: 100%; padding: 0 var(--space-3); gap: var(--space-3); color: var(--foreground); }
+.nav-foot .pg-btn-ghost .pg-ico, .sheet-foot .pg-btn-ghost .pg-ico { color: var(--muted-foreground); }
+/* Rodapé do Sheet (celular): space-y-3 border-t p-4 */
+.sheet-foot { margin-top: auto; border-top: 1px solid var(--border); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.sheet-foot .div { margin: 0 calc(-1 * var(--space-4)); border-top: 1px solid var(--border); }
+.sheet-foot .out { margin: 0 calc(-1 * var(--space-3)); }
+.sheet-foot .out .pg-btn-ghost { height: 44px; }
+.sheet-foot .rt { padding: 0; }
+.sel-row { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Recortes da navegação nas pranchas */
+.side-crop { width: 256px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); display: flex; flex-direction: column; min-height: 200px; overflow: hidden; }
+.crop-row { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start; }
+.crop-cap { margin: 0 0 var(--space-2); font-size: 12px; line-height: 16px; color: var(--muted-foreground); }

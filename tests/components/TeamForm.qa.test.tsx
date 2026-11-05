@@ -10,6 +10,7 @@ import type { TeamConfig } from '@/types/management'
 
 import { renderWithIntl } from '../helpers/intl'
 import { server } from '../msw/server'
+import { saveAndConfirm } from '../helpers/saveReview'
 
 // QA P3-04: reabrir um team completo e salvar sem editar devolve o mesmo
 // documento (aceito pelo zod do BFF); limpar os opcionais tira-os do corpo.
@@ -91,16 +92,17 @@ async function open() {
 }
 
 describe('TeamForm: reabrir e salvar', () => {
-  it('sem editar nada, o PUT leva o documento gravado (membros na ordem, inativo, parâmetros tipados)', async () => {
+  it('editar só a descrição: o PUT leva o resto do documento gravado (membros na ordem, inativo, parâmetros tipados)', async () => {
     const sent = serve()
     const user = await open()
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await user.type(screen.getByLabelText('Descrição'), ' x')
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0]).toMatchObject({
       nome: 'Suporte',
-      descricao: 'Time de suporte',
+      descricao: 'Time de suporte x',
       prompt: 'Escolha o melhor membro.',
       active: false,
       member_ids: ['pesquisador', 'suporte-local'],
@@ -125,7 +127,7 @@ describe('TeamForm: reabrir e salvar', () => {
 
     await user.clear(within(model).getByLabelText(/^URL base/))
     await user.clear(within(model).getByRole('textbox', { name: 'Variável de ambiente' }))
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].base_url || undefined).toBeUndefined()

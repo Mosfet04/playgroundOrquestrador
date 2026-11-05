@@ -111,6 +111,7 @@ export function ConflictDialog<T extends { version: number }>({
     <Dialog open={status !== 'closed'} onOpenChange={(next) => !next && !saving && onClose()}>
       <DialogContent
         className="sm:max-w-xl"
+        closeDisabled={saving}
         aria-busy={status === 'loading' || saving}
         onCloseAutoFocus={(event) => {
           event.preventDefault()

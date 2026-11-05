@@ -12,6 +12,7 @@ import { entityControls } from '../helpers/controls'
 import { renderWithIntl } from '../helpers/intl'
 import { SCHEMA_URL, schemaFixture } from '../msw/handlers'
 import { server } from '../msw/server'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P3-04: editor de team com o documento inteiro (D-P3-04-1). Spec:
 // docs/design/P3-04.md (V-P3-04-n). Seção de modelo e de execução reusadas do
@@ -236,7 +237,7 @@ describe('TeamForm: membros', () => {
     )
 
     await user.click(member(/Arquivado/))
-    await user.click(save())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.member_ids).toEqual(['pesquisador', 'suporte-local', 'arquivado'])
@@ -256,7 +257,7 @@ describe('TeamForm: membros', () => {
 
     await user.click(missing)
     expect(within(members()).queryByText(/sumiu/)).not.toBeInTheDocument()
-    await user.click(save())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.member_ids).toEqual(['suporte-local'])
@@ -378,7 +379,8 @@ describe('TeamForm: modo de coordenação', () => {
     const sent = serveSave()
     const user = await ready(<TeamForm team={{ ...team, mode: 'legado' }} onSuccess={() => {}} />)
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.mode).toBe('legado')
@@ -511,7 +513,7 @@ describe('TeamForm: salvar', () => {
 
     await user.clear(screen.getByLabelText(/^Nome/))
     await user.type(screen.getByLabelText(/^Nome/), 'Renomeado')
-    await user.click(save())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0]).toMatchObject({ method: 'PUT', url: '/api/teams/time%20a%2Fb', ifMatch: '"3"' })
@@ -565,7 +567,8 @@ describe('TeamForm: recusa do orquestrador (422)', () => {
       <TeamForm team={{ ...team, member_ids: ['arquivado', 'pesquisador'] }} onSuccess={() => {}} />
     )
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     const error = await screen.findByText('Valor recusado pelo orquestrador')
     expect(members().parentElement).toContainElement(error)
@@ -578,7 +581,8 @@ describe('TeamForm: recusa do orquestrador (422)', () => {
     serveSave(rejectWith('mode'))
     const user = await ready()
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await screen.findByText('Valor recusado pelo orquestrador')).toBeInTheDocument()
     await waitFor(() => expect(mode('route')).toHaveFocus())
@@ -592,7 +596,8 @@ describe('TeamForm: recusa do orquestrador (422)', () => {
     serveSave(rejectWith(field))
     const user = await ready(<TeamForm team={{ ...team, base_url: 'http://llm.local/v1' }} onSuccess={() => {}} />)
 
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await screen.findByText('Valor recusado pelo orquestrador')).toBeInTheDocument()
     await waitFor(() => expect(input()).toHaveFocus())

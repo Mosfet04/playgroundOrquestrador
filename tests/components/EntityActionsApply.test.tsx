@@ -11,6 +11,7 @@ import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
 import { RUNTIME_URL } from '../msw/handlers'
 import { server } from '../msw/server'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P4-01 (spec docs/design/P4-01.md §5, V-P4-01-10 a 12): Excluir, Desativar e
 // Reativar levam o resultado de aplicação no toast que já existe; com
@@ -155,7 +156,8 @@ it('o início de uma ação tira o status do último Salvar', async () => {
       <Toaster />
     </RuntimeRevisionProvider>
   )
-  await user.click(await screen.findByRole('button', { name: 'Salvar' }))
+  await touchName(user)
+  await saveAndConfirm(user)
   expect(await screen.findByText('Agente salvo.')).toBeInTheDocument()
 
   await user.click(screen.getByRole('button', { name: 'Desativar agente' }))
