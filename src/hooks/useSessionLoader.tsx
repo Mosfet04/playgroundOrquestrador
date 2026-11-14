@@ -27,6 +27,9 @@ const toText = (content: unknown): string => {
 
 const useSessionLoader = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
+  const setLoadedSessionId = usePlaygroundStore(
+    (state) => state.setLoadedSessionId
+  )
   const setIsSessionsLoading = usePlaygroundStore(
     (state) => state.setIsSessionsLoading
   )
@@ -60,11 +63,15 @@ const useSessionLoader = () => {
   const getSession = useCallback(
     async ({ entityType }: LoaderArgs, sessionId: string) => {
       if (!sessionId) return
+      setLoadedSessionId(sessionId)
       try {
         const { chat_history } = await getPlaygroundSessionAPI(
           entityType === 'team' ? 'team' : 'agent',
           sessionId
         )
+        // A URL pode ter deixado esta sessão (outra, nenhuma, página fechada)
+        // durante o GET: a resposta atrasada não escreve na conversa de agora.
+        if (usePlaygroundStore.getState().loadedSessionId !== sessionId) return
         const messages: PlaygroundChatMessage[] = chat_history
           .filter((entry) => entry.content != null && entry.content !== '')
           .map((entry) => ({
@@ -78,10 +85,12 @@ const useSessionLoader = () => {
         }
       } catch (error) {
         console.error('Error loading session:', error)
+        if (usePlaygroundStore.getState().loadedSessionId === sessionId)
+          setLoadedSessionId(null)
         return null
       }
     },
-    [setMessages]
+    [setMessages, setLoadedSessionId]
   )
 
   return { getSession, getSessions }

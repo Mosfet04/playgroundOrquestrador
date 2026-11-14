@@ -501,6 +501,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
             result={applyStatus.result}
             onReload={controls?.reload}
             isDirty={review.hasChanges}
+            testNowId={agent?.active ? agent.id : undefined}
           />
           {unchanged && (
             <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />

@@ -34,6 +34,7 @@ Fora de escopo: tool (não roda sozinha); manter a conversa anterior.
 Critérios de aceite: a ação abre o playground com a entidade e sem histórico de sessão (e2e); voltar retorna ao editor.
 Testes exigidos: componente da ação; e2e salvar → testar.
 Riscos e dependências: P4-01.
+Resultado: `ApplyStatus` ganha a prop `testNowId` (só o id; o form passa com `active`): no status aplicada, link `Button outline asChild` + `next/link` (`prefetch={false}`, mesma aba, `MessageSquare`, sr-only "no playground") para `/playground?agent=|team=<id>` com `encodeURIComponent`, sem `session`; ausente em inativa, não aplicada, não confirmada, criação e tool. Playground (decisão 0033): sem `?session=` a conversa fica vazia, na montagem e quando a URL perde a sessão sem remontar; quando `?session=` muda (Voltar/Avançar) e não há run, a sessão é carregada. O store ganha `loadedSessionId` (a sessão pedida para `messages`): `getSession` marca ao começar e descarta a resposta se a sessão mudou; o `RunStarted` marca a sessão criada pelo stream; desmontar zera. `SessionItem` grava a URL antes do GET (corrige o último clique perder e o `?session=` gravado depois de sair, ambos anteriores ao item). Limitação aceita: enviar mensagem em `?session=X` enquanto o histórico ainda carrega deixa o histórico substituir a pergunta (R11, anterior ao item). Faixa 640–767 px: a ação vai para linha própria em largura total (linha única a partir de `md`).
 
 ## P4-04 — Histórico e restaurar versão
 UI: sim            Depende (orq.): FA-05

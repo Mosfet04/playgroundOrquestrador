@@ -395,6 +395,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                 result={applyStatus.result}
                 onReload={controls?.reload}
                 isDirty={review.hasChanges}
+                testNowId={team?.active ? team.id : undefined}
               />
               {unchanged && (
                 <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />

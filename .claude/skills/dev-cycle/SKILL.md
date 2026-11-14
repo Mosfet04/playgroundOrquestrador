@@ -58,7 +58,17 @@ O frontmatter dos agentes vale para desenhar, implementar, a 1ª revisão do ite
 |---|---|
 | `frontend-reviewer` na revisão curta dos testes do QA | `model: "sonnet"` |
 | `frontend-reviewer` em revisão de delta (rodada 2+) | `effort: "high"` |
-| `frontend-dev-specialist` em item pequeno com `UI: não` (sem rotas novas nem vários módulos de `src/server`) | `model: "sonnet"` ([0021](../../../docs/decisions/0021-modelos-dev-sonnet-qa-enxuto.md)); item com UI ou BFF de porte fica no opus do frontmatter, sem exceção por item (0031) |
+| `frontend-dev-specialist` em item pequeno com `UI: não` (sem rotas novas nem vários módulos de `src/server`) | `model: "sonnet"` ([0021](../../../docs/decisions/0021-modelos-dev-sonnet-qa-enxuto.md)) |
+
+**Item pequeno** (sem rota nem BFF novo, 1–2 componentes de produto; [0033](../../../docs/decisions/0033-p4-03-testar-agora.md) D-P4-03-1), com ou sem UI, usa o perfil enxuto em todas as chamadas. Item grande segue o frontmatter e a tabela acima (0031).
+
+| Agente (item pequeno) | Parâmetros |
+|---|---|
+| `ui-ux-designer` (design) | `model: "sonnet"`, `effort: "medium"`; reaproveitar mockups existentes |
+| `frontend-dev-specialist` | `model: "sonnet"`, `effort: "high"` |
+| `frontend-reviewer` (1ª revisão e deltas) | `model: "opus"`, `effort: "high"` |
+| `qa-engineer` | `model: "sonnet"`, `effort: "high"`, QA enxuto |
+| `ui-ux-designer` (DESIGN_QA) | `model: "sonnet"`, `effort: "medium"`; só as capturas dos critérios, quantizadas |
 
 QA enxuto (0021), sempre no prompt do `qa-engineer`: não duplicar teste do dev; só critério descoberto; um caso por classe de payload; e2e só para o que componente/BFF não alcança.
 

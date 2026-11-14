@@ -1,0 +1,11 @@
+/* P4-03: delta. Link "Testar agora" no bloco aplicada.
+   <Button variant="outline" asChild><Link href="/playground?agent=<id>">...</Link></Button>
+   Desktop: fim da linha do status (ml-auto, h-9). Celular: abaixo do texto, w-full h-10. */
+.apply.ok .apply-try { margin-left: auto; flex: none; }
+.apply.ok.has-try { align-items: center; padding: 6px var(--space-3); }
+.phone .apply.ok.has-try { flex-wrap: wrap; align-items: flex-start; padding: var(--space-3); }
+.phone .apply.ok.has-try .apply-line { flex: 1; min-width: 0; }
+.phone .apply.ok.has-try .apply-try { margin-left: 0; width: 100%; height: var(--control-h-touch); }
+.fr { display: flex; flex-direction: column; gap: 12px; }
+.cap { margin: 0; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+.stage { padding: 24px 32px; background: var(--background); color: var(--foreground); }

@@ -4,7 +4,14 @@ import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObjec
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { FieldValues, UseFormGetValues, UseFormWatch } from 'react-hook-form'
-import { CircleAlert, CircleCheck, ExternalLink, RotateCw, TriangleAlert } from 'lucide-react'
+import {
+  CircleAlert,
+  CircleCheck,
+  ExternalLink,
+  MessageSquare,
+  RotateCw,
+  TriangleAlert
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -84,7 +91,8 @@ export function ApplyStatus({
   kind,
   result,
   onReload,
-  isDirty
+  isDirty,
+  testNowId
 }: {
   kind: 'agents' | 'teams' | 'tools'
   result: ApplyResult | null
@@ -92,6 +100,11 @@ export function ApplyStatus({
   onReload?: () => void
   /** O formulário tem edições não salvas? (lido só no "não confirmada" da edição). */
   isDirty?: boolean
+  /**
+   * Agent ou team ativo, para o "Testar agora" do status aplicada (P4-03).
+   * Ausente na criação, na entidade inativa e na tool: sem a ação.
+   */
+  testNowId?: string
 }) {
   const t = useTranslations(kind)
   const tc = useTranslations('common')
@@ -99,7 +112,13 @@ export function ApplyStatus({
   return (
     <div aria-live="polite" aria-atomic="true">
       {result?.status === 'applied' && (
-        <div className={cn(BLOCK, 'items-start border-border py-2.5 sm:items-center')}>
+        <div
+          className={cn(
+            BLOCK,
+            'items-start border-border sm:items-center',
+            testNowId ? 'flex-wrap md:flex-nowrap md:py-1.5' : 'py-2.5'
+          )}
+        >
           <CircleCheck aria-hidden="true" className={cn(ICON, 'text-success sm:mt-0')} />
           <p className="min-w-0 flex-1">
             <span className="font-medium text-foreground">{tc('sentence', { text: t('saved') })}</span>{' '}
@@ -112,6 +131,17 @@ export function ApplyStatus({
                   })}
             </span>
           </p>
+          {testNowId && (
+            <Button variant="outline" asChild className={cn(ACTION, 'md:ml-auto md:shrink-0')}>
+              <Link
+                href={`/playground?${kind === 'teams' ? 'team' : 'agent'}=${encodeURIComponent(testNowId)}`}
+                prefetch={false}
+              >
+                <MessageSquare aria-hidden="true" />
+                {tc('testNow')} <span className="sr-only">{tc('testNowSr')}</span>
+              </Link>
+            </Button>
+          )}
         </div>
       )}
       {result?.status === 'not_applied' && (

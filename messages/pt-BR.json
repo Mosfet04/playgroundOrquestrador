@@ -83,6 +83,8 @@
     "close": "Fechar",
     "optionsLoading": "Carregando opções do orquestrador…",
     "opensInNewTab": "(abre em nova aba)",
+    "testNow": "Testar agora",
+    "testNowSr": "no playground",
     "reviewTitle": "Revisar antes de salvar",
     "reviewDescription": "{count, plural, one {# alteração} other {# alterações}} em relação à v{version}, a versão que você abriu. Nada é enviado até você confirmar.",
     "reviewConfirm": "Confirmar e salvar",

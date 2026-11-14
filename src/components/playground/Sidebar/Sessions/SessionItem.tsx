@@ -62,6 +62,11 @@ const SessionItem = ({
     // trocar o histórico (D-P2-03-4, decisão 0020).
     usePlaygroundStore.getState().runAbortController?.abort()
     onSessionClick()
+    // A URL vai antes do GET: o `getSession` marca esta sessão no mesmo tick,
+    // antes do efeito de ChatArea que reage ao ?session=, que então não a pede
+    // de novo. Clique em outra sessão, esvaziar a conversa ou sair da página
+    // invalidam a resposta atrasada, e não sobra nada para gravar depois.
+    setSessionId(session_id)
     await getSession(
       {
         entityType: mode,
@@ -70,7 +75,6 @@ const SessionItem = ({
       },
       session_id
     )
-    setSessionId(session_id)
   }
 
   const handleDeleteSession = async () => {
