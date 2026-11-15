@@ -476,13 +476,76 @@ function commit(
   respond(label.includes(NO_REVISION) ? {} : { 'Runtime-Revision': String(runtimeRevision) })
 }
 
+// Diário das escritas (FA-05, config_admin_use_case.py): por tipo e id, da mais
+// nova à mais antiga, com o documento depois da escrita como a API o mostra
+// (header mascarado, sem `version`; null na remoção) e o diff dos campos de topo
+// que mudaram no gravado, com os valores mostrados. Ator: `admin`, a chave do BFF.
+type AuditEntry = {
+  version: number
+  actor: string
+  at: string
+  diff: Record<string, { before: unknown; after: unknown }>
+  document: Record<string, unknown> | null
+}
+const audit = new Map<string, AuditEntry[]>()
+const MAX_PAGE_SIZE = 200
+
+function record(kind: ConfigKind, before: ConfigDoc | null, after: ConfigDoc | null) {
+  const strip = (doc: ConfigDoc | null): Record<string, unknown> => {
+    if (doc === null) return {}
+    const { version: _version, ...rest } = doc
+    void _version
+    return rest
+  }
+  const [stored, written] = [strip(before), strip(after)]
+  const [shownBefore, shownAfter] = [before && strip(shown(kind, before)), after && strip(shown(kind, after))]
+  const diff = Object.fromEntries(
+    [...new Set([...Object.keys(stored), ...Object.keys(written)])]
+      .filter((name) => JSON.stringify(stored[name] ?? null) !== JSON.stringify(written[name] ?? null))
+      .map((name) => [name, { before: shownBefore?.[name] ?? null, after: shownAfter?.[name] ?? null }])
+  )
+  const id = String((after ?? before)?.id)
+  const entry = {
+    version: (after ?? before)!.version,
+    actor: 'admin',
+    at: new Date().toISOString().replace('Z', '+00:00'),
+    diff,
+    document: shownAfter
+  }
+  audit.set(`${kind}/${id}`, [entry, ...(audit.get(`${kind}/${id}`) ?? [])])
+}
+
+// offset/limit como o `_page` do real: inteiros na faixa, senão 422.
+const pageParam = (url: URL, name: string, fallback: number, min: number, max: number) => {
+  const raw = url.searchParams.get(name)
+  if (raw === null) return fallback
+  return /^\d+$/.test(raw) && Number(raw) >= min && Number(raw) <= max ? Number(raw) : null
+}
+
 async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL) {
-  const match = /^\/admin\/config\/(agents|teams|tools)(?:\/([^/]+))?$/.exec(url.pathname)
+  const match =
+    /^\/admin\/config\/(agents|teams|tools)(?:\/([^/]+)(\/history(?:\/([^/]+)\/restore)?)?)?$/.exec(url.pathname)
   if (!match) return false
   const kind = match[1] as ConfigKind
   const id = match[2] === undefined ? undefined : decodeURIComponent(match[2])
   const store = configs[kind]
   const refuse = (refusal: Refusal) => sendJson(res, refusal.status, refusal.body)
+  const restoring = match[4]
+
+  // GET .../{id}/history: o diário do id, paginado (vazio se nunca foi escrito).
+  if (match[3] !== undefined && restoring === undefined) {
+    if (req.method !== 'GET') return false
+    const offset = pageParam(url, 'offset', 0, 0, 10 ** 9)
+    const limit = pageParam(url, 'limit', 50, 1, MAX_PAGE_SIZE)
+    if (offset === null || limit === null) {
+      refuse({ status: 422, body: { detail: 'offset/limit fora da faixa' } })
+      return true
+    }
+    const entries = audit.get(`${kind}/${id}`) ?? []
+    sendJson(res, 200, { items: entries.slice(offset, offset + limit), total: entries.length, offset, limit })
+    return true
+  }
+  if (restoring !== undefined && req.method !== 'POST') return false
 
   if (id === undefined && req.method === 'GET') {
     const offset = Number(url.searchParams.get('offset') ?? 0)
@@ -517,7 +580,10 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
       commit(
         res,
         created,
-        () => store.push(created),
+        () => {
+          store.push(created)
+          record(kind, null, created)
+        },
         (headers) => sendConfig(res, 201, kind, created, headers)
       )
     }
@@ -531,7 +597,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     else sendConfig(res, 200, kind, store[index])
     return true
   }
-  if (req.method !== 'PUT' && req.method !== 'DELETE') return false
+  if (restoring === undefined && req.method !== 'PUT' && req.method !== 'DELETE') return false
   const ifMatch = req.headers['if-match']
   if (ifMatch === undefined) {
     refuse({ status: 428, body: { detail: 'If-Match obrigatório' } })
@@ -547,6 +613,34 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     return true
   }
 
+  // POST .../history/{version}/restore: o documento da entrada mais nova com a
+  // versão (não a remoção) vai pelo caminho do PUT; o header mascarado mantém o
+  // gravado (mesma origem), como no real.
+  if (restoring !== undefined) {
+    const document = (audit.get(`${kind}/${id}`) ?? []).find(
+      (entry) => String(entry.version) === restoring && entry.document !== null
+    )?.document
+    if (!document) {
+      refuse({ status: 404, body: { detail: 'Config não encontrada' } })
+      return true
+    }
+    const doc = check({ ...document, id }, current)
+    if (!doc.ok) refuse(doc.refusal)
+    else {
+      const restored = { ...doc.value, version: current.version + 1 }
+      commit(
+        res,
+        restored,
+        () => {
+          store[index] = restored
+          record(kind, current, restored)
+        },
+        (headers) => sendConfig(res, 200, kind, restored, headers)
+      )
+    }
+    return true
+  }
+
   if (req.method === 'PUT') {
     const received = await body()
     const sameId = !received.ok || received.value.id === undefined || received.value.id === id
@@ -557,7 +651,10 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
       commit(
         res,
         replaced,
-        () => (store[index] = replaced),
+        () => {
+          store[index] = replaced
+          record(kind, current, replaced)
+        },
         (headers) => sendConfig(res, 200, kind, replaced, headers)
       )
     }
@@ -573,7 +670,10 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     commit(
       res,
       current,
-      () => store.splice(index, 1),
+      () => {
+        store.splice(index, 1)
+        record(kind, current, null)
+      },
       (headers) => res.writeHead(204, headers).end()
     )
     return true
@@ -582,7 +682,10 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
   commit(
     res,
     current,
-    () => (store[index] = deactivated),
+    () => {
+      store[index] = deactivated
+      record(kind, current, deactivated)
+    },
     (headers) => sendConfig(res, 200, kind, deactivated, headers)
   )
   return true

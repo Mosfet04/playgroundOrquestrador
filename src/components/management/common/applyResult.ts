@@ -2,8 +2,9 @@
 // aplicada (com a revisão, quando o BFF a mandou), não aplicada (a config não
 // monta; nada gravado, a versão anterior segue no ar) ou não confirmada (o
 // orquestrador falhou depois de receber; pode ter gravado sem entrar no ar).
+// `restored`: a escrita foi restaurar a versão `from`, gravada como `to` (P4-04).
 export type ApplyResult =
-  | { status: 'applied'; revision?: number }
+  | { status: 'applied'; revision?: number; restored?: { from: number; to: number } }
   | { status: 'not_applied'; errorType?: string }
   | { status: 'not_confirmed' }
 export type ApplyFailure = Exclude<ApplyResult, { status: 'applied' }>

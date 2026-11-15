@@ -7,12 +7,14 @@ import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useApplyRevision } from '@/components/layout/RuntimeRevision'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { boolRow } from '@/lib/formDiff'
 import { referencePrefixes } from '@/lib/secretRef'
 import { routeOrigin } from '@/lib/toolRoute'
 import { Tool, ToolFormField, isToolFormField } from '@/types/management'
-import { applyFailure, errorBody } from '../common/applyResult'
+import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
 import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
@@ -22,6 +24,7 @@ import { useRequestError } from '../common/useRequestError'
 import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
 import { useSaveReview } from '../common/useSaveReview'
+import { VersionHistory } from '../common/VersionHistory'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema } from '../common/useConfigSchema'
 import { BasicInfoSection } from './BasicInfoSection'
@@ -146,6 +149,14 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     return false
   }
 
+  // O editor passa ao documento gravado (salvar, restaurar; o header em texto
+  // volta oculto, `***`, como numa leitura nova). As edições não salvas somem (D-P4-04-2).
+  const showSaved = (saved: Tool, result: ApplyResult) => {
+    controls?.set(saved)
+    form.reset(toFormValues(saved))
+    applyStatus.show(result)
+  }
+
   // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
   // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
   // O estado nunca vem do formulário: salvar não liga nem desliga a tool.
@@ -177,14 +188,9 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
 
       if (result?.success) {
         const revision = applyRevision(result)
-        // A edição fica no editor, que passa a ser o documento salvo (o header
-        // em texto volta oculto, `***`, como numa leitura nova); criar volta à
-        // lista (D-P4-01-4).
-        if (isEditing) {
-          controls?.set(result.data as Tool)
-          form.reset(toFormValues(result.data as Tool))
-          applyStatus.show({ status: 'applied', revision })
-        } else {
+        // A edição fica no editor; criar volta à lista (D-P4-01-4).
+        if (isEditing) showSaved(result.data as Tool, { status: 'applied', revision })
+        else {
           toast.success(t('saved'), { description: appliedText(revision) })
           onSuccess()
         }
@@ -235,6 +241,17 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     [getValues, prefixes, tf]
   )
 
+  // De uma versão para outra (histórico, P4-04), como o formulário as mostraria
+  // abertas, mais o estado: restaurar pode ativar ou desativar (D-P4-04-3). Sem
+  // `before`, a tool nova.
+  const diffVersions = useCallback(
+    (before: Tool | null, after: Tool) => [
+      ...diffTool(toPayload(toFormValues(after)), toPayload(toFormValues(before)), tf, prefixes),
+      ...boolRow('active', t('active'), after.active, before?.active ?? true)
+    ],
+    [prefixes, tf, t]
+  )
+
   const conflict = useSaveConflict<Tool>({
     url: `/api/tools/${encodeURIComponent(tool?.id ?? '')}`,
     compare,
@@ -268,7 +285,7 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     <div>
       <div className="mx-auto max-w-4xl space-y-6 p-6 xl:max-w-6xl">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/tools">
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
@@ -280,6 +297,12 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
               <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
                 {isEditing ? t('form.editTitle') : t('form.newTitle')}
               </h1>
+              {/* Versão lida (D-P4-04-7): muda no 200 do Salvar e do Restaurar. */}
+              {tool && (
+                <Badge variant="neutral" className="font-mono">
+                  {tc('historyVersion', { version: tool.version })}
+                </Badge>
+              )}
               {tool && (
                 <StatusBadge active={tool.active}>
                   {tool.active ? t('active') : t('inactive')}
@@ -290,6 +313,25 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
+          {tool && controls && (
+            <div className="ml-auto">
+              <VersionHistory
+                kind="tools"
+                url={`/api/tools/${encodeURIComponent(tool.id)}`}
+                entity={tool}
+                name={tool.name}
+                isDirty={review.hasChanges}
+                diffVersions={diffVersions}
+                onRestored={showSaved}
+                onUnconfirmed={() => applyStatus.show({ status: 'not_confirmed' })}
+                onConflict={(chosen) =>
+                  conflict.startRestore(tool.version, chosen.version, (current) =>
+                    diffVersions(current, chosen.document)
+                  )
+                }
+              />
+            </div>
+          )}
         </div>
 
         <ConfigSchemaNotice

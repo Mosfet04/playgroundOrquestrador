@@ -24,7 +24,9 @@ const BUTTON = 'h-10 w-full sm:h-9 sm:w-auto'
 /**
  * Diálogo do 412 ao salvar (P3-06, D-P3-06-1): o que difere entre o formulário
  * e a versão atual, com três saídas. A foto da versão atual vem do
- * `useSaveConflict`; aqui só se mostra e se escolhe.
+ * `useSaveConflict`; aqui só se mostra e se escolhe. Com `restored` é o 412 ao
+ * restaurar essa versão do histórico (P4-04, D-P4-04-4): "O seu valor" é a
+ * versão escolhida e a única saída, além de Voltar, é recarregar a atual.
  */
 export function ConflictDialog<T extends { version: number }>({
   kind,
@@ -32,6 +34,7 @@ export function ConflictDialog<T extends { version: number }>({
   listHref,
   state,
   mine,
+  restored,
   saveRef,
   onClose,
   onRetry,
@@ -45,6 +48,8 @@ export function ConflictDialog<T extends { version: number }>({
   state: ConflictState<T>
   /** Versão que o usuário estava editando. */
   mine: number
+  /** A versão do histórico que o restaurar tentou (modo restaurar). */
+  restored?: number
   /** O Salvar do formulário: o foco volta a ele ao fechar. */
   saveRef: RefObject<HTMLButtonElement | null>
   onClose: () => void
@@ -69,16 +74,25 @@ export function ConflictDialog<T extends { version: number }>({
   const ready = status === 'ready' ? state : undefined
   const rows = ready?.rows ?? []
   const hasRows = rows.length > 0
+  const restoring = restored !== undefined
   const counts = ready ? { current: ready.current.version, mine, count: rows.length } : undefined
 
   const description =
     status === 'deleted'
       ? t('conflictDeletedDescription', { name })
-      : counts
-        ? hasRows
-          ? tc('conflictDescription', counts)
-          : tc('conflictNoVisible', counts)
-        : tc('conflictIntro')
+      : counts && restoring
+        ? tc(hasRows ? 'conflictRestoreDescription' : 'conflictRestoreNoVisible', { ...counts, restored })
+        : counts
+          ? hasRows
+            ? tc('conflictDescription', counts)
+            : tc('conflictNoVisible', counts)
+          : tc('conflictIntro')
+  const loadError =
+    state.status !== 'error'
+      ? undefined
+      : state.code === undefined
+        ? tc(restoring ? 'conflictRestoreLoadErrorNoCode' : 'conflictLoadErrorNoCode')
+        : tc(restoring ? 'conflictRestoreLoadError' : 'conflictLoadError', { status: state.code })
 
   const back = (
     <Button ref={backRef} variant="outline" className={BUTTON} disabled={saving} onClick={onClose}>
@@ -87,12 +101,12 @@ export function ConflictDialog<T extends { version: number }>({
   )
   const reload = (
     <Button
-      variant={hasRows || !ready ? 'default' : 'outline'}
+      variant={hasRows || !ready || restoring ? 'default' : 'outline'}
       className={BUTTON}
       disabled={!ready || saving}
       onClick={() => ready && onReload(ready.current)}
     >
-      {tc('conflictReload')}
+      {restoring ? tc('conflictReloadCurrent') : tc('conflictReload')}
     </Button>
   )
   const overwrite = (
@@ -141,9 +155,7 @@ export function ConflictDialog<T extends { version: number }>({
             className="mt-4 flex items-start gap-2 rounded-md border border-destructive/50 p-3 text-sm text-destructive"
           >
             <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            {state.code === undefined
-              ? tc('conflictLoadErrorNoCode')
-              : tc('conflictLoadError', { status: state.code })}
+            {loadError}
           </p>
         )}
         {ready && (
@@ -154,14 +166,14 @@ export function ConflictDialog<T extends { version: number }>({
                 {tc('conflictAgain')}
               </p>
             )}
-            {hasRows ? (
-              <>
-                <DiffList rows={rows} />
-                <p className="text-xs text-muted-foreground">{tc('conflictConsequence')}</p>
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground">{tc('conflictNoVisibleHelp')}</p>
-            )}
+            {hasRows && <DiffList rows={rows} />}
+            <p className="text-xs text-muted-foreground">
+              {restoring
+                ? tc('conflictRestoreConsequence', { restored })
+                : hasRows
+                  ? tc('conflictConsequence')
+                  : tc('conflictNoVisibleHelp')}
+            </p>
           </div>
         )}
 
@@ -175,6 +187,8 @@ export function ConflictDialog<T extends { version: number }>({
             <Button asChild className={BUTTON}>
               <Link href={listHref}>{tc('conflictGoToList')}</Link>
             </Button>
+          ) : restoring ? (
+            reload
           ) : hasRows || !ready ? (
             <>
               {overwrite}

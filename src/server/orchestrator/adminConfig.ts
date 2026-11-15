@@ -2,6 +2,8 @@ import 'server-only'
 
 import { z } from 'zod'
 
+import type { ConfigHistoryPage, ConfigVersion } from '@/types/management'
+
 import { callOrchestrator, type OrchestratorResult } from './client'
 
 // API Admin da config do orquestrador (FA-02, admin_config.py), sempre com a
@@ -99,6 +101,94 @@ export const deactivateConfig = async <T>(
 ) =>
   unconfirmedIf5xx(
     await callOrchestrator(itemPath(kind, id), { key: 'admin', method: 'DELETE', ifMatch: version, schema })
+  )
+
+// Histórico do id (FA-05): as escritas pela API, da mais nova à mais antiga,
+// com o documento depois de cada uma (header já mascarado; null na remoção) e
+// o `diff` só dos campos de topo que mudaram. Store YAML ⇒ `items: []`.
+// `limit` vai até o MAX_PAGE_SIZE do orquestrador (200).
+export const MAX_HISTORY_PAGE = 200
+
+export type HistoryPage = { offset: number; limit: number }
+
+const historyEntrySchema = z.object({
+  version: z.number().int().nonnegative(),
+  actor: z.string().min(1).max(128),
+  at: z.iso.datetime({ offset: true }),
+  diff: z.record(z.string(), z.object({ before: z.unknown(), after: z.unknown() })),
+  document: z.record(z.string(), z.unknown()).nullable()
+})
+// O documento antes da escrita: o depois com o `before` de cada campo do diff
+// (`null`: o campo não existia). `fromEntries` cria a chave como dado próprio
+// (um campo chamado `__proto__` não troca o protótipo).
+const previousOf = (
+  document: Record<string, unknown>,
+  diff: Record<string, { before?: unknown }>
+) =>
+  Object.fromEntries([
+    ...Object.entries(document).filter(([name]) => !Object.hasOwn(diff, name)),
+    ...Object.entries(diff).flatMap(([name, { before }]) => (before == null ? [] : [[name, before]]))
+  ])
+
+export async function getConfigHistory<D, T>(
+  kind: ConfigKind,
+  id: string,
+  { offset, limit }: HistoryPage,
+  schema: z.ZodType<D>,
+  toEntity: (doc: D) => T
+): Promise<OrchestratorResult<ConfigHistoryPage<T>>> {
+  const result = await callOrchestrator(`${itemPath(kind, id)}/history`, {
+    key: 'admin',
+    schema: z.object({
+      items: z.array(historyEntrySchema).max(limit),
+      total: z.number().int().nonnegative()
+    }),
+    query: { offset: String(offset), limit: String(limit) }
+  })
+  if (!result.ok) return result
+  // O documento do histórico não leva `version` (é a da entrada).
+  const parse = (doc: Record<string, unknown>, version: number) => {
+    const parsed = schema.safeParse({ ...doc, version })
+    return parsed.success ? toEntity(parsed.data) : undefined
+  }
+  const items: ConfigVersion<T>[] = []
+  for (const entry of result.data.items) {
+    const { version, actor, at } = entry
+    if (entry.document === null) {
+      items.push({ version, actor, at, document: null, previous: null })
+      continue
+    }
+    const document = parse(entry.document, version)
+    // Criação: o `id` só muda quando o documento passa a existir.
+    const created = Object.hasOwn(entry.diff, 'id')
+    const previous = created ? null : parse(previousOf(entry.document, entry.diff), version)
+    if (document === undefined || previous === undefined) {
+      console.warn('[orchestrator] versão do histórico fora do schema', { kind, version })
+      return { ok: false, error: 'invalid_response' }
+    }
+    items.push({ version, actor, at, document, previous })
+  }
+  return { ok: true, data: { items, total: result.data.total, offset, limit } }
+}
+
+// Restaurar (FA-05): o orquestrador volta o id ao documento da `version` pelo
+// mesmo caminho do PUT (valida, monta, grava numa versão nova e troca o
+// runtime), com o If-Match da versão lida. 404: versão fora do histórico (ou só
+// a remoção); 409: store YAML somente leitura.
+export const restoreConfig = async <T>(
+  kind: ConfigKind,
+  id: string,
+  version: number,
+  current: number,
+  schema: z.ZodType<T>
+) =>
+  unconfirmedIf5xx(
+    await callOrchestrator(`${itemPath(kind, id)}/history/${version}/restore`, {
+      key: 'admin',
+      method: 'POST',
+      ifMatch: current,
+      schema
+    })
   )
 
 // Página do resultado já filtrado (a API Admin não filtra nem busca).

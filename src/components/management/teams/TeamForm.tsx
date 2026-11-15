@@ -8,7 +8,9 @@ import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
 
 import { useApplyRevision } from '@/components/layout/RuntimeRevision'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { boolRow } from '@/lib/formDiff'
 import { referencePrefixes } from '@/lib/secretRef'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,7 +18,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { TextArea } from '@/components/ui/textarea'
 import { isTeamFormField, type TeamConfig, type TeamFormField } from '@/types/management'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
-import { applyFailure, errorBody } from '../common/applyResult'
+import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
 import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
@@ -31,6 +33,7 @@ import { useRequestError } from '../common/useRequestError'
 import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
 import { useSaveReview } from '../common/useSaveReview'
+import { VersionHistory } from '../common/VersionHistory'
 import { MembersSection } from './MembersSection'
 import { diffTeam } from './teamDiff'
 import { ModeSection } from './ModeSection'
@@ -115,6 +118,14 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     } else setError(field, error, { shouldFocus: true })
   }
 
+  // O editor passa ao documento gravado (salvar, restaurar): o BFF apara e o
+  // orquestrador preenche defaults (D-P4-02-6). As edições não salvas somem (D-P4-04-2).
+  const showSaved = (saved: TeamConfig, result: ApplyResult) => {
+    controls?.set(saved)
+    form.reset(readValues(saved, schema))
+    applyStatus.show(result)
+  }
+
   // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
   // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
   // O estado nunca vem do formulário: salvar não liga nem desliga o team.
@@ -141,14 +152,9 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
 
       if (result?.success) {
         const revision = applyRevision(result)
-        // A edição fica no editor, que passa a ser o documento salvo (o BFF apara
-        // e o orquestrador preenche defaults, D-P4-02-6); criar volta à lista (D-P4-01-4).
-        if (isEditing) {
-          const saved = result.data as TeamConfig
-          controls?.set(saved)
-          form.reset(readValues(saved, schema))
-          applyStatus.show({ status: 'applied', revision })
-        } else {
+        // A edição fica no editor; criar volta à lista (D-P4-01-4).
+        if (isEditing) showSaved(result.data as TeamConfig, { status: 'applied', revision })
+        else {
           toast.success(t('saved'), { description: appliedText(revision) })
           onSuccess()
         }
@@ -205,6 +211,23 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     [getValues, schema, tt, ta]
   )
 
+  // De uma versão para outra (histórico, P4-04), como o formulário as mostraria
+  // abertas, mais o estado: restaurar pode ativar ou desativar (D-P4-04-3). Sem
+  // `before`, o team novo.
+  const diffVersions = useCallback(
+    (before: TeamConfig | null, after: TeamConfig) => [
+      ...diffTeam(
+        toPayload(readValues(after, schema)),
+        toPayload(before ? readValues(before, schema) : toFormValues()),
+        tt,
+        ta,
+        referencePrefixes(schema?.apiKeyRefFormats ?? [])
+      ),
+      ...boolRow('active', t('active'), after.active, before?.active ?? true)
+    ],
+    [schema, tt, ta, t]
+  )
+
   const conflict = useSaveConflict<TeamConfig>({
     url: `/api/teams/${encodeURIComponent(team?.id ?? '')}`,
     compare,
@@ -234,7 +257,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
   return (
     <div>
       <div className="mx-auto max-w-4xl space-y-6 p-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/teams">
               <ArrowLeft className="size-4" aria-hidden="true" />
@@ -246,6 +269,12 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
               <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
                 {isEditing ? t('form.editTitle') : t('form.newTitle')}
               </h1>
+              {/* Versão lida (D-P4-04-7): muda no 200 do Salvar e do Restaurar. */}
+              {team && (
+                <Badge variant="neutral" className="font-mono">
+                  {tc('historyVersion', { version: team.version })}
+                </Badge>
+              )}
               {team && (
                 <StatusBadge active={team.active}>
                   {team.active ? t('active') : t('inactive')}
@@ -256,6 +285,25 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
+          {team && controls && (
+            <div className="ml-auto">
+              <VersionHistory
+                kind="teams"
+                url={`/api/teams/${encodeURIComponent(team.id)}`}
+                entity={team}
+                name={team.nome}
+                isDirty={review.hasChanges}
+                diffVersions={diffVersions}
+                onRestored={showSaved}
+                onUnconfirmed={() => applyStatus.show({ status: 'not_confirmed' })}
+                onConflict={(chosen) =>
+                  conflict.startRestore(team.version, chosen.version, (current) =>
+                    diffVersions(current, chosen.document)
+                  )
+                }
+              />
+            </div>
+          )}
         </div>
 
         <ConfigSchemaNotice

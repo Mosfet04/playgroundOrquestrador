@@ -170,17 +170,31 @@ function Row({ row, variant }: { row: DiffRow; variant: Variant }) {
 
 /**
  * Lista rolável das linhas que diferem: "O seu valor × Atual" no conflito (P3-06)
- * e "Antes × Depois" na revisão antes de salvar (P4-02). `mine` é sempre o
- * formulário e `current`, a versão comparada.
+ * e "Antes × Depois" na revisão antes de salvar (P4-02) e no histórico (P4-04).
+ * `mine` é o lado novo (o formulário, a versão escolhida) e `current`, a versão
+ * comparada. `label` troca o nome da região; `className`, a altura máxima.
  */
-export function DiffList({ rows, variant = 'conflict' }: { rows: DiffRow[]; variant?: Variant }) {
+export function DiffList({
+  rows,
+  variant = 'conflict',
+  label,
+  className
+}: {
+  rows: DiffRow[]
+  variant?: Variant
+  label?: string
+  className?: string
+}) {
   const tc = useTranslations('common')
   return (
     <div
       role="region"
-      aria-label={variant === 'review' ? tc('reviewList') : tc('conflictList')}
+      aria-label={label ?? (variant === 'review' ? tc('reviewList') : tc('conflictList'))}
       tabIndex={0}
-      className="max-h-[40dvh] overflow-y-auto rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-h-80"
+      className={cn(
+        'max-h-[40dvh] overflow-y-auto rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-h-80',
+        className
+      )}
     >
       <ul className="divide-y divide-border rounded-md border border-border">
         {rows.map((row) => (

@@ -9,10 +9,13 @@ import {
   deactivateConfig,
   deleteConfig,
   getConfig,
+  getConfigHistory,
+  type HistoryPage,
   listConfigs,
   matchesSearch,
   pageOf,
   replaceConfig,
+  restoreConfig,
   withFormField
 } from './adminConfig'
 import type { OrchestratorResult } from './client'
@@ -298,4 +301,12 @@ export const deleteAgent = (id: string, version: number) =>
 
 export async function deactivateAgent(id: string, version: number) {
   return mapped(await deactivateConfig('agents', id, version, agentSchema))
+}
+
+// Histórico e restaurar (P4-04, FA-05).
+export const agentHistory = (id: string, page: HistoryPage) =>
+  getConfigHistory('agents', id, page, agentSchema, toAgent)
+
+export async function restoreAgent(id: string, version: number, current: number) {
+  return mapped(await restoreConfig('agents', id, version, current, agentSchema))
 }

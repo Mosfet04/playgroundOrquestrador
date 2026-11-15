@@ -130,7 +130,7 @@ export function idsRow(key: string, label: string, mine: string[], current: stri
   ]
 }
 
-const ABSENT: DiffCell = { kind: 'absent' }
+export const ABSENT: DiffCell = { kind: 'absent' }
 
 // Lista por chave: uma linha por chave que difere; a chave só de um lado mostra
 // "ausente" no outro. A ordem é a do formulário, depois as só da versão atual.

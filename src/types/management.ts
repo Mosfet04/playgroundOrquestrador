@@ -275,6 +275,26 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
+// Uma escrita no histórico da config (P4-04, FA-05), no formato do formulário.
+// `actor` é o id da chave que escreveu (`admin`, `local-dev`), nunca uma pessoa.
+// `document` é a versão gravada (null na remoção) e `previous`, o documento
+// antes da escrita (null na criação e na remoção); os dois levam a `version`
+// da entrada. Header em texto vem como `***`.
+export interface ConfigVersion<T> {
+  version: number
+  actor: string
+  at: string
+  document: T | null
+  previous: T | null
+}
+
+export interface ConfigHistoryPage<T> {
+  items: ConfigVersion<T>[]
+  total: number
+  offset: number
+  limit: number
+}
+
 // Tipos para filtros e busca
 export interface AgentFilters {
   active?: boolean

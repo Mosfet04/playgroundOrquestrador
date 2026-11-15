@@ -47,6 +47,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P4-01 | concluído (status de aplicação no editor — aplicada na revisão N, não aplicada com o tipo do erro e a versão anterior no ar, não confirmada com Recarregar —; edição salva fica no editor; `runtimeRevision` nas escritas, `not_applied`/`not_confirmed` no BFF; indicador "runtime · rev. N" na navegação e no Sheet por `GET /api/orchestrator/runtime` + contexto; decisão 0031) |
 | P4-02 | concluído (diálogo "Revisar antes de salvar" em agent, team e tool: Antes × Depois sem segredo, cancelar sem request, o `data` listado é o enviado; Salvar `aria-disabled` com dica sem mudança; ids como conjunto; janela do texto longo também no conflito; criação sem diálogo) |
 | P4-03 | concluído ("Testar agora" no status aplicada de agent e team, para o playground com a entidade e conversa vazia; playground sem `?session=` vazio, Voltar/Avançar carrega a sessão, resposta de sessão atrasada descartada; decisão 0033) |
+| P4-04 | concluído (histórico de versões em painel lateral nos editores de agent, team e tool, com diff mascarado e paginação; restaurar com confirmação e o status aplicado da P4-01, 412 abre o conflito em modo restaurar; badge vN no editor; decisão 0034) |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

@@ -121,7 +121,9 @@ export function ApplyStatus({
         >
           <CircleCheck aria-hidden="true" className={cn(ICON, 'text-success sm:mt-0')} />
           <p className="min-w-0 flex-1">
-            <span className="font-medium text-foreground">{tc('sentence', { text: t('saved') })}</span>{' '}
+            <span className="font-medium text-foreground">
+              {result.restored ? tc('restoredAs', result.restored) : tc('sentence', { text: t('saved') })}
+            </span>{' '}
             <span className="text-muted-foreground">
               {result.revision === undefined
                 ? tc('applied')

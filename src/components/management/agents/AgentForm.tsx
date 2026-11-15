@@ -6,8 +6,10 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
+import { boolRow } from '@/lib/formDiff'
 import { referencePrefixes } from '@/lib/secretRef'
 import { useApplyRevision } from '@/components/layout/RuntimeRevision'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,7 +21,7 @@ import {
   Tool,
   isAgentFormField
 } from '@/types/management'
-import { applyFailure, errorBody } from '../common/applyResult'
+import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
 import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
@@ -32,6 +34,7 @@ import { useConfigSchema } from '../common/useConfigSchema'
 import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
 import { useSaveReview } from '../common/useSaveReview'
+import { VersionHistory } from '../common/VersionHistory'
 import { diffAgent } from './agentDiff'
 import { AgentFormValues, offeredEmbedder, readValues, toFormValues, toPayload } from './agentFormValues'
 import { ExecutionSection } from '../common/ExecutionSection'
@@ -205,6 +208,16 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     } else setError(field, error, { shouldFocus: true })
   }
 
+  // O editor passa ao documento gravado (salvar, restaurar): o BFF apara e o
+  // orquestrador preenche defaults (D-P4-02-6). As edições não salvas somem (D-P4-04-2).
+  const showSaved = (saved: AgentConfig, result: ApplyResult) => {
+    const values = readValues(saved, schema)
+    controls?.set(saved)
+    form.reset(values)
+    setSelectedToolIds(values.tools_ids)
+    applyStatus.show(result)
+  }
+
   // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
   // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
   // O estado nunca vem do formulário: salvar não liga nem desliga o agent.
@@ -236,16 +249,9 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
 
       if (result?.success) {
         const revision = applyRevision(result)
-        // A edição fica no editor, que passa a ser o documento salvo (o BFF apara
-        // e o orquestrador preenche defaults, D-P4-02-6); criar volta à lista (D-P4-01-4).
-        if (isEditing) {
-          const saved = result.data as AgentConfig
-          const values = readValues(saved, schema)
-          controls?.set(saved)
-          form.reset(values)
-          setSelectedToolIds(values.tools_ids)
-          applyStatus.show({ status: 'applied', revision })
-        } else {
+        // A edição fica no editor; criar volta à lista (D-P4-01-4).
+        if (isEditing) showSaved(result.data as AgentConfig, { status: 'applied', revision })
+        else {
           toast.success(t('saved'), { description: appliedText(revision) })
           onSuccess()
         }
@@ -301,6 +307,22 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     [getValues, schema, selectedToolIds, tf]
   )
 
+  // De uma versão para outra (histórico, P4-04), como o formulário as mostraria
+  // abertas, mais o estado: restaurar pode ativar ou desativar (D-P4-04-3). Sem
+  // `before`, o agent novo.
+  const diffVersions = useCallback(
+    (before: AgentConfig | null, after: AgentConfig) => [
+      ...diffAgent(
+        toPayload(readValues(after, schema), after.tools_ids),
+        before ? toPayload(readValues(before, schema), before.tools_ids) : toPayload(toFormValues(), []),
+        tf,
+        referencePrefixes(schema?.apiKeyRefFormats ?? [])
+      ),
+      ...boolRow('active', t('active'), after.active, before?.active ?? true)
+    ],
+    [schema, tf, t]
+  )
+
   const conflict = useSaveConflict<AgentConfig>({
     url: `/api/agents/${encodeURIComponent(agent?.id ?? '')}`,
     compare,
@@ -330,7 +352,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     <div>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/agents">
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
@@ -342,6 +364,12 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
                 {isEditing ? t('form.editTitle') : t('form.newTitle')}
               </h1>
+              {/* Versão lida (D-P4-04-7): muda no 200 do Salvar e do Restaurar. */}
+              {agent && (
+                <Badge variant="neutral" className="font-mono">
+                  {tc('historyVersion', { version: agent.version })}
+                </Badge>
+              )}
               {agent && (
                 <StatusBadge active={agent.active}>
                   {agent.active ? t('active') : t('inactive')}
@@ -352,6 +380,25 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
+          {agent && controls && (
+            <div className="ml-auto">
+              <VersionHistory
+                kind="agents"
+                url={`/api/agents/${encodeURIComponent(agent.id)}`}
+                entity={agent}
+                name={agent.nome}
+                isDirty={review.hasChanges}
+                diffVersions={diffVersions}
+                onRestored={showSaved}
+                onUnconfirmed={() => applyStatus.show({ status: 'not_confirmed' })}
+                onConflict={(chosen) =>
+                  conflict.startRestore(agent.version, chosen.version, (current) =>
+                    diffVersions(current, chosen.document)
+                  )
+                }
+              />
+            </div>
+          )}
         </div>
 
       <ConfigSchemaNotice

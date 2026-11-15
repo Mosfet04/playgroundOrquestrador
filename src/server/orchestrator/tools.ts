@@ -2,6 +2,8 @@ import 'server-only'
 
 import { z } from 'zod'
 
+import { secretIssue } from '@/lib/secretRef'
+import { MASK } from '@/lib/toolHeaders'
 import type { Tool, ToolFormField } from '@/types/management'
 
 import {
@@ -9,10 +11,13 @@ import {
   deactivateConfig,
   deleteConfig,
   getConfig,
+  getConfigHistory,
+  type HistoryPage,
   listConfigs,
   matchesSearch,
   pageOf,
   replaceConfig,
+  restoreConfig,
   withFormField
 } from './adminConfig'
 import type { OrchestratorResult } from './client'
@@ -146,4 +151,27 @@ export const deleteTool = (id: string, version: number) =>
 
 export async function deactivateTool(id: string, version: number) {
   return mapped(await deactivateConfig('tools', id, version, toolSchema))
+}
+
+// Histórico e restaurar (P4-04, FA-05). O histórico guarda documentos de
+// versões antigas: o BFF não confia só na máscara do orquestrador e troca por
+// `***` todo valor de header que não seja referência no formato (a regra do
+// `_valid_ref` dele), para nenhum texto de header chegar ao browser.
+const REFERENCE_PREFIXES = ['env:', 'file:']
+const maskedHeaders = (headers: ToolDocument['headers']) =>
+  headers &&
+  Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [
+      name,
+      secretIssue(value, REFERENCE_PREFIXES) === undefined ? value : MASK
+    ])
+  )
+
+export const toolHistory = (id: string, page: HistoryPage) =>
+  getConfigHistory('tools', id, page, toolSchema, (doc) =>
+    toTool({ ...doc, headers: maskedHeaders(doc.headers) })
+  )
+
+export async function restoreTool(id: string, version: number, current: number) {
+  return mapped(await restoreConfig('tools', id, version, current, toolSchema))
 }

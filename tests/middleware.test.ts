@@ -267,6 +267,28 @@ describe('middleware: /api', () => {
     }
   )
 
+  // P4-04: o histórico (GET) exige sessão; restaurar (POST) exige sessão e Origin.
+  it.each(['agents/assistente', 'teams/suporte', 'tools/clima'])(
+    '/api/%s/history: sem cookie ⇒ 401; restaurar sem cookie ⇒ 401, sem Origin ou de outra origem ⇒ 403',
+    async (item) => {
+      const cookie = await createSession('playground')
+      const history = `/api/${item}/history?offset=0&limit=20`
+      const restore = `/api/${item}/history/5/restore`
+
+      expect((await middleware(request(history))).status).toBe(401)
+      expect(isPassThrough(await middleware(request(history, { cookie })))).toBe(true)
+      expect((await middleware(request(restore, { method: 'POST', origin: ORIGIN }))).status).toBe(401)
+      for (const origin of [undefined, 'http://evil.com', 'null'])
+        expect(
+          (await middleware(request(restore, { method: 'POST', cookie, origin }))).status,
+          `Origin ${origin}`
+        ).toBe(403)
+      expect(
+        isPassThrough(await middleware(request(restore, { method: 'POST', cookie, origin: ORIGIN })))
+      ).toBe(true)
+    }
+  )
+
   it('login de outra origem: 403', async () => {
     const response = await middleware(
       request('/api/auth/login', { method: 'POST', origin: 'http://evil.com' })

@@ -1,0 +1,43 @@
+/* P4-02: diálogo "Revisar antes de salvar" e Salvar sem mudança. Delta sobre theme.css, pg-ds.css, p302.css, p306.css e p401.css.
+   Só tokens do DS. Equivalência Tailwind anotada em cada bloco (o código usa as classes, não este arquivo).
+   A lista de diferenças (.diff, .cmp) é a da P3-06: aqui só mudam os rótulos das colunas e a ordem (Antes primeiro). */
+
+/* Salvar sem mudança: aria-disabled="true" (continua focável), mesma aparência do disabled.
+   aria-disabled:pointer-events-none aria-disabled:opacity-50 (as classes que o Cancelar já usa) */
+.pg-btn[aria-disabled="true"] { opacity: .5; pointer-events: none; box-shadow: none; }
+
+/* Dica do Salvar: p text-xs text-muted-foreground sm:text-right, mb-2, logo acima da linha de botões.
+   Com o status de aplicação visível ela fica sr-only (continua na descrição do Salvar). */
+.save-hint { margin: 0 0 var(--space-2); font-size: 12px; line-height: 16px; color: var(--muted-foreground); text-align: right; }
+.phone .save-hint { text-align: left; }
+/* Pilha do rodapé: região viva do status (sem altura quando vazia), dica e linha de botões */
+.foot-stack { display: flex; flex-direction: column; }
+.foot-stack .apply { margin-bottom: var(--space-4); }
+
+/* Linhas iguais que a coluna recolhida pula (prompt longo): text-xs text-muted-foreground, dentro dos dois dd */
+.cmp dd .skip { display: block; width: 100%; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+
+/* Diálogo de revisão: DialogContent sm:max-w-xl (576 px), igual ao conflito */
+.rev-note { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.dlg-foot .pg-btn .pg-ico.pg-spin { margin-right: 0; }
+
+/* Rolagem da lista longa: max-h-[40dvh] sm:max-h-80; aqui 320 px (desktop) e 40% de 844 = 338 px (celular) */
+.diff.scroll { max-height: 320px; }
+.phone-vp .diff.scroll { max-height: 338px; }
+.scroll-cue { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); font-family: var(--font-mono); }
+
+/* Palco do diálogo sobre a página (overlay real: bg-background/80 backdrop-blur-sm) */
+.stage { position: relative; }
+.overlay { position: absolute; inset: 0; background: color-mix(in srgb, var(--background) 80%, transparent); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+
+/* Moldura de 390 px para o diálogo no celular (margem de 16 px de cada lado) */
+.phone-vp { width: 390px; box-sizing: border-box; }
+.phone-vp .dlg-frame { padding: var(--space-4); }
+.phone-vp .pg-dialog { width: 100%; box-sizing: border-box; padding: var(--space-4); }
+
+/* Campo com erro (validação: o diálogo não abre) */
+.fld-err { display: flex; flex-direction: column; gap: var(--space-2); }
+.fld-err .pg-input { border-color: var(--destructive); }
+.fld-err .err { margin: 0; color: var(--destructive); font-size: 12px; line-height: 16px; display: flex; gap: var(--space-1); align-items: center; }
+.ring-on { outline: 2px solid var(--ring); outline-offset: 2px; }
+.ann { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); font-family: var(--font-mono); }
