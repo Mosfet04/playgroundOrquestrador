@@ -70,7 +70,7 @@ test('390: não confirmada e não aplicada (tipo longo) acima do Salvar, sem rol
   // A revisão no Sheet, depois da divisória e acima de "Sair".
   await page.getByRole('button', { name: 'Abrir menu' }).click()
   const sheet = page.getByRole('dialog')
-  const revision = sheet.getByText(/^Revisão do runtime: \d+$/)
+  const revision = sheet.getByText(/^Orquestrador online, revisão \d+$/)
   await expect(revision).toBeAttached()
   const signOut = sheet.getByRole('button', { name: 'Sair' })
   const line = (await revision.locator('..').boundingBox())!
@@ -85,5 +85,5 @@ test('390 EN: "Not applied" sem rolagem horizontal e o indicador no Sheet', asyn
   await expect(status(page)).toContainText("Not applied: the orchestrator couldn't load this configuration.")
   expect(await noHorizontalScroll(page)).toBe(true)
   await page.getByRole('button', { name: 'Open menu' }).click()
-  await expect(page.getByRole('dialog').getByText(/^Runtime revision: \d+$/)).toBeAttached()
+  await expect(page.getByRole('dialog').getByText(/^Orchestrator online, revision \d+$/)).toBeAttached()
 })

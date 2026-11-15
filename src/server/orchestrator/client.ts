@@ -42,9 +42,10 @@ export type OrchestratorFailure = {
 }
 
 // `runtimeRevision`: a revisão do runtime que já serve a escrita (header
-// `Runtime-Revision` da API Admin, FA-04), quando veio válida.
+// `Runtime-Revision` da API Admin, FA-04), quando veio válida. `status`: o
+// HTTP da resposta, só em chamada com `acceptStatus`.
 export type OrchestratorResult<T> =
-  | { ok: true; data: T; runtimeRevision?: number }
+  | { ok: true; data: T; runtimeRevision?: number; status?: number }
   | OrchestratorFailure
 
 const ORCHESTRATOR_TIMEOUT_MS = 10_000
@@ -60,6 +61,10 @@ type CallOptions<T> = {
   query?: Record<string, string>
   // Versão lida da config (API Admin): vai no If-Match do PUT/DELETE.
   ifMatch?: number
+  // Status de erro cujo corpo vale como resposta (o 503 do /admin/health
+  // degradado traz o corpo inteiro, P4-05): passa pelo schema como um 2xx;
+  // fora dele, é a falha do status.
+  acceptStatus?: number[]
   timeoutMs?: number
 }
 
@@ -189,6 +194,7 @@ export async function callOrchestrator<T>(
     body,
     query,
     ifMatch,
+    acceptStatus,
     timeoutMs = ORCHESTRATOR_TIMEOUT_MS
   }: CallOptions<T>
 ): Promise<OrchestratorResult<T>> {
@@ -221,7 +227,8 @@ export async function callOrchestrator<T>(
     const where = await usedByTeams(response)
     return { ...fail('rejected', 409), ...where }
   }
-  if (!response.ok) {
+  const accepted = acceptStatus?.includes(response.status) ?? false
+  if (!response.ok && !accepted) {
     // Libera a conexão sem ler o corpo (que não sai daqui). Sem await: o
     // cancel de um corpo ainda chegando pode demorar, e o stream não está
     // travado (nunca lido), então não rejeita.
@@ -232,13 +239,22 @@ export async function callOrchestrator<T>(
     // Corpo vazio (204 do DELETE) é `undefined` para o schema.
     const text = await response.text()
     const parsed = schema.safeParse(text === '' ? undefined : JSON.parse(text))
-    if (parsed.success) return { ok: true, data: parsed.data, ...runtimeRevision(response) }
+    if (parsed.success)
+      return {
+        ok: true,
+        data: parsed.data,
+        ...runtimeRevision(response),
+        ...(acceptStatus ? { status: response.status } : {})
+      }
   } catch (error) {
     // Corpo que não é JSON cai no invalid_response; o timeout no meio da
     // leitura é o único caso que vale distinguir.
     if (error instanceof Error && error.name === 'TimeoutError') return fail('timeout')
   }
-  return fail('invalid_response', response.status)
+  // Status de erro aceito com corpo fora do schema: a falha do status.
+  return response.ok
+    ? fail('invalid_response', response.status)
+    : fail(statusError(response.status), response.status)
 }
 
 // Run em stream (P2-03, sempre com a chave run): devolve o corpo cru para o

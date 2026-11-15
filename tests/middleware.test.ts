@@ -168,7 +168,7 @@ describe('middleware: /api', () => {
     })
   })
 
-  it('revisão do runtime (P4-01) sem cookie: 401 JSON', async () => {
+  it('saúde e revisão do runtime (P4-01, P4-05) sem cookie: 401 JSON', async () => {
     const response = await middleware(request('/api/orchestrator/runtime'))
 
     expect(response.status).toBe(401)
@@ -288,6 +288,24 @@ describe('middleware: /api', () => {
       ).toBe(true)
     }
   )
+
+  // P4-05 (D-P4-05-3): recarregar o runtime exige sessão e Origin do host.
+  it('/api/config/reload: sem cookie ⇒ 401; sem Origin ou de outra origem ⇒ 403; com os dois passa', async () => {
+    const cookie = await createSession('playground')
+    const reload = '/api/config/reload'
+
+    const anonymous = await middleware(request(reload, { method: 'POST', origin: ORIGIN }))
+    expect(anonymous.status).toBe(401)
+    expect(await anonymous.json()).toEqual({ success: false, error: 'unauthorized' })
+    for (const origin of [undefined, 'http://evil.com', 'null'])
+      expect(
+        (await middleware(request(reload, { method: 'POST', cookie, origin }))).status,
+        `Origin ${origin}`
+      ).toBe(403)
+    expect(
+      isPassThrough(await middleware(request(reload, { method: 'POST', cookie, origin: ORIGIN })))
+    ).toBe(true)
+  })
 
   it('login de outra origem: 403', async () => {
     const response = await middleware(

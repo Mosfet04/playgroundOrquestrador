@@ -12,7 +12,7 @@ import { ToolEditor } from '@/components/management/tools/ToolEditor'
 
 import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
-import { RUNTIME_URL } from '../msw/handlers'
+import { RUNTIME_URL, runtimeBody } from '../msw/handlers'
 import { server } from '../msw/server'
 import { saveAndConfirm } from '../helpers/saveReview'
 
@@ -81,7 +81,7 @@ function serve({
 }: { history?: Respond; restore?: Respond; gets?: object[] } = {}) {
   const seen = { gets: 0, history: [] as string[], restores: [] as { path: string; ifMatch: string | null }[] }
   server.use(
-    http.get(RUNTIME_URL, () => HttpResponse.json({ success: true, data: { revision: 7 } })),
+    http.get(RUNTIME_URL, () => HttpResponse.json(runtimeBody(7))),
     http.get('*/api/tools', () =>
       HttpResponse.json({ success: true, data: { data: [], total: 0, page: 1, limit: 100, totalPages: 1 } })
     ),
@@ -485,7 +485,7 @@ describe('restaurar: desfechos', () => {
     // Edição descartada; o restaurado está inativo (o badge muda).
     expect(screen.getByLabelText('Nome *')).toHaveValue('Antigo')
     expect(screen.getByText('Inativo')).toBeVisible()
-    expect(screen.getByText('Revisão do runtime: 12')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 12')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveFocus())
   })
 

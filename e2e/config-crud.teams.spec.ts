@@ -91,7 +91,7 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
   await expect(page.locator('[aria-live="polite"][aria-atomic="true"]')).toContainText(
     `Team salvo. Mudança aplicada na revisão ${runtimeRevision} do runtime.`
   )
-  await expect(page.getByText(`Revisão do runtime: ${runtimeRevision}`, { exact: true })).toBeAttached()
+  await expect(page.getByText(`Orquestrador online, revisão ${runtimeRevision}`, { exact: true })).toBeAttached()
   await expect(page).toHaveURL(`/teams/${id}`)
   await page.getByRole('button', { name: 'Excluir team' }).click()
   await expect(page.getByRole('dialog')).toContainText('Os agents membros não são excluídos.')

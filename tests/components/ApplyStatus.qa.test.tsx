@@ -10,7 +10,7 @@ import { AgentEditor } from '@/components/management/agents/AgentEditor'
 
 import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
-import { RUNTIME_URL } from '../msw/handlers'
+import { RUNTIME_URL, runtimeBody } from '../msw/handlers'
 import { server } from '../msw/server'
 import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
@@ -40,7 +40,7 @@ const emptyPage = { success: true, data: { data: [], total: 0, page: 1, limit: 1
 function serve(respond: (n: number) => Response | Promise<Response>) {
   const puts: (string | null)[] = []
   server.use(
-    http.get(RUNTIME_URL, () => HttpResponse.json({ success: true, data: { revision: 7 } })),
+    http.get(RUNTIME_URL, () => HttpResponse.json(runtimeBody(7))),
     http.get('*/api/tools', () => HttpResponse.json(emptyPage)),
     http.get('*/api/agents/:id', () => HttpResponse.json({ success: true, data: agent })),
     http.put('*/api/agents/:id', ({ request }) => {
@@ -71,7 +71,7 @@ function Shell() {
 async function renderEditor() {
   const user = userEvent.setup()
   renderWithIntl(<Shell />)
-  await screen.findByText('Revisão do runtime: 7')
+  await screen.findByText('Orquestrador online, revisão 7')
   const save = await screen.findByRole('button', { name: 'Salvar' })
   await waitFor(() => expect(save).toBeEnabled())
   return { user, save }
@@ -116,7 +116,7 @@ describe('QA P4-01: status de aplicação', () => {
       await held
     })
 
-    expect(await screen.findByText('Revisão do runtime: 9')).toBeInTheDocument()
+    expect(await screen.findByText('Orquestrador online, revisão 9')).toBeInTheDocument()
     expect(errors).not.toHaveBeenCalled()
   })
 
@@ -131,6 +131,6 @@ describe('QA P4-01: status de aplicação', () => {
       expect(region()).toHaveTextContent('Agente salvo. Mudança aplicada na revisão 0 do runtime.')
     )
     expect(within(region()).getByText('0')).toHaveClass('font-mono')
-    expect(screen.getByText('Revisão do runtime: 0')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 0')).toBeInTheDocument()
   })
 })

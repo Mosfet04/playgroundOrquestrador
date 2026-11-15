@@ -2,8 +2,8 @@
 // (agno 2.5) e da API Admin que o BFF chama (src/server/orchestrator/). Exige
 // a chave como o real (decisão 0018): Bearer run ou admin; 401 sem chave
 // válida, 403 com a run em /admin*, /metrics* e DELETE /sessions*. As rotas de
-// controle do teste (/hold/release, /aborts, /test/config/*) não existem no real
-// e não pedem chave. Estado em memória; rota desconhecida => 404.
+// controle do teste (/hold/release, /aborts, /test/config/*, /test/health) não
+// existem no real e não pedem chave. Estado em memória; rota desconhecida => 404.
 // Roda com `node e2e/fake-orchestrator/server.ts` (type stripping do Node 22.18+):
 // use só sintaxe TypeScript apagável (sem enum, namespace ou parameter properties).
 import { createServer } from 'node:http'
@@ -24,7 +24,7 @@ const RUN_KEY = process.env.FAKE_API_KEY_RUN
 const ADMIN_KEY = process.env.FAKE_API_KEY_ADMIN
 if (!RUN_KEY || !ADMIN_KEY)
   throw new Error('FAKE_API_KEY_RUN e FAKE_API_KEY_ADMIN são obrigatórias (playwright.config.ts)')
-const TEST_ROUTES = new Set(['POST /hold/release', 'GET /aborts'])
+const TEST_ROUTES = new Set(['POST /hold/release', 'GET /aborts', 'POST /test/health'])
 // GET /test/config/{kind}/{id}: documento gravado sem máscara, para o e2e
 // conferir que salvar com o header mascarado não apagou o valor.
 const TEST_CONFIG_ROUTE = /^GET \/test\/config\/(agents|teams|tools)\/([^/]+)$/
@@ -457,6 +457,30 @@ const NOT_BUILDABLE_UNTYPED = '[nao-monta-sem-tipo]'
 const FAIL_AFTER_WRITE = '[falha-apos-gravar]'
 const NO_REVISION = '[sem-revisao]'
 
+// Saúde (P4-05), trocada por POST /test/health?mode=…, só no spec que roda
+// sozinho no fim (playwright.config.ts): `degraded` responde o /admin/health
+// com 503 e o corpo inteiro, como o real com o Mongo fora; `down` derruba a
+// conexão de toda rota que não é de teste (orquestrador fora do ar), menos o
+// GET /status, a prontidão do webServer do Playwright. O e2e/auth.setup.ts
+// volta o modo a `healthy` (fake reaproveitado depois de uma execução parada).
+const HEALTH_MODES = ['healthy', 'degraded', 'down'] as const
+let healthMode: (typeof HEALTH_MODES)[number] = 'healthy'
+
+// Corpo do HealthService (dependency_injection.py) com a revisão (app_factory.py).
+const adminHealth = () => {
+  const degraded = healthMode === 'degraded'
+  return {
+    status: degraded ? 'unhealthy' : 'healthy',
+    checks: {
+      mongodb: { status: degraded ? 'unhealthy' : 'healthy' },
+      memory: { status: 'healthy', usage_percent: 42.3, available_gb: 9.12 },
+      otlp: degraded ? { status: 'not_configured' } : { status: 'configured', provider: 'TracerProvider' }
+    },
+    response_time_ms: 3.21,
+    runtime_revision: runtimeRevision
+  }
+}
+
 // Escrita da config pelo caminho do FA-04: monta antes de gravar, grava,
 // troca o runtime e responde com a revisão nova.
 function commit(
@@ -869,6 +893,10 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   const route = `${req.method} ${url.pathname}`
 
   if (!TEST_ROUTES.has(route) && !TEST_CONFIG_ROUTE.test(route)) {
+    if (healthMode === 'down' && route !== 'GET /status') {
+      req.socket.destroy()
+      return
+    }
     const key = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1]
     if (key !== RUN_KEY && key !== ADMIN_KEY)
       return sendJson(res, 401, { detail: 'unauthorized' })
@@ -880,8 +908,19 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
 
   if (route === 'GET /aborts') return sendJson(res, 200, abortedRuns)
   if (route === 'GET /admin/schema') return sendJson(res, 200, SCHEMA_DOCUMENT)
+  if (route === 'POST /test/health') {
+    const mode = HEALTH_MODES.find((candidate) => candidate === url.searchParams.get('mode'))
+    if (!mode) return sendJson(res, 422, { detail: 'mode: healthy, degraded ou down' })
+    healthMode = mode
+    return sendJson(res, 200, { mode })
+  }
   if (route === 'GET /admin/health')
-    return sendJson(res, 200, { status: 'healthy', runtime_revision: runtimeRevision })
+    return sendJson(res, healthMode === 'degraded' ? 503 : 200, adminHealth())
+  // Relê o store e troca o runtime (FA-04): a revisão nova.
+  if (route === 'POST /admin/config/reload') {
+    runtimeRevision++
+    return sendJson(res, 200, { runtime_revision: runtimeRevision })
+  }
   const raw = TEST_CONFIG_ROUTE.exec(route)
   if (raw) {
     const doc = configs[raw[1] as ConfigKind].find((item) => item.id === decodeURIComponent(raw[2]))

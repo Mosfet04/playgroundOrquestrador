@@ -85,11 +85,26 @@ export const schemaFixture = {
   writable: true
 }
 
-// Revisão do runtime que a casca lê ao montar (P4-01, src/app/api/orchestrator/runtime).
+// Saúde e revisão do runtime que a casca lê ao montar (P4-01, P4-05,
+// src/app/api/orchestrator/runtime). Degradado: o banco com erro.
 export const RUNTIME_URL = '*/api/orchestrator/runtime'
+export const runtimeHealth = (revision: number, status: 'healthy' | 'degraded' = 'healthy') => ({
+  status,
+  revision,
+  responseTimeMs: 38.5,
+  checks: {
+    database: status === 'healthy' ? 'healthy' : 'error',
+    memory: { status: 'healthy', usagePercent: 42.3, availableGb: 9.12 },
+    telemetry: 'configured'
+  }
+})
+export const runtimeBody = (revision: number, status?: 'healthy' | 'degraded') => ({
+  success: true,
+  data: runtimeHealth(revision, status)
+})
 
 export const handlers = [
-  http.get(RUNTIME_URL, () => HttpResponse.json({ success: true, data: { revision: 1 } })),
+  http.get(RUNTIME_URL, () => HttpResponse.json(runtimeBody(1))),
   http.get(SCHEMA_URL, () =>
     HttpResponse.json({ success: true, data: schemaFixture })
   ),

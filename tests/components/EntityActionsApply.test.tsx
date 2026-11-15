@@ -9,7 +9,7 @@ import { AgentEditor } from '@/components/management/agents/AgentEditor'
 
 import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
-import { RUNTIME_URL } from '../msw/handlers'
+import { RUNTIME_URL, runtimeBody } from '../msw/handlers'
 import { server } from '../msw/server'
 import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
@@ -47,7 +47,7 @@ function serve(action: Action, respond: () => Response) {
   server.use(
     http.get(RUNTIME_URL, () => {
       seen.runtime++
-      return HttpResponse.json({ success: true, data: { revision: 7 } })
+      return HttpResponse.json(runtimeBody(7))
     }),
     http.get('*/api/tools', () =>
       HttpResponse.json({ success: true, data: { data: [], total: 0, page: 1, limit: 100, totalPages: 1 } })
@@ -67,7 +67,7 @@ async function runAction(action: Action) {
       <Toaster />
     </RuntimeRevisionProvider>
   )
-  await screen.findByText('Revisão do runtime: 7')
+  await screen.findByText('Orquestrador online, revisão 7')
   const { button, confirm } = ACTIONS[action]
   await user.click(await screen.findByRole('button', { name: button }))
   if (confirm) await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: confirm }))
@@ -89,7 +89,7 @@ describe.each(Object.keys(ACTIONS) as Action[])('%s', (action) => {
 
     expect(await screen.findByText(done)).toBeInTheDocument()
     expect(screen.getByText('Mudança aplicada na revisão 9 do runtime.')).toBeInTheDocument()
-    expect(screen.getByText('Revisão do runtime: 9')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 9')).toBeInTheDocument()
     expect(seen.runtime).toBe(1)
   })
 
@@ -98,7 +98,7 @@ describe.each(Object.keys(ACTIONS) as Action[])('%s', (action) => {
     await runAction(action)
 
     expect(await screen.findByText('Mudança aplicada no runtime.')).toBeInTheDocument()
-    expect(screen.getByText('Revisão do runtime: 7')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 7')).toBeInTheDocument()
   })
 
   it('não aplicada: título de hoje sem código, o texto próprio e o detalhe técnico; badge e botão ficam', async () => {
@@ -117,7 +117,7 @@ describe.each(Object.keys(ACTIONS) as Action[])('%s', (action) => {
     expect(screen.getByText('KeyError').tagName).toBe('CODE')
     expect(screen.getByText('KeyError').parentElement).toHaveTextContent('Detalhe técnico: KeyError')
     await waitFor(() => expect(screen.getByRole('button', { name: button })).toHaveFocus())
-    expect(screen.getByText('Revisão do runtime: 7')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 7')).toBeInTheDocument()
     expect(screen.getByText(action === 'reactivate' ? 'Inativo' : 'Ativo', { exact: true })).toBeInTheDocument()
   })
 

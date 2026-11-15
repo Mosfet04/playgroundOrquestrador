@@ -11,7 +11,7 @@ import { ToolEditor } from '@/components/management/tools/ToolEditor'
 
 import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
-import { RUNTIME_URL } from '../msw/handlers'
+import { RUNTIME_URL, runtimeBody } from '../msw/handlers'
 import { server } from '../msw/server'
 import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
@@ -92,7 +92,7 @@ function serve(kind: Kind, writes: Respond[], gets: object[] = [KINDS[kind].enti
   server.use(
     http.get(RUNTIME_URL, () => {
       seen.runtime++
-      return HttpResponse.json({ success: true, data: { revision: 7 } })
+      return HttpResponse.json(runtimeBody(7))
     }),
     http.get('*/api/tools', () => HttpResponse.json(emptyPage)),
     http.get('*/api/agents', () => HttpResponse.json(members)),
@@ -125,7 +125,7 @@ async function renderEditor(kind: Kind, options: { id?: string; locale?: 'pt-BR'
     </RuntimeRevisionProvider>,
     { locale: options.locale }
   )
-  await screen.findByText(options.locale === 'en' ? 'Runtime revision: 7' : 'Revisão do runtime: 7')
+  await screen.findByText(options.locale === 'en' ? 'Orchestrator online, revision 7' : 'Orquestrador online, revisão 7')
   const save = await screen.findByRole('button', { name: options.locale === 'en' ? 'Save' : 'Salvar' })
   await waitFor(() => expect(save).toBeEnabled())
   return { user, save }
@@ -150,7 +150,7 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
     expect(region()).toHaveTextContent(`${saved}. Mudança aplicada na revisão 8 do runtime.`)
     expect(within(region()).getByText('8')).toHaveClass('font-mono')
     expect(save).toHaveFocus()
-    expect(screen.getByText('Revisão do runtime: 8')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 8')).toBeInTheDocument()
     expect(seen.runtime).toBe(1)
     expect(screen.queryByText(saved)).not.toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
@@ -170,7 +170,7 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
     await saveAndConfirm(user)
 
     await waitFor(() => expect(region()).toHaveTextContent(`${saved}. Mudança aplicada no runtime.`))
-    expect(screen.getByText('Revisão do runtime: 7')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 7')).toBeInTheDocument()
   })
 
   it('não aplicada: título, corpo e o detalhe técnico; o formulário guarda as edições e a casca não muda', async () => {
@@ -191,7 +191,7 @@ describe.each(KIND_NAMES)('%s: salvar uma edição', (kind) => {
     expect(region()).toHaveTextContent('Detalhe técnico')
     expect(nameField()).toHaveValue('Editado')
     expect(save).toHaveFocus()
-    expect(screen.getByText('Revisão do runtime: 7')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 7')).toBeInTheDocument()
     expect(screen.queryByText(/código 422/)).not.toBeInTheDocument()
   })
 
@@ -285,7 +285,7 @@ describe.each(KIND_NAMES)('%s: criar', (kind) => {
     expect(await screen.findByText(saved)).toBeInTheDocument()
     expect(screen.getByText('Mudança aplicada na revisão 5 do runtime.')).toBeInTheDocument()
     expect(push).toHaveBeenCalledWith(list)
-    expect(screen.getByText('Revisão do runtime: 5')).toBeInTheDocument()
+    expect(screen.getByText('Orquestrador online, revisão 5')).toBeInTheDocument()
   })
 
   it('não confirmada: fica em /new com "Conferir na lista" em nova aba, sem "Recarregar"', async () => {

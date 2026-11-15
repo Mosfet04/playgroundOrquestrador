@@ -396,7 +396,7 @@ test('salvar: "aplicada na revisão N" igual à da casca, sem reler o runtime; n
   })
   const status = page.locator('[aria-live="polite"][aria-atomic="true"]')
   const shell = (revision: number | string) =>
-    page.getByText(`Revisão do runtime: ${revision}`, { exact: true })
+    page.getByText(`Orquestrador online, revisão ${revision}`, { exact: true })
   const written = async (click: () => Promise<void>) => {
     const response = page.waitForResponse(
       (candidate) => candidate.url().includes(`/api/agents`) && candidate.request().method() !== 'GET'
@@ -417,7 +417,7 @@ test('salvar: "aplicada na revisão N" igual à da casca, sem reler o runtime; n
 
   await page.goto(`/agents/${id}`)
   await hydrated(page)
-  await expect(page.getByText(/^Revisão do runtime: \d+$/)).toBeAttached()
+  await expect(page.getByText(/^Orquestrador online, revisão \d+$/)).toBeAttached()
   const reads = runtimeReads.length
 
   await page.getByLabel(/^Nome \*/).fill('Agente da revisão editado')

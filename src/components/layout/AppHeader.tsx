@@ -92,7 +92,8 @@ function MenuSheet({ notFound }: { notFound: boolean }) {
           <ThemeSelect />
           <LanguageSelect />
           <div aria-hidden="true" className="-mx-4 border-t border-border" />
-          <RuntimeRevision className="px-0" />
+          {/* Alvo de 44 px no celular (D-P4-05-QA-1); na coluna, 24 px. */}
+          <RuntimeRevision className="-mx-3 min-h-11" onNavigate={() => setOpen(false)} />
           <div className="-mx-3">
             <SignOutButton />
           </div>

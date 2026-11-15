@@ -103,6 +103,16 @@ export const deactivateConfig = async <T>(
     await callOrchestrator(itemPath(kind, id), { key: 'admin', method: 'DELETE', ifMatch: version, schema })
   )
 
+// POST /admin/config/reload (FA-04): relê o store, monta tudo e troca o
+// runtime, devolvendo a revisão nova. Não mapeia erro: a falha de montagem é
+// 500 e o runtime anterior segue servindo (D-P4-05-6); 503 sem a administração.
+const reloadSchema = z.object({ runtime_revision: z.number().int().nonnegative() })
+
+export const reloadConfig = async () =>
+  unconfirmedIf5xx(
+    await callOrchestrator('/admin/config/reload', { key: 'admin', method: 'POST', schema: reloadSchema })
+  )
+
 // Histórico do id (FA-05): as escritas pela API, da mais nova à mais antiga,
 // com o documento depois de cada uma (header já mascarado; null na remoção) e
 // o `diff` só dos campos de topo que mudaram. Store YAML ⇒ `items: []`.

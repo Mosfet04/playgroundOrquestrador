@@ -5,16 +5,18 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   RuntimeRevision,
   RuntimeRevisionProvider,
-  useApplyRevision
+  useApplyRevision,
+  useRefreshRuntime
 } from '@/components/layout/RuntimeRevision'
 
 import { renderWithIntl } from '../helpers/intl'
-import { RUNTIME_URL } from '../msw/handlers'
+import { RUNTIME_URL, runtimeBody } from '../msw/handlers'
 import { server } from '../msw/server'
 
-// P4-01 (D-P4-01-3): o provider da casca lê a revisão uma vez ao montar; o
-// indicador mostra carregando, o valor ou indisponível; uma escrita aceita
-// grava a revisão da resposta, sem novo request.
+// P4-01 e P4-05 (D-P4-05-4/12): o provider da casca lê a saúde uma vez ao
+// montar; o indicador é um link para a /settings em carregando, online,
+// degradado ou fora do ar. Uma escrita aceita troca só a revisão, sem request;
+// o estado de saúde só muda por leitura.
 
 // Conta as leituras e responde como mandado.
 function serveRuntime(respond: () => Response | Promise<Response>) {
@@ -28,10 +30,12 @@ function serveRuntime(respond: () => Response | Promise<Response>) {
   return calls
 }
 
-// Quem grava: o editor ou a ação, com o corpo de sucesso do BFF.
+// Quem grava (editor, ação) e quem relê (Atualizar da /settings).
 let applyRevision: ReturnType<typeof useApplyRevision> = () => undefined
-function Writer() {
+let refresh: ReturnType<typeof useRefreshRuntime> = async () => false
+function Consumers() {
   applyRevision = useApplyRevision()
+  refresh = useRefreshRuntime()
   return null
 }
 
@@ -39,58 +43,88 @@ const renderShell = (locale: 'pt-BR' | 'en' = 'pt-BR') =>
   renderWithIntl(
     <RuntimeRevisionProvider>
       <RuntimeRevision />
-      <Writer />
+      <Consumers />
     </RuntimeRevisionProvider>,
     { locale }
   )
 
-const indicator = () => screen.getByText(/runtime · rev\./).parentElement as HTMLElement
+const indicator = () => screen.getByRole('link')
 
-describe('RuntimeRevision', () => {
-  it('carregando (aria-busy, skeleton) e depois o valor, com uma leitura só', async () => {
+describe('RuntimeRevision (status de conexão)', () => {
+  it('carregando (aria-busy, skeleton) e depois online com a revisão, link para /settings, uma leitura só', async () => {
     const calls = serveRuntime(async () => {
       await delay(20)
-      return HttpResponse.json({ success: true, data: { revision: 7 } })
+      return HttpResponse.json(runtimeBody(7))
     })
     renderShell()
 
     expect(indicator()).toHaveAttribute('aria-busy', 'true')
-    expect(screen.getByText('Carregando a revisão do runtime')).toHaveClass('sr-only')
+    expect(indicator()).toHaveAccessibleName('Conectando ao orquestrador')
+    expect(indicator()).toHaveTextContent('runtime ·')
 
-    expect(await screen.findByText('Revisão do runtime: 7')).toHaveClass('sr-only')
+    expect(await screen.findByRole('link', { name: 'Orquestrador online, revisão 7' })).toHaveAttribute(
+      'href',
+      '/settings'
+    )
     expect(indicator()).not.toHaveAttribute('aria-busy')
-    expect(screen.getByText('7')).toHaveAttribute('aria-hidden', 'true')
+    expect(indicator()).not.toHaveAttribute('title')
+    expect(screen.getByText('online')).toHaveClass('text-success')
+    expect(screen.getByText('online').parentElement).toHaveAttribute('aria-hidden', 'true')
+    expect(indicator()).toHaveTextContent('online · rev. 7')
     expect(calls.count).toBe(1)
+  })
+
+  it('degradado (503 com corpo, no BFF 200 degraded): ícone e texto de atenção com a revisão', async () => {
+    serveRuntime(() => HttpResponse.json(runtimeBody(28, 'degraded')))
+    renderShell()
+
+    expect(
+      await screen.findByRole('link', { name: 'Orquestrador degradado, revisão 28' })
+    ).toHaveTextContent('degradado · rev. 28')
+    expect(screen.getByText('degradado')).toHaveClass('text-warning')
   })
 
   it.each([
     ['orquestrador fora (503)', () => HttpResponse.json({ success: false, error: 'unreachable' }, { status: 503 })],
     ['prazo (504)', () => HttpResponse.json({ success: false, error: 'timeout' }, { status: 504 })],
-    ['corpo fora do formato', () => HttpResponse.json({ success: true, data: { revision: '7' } })],
+    ['502 (chave recusada, corpo inválido)', () => HttpResponse.json({ success: false, error: 'unauthorized' }, { status: 502 })],
+    ['sessão vencida (401)', () => HttpResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })],
+    ['corpo fora do formato', () => HttpResponse.json({ success: true, data: { revision: 7 } })],
     ['não JSON', () => new HttpResponse('<html>')],
     ['rede', () => HttpResponse.error()]
-  ])('%s ⇒ indisponível, com a dica no title', async (_, respond) => {
+  ])('%s ⇒ fora do ar, com a dica no title', async (_, respond) => {
     serveRuntime(respond)
     renderShell()
 
-    expect(await screen.findByText('Revisão do runtime indisponível')).toHaveClass('sr-only')
-    expect(screen.getByText('indisponível')).toHaveAttribute('aria-hidden', 'true')
-    expect(indicator()).toHaveAttribute('title', 'Não foi possível ler a revisão do runtime.')
+    expect(await screen.findByRole('link', { name: 'Orquestrador fora do ar' })).toHaveAttribute(
+      'title',
+      'Orquestrador não respondeu. Veja os detalhes em Configurações.'
+    )
+    expect(screen.getByText('fora do ar')).toHaveClass('text-destructive')
+    expect(indicator()).not.toHaveTextContent('rev.')
   })
 
   it('EN', async () => {
     serveRuntime(() => HttpResponse.json({ success: false }, { status: 503 }))
-    renderShell('en')
+    const { unmount } = renderShell('en')
 
-    expect(await screen.findByText('Runtime revision unavailable')).toBeInTheDocument()
-    expect(screen.getByText('unavailable')).toBeInTheDocument()
-    expect(indicator()).toHaveAttribute('title', "Couldn't read the runtime revision.")
+    expect(await screen.findByRole('link', { name: 'Orchestrator offline' })).toHaveAttribute(
+      'title',
+      "The orchestrator didn't respond. See the details in Settings."
+    )
+    unmount()
+
+    serveRuntime(() => HttpResponse.json(runtimeBody(3, 'degraded')))
+    renderShell('en')
+    expect(await screen.findByRole('link', { name: 'Orchestrator degraded, revision 3' })).toHaveTextContent(
+      'degraded · rev. 3'
+    )
   })
 
-  it('escrita aceita troca o valor pelo contexto, sem nova leitura (também depois de indisponível)', async () => {
-    const calls = serveRuntime(() => HttpResponse.json({ success: false }, { status: 503 }))
+  it('escrita aceita troca só a revisão, sem nova leitura; o estado (degradado) fica', async () => {
+    const calls = serveRuntime(() => HttpResponse.json(runtimeBody(7, 'degraded')))
     renderShell()
-    await screen.findByText('Revisão do runtime indisponível')
+    await screen.findByRole('link', { name: 'Orquestrador degradado, revisão 7' })
 
     let returned: number | undefined
     act(() => {
@@ -98,8 +132,49 @@ describe('RuntimeRevision', () => {
     })
 
     expect(returned).toBe(12)
-    expect(screen.getByText('Revisão do runtime: 12')).toBeInTheDocument()
+    expect(indicator()).toHaveAccessibleName('Orquestrador degradado, revisão 12')
     expect(calls.count).toBe(1)
+  })
+
+  it('fora do ar segue fora do ar depois de uma escrita, até uma leitura (que traz a revisão dela)', async () => {
+    let up = false
+    const calls = serveRuntime(() =>
+      up ? HttpResponse.json(runtimeBody(15)) : HttpResponse.json({ success: false }, { status: 503 })
+    )
+    renderShell()
+    await screen.findByRole('link', { name: 'Orquestrador fora do ar' })
+
+    act(() => {
+      applyRevision({ runtimeRevision: 12 })
+    })
+    expect(indicator()).toHaveAccessibleName('Orquestrador fora do ar')
+
+    up = true
+    let read = false
+    await act(async () => {
+      read = await refresh()
+    })
+    expect(read).toBe(true)
+    expect(indicator()).toHaveAccessibleName('Orquestrador online, revisão 15')
+    expect(calls.count).toBe(2)
+  })
+
+  it('a leitura que falha depois de online leva a fora do ar', async () => {
+    let up = true
+    serveRuntime(() =>
+      up ? HttpResponse.json(runtimeBody(4)) : HttpResponse.json({ success: false }, { status: 503 })
+    )
+    renderShell()
+    await screen.findByRole('link', { name: 'Orquestrador online, revisão 4' })
+
+    up = false
+    let read = true
+    await act(async () => {
+      read = await refresh()
+    })
+
+    expect(read).toBe(false)
+    expect(indicator()).toHaveAccessibleName('Orquestrador fora do ar')
   })
 
   it.each([
@@ -107,9 +182,9 @@ describe('RuntimeRevision', () => {
     ['inválida', { runtimeRevision: -1 }],
     ['texto', { runtimeRevision: '9' }]
   ])('escrita com revisão %s não mexe no indicador e devolve undefined', async (_, body) => {
-    serveRuntime(() => HttpResponse.json({ success: true, data: { revision: 7 } }))
+    serveRuntime(() => HttpResponse.json(runtimeBody(7)))
     renderShell()
-    await screen.findByText('Revisão do runtime: 7')
+    await screen.findByRole('link', { name: 'Orquestrador online, revisão 7' })
 
     let returned: number | undefined = 0
     act(() => {
@@ -117,10 +192,10 @@ describe('RuntimeRevision', () => {
     })
 
     expect(returned).toBeUndefined()
-    expect(screen.getByText('Revisão do runtime: 7')).toBeInTheDocument()
+    expect(indicator()).toHaveAccessibleName('Orquestrador online, revisão 7')
   })
 
-  it('escrita que responde antes da leitura vale (é mais nova)', async () => {
+  it('escrita que responde antes da leitura vale (é mais nova); o estado vem da leitura', async () => {
     // Portão criado fora do handler: a leitura fica presa até o release().
     let release!: () => void
     const held = new Promise<void>((resolve) => (release = resolve))
@@ -128,7 +203,7 @@ describe('RuntimeRevision', () => {
     serveRuntime(async () => {
       reached = true
       await held
-      return HttpResponse.json({ success: true, data: { revision: 3 } })
+      return HttpResponse.json(runtimeBody(3, 'degraded'))
     })
     renderShell()
     // A leitura já saiu (e está presa) quando a escrita responde.
@@ -137,17 +212,37 @@ describe('RuntimeRevision', () => {
     act(() => {
       applyRevision({ runtimeRevision: 8 })
     })
-    expect(screen.getByText('Revisão do runtime: 8')).toBeInTheDocument()
+    expect(indicator()).toHaveAccessibleName('Conectando ao orquestrador')
 
-    let settled = false
     await act(async () => {
       release()
       await held
       await delay(20)
-      settled = true
     })
-    expect(settled).toBe(true)
-    expect(screen.getByText('Revisão do runtime: 8')).toBeInTheDocument()
-    expect(screen.queryByText('Revisão do runtime: 3')).not.toBeInTheDocument()
+    expect(indicator()).toHaveAccessibleName('Orquestrador degradado, revisão 8')
+  })
+
+  it('uma leitura nova substitui a que está em curso (a antiga não escreve)', async () => {
+    let release!: () => void
+    const held = new Promise<void>((resolve) => (release = resolve))
+    let first = true
+    serveRuntime(async () => {
+      if (!first) return HttpResponse.json(runtimeBody(10))
+      first = false
+      await held
+      return HttpResponse.json(runtimeBody(2, 'degraded'))
+    })
+    renderShell()
+
+    await act(async () => {
+      await refresh()
+    })
+    expect(indicator()).toHaveAccessibleName('Orquestrador online, revisão 10')
+
+    await act(async () => {
+      release()
+      await delay(20)
+    })
+    expect(indicator()).toHaveAccessibleName('Orquestrador online, revisão 10')
   })
 })

@@ -52,7 +52,7 @@ test('cria, edita (header mascarado mantido) e exclui uma tool pelo fake', async
   await expect(page.locator('[aria-live="polite"][aria-atomic="true"]')).toContainText(
     `Tool salva. Mudança aplicada na revisão ${runtimeRevision} do runtime.`
   )
-  await expect(page.getByText(`Revisão do runtime: ${runtimeRevision}`, { exact: true })).toBeAttached()
+  await expect(page.getByText(`Orquestrador online, revisão ${runtimeRevision}`, { exact: true })).toBeAttached()
   await expect(page).toHaveURL(`/tools/${ID}`)
   await expect(masked).toHaveValue('***')
   const stored = await storedTool(ID)

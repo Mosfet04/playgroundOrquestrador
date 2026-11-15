@@ -9,7 +9,7 @@ import { AgentEditor } from '@/components/management/agents/AgentEditor'
 
 import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
-import { RUNTIME_URL } from '../msw/handlers'
+import { RUNTIME_URL, runtimeBody } from '../msw/handlers'
 import { server } from '../msw/server'
 
 // QA do P4-04: o que o VersionHistory.test.tsx do dev não alcança. Restaurar
@@ -54,7 +54,7 @@ const HISTORY = [
 function serve(restore: () => Response | Promise<Response> = () => HttpResponse.json({ success: true, data: at(9), runtimeRevision: 12 })) {
   const restores: string[] = []
   server.use(
-    http.get(RUNTIME_URL, () => HttpResponse.json({ success: true, data: { revision: 7 } })),
+    http.get(RUNTIME_URL, () => HttpResponse.json(runtimeBody(7))),
     http.get('*/api/tools', () =>
       HttpResponse.json({ success: true, data: { data: [], total: 0, page: 1, limit: 100, totalPages: 1 } })
     ),
@@ -198,7 +198,7 @@ describe('QA P4-04: segredo legado no histórico', () => {
     const RAW = 'LEAK-QA-LEGADO-EM-CLARO'
     const RAW_BEFORE = 'LEAK-QA-LEGADO-ANTES'
     server.use(
-      http.get(RUNTIME_URL, () => HttpResponse.json({ success: true, data: { revision: 7 } })),
+      http.get(RUNTIME_URL, () => HttpResponse.json(runtimeBody(7))),
       http.get('*/api/tools', () =>
         HttpResponse.json({ success: true, data: { data: [], total: 0, page: 1, limit: 100, totalPages: 1 } })
       ),
