@@ -133,9 +133,9 @@ test.describe('390 px', () => {
     await row.getByRole('link').click()
     const remove = page.getByRole('button', { name: 'Excluir agente' })
     const save = page.getByRole('button', { name: 'Salvar' })
-    // Salvar só habilita com o schema lido; até lá a seção Execução é skeleton e
-    // o rodapé ainda desce (P3-02).
-    await expect(save).toBeEnabled()
+    // Sem mudança, o Salvar só fica apagado com o schema lido; até lá a seção
+    // Execução é skeleton e o rodapé ainda desce (P3-02, D-P4-02-1).
+    await expect(save).toHaveAttribute('aria-disabled', 'true')
     const [removeBox, saveBox] = [await remove.boundingBox(), await save.boundingBox()]
     if (!removeBox || !saveBox) throw new Error('botões do rodapé')
     expect(removeBox.y).toBeGreaterThan(saveBox.y)

@@ -17,4 +17,4 @@ export const toParamRows = (params?: ModelParams): ParamRow[] =>
   Object.entries(params ?? {}).map(([name, value]) => ({ name, value: String(value) }))
 
 export const toModelParams = (rows: ParamRow[]): ModelParams =>
-  Object.fromEntries(rows.map(({ name, value }) => [name, paramValue(value)]))
+  Object.fromEntries(rows.map(({ name, value }) => [name.trim(), paramValue(value)]))

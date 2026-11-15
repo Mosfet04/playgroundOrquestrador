@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // P2-06: CRUD de agents pela API Admin do fake orchestrator. Roda no projeto
 // `config-agents`, depois do `chromium` (playwright.config.ts): o dashboard
@@ -37,10 +38,11 @@ test('cria, edita e exclui um agent pelo fake', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeVisible()
   await hydrated(page)
   await page.getByLabel(/^Nome \*/).fill('Agente do e2e editado')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
 
-  await expect(page.getByText('Agente salvo').last()).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Agente do e2e editado' }).first()).toBeVisible()
+  // A edição salva fica no editor (D-P4-01-4).
+  await expect(page.getByText(/^Agente salvo\. Mudança aplicada/)).toBeVisible()
+  await expect(page).toHaveURL(`/agents/${ID}`)
   // O PUT leva os defaults do schema que o form mostrou (P3-02).
   expect(await (await storedAgent(ID)).json()).toMatchObject({
     nome: 'Agente do e2e editado',
@@ -49,8 +51,6 @@ test('cria, edita e exclui um agent pelo fake', async ({ page }) => {
     version: 2
   })
 
-  await page.getByRole('link', { name: 'Agente do e2e editado' }).first().click()
-  await hydrated(page)
   await page.getByRole('button', { name: 'Excluir agente' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
 
@@ -80,7 +80,9 @@ test('agent do seed com prompt em lista: abre unido por linha e salvar grava tex
   await hydrated(page)
   // Reexecução local com o fake reaproveitado: a versão lida antes vale a base.
   const before = (await (await storedAgent('agente-beta')).json()).version as number
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  // Sem mudança o Salvar não envia (D-P4-02-1): o prompt vai junto de outra edição.
+  await page.getByLabel('Descrição').fill('Beta com o prompt em texto')
+  await saveAndConfirm(page)
 
   await expect(page.getByText('Agente salvo').last()).toBeVisible()
   expect(await (await storedAgent('agente-beta')).json()).toMatchObject({
@@ -196,7 +198,7 @@ test('cria e edita agent com modelo, execução, memória e resumo', async ({ pa
   // Remover o parâmetro e limpar a referência tira as chaves do documento.
   await page.getByRole('button', { name: 'Remover temperature' }).click()
   await modelReference(page).getByRole('textbox', { name: 'Variável de ambiente' }).fill('')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
 
   // O toast da criação ainda pode estar na tela: espera o PUT pela versão gravada.
   await expect
@@ -207,8 +209,8 @@ test('cria e edita agent com modelo, execução, memória e resumo', async ({ pa
   expect(edited.model_params ?? null).toBeNull()
   expect(edited.api_key_ref ?? null).toBeNull()
 
-  await page.getByRole('link', { name: 'Agente do editor' }).first().click()
-  await hydrated(page)
+  // A edição salva fica no editor (D-P4-01-4).
+  await expect(page).toHaveURL(`/agents/${id}`)
   await page.getByRole('button', { name: 'Excluir agente' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
   await expect(page.getByText('Agente excluído')).toBeVisible()
@@ -312,13 +314,14 @@ test('cria e edita agent com RAG completo; desligar e religar mantém os valores
   await rag.getByRole('switch', { name: 'Habilitar RAG' }).click()
   await expect(rag.getByText('catalogo · fake-embed/bge-small · hierarchical')).toBeVisible()
   await expect(rag.getByRole('textbox', { name: 'Nome do documento *' })).toBeHidden()
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await expect
     .poll(async () => ((await (await storedAgent(id)).json()) as { version: number }).version)
     .toBe(2)
   expect((await (await storedAgent(id)).json()).rag_config).toEqual({ ...ragDocument, active: false })
 
-  await page.getByRole('link', { name: 'Agente RAG' }).first().click()
+  // A edição salva fica no editor (D-P4-01-4): recarregar relê o gravado.
+  await page.reload()
   await hydrated(page)
   await expect(rag.getByRole('switch', { name: 'Habilitar RAG' })).not.toBeChecked()
   await rag.getByRole('switch', { name: 'Habilitar RAG' }).click()
@@ -330,14 +333,12 @@ test('cria e edita agent com RAG completo; desligar e religar mantém os valores
   await rag.getByRole('switch', { name: 'Habilitar RAG' }).click()
   await rag.getByRole('button', { name: 'Descartar valores' }).click()
   await expect(rag.getByRole('switch', { name: 'Habilitar RAG' })).toBeFocused()
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await expect
     .poll(async () => ((await (await storedAgent(id)).json()) as { version: number }).version)
     .toBe(3)
   expect((await (await storedAgent(id)).json()).rag_config ?? null).toBeNull()
 
-  await page.getByRole('link', { name: 'Agente RAG' }).first().click()
-  await hydrated(page)
   await page.getByRole('button', { name: 'Excluir agente' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
   await expect(page.getByText('Agente excluído')).toBeVisible()
@@ -378,4 +379,95 @@ test('RAG: URL base obrigatória no cliente; 422 do orquestrador reabre os campo
   await expect(rag.getByRole('switch', { name: 'Habilitar RAG' })).not.toBeChecked()
   await expect(page).toHaveURL('/agents/new')
   expect((await storedAgent('e2e-agente-rag-422')).status).toBe(404)
+})
+
+// P4-01 (D-P4-01-4): salvar uma edição fica no editor com o status de
+// aplicação, e a casca mostra a mesma revisão do header `Runtime-Revision`,
+// sem reler GET /api/orchestrator/runtime. Os gatilhos do fake no nome
+// (`[nao-monta]`, `[falha-apos-gravar]`) dão o 422 de montagem e o 500
+// depois de gravar.
+test('salvar: "aplicada na revisão N" igual à da casca, sem reler o runtime; não aplicada e não confirmada', async ({
+  page
+}) => {
+  const id = 'e2e-agente-revisao'
+  const runtimeReads: string[] = []
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/orchestrator/runtime') runtimeReads.push(request.url())
+  })
+  const status = page.locator('[aria-live="polite"][aria-atomic="true"]')
+  const shell = (revision: number | string) =>
+    page.getByText(`Orquestrador online, revisão ${revision}`, { exact: true })
+  const written = async (click: () => Promise<void>) => {
+    const response = page.waitForResponse(
+      (candidate) => candidate.url().includes(`/api/agents`) && candidate.request().method() !== 'GET'
+    )
+    await click()
+    return (await response).json()
+  }
+  const save = () => written(() => saveAndConfirm(page))
+
+  await page.goto('/agents/new')
+  await hydrated(page)
+  await page.getByLabel(/^ID do agente/).fill(id)
+  await page.getByLabel(/^Nome \*/).fill('Agente da revisão')
+  await page.getByLabel(/^Modelo \*/).fill('fake-model')
+  const created = await written(() => page.getByRole('button', { name: 'Salvar' }).click())
+  await expect(page).toHaveURL('/agents')
+  await expect(page.getByText(`Mudança aplicada na revisão ${created.runtimeRevision} do runtime.`)).toBeVisible()
+
+  await page.goto(`/agents/${id}`)
+  await hydrated(page)
+  await expect(page.getByText(/^Orquestrador online, revisão \d+$/)).toBeAttached()
+  const reads = runtimeReads.length
+
+  await page.getByLabel(/^Nome \*/).fill('Agente da revisão editado')
+  const saved = await save()
+  const revision = saved.runtimeRevision as number
+  expect(revision).toEqual(expect.any(Number))
+  await expect(status).toContainText(`Agente salvo. Mudança aplicada na revisão ${revision} do runtime.`)
+  await expect(shell(revision)).toBeAttached()
+  await expect(page.getByRole('button', { name: 'Salvar' })).toBeFocused()
+  await expect(page).toHaveURL(`/agents/${id}`)
+  expect(runtimeReads).toHaveLength(reads)
+
+  // 422 de montagem: nada gravado, versão anterior no ar, casca igual.
+  await page.getByLabel(/^Nome \*/).fill('Agente [nao-monta]')
+  await expect(status).toBeEmpty()
+  expect(await save()).toEqual({ success: false, error: 'not_applied', errorType: 'ValueError' })
+  await expect(status).toContainText('Não aplicada: o orquestrador não conseguiu carregar esta configuração.')
+  await expect(status.locator('code')).toHaveText('ValueError')
+  await expect(page.getByText(/não monta no runtime/)).toHaveCount(0)
+  await expect(shell(revision)).toBeAttached()
+  expect(await (await storedAgent(id)).json()).toMatchObject({ nome: 'Agente da revisão editado' })
+
+  // 500 depois de gravar: não confirmada; recarregar mostra o que ficou gravado.
+  await page.getByLabel(/^Nome \*/).fill('Agente [falha-apos-gravar]')
+  expect(await save()).toEqual({ success: false, error: 'not_confirmed' })
+  await expect(status).toContainText('Não confirmada: o orquestrador falhou depois de receber a mudança.')
+  await expect(page.getByText(/Não foi possível salvar/)).toHaveCount(0)
+  await status.getByRole('button', { name: 'Recarregar agente' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeFocused()
+  await expect(page.getByLabel(/^Nome \*/)).toHaveValue('Agente [falha-apos-gravar]')
+  await expect(status).toBeEmpty()
+  await expect(shell(revision)).toBeAttached()
+
+  // QA (N3): escrita aceita sem o header ⇒ "aplicada" sem número; a casca fica.
+  await page.getByLabel(/^Nome \*/).fill('Agente [sem-revisao]')
+  const unnumbered = await save()
+  expect(unnumbered.success).toBe(true)
+  expect(unnumbered).not.toHaveProperty('runtimeRevision')
+  await expect(status).toContainText('Agente salvo. Mudança aplicada no runtime.')
+  await expect(status).not.toContainText('revisão')
+  await expect(shell(revision)).toBeAttached()
+
+  // Limpa: renomeia (aplicada) e exclui; a exclusão também troca a casca.
+  await page.getByLabel(/^Nome \*/).fill('Agente da revisão')
+  await save()
+  await page.getByRole('button', { name: 'Excluir agente' }).click()
+  const deleted = page.waitForResponse((candidate) => candidate.request().method() === 'DELETE')
+  await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
+  const { runtimeRevision: afterDelete } = await (await deleted).json()
+  await expect(page.getByText(`Mudança aplicada na revisão ${afterDelete} do runtime.`)).toBeVisible()
+  await expect(shell(afterDelete)).toBeAttached()
+  expect(runtimeReads).toHaveLength(reads)
 })

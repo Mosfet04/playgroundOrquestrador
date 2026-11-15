@@ -1,11 +1,14 @@
 import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppShell, usePageLabel } from '@/components/layout/AppShell'
 import { Navigation } from '@/components/layout/Navigation'
 
 import { renderWithIntl } from '../helpers/intl'
+import { RUNTIME_URL, runtimeBody } from '../msw/handlers'
+import { server } from '../msw/server'
 
 // Sem o App Router no jsdom: o pathname vem do mock (next/navigation 15.2).
 const route = vi.hoisted(() => ({ pathname: '/' }))
@@ -84,6 +87,17 @@ describe('Navigation: item ativo', () => {
     }
   )
 
+  // P4-05 (V1): Configurações no grupo Configurar, depois de Tools, ativo em /settings.
+  it('em /settings "Configurações" fica ativo, no grupo Configurar', () => {
+    route.pathname = '/settings'
+    renderWithIntl(<Navigation />)
+
+    const active = activeLinks(mainNav())
+    expect(active).toHaveLength(1)
+    expect(active[0]).toHaveAccessibleName('Configurações')
+    expect(active[0]).toHaveAttribute('aria-current', 'page')
+  })
+
   it('os itens são links reais para as rotas, nos grupos da navegação', () => {
     route.pathname = '/'
     renderWithIntl(<Navigation />)
@@ -97,6 +111,7 @@ describe('Navigation: item ativo', () => {
       ['Agentes', '/agents'],
       ['Teams', '/teams'],
       ['Tools', '/tools'],
+      ['Configurações', '/settings'],
       ['Dashboard', '/dashboard']
     ])
     for (const group of ['Testar', 'Configurar', 'Observar'])
@@ -233,6 +248,50 @@ describe('AppShell', () => {
     expect(
       within(sheet).getByRole('combobox', { name: 'Idioma' }).compareDocumentPosition(sheetSignOut)
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  // P4-01 (§4): a revisão do runtime fica acima de "Sair", na coluna da
+  // navegação e no Sheet (depois de Idioma); o cabeçalho não ganha nada. Uma
+  // leitura por carga da casca: abrir o Sheet não relê.
+  it('o status de conexão fica acima de "Sair" na navegação e no Sheet, com uma leitura só', async () => {
+    let reads = 0
+    server.use(
+      http.get(RUNTIME_URL, () => {
+        reads++
+        return HttpResponse.json(runtimeBody(4))
+      })
+    )
+    route.pathname = '/agents'
+    const user = userEvent.setup()
+    renderWithIntl(<AppShell>conteúdo</AppShell>)
+
+    const revision = await screen.findByText('Orquestrador online, revisão 4')
+    expect(revision.compareDocumentPosition(screen.getByRole('button', { name: 'Sair' }))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    )
+    expect(mainNav()).not.toContainElement(revision)
+    expect(screen.getByRole('banner')).not.toHaveTextContent('runtime')
+
+    await user.click(screen.getByRole('button', { name: 'Abrir menu' }))
+    const sheet = screen.getByRole('dialog', { name: 'Menu' })
+    const sheetRevision = within(sheet).getByText('Orquestrador online, revisão 4')
+    expect(
+      within(sheet).getByRole('combobox', { name: 'Idioma' }).compareDocumentPosition(sheetRevision)
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(
+      sheetRevision.compareDocumentPosition(within(sheet).getByRole('button', { name: 'Sair' }))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(reads).toBe(1)
+
+    // P4-05 (V3): é o link para /settings; no Sheet, navegar fecha o menu.
+    // D-P4-05-QA-1: no Sheet (celular) o alvo tem 44 px; na coluna, 24 px.
+    const sheetLink = within(sheet).getByRole('link', { name: 'Orquestrador online, revisão 4' })
+    expect(sheetLink).toHaveAttribute('href', '/settings')
+    expect(sheetLink).toHaveClass('min-h-11')
+    expect(revision.closest('a')).not.toHaveClass('min-h-11')
+    await user.click(sheetLink)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(reads).toBe(1)
   })
 
   it('"Fechar menu" fecha o Sheet', async () => {

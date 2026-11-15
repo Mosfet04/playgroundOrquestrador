@@ -21,7 +21,9 @@ const ChatArea = () => {
     isOrchestratorActive,
     isOrchestratorLoading,
     setSessionsData,
-    setSessionsError
+    setSessionsError,
+    setMessages,
+    setLoadedSessionId
   } = usePlaygroundStore()
   const [agentId] = useQueryState('agent')
   const [teamId] = useQueryState('team')
@@ -31,6 +33,22 @@ const ChatArea = () => {
     initializePlayground()
   }, [initializePlayground])
 
+  // Sem ?session= a conversa fica vazia: ao abrir por navegação client-side
+  // (o store sobrevive: editor -> "Testar agora") e quando a URL perde a sessão
+  // sem remontar (clicar em "Playground" já na página). Com ?session= a carga
+  // abaixo troca as mensagens; a 1ª mensagem de uma conversa nova (null -> X)
+  // não passa pelo `if`.
+  useEffect(() => {
+    if (!sessionId) {
+      setMessages([])
+      setLoadedSessionId(null)
+    }
+  }, [sessionId, setMessages, setLoadedSessionId])
+
+  // Ao sair da página nenhuma carga de sessão em andamento vale (a resposta
+  // atrasada é descartada) e, ao voltar, `?session=` lê o histórico do servidor.
+  useEffect(() => () => setLoadedSessionId(null), [setLoadedSessionId])
+
   // Sair da página ou a entidade da URL mudar (cartão, modo, Voltar/Avançar)
   // aborta o run em andamento (D-P2-03-4, decisão 0020).
   useEffect(
@@ -38,15 +56,18 @@ const ChatArea = () => {
     [agentId, teamId]
   )
 
-  // Sessão da URL (?session=) quando o orquestrador responde: ao abrir e ao
-  // voltar depois de fora do ar (LIM-P1-03-1, D-P1-06-4).
+  // Sessão da URL (?session=) quando o orquestrador responde: ao abrir, ao
+  // voltar depois de fora do ar (LIM-P1-03-1, D-P1-06-4) e quando Voltar/Avançar
+  // a trocam. Não carrega a que o store já pediu (o clique na lista muda a URL e
+  // a pede no mesmo tick) nem durante um run: a sessão que o stream cria
+  // (null -> X) já tem a conversa na tela.
   useEffect(() => {
-    if (isOrchestratorActive && sessionId && (agentId || teamId)) {
-      const entityType = agentId ? 'agent' : 'team'
-      getSession({ entityType, agentId, teamId }, sessionId)
-    }
+    const { isStreaming, loadedSessionId } = usePlaygroundStore.getState()
+    if (!isOrchestratorActive || !sessionId || !(agentId || teamId)) return
+    if (isStreaming || loadedSessionId === sessionId) return
+    getSession({ entityType: agentId ? 'agent' : 'team', agentId, teamId }, sessionId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOrchestratorActive])
+  }, [isOrchestratorActive, sessionId])
 
   useEffect(() => {
     // A falha da entidade anterior não vale para a nova (caixa de sessões).

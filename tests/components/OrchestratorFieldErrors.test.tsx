@@ -10,6 +10,7 @@ import type { AgentConfig, Tool } from '@/types/management'
 
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P2-06 (D-P2-06-7, D-P2-06-8): o editor reenvia a versão lida no If-Match e
 // o 422 do orquestrador aparece no campo que ele recusou, com texto fixo do
@@ -107,7 +108,8 @@ describe('AgentForm: If-Match e 422 no campo', () => {
     const user = userEvent.setup()
     renderAgent(onSuccess)
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await screen.findByText('Não foi possível salvar o agente (código 422)')).toBeInTheDocument()
     expect(within(block(/^Provedor \*/)).getByText(REJECTED)).toBeInTheDocument()
@@ -127,12 +129,15 @@ describe('AgentForm: If-Match e 422 no campo', () => {
     const user = userEvent.setup()
     renderAgent(onSuccess)
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
     expect(await within(card(/^Tools disponíveis/)).findByText(REJECTED)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await saveAndConfirm(user)
 
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+    // A edição salva fica no editor (D-P4-01-4).
+    expect(await screen.findByText('Agente salvo.')).toBeInTheDocument()
+    expect(onSuccess).not.toHaveBeenCalled()
     expect(saved).toHaveLength(2)
     expect(screen.queryByText(REJECTED)).not.toBeInTheDocument()
   })
@@ -146,7 +151,8 @@ describe('AgentForm: If-Match e 422 no campo', () => {
     const user = userEvent.setup()
     renderAgent()
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await screen.findByText('Não foi possível salvar o agente (código 422)')).toBeInTheDocument()
     expect(screen.queryByText(REJECTED)).not.toBeInTheDocument()
@@ -163,13 +169,14 @@ describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {
     )
   }
 
-  it('mostra o header mascarado e salvar sem mexer reenvia a máscara com a versão', async () => {
+  it('mostra o header mascarado e salvar sem mexer nele reenvia a máscara com a versão', async () => {
     const saved = serveSaves('*/api/tools/:id', [HttpResponse.json({ success: true, data: tool })])
     const user = userEvent.setup()
     renderTool()
 
     expect(screen.getByDisplayValue('***')).toHaveAttribute('readonly')
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(saved).toHaveLength(1))
     expect(saved[0].ifMatch).toBe('"7"')
@@ -181,7 +188,8 @@ describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {
     const user = userEvent.setup()
     renderTool()
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await screen.findByText(/recusou algum header e não diz qual/)).toBeInTheDocument()
     expect(screen.getByText('Não foi possível salvar a tool (código 422)')).toBeInTheDocument()
@@ -192,7 +200,8 @@ describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {
     const user = userEvent.setup()
     renderTool()
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
 
     // O erro da linha descreve o nome do parâmetro (aria-describedby).
     await screen.findByText(REJECTED)
@@ -208,7 +217,8 @@ describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {
     const user = userEvent.setup()
     renderTool()
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await within(block(label)).findByText(REJECTED)).toBeInTheDocument()
   })

@@ -64,6 +64,12 @@ interface PlaygroundStore {
       | PlaygroundChatMessage[]
       | ((prevMessages: PlaygroundChatMessage[]) => PlaygroundChatMessage[])
   ) => void
+  /**
+   * Sessão cujo histórico já foi pedido para `messages`: quem muda a sessão
+   * da URL por outro caminho (Voltar/Avançar) é quem ainda precisa carregar.
+   */
+  loadedSessionId: string | null
+  setLoadedSessionId: (sessionId: string | null) => void
   hasStorage: boolean
   setHasStorage: (hasStorage: boolean) => void
   chatInputRef: React.RefObject<HTMLTextAreaElement | null>
@@ -110,6 +116,8 @@ export const usePlaygroundStore = create<PlaygroundStore>()((set) => ({
       messages:
         typeof messages === 'function' ? messages(state.messages) : messages
     })),
+  loadedSessionId: null,
+  setLoadedSessionId: (loadedSessionId) => set(() => ({ loadedSessionId })),
   hasStorage: false,
   setHasStorage: (hasStorage) => set(() => ({ hasStorage })),
   chatInputRef: { current: null },

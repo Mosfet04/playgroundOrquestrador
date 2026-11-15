@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { createTool, listTools } from '@/server/orchestrator/tools'
 
 import { parseJsonBody } from '../parseJsonBody'
-import { badRequest, configError, ok, orchestratorError } from '../respond'
+import { badRequest, configError, ok, orchestratorError, written } from '../respond'
 import { toolBodySchema } from './schema'
 
 export const runtime = 'nodejs'
@@ -30,5 +30,5 @@ export async function POST(request: NextRequest) {
   const parsed = await parseJsonBody(request, toolBodySchema)
   if (!parsed.success) return parsed.response
   const result = await createTool(parsed.data)
-  return result.ok ? ok(result.data) : configError(result)
+  return result.ok ? written(result) : configError(result)
 }

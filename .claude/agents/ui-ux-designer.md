@@ -2,7 +2,7 @@
 name: ui-ux-designer
 description: "Designer de UI/UX sênior do playground. Use (1) antes do dev, em item com 'UI: sim', para desenhar telas e fluxos no Claude Design (artifact Design + Design System) e escrever a spec em docs/design/<item>.md; (2) depois do QA, em modo DESIGN_QA, para comparar a implementação com a spec por screenshots. Só escreve em docs/design/. Não implementa código."
 tools: Read, Grep, Glob, Write, Edit, Bash, Skill, Artifact, WebFetch
-model: opus
+model: sonnet
 effort: high
 color: magenta
 hooks:

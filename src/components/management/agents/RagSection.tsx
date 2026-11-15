@@ -71,6 +71,8 @@ export function RagSection({
   const validateApiKeyRef = useSecretRefValidate(prefixes, storedApiKeyRef)
   const hasValues = !!(docName || model || baseUrl || apiKeyRef || params.length > 0)
   const open = active || reopened
+  const hasRagError =
+    Object.keys(errors).some((name) => name.startsWith('rag_')) || !!errors.root?.rag_params
 
   // Só exigido com o RAG ligado; desligado, o orquestrador decide (D-P3-05-3).
   const required = (message: string) => (value: string | undefined) =>
@@ -170,7 +172,7 @@ export function RagSection({
 
       {(open || hasValues) && (
       <div hidden={!open} className="space-y-4">
-        {!active && reopened && (
+        {!active && reopened && hasRagError && (
           <p className="flex items-start gap-1 text-xs text-muted-foreground">
             <Info className="mt-px size-3.5 shrink-0" aria-hidden="true" />
             <span>{t('ragReopened')}</span>

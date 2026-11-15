@@ -1,20 +1,25 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
 
+import { useApplyRevision } from '@/components/layout/RuntimeRevision'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { withDefaults } from '@/lib/formDiff'
+import { boolRow } from '@/lib/formDiff'
+import { referencePrefixes } from '@/lib/secretRef'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { TextArea } from '@/components/ui/textarea'
 import { isTeamFormField, type TeamConfig, type TeamFormField } from '@/types/management'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
+import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
+import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
@@ -25,17 +30,21 @@ import { rejectedField } from '../common/rejectedField'
 import { SectionCard } from '../common/SectionCard'
 import { useConfigSchema } from '../common/useConfigSchema'
 import { useRequestError } from '../common/useRequestError'
+import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useSaveReview } from '../common/useSaveReview'
+import { VersionHistory } from '../common/VersionHistory'
 import { MembersSection } from './MembersSection'
 import { diffTeam } from './teamDiff'
 import { ModeSection } from './ModeSection'
-import { executionDefaults, toFormValues, toPayload, type TeamFormValues } from './teamFormValues'
+import { readValues, toFormValues, toPayload, type TeamFormValues } from './teamFormValues'
 import { useMemberAgents } from './useMemberAgents'
 
 interface TeamFormProps {
   team?: TeamConfig | null
   /** Só na edição: recarregar, trocar a versão ou só atualizá-la (P3-06). */
   controls?: EntityControls<TeamConfig>
+  /** Criar ou excluir com sucesso (volta à lista); a edição salva fica (D-P4-01-4). */
   onSuccess: () => void
 }
 
@@ -57,6 +66,9 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
   const isEditing = !!team
 
   const form = useForm<TeamFormValues>({ defaultValues: toFormValues(team) })
+  const applyStatus = useApplyStatus(form, saveRef)
+  const applyRevision = useApplyRevision()
+  const appliedText = useAppliedText()
   const { register, handleSubmit, setValue, getValues, setError, setFocus, clearErrors, control } = form
   const { errors } = form.formState
 
@@ -106,6 +118,14 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     } else setError(field, error, { shouldFocus: true })
   }
 
+  // O editor passa ao documento gravado (salvar, restaurar): o BFF apara e o
+  // orquestrador preenche defaults (D-P4-02-6). As edições não salvas somem (D-P4-04-2).
+  const showSaved = (saved: TeamConfig, result: ApplyResult) => {
+    controls?.set(saved)
+    form.reset(readValues(saved, schema))
+    applyStatus.show(result)
+  }
+
   // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
   // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
   // O estado nunca vem do formulário: salvar não liga nem desliga o team.
@@ -116,6 +136,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
   ): Promise<OverwriteOutcome> => {
     try {
       setLoading(true)
+      applyStatus.clear()
       const target = base ?? team
       const url = isEditing ? `/api/teams/${encodeURIComponent(team.id)}` : '/api/teams'
       // A versão lida vai no If-Match (P2-06): se mudou, o orquestrador recusa (412).
@@ -130,14 +151,27 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
       const result = response.ok ? await response.json() : null
 
       if (result?.success) {
-        toast.success(t('saved'))
-        onSuccess()
+        const revision = applyRevision(result)
+        // A edição fica no editor; criar volta à lista (D-P4-01-4).
+        if (isEditing) showSaved(result.data as TeamConfig, { status: 'applied', revision })
+        else {
+          toast.success(t('saved'), { description: appliedText(revision) })
+          onSuccess()
+        }
         return 'saved'
       }
       // 412: o diálogo de conflito decide (sem toast).
       if (isEditing && response.status === 412) return 'conflict'
+      const rejection = await errorBody(response)
+      // Não aplicada ou não confirmada (P4-01): o status substitui o toast.
+      const failure = applyFailure(response.status, rejection)
+      if (failure) {
+        dismiss?.()
+        applyStatus.show(failure)
+        return 'failed'
+      }
       // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
-      const field = await rejectedField(response, isTeamFormField)
+      const field = rejectedField(response.status, rejection, isTeamFormField)
       if (field) {
         // Salvar por cima: o diálogo fecha antes, para o foco ir ao campo com erro.
         dismiss?.()
@@ -163,15 +197,36 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     }
   }
 
-  // O que difere entre o formulário e uma versão da config (P3-06), pelos
-  // mesmos valores que o salvar enviaria (o execution ausente vale o default do schema).
-  const compare = (other: TeamConfig) =>
-    diffTeam(
-      toPayload(getValues()),
-      toPayload(withDefaults(toFormValues(other), schema ? executionDefaults(schema) : {})),
-      tt,
-      ta
-    )
+  // O que difere entre o formulário (ou o `data` validado) e uma versão da config
+  // (P3-06, P4-02), pelos mesmos valores que o salvar enviaria.
+  const compare = useCallback(
+    (other: TeamConfig, values: TeamFormValues = getValues()) =>
+      diffTeam(
+        toPayload(values),
+        toPayload(readValues(other, schema)),
+        tt,
+        ta,
+        referencePrefixes(schema?.apiKeyRefFormats ?? [])
+      ),
+    [getValues, schema, tt, ta]
+  )
+
+  // De uma versão para outra (histórico, P4-04), como o formulário as mostraria
+  // abertas, mais o estado: restaurar pode ativar ou desativar (D-P4-04-3). Sem
+  // `before`, o team novo.
+  const diffVersions = useCallback(
+    (before: TeamConfig | null, after: TeamConfig) => [
+      ...diffTeam(
+        toPayload(readValues(after, schema)),
+        toPayload(before ? readValues(before, schema) : toFormValues()),
+        tt,
+        ta,
+        referencePrefixes(schema?.apiKeyRefFormats ?? [])
+      ),
+      ...boolRow('active', t('active'), after.active, before?.active ?? true)
+    ],
+    [schema, tt, ta, t]
+  )
 
   const conflict = useSaveConflict<TeamConfig>({
     url: `/api/teams/${encodeURIComponent(team?.id ?? '')}`,
@@ -180,14 +235,29 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     controls
   })
 
+  const review = useSaveReview<TeamFormValues, TeamConfig>({
+    form,
+    entity: team,
+    compare,
+    save: async (data, dismiss) => {
+      if ((await submit(data, undefined, dismiss)) === 'conflict' && team) conflict.start(team.version)
+    }
+  })
+
+  const saveDisabled =
+    loading || acting || schemaState.status !== 'ready' || members.state.status !== 'ready' || !writable
+  // Edição sem mudança (D-P4-02-1): o Salvar segue focável e o envio é barrado.
+  const unchanged = isEditing && !review.hasChanges && !saveDisabled
+
   const onSubmit = async (data: TeamFormValues) => {
-    if ((await submit(data)) === 'conflict' && team) conflict.start(team.version)
+    if (team) review.open(team, data)
+    else await submit(data)
   }
 
   return (
     <div>
       <div className="mx-auto max-w-4xl space-y-6 p-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/teams">
               <ArrowLeft className="size-4" aria-hidden="true" />
@@ -199,6 +269,12 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
               <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
                 {isEditing ? t('form.editTitle') : t('form.newTitle')}
               </h1>
+              {/* Versão lida (D-P4-04-7): muda no 200 do Salvar e do Restaurar. */}
+              {team && (
+                <Badge variant="neutral" className="font-mono">
+                  {tc('historyVersion', { version: team.version })}
+                </Badge>
+              )}
               {team && (
                 <StatusBadge active={team.active}>
                   {team.active ? t('active') : t('inactive')}
@@ -209,6 +285,25 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
+          {team && controls && (
+            <div className="ml-auto">
+              <VersionHistory
+                kind="teams"
+                url={`/api/teams/${encodeURIComponent(team.id)}`}
+                entity={team}
+                name={team.nome}
+                isDirty={review.hasChanges}
+                diffVersions={diffVersions}
+                onRestored={showSaved}
+                onUnconfirmed={() => applyStatus.show({ status: 'not_confirmed' })}
+                onConflict={(chosen) =>
+                  conflict.startRestore(team.version, chosen.version, (current) =>
+                    diffVersions(current, chosen.document)
+                  )
+                }
+              />
+            </div>
+          )}
         </div>
 
         <ConfigSchemaNotice
@@ -224,6 +319,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
           noValidate
           className="space-y-6"
           onSubmit={(event) => {
+            if (unchanged) return event.preventDefault()
             clearErrors()
             return handleSubmit(onSubmit)(event)
           }}
@@ -340,47 +436,63 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
               locked={selectsDisabled}
             />
 
-            {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
-            <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-              {team && controls && (
-                <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-                  <EntityActions
-                    kind="teams"
-                    id={team.id}
-                    name={team.nome}
-                    version={team.version}
-                    active={team.active}
-                    isDirty={() => compare(team).length > 0}
-                    disabled={loading}
-                    reactivateBody={() =>
-                      JSON.stringify(toPayload({ ...toFormValues(team), active: true }))
-                    }
-                    onDeleted={onSuccess}
-                    onChanged={controls.update}
-                    onReload={controls.reload}
-                    onBusyChange={setActing}
-                  />
-                </div>
+            {/* Status do último Salvar (P4-01) e botões de ação. */}
+            <div>
+              <ApplyStatus
+                kind="teams"
+                result={applyStatus.result}
+                onReload={controls?.reload}
+                isDirty={review.hasChanges}
+                testNowId={team?.active ? team.id : undefined}
+              />
+              {unchanged && (
+                <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
               )}
-              <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-                <Button
-                  variant="outline"
-                  asChild
-                  className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-                >
-                  <Link href="/teams" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
-                    {tc('cancel')}
-                  </Link>
-                </Button>
-                <Button
-                  ref={saveRef}
-                  type="submit"
-                  disabled={loading || acting || schemaState.status !== 'ready' || members.state.status !== 'ready'}
-                  className="h-10 gap-2 sm:h-9"
-                >
-                  <Save className="size-4" aria-hidden="true" />
-                  {loading ? tc('saving') : tc('save')}
-                </Button>
+              {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+              <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+                {team && controls && (
+                  <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+                    <EntityActions
+                      kind="teams"
+                      id={team.id}
+                      name={team.nome}
+                      version={team.version}
+                      active={team.active}
+                      isDirty={review.hasChanges}
+                      disabled={loading}
+                      reactivateBody={() =>
+                        JSON.stringify(toPayload({ ...toFormValues(team), active: true }))
+                      }
+                      onStart={applyStatus.clear}
+                      onDeleted={onSuccess}
+                      onChanged={controls.update}
+                      onReload={controls.reload}
+                      onBusyChange={setActing}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                  >
+                    <Link href="/teams" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                      {tc('cancel')}
+                    </Link>
+                  </Button>
+                  <Button
+                    ref={saveRef}
+                    type="submit"
+                    disabled={saveDisabled}
+                    aria-disabled={unchanged || undefined}
+                    aria-describedby={unchanged ? review.hintId : undefined}
+                    className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                  >
+                    <Save className="size-4" aria-hidden="true" />
+                    {loading ? tc('saving') : tc('save')}
+                  </Button>
+                </div>
               </div>
             </div>
           </fieldset>
@@ -394,6 +506,7 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
             saveRef={saveRef}
           />
         )}
+        {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
       </div>
     </div>
   )

@@ -6,7 +6,7 @@ import { Lock } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/loading'
-import type { DiffCell, DiffRow } from '@/lib/formDiff'
+import { changedWindow, type DiffCell, type DiffRow } from '@/lib/formDiff'
 import { cn } from '@/lib/utils'
 
 // Texto longo recolhe em 4 linhas; o "Mostrar tudo" só aparece se passa disso.
@@ -15,11 +15,14 @@ const isLong = (cell: DiffCell) =>
   cell.long &&
   (cell.text.length > 240 || cell.text.split('\n').length > 4)
 
+const textOf = (cell: DiffCell) => (cell.kind === 'text' ? cell.text : '')
+
 function Muted({ children }: { children: string }) {
   return <span className="text-muted-foreground">{children}</span>
 }
 
-function Cell({ cell, expanded }: { cell: DiffCell; expanded: boolean }) {
+// `collapsed`: a janela do texto longo recolhido (D-P4-02-3).
+function Cell({ cell, collapsed }: { cell: DiffCell; collapsed?: { text: string; skipped: number } }) {
   const tc = useTranslations('common')
   const tf = useTranslations('tools.form')
 
@@ -32,19 +35,25 @@ function Cell({ cell, expanded }: { cell: DiffCell; expanded: boolean }) {
       return cell.text === '' ? (
         <Muted>{tc('conflictEmpty')}</Muted>
       ) : (
-        <span
-          className={cn(
-            'min-w-0 break-words',
-            cell.mono && 'font-mono text-xs',
-            cell.long && 'whitespace-pre-wrap',
-            cell.long && !expanded && 'line-clamp-4'
+        <>
+          {!!collapsed?.skipped && (
+            <span className="w-full text-xs text-muted-foreground">
+              {tc('diffSkipped', { count: collapsed.skipped })}
+            </span>
           )}
-        >
-          {cell.text}
-        </span>
+          <span
+            className={cn(
+              'min-w-0 break-words',
+              cell.mono && 'font-mono text-xs',
+              cell.long && 'whitespace-pre-wrap',
+              collapsed && 'line-clamp-4'
+            )}
+          >
+            {collapsed ? collapsed.text : cell.text}
+          </span>
+        </>
       )
     case 'ids':
-    case 'order':
       return cell.ids.length === 0 ? (
         <Muted>{tc('conflictEmpty')}</Muted>
       ) : (
@@ -102,17 +111,25 @@ function hintOf(row: DiffRow, tc: ReturnType<typeof useTranslations<'common'>>) 
   const { mine, current } = row
   if (mine.kind === 'ids' && current.kind === 'ids')
     return mine.same > 0 ? tc('conflictSame', { count: mine.same }) : undefined
-  if (mine.kind === 'order') return tc('conflictOrder')
   if (mine.kind === 'secretText' || current.kind === 'secretText') return tc('conflictTextHidden')
   return undefined
 }
 
-function Row({ row }: { row: DiffRow }) {
+type Variant = 'conflict' | 'review'
+
+function Row({ row, variant }: { row: DiffRow; variant: Variant }) {
   const tc = useTranslations('common')
   const [expanded, setExpanded] = useState(false)
   const labelId = useId()
   const hint = hintOf(row, tc)
   const collapsible = isLong(row.mine) || isLong(row.current)
+  const view = collapsible && !expanded ? changedWindow(textOf(row.mine), textOf(row.current)) : undefined
+  const mine = { cell: row.mine, collapsed: view && { text: view.mine, skipped: view.skipped } }
+  const current = { cell: row.current, collapsed: view && { text: view.current, skipped: view.skipped } }
+  const columns =
+    variant === 'review'
+      ? ([[tc('reviewBefore'), current], [tc('reviewAfter'), mine]] as const)
+      : ([[tc('conflictYours'), mine], [tc('conflictCurrent'), current]] as const)
 
   return (
     <li className="space-y-2 p-3">
@@ -126,16 +143,11 @@ function Row({ row }: { row: DiffRow }) {
         )}
       </p>
       <dl aria-labelledby={labelId} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {(
-          [
-            [tc('conflictYours'), row.mine],
-            [tc('conflictCurrent'), row.current]
-          ] as const
-        ).map(([term, cell]) => (
+        {columns.map(([term, column]) => (
           <div key={term} className="flex min-w-0 flex-col gap-1">
             <dt className="text-xs font-medium text-muted-foreground">{term}</dt>
             <dd className="m-0 flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-muted px-2 py-1.5 text-sm break-words">
-              <Cell cell={cell} expanded={expanded || !collapsible} />
+              <Cell {...column} />
             </dd>
           </div>
         ))}
@@ -156,19 +168,37 @@ function Row({ row }: { row: DiffRow }) {
   )
 }
 
-/** Lista rolável das linhas que diferem (P3-06). */
-export function DiffList({ rows }: { rows: DiffRow[] }) {
+/**
+ * Lista rolável das linhas que diferem: "O seu valor × Atual" no conflito (P3-06)
+ * e "Antes × Depois" na revisão antes de salvar (P4-02) e no histórico (P4-04).
+ * `mine` é o lado novo (o formulário, a versão escolhida) e `current`, a versão
+ * comparada. `label` troca o nome da região; `className`, a altura máxima.
+ */
+export function DiffList({
+  rows,
+  variant = 'conflict',
+  label,
+  className
+}: {
+  rows: DiffRow[]
+  variant?: Variant
+  label?: string
+  className?: string
+}) {
   const tc = useTranslations('common')
   return (
     <div
       role="region"
-      aria-label={tc('conflictList')}
+      aria-label={label ?? (variant === 'review' ? tc('reviewList') : tc('conflictList'))}
       tabIndex={0}
-      className="max-h-[40dvh] overflow-y-auto rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-h-80"
+      className={cn(
+        'max-h-[40dvh] overflow-y-auto rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-h-80',
+        className
+      )}
     >
       <ul className="divide-y divide-border rounded-md border border-border">
         {rows.map((row) => (
-          <Row key={row.key} row={row} />
+          <Row key={row.key} row={row} variant={variant} />
         ))}
       </ul>
     </div>

@@ -1,4 +1,4 @@
-import { boolRow, idsRow, paramsRows, textRow, type DiffRow } from '@/lib/formDiff'
+import { boolRow, idsRow, paramsRows, secretRow, textRow, type DiffRow } from '@/lib/formDiff'
 import type { CreateTeamForm } from '@/types/management'
 
 // Campos do formulário do team na ordem da tela (P3-06). Os rótulos de
@@ -20,7 +20,8 @@ export function diffTeam(
   mine: CreateTeamForm,
   current: CreateTeamForm,
   own: (key: OwnLabel) => string,
-  shared: (key: SharedLabel) => string
+  shared: (key: SharedLabel) => string,
+  prefixes: string[]
 ): DiffRow[] {
   const l = (text: string) => text.replace(/\s*\*$/, '')
   const mono = { mono: true }
@@ -32,7 +33,7 @@ export function diffTeam(
     ...textRow('factoryIaModel', l(shared('provider')), mine.factoryIaModel, current.factoryIaModel, mono),
     ...textRow('model', l(shared('model')), mine.model, current.model, mono),
     ...textRow('base_url', l(shared('baseUrl')), mine.base_url, current.base_url, mono),
-    ...textRow('api_key_ref', l(shared('apiKeyRef')), mine.api_key_ref, current.api_key_ref, mono),
+    ...secretRow('api_key_ref', l(shared('apiKeyRef')), mine.api_key_ref, current.api_key_ref, prefixes),
     ...paramsRows('model_params', l(shared('modelParams')), mine.model_params, current.model_params),
     ...textRow('prompt', l(own('systemPrompt')), mine.prompt, current.prompt, { long: true }),
     ...boolRow('markdown', l(shared('markdown')), mine.markdown, current.markdown),

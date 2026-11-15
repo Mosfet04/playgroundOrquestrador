@@ -10,6 +10,7 @@ import type { AgentConfig } from '@/types/management'
 import { server } from '../msw/server'
 import { SCHEMA_URL, schemaFixture } from '../msw/handlers'
 import { renderWithIntl } from '../helpers/intl'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // Teste longo de interação: com a suíte em paralelo passa dos 5 s padrão.
 const LONG = 15_000
@@ -67,8 +68,10 @@ type Sent = { method: string; body: Record<string, unknown> }
 function serveSave(respond?: () => Response) {
   const sent: Sent[] = []
   const handle = (method: string) => async ({ request }: { request: Request }) => {
-    sent.push({ method, body: (await request.json()) as Record<string, unknown> })
-    return respond ? respond() : HttpResponse.json({ success: true, data: {} })
+    const body = (await request.json()) as Record<string, unknown>
+    sent.push({ method, body })
+    // O documento salvo: o formulário da edição passa a ser ele (D-P4-02-6).
+    return respond ? respond() : HttpResponse.json({ success: true, data: { ...agent, ...body } })
   }
   server.use(http.post('*/api/agents', handle('POST')), http.put('*/api/agents/:id', handle('PUT')))
   return sent
@@ -161,7 +164,7 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
     expect(within(temperature).getByText('texto')).toBeVisible()
     await user.clear(value)
     await user.type(value, '0.2')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.model_params).toStrictEqual({ temperature: 0.2, top_p: true, stop: 'FIM' })
@@ -186,7 +189,7 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
 
     await user.click(screen.getByRole('button', { name: 'Remover temperature' }))
     expect(screen.getByText('Nenhum parâmetro: o modelo usa os padrões do provedor.')).toBeVisible()
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.model_params ?? {}).toStrictEqual({})
@@ -202,7 +205,8 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
     )
     expect(screen.getByRole('textbox', { name: 'Valor de top_p' })).toHaveValue('false')
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.model_params).toStrictEqual({ temperature: 0.2, top_p: false, stop: 'FIM' })
@@ -216,7 +220,8 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
 
     expect(screen.getByRole('combobox', { name: 'Nome do parâmetro 1' })).toHaveTextContent('seed')
     expect(rows()[0]).toHaveTextContent('ollama não aceita seed.')
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.model_params).toStrictEqual({ seed: 7 })
@@ -309,14 +314,16 @@ describe('AgentForm P3-02: URL base e referência da chave', () => {
     const user = await ready(<AgentForm agent={{ ...agent, factoryIaModel: 'fake-llm' }} onSuccess={() => {}} />)
     expect(screen.getByLabelText('URL base *')).toBeVisible()
 
+    await touchName(user)
     await user.click(saveButton())
 
     expect(await screen.findByText('fake-llm exige URL base')).toBeVisible()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByLabelText('URL base *')).toBeInvalid()
     expect(sent).toEqual([])
 
     await user.type(screen.getByLabelText('URL base *'), 'http://llm.local:8080/v1')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.base_url).toBe('http://llm.local:8080/v1')
   })
@@ -338,7 +345,8 @@ describe('AgentForm P3-02: URL base e referência da chave', () => {
 
     expect(screen.getByLabelText('URL base')).toHaveValue('http://velha/v1')
     expect(screen.getByText(/ollama não usa URL base/)).toBeVisible()
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.base_url).toBe('http://velha/v1')
@@ -357,7 +365,7 @@ describe('AgentForm P3-02: URL base e referência da chave', () => {
     // Se sumisse no blur, o Salvar subiria entre o mousedown e o click.
     expect(screen.getByLabelText('URL base')).toBeVisible()
     expect(screen.queryByText(/não usa URL base/)).toBeNull()
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.base_url ?? '').toBe('')
@@ -392,12 +400,13 @@ describe('AgentForm P3-02: URL base e referência da chave', () => {
     const reference = screen.getByRole('textbox', { name: 'Variável de ambiente' })
 
     await user.type(reference, 'OLLAMA_API_KEY')
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.api_key_ref).toBe('env:OLLAMA_API_KEY')
 
     await user.clear(reference)
-    await user.click(saveButton())
+    await saveAndConfirm(user)
     await waitFor(() => expect(sent).toHaveLength(2))
     expect(sent[1].body.api_key_ref ?? '').toBe('')
   })
@@ -415,7 +424,8 @@ describe('AgentForm P3-05: seletor de segredo no modelo', () => {
     expect(reference()).toHaveValue('openai_key')
     expect(screen.getByText(/está fora da regra do orquestrador/).closest('p')).toHaveClass('text-warning')
     expect(reference()).not.toBeInvalid()
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0]).toMatchObject({ method: 'PUT', body: { api_key_ref: 'env:openai_key' } })
@@ -442,13 +452,15 @@ describe('AgentForm P3-05: seletor de segredo no modelo', () => {
     await user.click(screen.getByRole('combobox', { name: 'Formato' }))
     await user.click(screen.getByRole('option', { name: 'file:' }))
     await user.type(screen.getByRole('textbox', { name: 'Caminho do arquivo' }), 'secrets/key')
+    await touchName(user)
     await user.click(saveButton())
     expect(await screen.findByText(/^Use um caminho absoluto, começando por \//)).toBeVisible()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(sent).toEqual([])
 
     await user.clear(screen.getByRole('textbox', { name: 'Caminho do arquivo' }))
     await user.type(screen.getByRole('textbox', { name: 'Caminho do arquivo' }), '/run/secrets/openai_key')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body.api_key_ref).toBe('file:/run/secrets/openai_key')
   })
@@ -536,7 +548,8 @@ describe('AgentForm P3-02: execução', () => {
     }
     const user = await ready(<AgentForm agent={stored} onSuccess={() => {}} />)
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].method).toBe('PUT')
@@ -567,7 +580,7 @@ describe('AgentForm P3-02: execução', () => {
     expect(runs).toBeDisabled()
     expect(runs).toHaveValue(12)
     expect(runs).toHaveAccessibleDescription(/Ligue o histórico para usar\./)
-    await user.click(saveButton())
+    await saveAndConfirm(user)
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0].body).toMatchObject({ add_history_to_context: false, num_history_runs: 12 })
   })
@@ -689,7 +702,8 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
     serveSave(rejectWith('model_params'))
     const user = await ready(<AgentForm agent={stored} onSuccess={() => {}} />)
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     const group = await screen.findByRole('group', { name: 'Parâmetros do modelo' })
     expect(await within(group).findByText('Valor recusado pelo orquestrador')).toBeVisible()
@@ -717,7 +731,8 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
     )
     await waitFor(() => expect(control()).toBeEnabled())
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(control()).toBeInvalid())
     expect(screen.getByText('Valor recusado pelo orquestrador')).toBeVisible()
@@ -736,7 +751,8 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
     serveSave(rejectWith(field))
     const user = await ready()
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     // Execução: o erro está no <li> do próprio item; o RAG fica fora da lista.
     const li = (await screen.findByRole('switch', { name })).closest('li')
@@ -752,7 +768,8 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
       <AgentForm agent={{ ...agent, add_history_to_context: false }} onSuccess={() => {}} />
     )
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await screen.findByText('Valor recusado pelo orquestrador')).toBeVisible()
     await waitFor(() =>

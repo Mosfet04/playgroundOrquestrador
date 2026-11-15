@@ -10,7 +10,8 @@ import {
   idSchema,
   ifMatchVersion,
   ok,
-  orchestratorError
+  orchestratorError,
+  written
 } from '../../respond'
 import { toolBodySchema } from '../schema'
 
@@ -38,7 +39,7 @@ export async function PUT(request: NextRequest, context: Context) {
   const parsed = await parseJsonBody(request, toolBodySchema)
   if (!parsed.success) return parsed.response
   const result = await replaceTool(id.data, parsed.data, version)
-  return result.ok ? ok(result.data) : configError(result)
+  return result.ok ? written(result) : configError(result)
 }
 
 export async function DELETE(request: NextRequest, context: Context) {
@@ -49,8 +50,8 @@ export async function DELETE(request: NextRequest, context: Context) {
   // `?soft=true` desativa (DELETE lógico, devolve o documento); sem ela, exclui de vez.
   if (mode === 'soft') {
     const soft = await deactivateTool(id.data, version)
-    return soft.ok ? ok(soft.data) : configError(soft)
+    return soft.ok ? written(soft) : configError(soft)
   }
   const result = await deleteTool(id.data, version)
-  return result.ok ? ok() : configError(result)
+  return result.ok ? written(result) : configError(result)
 }

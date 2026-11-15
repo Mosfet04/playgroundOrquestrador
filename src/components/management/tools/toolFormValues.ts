@@ -1,4 +1,5 @@
 import { defaultText, parseDefault, type DefaultKind } from '@/lib/toolDefault'
+import { trimFields } from '@/lib/formDiff'
 import { isReference } from '@/lib/secretRef'
 import { headerProblems, MASK, type HeaderProblem, type HeaderRow } from '@/lib/toolHeaders'
 import { missingParams, routePlaceholders, spacedPlaceholders } from '@/lib/toolRoute'
@@ -51,24 +52,40 @@ export const toFormValues = (tool?: Tool | null): ToolFormValues => ({
   }))
 })
 
+// O valor padrão inválido nunca é enviado (`toolProblems` barra): fica como texto
+// para a comparação enxergar que ele mudou ou saiu.
+const defaultValue = (type: string, text: string) => {
+  const parsed = parseDefault(type, text)
+  if (!parsed.ok) return { default_value: text }
+  return parsed.value === undefined ? {} : { default_value: parsed.value }
+}
+
+// O que `toolBodySchema` apara, com o nome, o tipo e a descrição do parâmetro; a
+// rota e as instruções seguem como digitadas.
+const TRIMMED_BY_BFF = ['name', 'description'] as const
+
 // Parâmetro cujo nome está na rota é obrigatório (D-P3-03-2).
 export function toPayload(values: ToolFormValues): CreateToolForm {
   const inRoute = routePlaceholders(values.route)
   const { parameters, headers, ...rest } = values
-  return {
-    ...rest,
-    headers: Object.fromEntries(headers.map(({ name, value }) => [name.trim(), value])),
-    parameters: parameters.map(({ default_text, required, ...parameter }) => {
-      const parsed = parseDefault(parameter.type, default_text)
-      const name = parameter.name.trim()
-      return {
-        ...parameter,
-        name,
-        required: required || inRoute.includes(name),
-        ...(parsed.ok && parsed.value !== undefined ? { default_value: parsed.value } : {})
-      }
-    })
-  }
+  return trimFields(
+    {
+      ...rest,
+      headers: Object.fromEntries(headers.map(({ name, value }) => [name.trim(), value])),
+      parameters: parameters.map(({ default_text, required, ...parameter }) => {
+        const name = parameter.name.trim()
+        return {
+          ...parameter,
+          name,
+          type: parameter.type.trim(),
+          description: parameter.description.trim(),
+          required: required || inRoute.includes(name),
+          ...defaultValue(parameter.type, default_text)
+        }
+      })
+    },
+    TRIMMED_BY_BFF
+  )
 }
 
 // O que impede o envio, calculado no cliente (nada sai do browser enquanto

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // P3-04: CRUD de teams pela API Admin do fake orchestrator e o 409 do agent
 // membro. Roda no projeto `config-agents` (playwright.config.ts), junto do CRUD
@@ -67,7 +68,12 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
   await page.getByRole('checkbox', { name: /Agente Beta/ }).uncheck()
   await page.getByRole('radio', { name: 'tasks' }).check()
   await page.getByLabel(/^Nome/).fill('Team do e2e editado')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  const put = page.waitForResponse(
+    (candidate) => candidate.url().includes(`/api/teams/${id}`) && candidate.request().method() === 'PUT'
+  )
+  await saveAndConfirm(page)
+  const { runtimeRevision } = (await (await put).json()) as { runtimeRevision: number }
+  expect(runtimeRevision).toEqual(expect.any(Number))
 
   // O toast da criação ainda está na tela: espera o PUT pela versão gravada.
   await expect
@@ -80,9 +86,13 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
     version: 2
   })
 
-  // Exclui: os agents membros ficam.
-  await page.getByRole('link', { name: 'Team do e2e editado' }).first().click()
-  await hydrated(page)
+  // A edição salva fica no editor (D-P4-01-4). Exclui: os agents membros ficam.
+  // QA (R3): o N do header no status e na casca, sem reler o runtime.
+  await expect(page.locator('[aria-live="polite"][aria-atomic="true"]')).toContainText(
+    `Team salvo. Mudança aplicada na revisão ${runtimeRevision} do runtime.`
+  )
+  await expect(page.getByText(`Orquestrador online, revisão ${runtimeRevision}`, { exact: true })).toBeAttached()
+  await expect(page).toHaveURL(`/teams/${id}`)
   await page.getByRole('button', { name: 'Excluir team' }).click()
   await expect(page.getByRole('dialog')).toContainText('Os agents membros não são excluídos.')
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
@@ -127,7 +137,8 @@ test('sem membro o form não envia; o orquestrador recusa um membro inexistente 
   await page.reload()
   await hydrated(page)
   await expect(page.getByText(/Este agent não existe mais/)).toBeVisible()
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByLabel('Descrição', { exact: true }).fill('Recusada pelo membro inexistente')
+  await saveAndConfirm(page)
 
   await expect(page.getByText('Valor recusado pelo orquestrador')).toBeVisible()
   await expect(page.getByRole('checkbox', { name: /fantasma/ })).toBeFocused()

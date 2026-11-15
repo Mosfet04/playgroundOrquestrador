@@ -10,6 +10,8 @@ const isCI = !!process.env.CI
 // Sessão do usuário de teste, gravada pelo projeto `setup` (e2e/auth.setup.ts).
 export const AUTH_STATE = 'e2e/.auth/session.json'
 const CONFIG_AGENTS_SPEC = /config-crud\.(agents|teams|concurrency)\.spec\.ts/
+// P4-05: muda a saúde do fake inteiro (degradado, fora do ar); roda sozinho.
+const HEALTH_SPEC = /settings\.health\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',
@@ -34,7 +36,7 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE },
       dependencies: ['setup'],
-      testIgnore: CONFIG_AGENTS_SPEC
+      testIgnore: [CONFIG_AGENTS_SPEC, HEALTH_SPEC]
     },
     // P2-06: o CRUD de agents muda a config que o dashboard conta; roda depois
     // (o de teams, P3-04, roda junto: o seed `time-config` tem o `agente-gama` como
@@ -44,6 +46,13 @@ export default defineConfig({
       testMatch: CONFIG_AGENTS_SPEC,
       use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE },
       dependencies: ['chromium']
+    },
+    // P4-05 (D-P4-05-11): por último, sem outro spec em paralelo.
+    {
+      name: 'orchestrator-health',
+      testMatch: HEALTH_SPEC,
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE },
+      dependencies: ['config-agents']
     }
   ],
   webServer: [

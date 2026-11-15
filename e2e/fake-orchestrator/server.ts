@@ -2,8 +2,8 @@
 // (agno 2.5) e da API Admin que o BFF chama (src/server/orchestrator/). Exige
 // a chave como o real (decisão 0018): Bearer run ou admin; 401 sem chave
 // válida, 403 com a run em /admin*, /metrics* e DELETE /sessions*. As rotas de
-// controle do teste (/hold/release, /aborts, /test/config/*) não existem no real
-// e não pedem chave. Estado em memória; rota desconhecida => 404.
+// controle do teste (/hold/release, /aborts, /test/config/*, /test/health) não
+// existem no real e não pedem chave. Estado em memória; rota desconhecida => 404.
 // Roda com `node e2e/fake-orchestrator/server.ts` (type stripping do Node 22.18+):
 // use só sintaxe TypeScript apagável (sem enum, namespace ou parameter properties).
 import { createServer } from 'node:http'
@@ -24,7 +24,7 @@ const RUN_KEY = process.env.FAKE_API_KEY_RUN
 const ADMIN_KEY = process.env.FAKE_API_KEY_ADMIN
 if (!RUN_KEY || !ADMIN_KEY)
   throw new Error('FAKE_API_KEY_RUN e FAKE_API_KEY_ADMIN são obrigatórias (playwright.config.ts)')
-const TEST_ROUTES = new Set(['POST /hold/release', 'GET /aborts'])
+const TEST_ROUTES = new Set(['POST /hold/release', 'GET /aborts', 'POST /test/health'])
 // GET /test/config/{kind}/{id}: documento gravado sem máscara, para o e2e
 // conferir que salvar com o header mascarado não apagou o valor.
 const TEST_CONFIG_ROUTE = /^GET \/test\/config\/(agents|teams|tools)\/([^/]+)$/
@@ -433,18 +433,143 @@ const readJson = async (req: IncomingMessage): Promise<unknown> => {
   }
 }
 
-const sendConfig = (res: ServerResponse, status: number, kind: ConfigKind, doc: ConfigDoc) => {
-  res.writeHead(status, { 'Content-Type': 'application/json', ETag: `"${doc.version}"` })
+const sendConfig = (
+  res: ServerResponse,
+  status: number,
+  kind: ConfigKind,
+  doc: ConfigDoc,
+  headers: Record<string, string> = {}
+) => {
+  res.writeHead(status, { 'Content-Type': 'application/json', ETag: `"${doc.version}"`, ...headers })
   res.end(JSON.stringify(shown(kind, doc)))
 }
 
+// Troca a quente (FA-04): a revisão do runtime sobe a cada escrita aceita e
+// vai no header `Runtime-Revision`; GET /admin/health a mostra em
+// `runtime_revision`. Começa em 1, como um processo que já montou a config.
+let runtimeRevision = 1
+// Gatilhos da P4-01, pelo nome (`nome`/`name`) do documento enviado ou, no
+// DELETE, do gravado: a config não monta (422 com `error_type`, nada gravado),
+// o mesmo com um `error_type` que não é identificador, falha depois de gravar
+// (500, gravado e runtime anterior no ar) e escrita aceita sem o header.
+const NOT_BUILDABLE = '[nao-monta]'
+const NOT_BUILDABLE_UNTYPED = '[nao-monta-sem-tipo]'
+const FAIL_AFTER_WRITE = '[falha-apos-gravar]'
+const NO_REVISION = '[sem-revisao]'
+
+// Saúde (P4-05), trocada por POST /test/health?mode=…, só no spec que roda
+// sozinho no fim (playwright.config.ts): `degraded` responde o /admin/health
+// com 503 e o corpo inteiro, como o real com o Mongo fora; `down` derruba a
+// conexão de toda rota que não é de teste (orquestrador fora do ar), menos o
+// GET /status, a prontidão do webServer do Playwright. O e2e/auth.setup.ts
+// volta o modo a `healthy` (fake reaproveitado depois de uma execução parada).
+const HEALTH_MODES = ['healthy', 'degraded', 'down'] as const
+let healthMode: (typeof HEALTH_MODES)[number] = 'healthy'
+
+// Corpo do HealthService (dependency_injection.py) com a revisão (app_factory.py).
+const adminHealth = () => {
+  const degraded = healthMode === 'degraded'
+  return {
+    status: degraded ? 'unhealthy' : 'healthy',
+    checks: {
+      mongodb: { status: degraded ? 'unhealthy' : 'healthy' },
+      memory: { status: 'healthy', usage_percent: 42.3, available_gb: 9.12 },
+      otlp: degraded ? { status: 'not_configured' } : { status: 'configured', provider: 'TracerProvider' }
+    },
+    response_time_ms: 3.21,
+    runtime_revision: runtimeRevision
+  }
+}
+
+// Escrita da config pelo caminho do FA-04: monta antes de gravar, grava,
+// troca o runtime e responde com a revisão nova.
+function commit(
+  res: ServerResponse,
+  doc: ConfigDoc,
+  write: () => void,
+  respond: (headers: Record<string, string>) => void
+) {
+  const label = String(doc.nome ?? doc.name ?? '')
+  const notBuildable = (errorType: string) =>
+    sendJson(res, 422, { detail: 'Configuração não monta no runtime', error_type: errorType })
+  if (label.includes(NOT_BUILDABLE)) return notBuildable('ValueError')
+  if (label.includes(NOT_BUILDABLE_UNTYPED)) return notBuildable('erro <fora do formato>')
+  write()
+  if (label.includes(FAIL_AFTER_WRITE)) return sendJson(res, 500, { detail: 'Internal Server Error' })
+  runtimeRevision++
+  respond(label.includes(NO_REVISION) ? {} : { 'Runtime-Revision': String(runtimeRevision) })
+}
+
+// Diário das escritas (FA-05, config_admin_use_case.py): por tipo e id, da mais
+// nova à mais antiga, com o documento depois da escrita como a API o mostra
+// (header mascarado, sem `version`; null na remoção) e o diff dos campos de topo
+// que mudaram no gravado, com os valores mostrados. Ator: `admin`, a chave do BFF.
+type AuditEntry = {
+  version: number
+  actor: string
+  at: string
+  diff: Record<string, { before: unknown; after: unknown }>
+  document: Record<string, unknown> | null
+}
+const audit = new Map<string, AuditEntry[]>()
+const MAX_PAGE_SIZE = 200
+
+function record(kind: ConfigKind, before: ConfigDoc | null, after: ConfigDoc | null) {
+  const strip = (doc: ConfigDoc | null): Record<string, unknown> => {
+    if (doc === null) return {}
+    const { version: _version, ...rest } = doc
+    void _version
+    return rest
+  }
+  const [stored, written] = [strip(before), strip(after)]
+  const [shownBefore, shownAfter] = [before && strip(shown(kind, before)), after && strip(shown(kind, after))]
+  const diff = Object.fromEntries(
+    [...new Set([...Object.keys(stored), ...Object.keys(written)])]
+      .filter((name) => JSON.stringify(stored[name] ?? null) !== JSON.stringify(written[name] ?? null))
+      .map((name) => [name, { before: shownBefore?.[name] ?? null, after: shownAfter?.[name] ?? null }])
+  )
+  const id = String((after ?? before)?.id)
+  const entry = {
+    version: (after ?? before)!.version,
+    actor: 'admin',
+    at: new Date().toISOString().replace('Z', '+00:00'),
+    diff,
+    document: shownAfter
+  }
+  audit.set(`${kind}/${id}`, [entry, ...(audit.get(`${kind}/${id}`) ?? [])])
+}
+
+// offset/limit como o `_page` do real: inteiros na faixa, senão 422.
+const pageParam = (url: URL, name: string, fallback: number, min: number, max: number) => {
+  const raw = url.searchParams.get(name)
+  if (raw === null) return fallback
+  return /^\d+$/.test(raw) && Number(raw) >= min && Number(raw) <= max ? Number(raw) : null
+}
+
 async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL) {
-  const match = /^\/admin\/config\/(agents|teams|tools)(?:\/([^/]+))?$/.exec(url.pathname)
+  const match =
+    /^\/admin\/config\/(agents|teams|tools)(?:\/([^/]+)(\/history(?:\/([^/]+)\/restore)?)?)?$/.exec(url.pathname)
   if (!match) return false
   const kind = match[1] as ConfigKind
   const id = match[2] === undefined ? undefined : decodeURIComponent(match[2])
   const store = configs[kind]
   const refuse = (refusal: Refusal) => sendJson(res, refusal.status, refusal.body)
+  const restoring = match[4]
+
+  // GET .../{id}/history: o diário do id, paginado (vazio se nunca foi escrito).
+  if (match[3] !== undefined && restoring === undefined) {
+    if (req.method !== 'GET') return false
+    const offset = pageParam(url, 'offset', 0, 0, 10 ** 9)
+    const limit = pageParam(url, 'limit', 50, 1, MAX_PAGE_SIZE)
+    if (offset === null || limit === null) {
+      refuse({ status: 422, body: { detail: 'offset/limit fora da faixa' } })
+      return true
+    }
+    const entries = audit.get(`${kind}/${id}`) ?? []
+    sendJson(res, 200, { items: entries.slice(offset, offset + limit), total: entries.length, offset, limit })
+    return true
+  }
+  if (restoring !== undefined && req.method !== 'POST') return false
 
   if (id === undefined && req.method === 'GET') {
     const offset = Number(url.searchParams.get('offset') ?? 0)
@@ -476,8 +601,15 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
       refuse({ status: 409, body: { detail: 'Já existe config com este id' } })
     else {
       const created = { ...doc.value, version: 1 }
-      store.push(created)
-      sendConfig(res, 201, kind, created)
+      commit(
+        res,
+        created,
+        () => {
+          store.push(created)
+          record(kind, null, created)
+        },
+        (headers) => sendConfig(res, 201, kind, created, headers)
+      )
     }
     return true
   }
@@ -489,7 +621,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     else sendConfig(res, 200, kind, store[index])
     return true
   }
-  if (req.method !== 'PUT' && req.method !== 'DELETE') return false
+  if (restoring === undefined && req.method !== 'PUT' && req.method !== 'DELETE') return false
   const ifMatch = req.headers['if-match']
   if (ifMatch === undefined) {
     refuse({ status: 428, body: { detail: 'If-Match obrigatório' } })
@@ -505,6 +637,34 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     return true
   }
 
+  // POST .../history/{version}/restore: o documento da entrada mais nova com a
+  // versão (não a remoção) vai pelo caminho do PUT; o header mascarado mantém o
+  // gravado (mesma origem), como no real.
+  if (restoring !== undefined) {
+    const document = (audit.get(`${kind}/${id}`) ?? []).find(
+      (entry) => String(entry.version) === restoring && entry.document !== null
+    )?.document
+    if (!document) {
+      refuse({ status: 404, body: { detail: 'Config não encontrada' } })
+      return true
+    }
+    const doc = check({ ...document, id }, current)
+    if (!doc.ok) refuse(doc.refusal)
+    else {
+      const restored = { ...doc.value, version: current.version + 1 }
+      commit(
+        res,
+        restored,
+        () => {
+          store[index] = restored
+          record(kind, current, restored)
+        },
+        (headers) => sendConfig(res, 200, kind, restored, headers)
+      )
+    }
+    return true
+  }
+
   if (req.method === 'PUT') {
     const received = await body()
     const sameId = !received.ok || received.value.id === undefined || received.value.id === id
@@ -512,8 +672,15 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     if (!doc.ok) refuse(doc.refusal)
     else {
       const replaced = { ...doc.value, version: current.version + 1 }
-      store[index] = replaced
-      sendConfig(res, 200, kind, replaced)
+      commit(
+        res,
+        replaced,
+        () => {
+          store[index] = replaced
+          record(kind, current, replaced)
+        },
+        (headers) => sendConfig(res, 200, kind, replaced, headers)
+      )
     }
     return true
   }
@@ -524,13 +691,27 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     return true
   }
   if (url.searchParams.get('hard') === 'true') {
-    store.splice(index, 1)
-    res.writeHead(204).end()
+    commit(
+      res,
+      current,
+      () => {
+        store.splice(index, 1)
+        record(kind, current, null)
+      },
+      (headers) => res.writeHead(204, headers).end()
+    )
     return true
   }
   const deactivated = { ...current, active: false, version: current.version + 1 }
-  store[index] = deactivated
-  sendConfig(res, 200, kind, deactivated)
+  commit(
+    res,
+    current,
+    () => {
+      store[index] = deactivated
+      record(kind, current, deactivated)
+    },
+    (headers) => sendConfig(res, 200, kind, deactivated, headers)
+  )
   return true
 }
 
@@ -712,6 +893,10 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   const route = `${req.method} ${url.pathname}`
 
   if (!TEST_ROUTES.has(route) && !TEST_CONFIG_ROUTE.test(route)) {
+    if (healthMode === 'down' && route !== 'GET /status') {
+      req.socket.destroy()
+      return
+    }
     const key = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1]
     if (key !== RUN_KEY && key !== ADMIN_KEY)
       return sendJson(res, 401, { detail: 'unauthorized' })
@@ -723,6 +908,19 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
 
   if (route === 'GET /aborts') return sendJson(res, 200, abortedRuns)
   if (route === 'GET /admin/schema') return sendJson(res, 200, SCHEMA_DOCUMENT)
+  if (route === 'POST /test/health') {
+    const mode = HEALTH_MODES.find((candidate) => candidate === url.searchParams.get('mode'))
+    if (!mode) return sendJson(res, 422, { detail: 'mode: healthy, degraded ou down' })
+    healthMode = mode
+    return sendJson(res, 200, { mode })
+  }
+  if (route === 'GET /admin/health')
+    return sendJson(res, healthMode === 'degraded' ? 503 : 200, adminHealth())
+  // Relê o store e troca o runtime (FA-04): a revisão nova.
+  if (route === 'POST /admin/config/reload') {
+    runtimeRevision++
+    return sendJson(res, 200, { runtime_revision: runtimeRevision })
+  }
   const raw = TEST_CONFIG_ROUTE.exec(route)
   if (raw) {
     const doc = configs[raw[1] as ConfigKind].find((item) => item.id === decodeURIComponent(raw[2]))

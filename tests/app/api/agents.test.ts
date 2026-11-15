@@ -637,7 +637,8 @@ describe('POST /api/agents', () => {
     ['parâmetro por nome (o orquestrador não detalha)', { detail: LEAK, field: 'model_params.temperature' }],
     ['chave desconhecida', { detail: LEAK, field: 'unknown_key' }],
     ['propriedade de Object', { detail: LEAK, field: 'constructor' }],
-    ['sem campo (não monta no runtime)', { detail: LEAK, error_type: 'ValueError' }]
+    // Com `error_type` (não monta no runtime) é `not_applied`: runtimeRevision.test.ts (P4-01).
+    ['sem campo', { detail: LEAK }]
   ])('422 com %s ⇒ 422 sem campo', async (_, body) => {
     serveItem('post', refusal(422, body))
 

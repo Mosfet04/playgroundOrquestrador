@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // P2-06: CRUD de tools pela API Admin do fake orchestrator (sem Mongo e sem
 // page.route): criar, editar e excluir pelo editor de hoje; header em texto
@@ -39,17 +40,25 @@ test('cria, edita (header mascarado mantido) e exclui uma tool pelo fake', async
   await expect(page.locator('input').evaluateAll((inputs, secret) => inputs.some((input) => (input as HTMLInputElement).value === secret), SECRET)).resolves.toBe(false)
   await hydrated(page)
   await page.getByLabel(/^Nome \*/).fill('Tool do e2e editada')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  const put = page.waitForResponse(
+    (candidate) => candidate.url().includes(`/api/tools/${ID}`) && candidate.request().method() === 'PUT'
+  )
+  await saveAndConfirm(page)
+  const { runtimeRevision } = (await (await put).json()) as { runtimeRevision: number }
+  expect(runtimeRevision).toEqual(expect.any(Number))
 
-  // O toast do 1º salvar pode seguir na tela: confere sempre o último.
-  await expect(page.getByText('Tool salva').last()).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Tool do e2e editada' }).first()).toBeVisible()
+  // A edição salva fica no editor (D-P4-01-4), com o header de novo oculto;
+  // QA (R3): o N do header no status e na casca.
+  await expect(page.locator('[aria-live="polite"][aria-atomic="true"]')).toContainText(
+    `Tool salva. Mudança aplicada na revisão ${runtimeRevision} do runtime.`
+  )
+  await expect(page.getByText(`Orquestrador online, revisão ${runtimeRevision}`, { exact: true })).toBeAttached()
+  await expect(page).toHaveURL(`/tools/${ID}`)
+  await expect(masked).toHaveValue('***')
   const stored = await storedTool(ID)
   expect(stored).toMatchObject({ name: 'Tool do e2e editada', headers: { 'X-Conta': SECRET }, version: 2 })
 
   // Excluir de vez (hard): some da lista e do fake.
-  await page.getByRole('link', { name: 'Tool do e2e editada' }).first().click()
-  await hydrated(page)
   await page.getByRole('button', { name: 'Excluir tool' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
 

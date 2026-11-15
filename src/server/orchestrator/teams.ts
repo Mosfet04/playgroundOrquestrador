@@ -9,10 +9,13 @@ import {
   deactivateConfig,
   deleteConfig,
   getConfig,
+  getConfigHistory,
+  type HistoryPage,
   listConfigs,
   matchesSearch,
   pageOf,
   replaceConfig,
+  restoreConfig,
   withFormField
 } from './adminConfig'
 import type { OrchestratorResult } from './client'
@@ -126,7 +129,7 @@ const toFormField = (field: string): TeamFormField | undefined =>
 
 const mapped = (result: OrchestratorResult<TeamDocument>): OrchestratorResult<TeamConfig> => {
   const checked = withFormField(result, toFormField)
-  return checked.ok ? { ok: true, data: toTeam(checked.data) } : checked
+  return checked.ok ? { ...checked, data: toTeam(checked.data) } : checked
 }
 
 export async function listTeams(filters: TeamFilters, page: number, limit: number) {
@@ -166,4 +169,12 @@ export const deleteTeam = (id: string, version: number) => deleteConfig('teams',
 
 export async function deactivateTeam(id: string, version: number) {
   return mapped(await deactivateConfig('teams', id, version, teamSchema))
+}
+
+// Histórico e restaurar (P4-04, FA-05).
+export const teamHistory = (id: string, page: HistoryPage) =>
+  getConfigHistory('teams', id, page, teamSchema, toTeam)
+
+export async function restoreTeam(id: string, version: number, current: number) {
+  return mapped(await restoreConfig('teams', id, version, current, teamSchema))
 }

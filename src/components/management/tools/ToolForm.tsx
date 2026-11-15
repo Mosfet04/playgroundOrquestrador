@@ -1,22 +1,30 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
+import { useApplyRevision } from '@/components/layout/RuntimeRevision'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { boolRow } from '@/lib/formDiff'
 import { referencePrefixes } from '@/lib/secretRef'
 import { routeOrigin } from '@/lib/toolRoute'
 import { Tool, ToolFormField, isToolFormField } from '@/types/management'
+import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
+import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
 import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
+import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useSaveReview } from '../common/useSaveReview'
+import { VersionHistory } from '../common/VersionHistory'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema } from '../common/useConfigSchema'
 import { BasicInfoSection } from './BasicInfoSection'
@@ -30,6 +38,7 @@ interface ToolFormProps {
   tool?: Tool | null
   /** Só na edição: recarregar, trocar a versão ou só atualizá-la (P3-06). */
   controls?: EntityControls<Tool>
+  /** Criar ou excluir com sucesso (volta à lista); a edição salva fica (D-P4-01-4). */
   onSuccess: () => void
 }
 
@@ -63,11 +72,17 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
   // O `fieldset disabled` não segura o pointerdown num <button> (Chromium): o
   // Radix abriria o menu; o Select precisa estar desabilitado por si.
   const selectsDisabled = !schema || !writable
-  const prefixes = schema ? referencePrefixes(schema.apiKeyRefFormats) : FALLBACK_PREFIXES
+  const prefixes = useMemo(
+    () => (schema ? referencePrefixes(schema.apiKeyRefFormats) : FALLBACK_PREFIXES),
+    [schema]
+  )
   // O `***` só se mantém na origem em que foi gravado.
   const loadedOrigin = tool ? routeOrigin(tool.route) : null
 
   const form = useForm<ToolFormValues>({ defaultValues: toFormValues(tool) })
+  const applyStatus = useApplyStatus(form, saveRef)
+  const applyRevision = useApplyRevision()
+  const appliedText = useAppliedText()
   const { handleSubmit, setValue, getValues, setError, setFocus, clearErrors, control, watch } = form
   const parameters = useFieldArray({ control, name: 'parameters' })
   const problems = toolProblems(watch(), prefixes)
@@ -134,6 +149,14 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     return false
   }
 
+  // O editor passa ao documento gravado (salvar, restaurar; o header em texto
+  // volta oculto, `***`, como numa leitura nova). As edições não salvas somem (D-P4-04-2).
+  const showSaved = (saved: Tool, result: ApplyResult) => {
+    controls?.set(saved)
+    form.reset(toFormValues(saved))
+    applyStatus.show(result)
+  }
+
   // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
   // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
   // O estado nunca vem do formulário: salvar não liga nem desliga a tool.
@@ -144,6 +167,7 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
   ): Promise<OverwriteOutcome> => {
     try {
       setLoading(true)
+      applyStatus.clear()
       const target = base ?? tool
 
       const url = isEditing ? `/api/tools/${encodeURIComponent(tool.id)}` : '/api/tools'
@@ -163,14 +187,27 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
       const result = response.ok ? await response.json() : null
 
       if (result?.success) {
-        toast.success(t('saved'))
-        onSuccess()
+        const revision = applyRevision(result)
+        // A edição fica no editor; criar volta à lista (D-P4-01-4).
+        if (isEditing) showSaved(result.data as Tool, { status: 'applied', revision })
+        else {
+          toast.success(t('saved'), { description: appliedText(revision) })
+          onSuccess()
+        }
         return 'saved'
       }
       // 412: o diálogo de conflito decide (sem toast).
       if (isEditing && response.status === 412) return 'conflict'
+      const rejection = await errorBody(response)
+      // Não aplicada ou não confirmada (P4-01): o status substitui o toast.
+      const failure = applyFailure(response.status, rejection)
+      if (failure) {
+        dismiss?.()
+        applyStatus.show(failure)
+        return 'failed'
+      }
       // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
-      const field = await rejectedField(response, isToolFormField)
+      const field = rejectedField(response.status, rejection, isToolFormField)
       if (field) {
         // Salvar por cima: o diálogo fecha antes, para o foco ir ao campo com erro.
         dismiss?.()
@@ -196,10 +233,24 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     }
   }
 
-  // O que difere entre o formulário e uma versão da config (P3-06), pelos
-  // mesmos valores que o salvar enviaria.
-  const compare = (other: Tool) =>
-    diffTool(toPayload(getValues()), toPayload(toFormValues(other)), tf, prefixes)
+  // O que difere entre o formulário (ou o `data` validado) e uma versão da config
+  // (P3-06, P4-02), pelos mesmos valores que o salvar enviaria.
+  const compare = useCallback(
+    (other: Tool, values: ToolFormValues = getValues()) =>
+      diffTool(toPayload(values), toPayload(toFormValues(other)), tf, prefixes),
+    [getValues, prefixes, tf]
+  )
+
+  // De uma versão para outra (histórico, P4-04), como o formulário as mostraria
+  // abertas, mais o estado: restaurar pode ativar ou desativar (D-P4-04-3). Sem
+  // `before`, a tool nova.
+  const diffVersions = useCallback(
+    (before: Tool | null, after: Tool) => [
+      ...diffTool(toPayload(toFormValues(after)), toPayload(toFormValues(before)), tf, prefixes),
+      ...boolRow('active', t('active'), after.active, before?.active ?? true)
+    ],
+    [prefixes, tf, t]
+  )
 
   const conflict = useSaveConflict<Tool>({
     url: `/api/tools/${encodeURIComponent(tool?.id ?? '')}`,
@@ -208,18 +259,33 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     controls
   })
 
+  const review = useSaveReview<ToolFormValues, Tool>({
+    form,
+    entity: tool,
+    compare,
+    save: async (data, dismiss) => {
+      if ((await submit(data, undefined, dismiss)) === 'conflict' && tool) conflict.start(tool.version)
+    }
+  })
+
+  const saveDisabled = loading || acting || schemaState.status !== 'ready' || !writable
+  // Edição sem mudança (D-P4-02-1): o Salvar segue focável e o envio é barrado.
+  // Valor padrão inválido gravado, sem edição: o Salvar precisa levar o foco a ele.
+  const unchanged =
+    isEditing && !review.hasChanges && !saveDisabled && !problems.defaults.some(Boolean)
+
   // Submit do formulário
   const onSubmit = async (data: ToolFormValues) => {
-    const found = toolProblems(data, prefixes)
-    if (focusFirstProblem(found)) return
-    if ((await submit(data)) === 'conflict' && tool) conflict.start(tool.version)
+    if (focusFirstProblem(toolProblems(data, prefixes))) return
+    if (tool) review.open(tool, data)
+    else await submit(data)
   }
 
   return (
     <div>
       <div className="mx-auto max-w-4xl space-y-6 p-6 xl:max-w-6xl">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/tools">
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
@@ -231,6 +297,12 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
               <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
                 {isEditing ? t('form.editTitle') : t('form.newTitle')}
               </h1>
+              {/* Versão lida (D-P4-04-7): muda no 200 do Salvar e do Restaurar. */}
+              {tool && (
+                <Badge variant="neutral" className="font-mono">
+                  {tc('historyVersion', { version: tool.version })}
+                </Badge>
+              )}
               {tool && (
                 <StatusBadge active={tool.active}>
                   {tool.active ? t('active') : t('inactive')}
@@ -241,6 +313,25 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
+          {tool && controls && (
+            <div className="ml-auto">
+              <VersionHistory
+                kind="tools"
+                url={`/api/tools/${encodeURIComponent(tool.id)}`}
+                entity={tool}
+                name={tool.name}
+                isDirty={review.hasChanges}
+                diffVersions={diffVersions}
+                onRestored={showSaved}
+                onUnconfirmed={() => applyStatus.show({ status: 'not_confirmed' })}
+                onConflict={(chosen) =>
+                  conflict.startRestore(tool.version, chosen.version, (current) =>
+                    diffVersions(current, chosen.document)
+                  )
+                }
+              />
+            </div>
+          )}
         </div>
 
         <ConfigSchemaNotice
@@ -254,6 +345,7 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
             sai na validação: limpo antes, ele não trava o próximo envio. */}
         <form
           onSubmit={(event) => {
+            if (unchanged) return event.preventDefault()
             clearErrors()
             return handleSubmit(onSubmit)(event)
           }}
@@ -289,48 +381,62 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
             />
             <RequestPreview form={form} prefixes={prefixes} />
 
-            {/* Botões de ação */}
-            {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
-            <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between xl:col-start-1">
-              {tool && controls && (
-                <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-                  <EntityActions
-                    kind="tools"
-                    id={tool.id}
-                    name={tool.name}
-                    version={tool.version}
-                    active={tool.active}
-                    isDirty={() => compare(tool).length > 0}
-                    disabled={loading}
-                    reactivateBody={() =>
-                      JSON.stringify(toPayload({ ...toFormValues(tool), active: true }))
-                    }
-                    onDeleted={onSuccess}
-                    onChanged={controls.update}
-                    onReload={controls.reload}
-                    onBusyChange={setActing}
-                  />
-                </div>
+            {/* Status do último Salvar (P4-01) e botões de ação. */}
+            <div className="xl:col-start-1">
+              <ApplyStatus
+                kind="tools"
+                result={applyStatus.result}
+                onReload={controls?.reload}
+                isDirty={review.hasChanges}
+              />
+              {unchanged && (
+                <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
               )}
-              <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-                <Button
-                  variant="outline"
-                  asChild
-                  className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-                >
-                  <Link href="/tools" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
-                    {tc('cancel')}
-                  </Link>
-                </Button>
-                <Button
-                  ref={saveRef}
-                  type="submit"
-                  disabled={loading || acting || schemaState.status !== 'ready'}
-                  className="h-10 gap-2 sm:h-9"
-                >
-                  <Save className="w-4 h-4" />
-                  {loading ? tc('saving') : tc('save')}
-                </Button>
+              {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+              <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+                {tool && controls && (
+                  <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+                    <EntityActions
+                      kind="tools"
+                      id={tool.id}
+                      name={tool.name}
+                      version={tool.version}
+                      active={tool.active}
+                      isDirty={review.hasChanges}
+                      disabled={loading}
+                      reactivateBody={() =>
+                        JSON.stringify(toPayload({ ...toFormValues(tool), active: true }))
+                      }
+                      onStart={applyStatus.clear}
+                      onDeleted={onSuccess}
+                      onChanged={controls.update}
+                      onReload={controls.reload}
+                      onBusyChange={setActing}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                  >
+                    <Link href="/tools" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                      {tc('cancel')}
+                    </Link>
+                  </Button>
+                  <Button
+                    ref={saveRef}
+                    type="submit"
+                    disabled={saveDisabled}
+                    aria-disabled={unchanged || undefined}
+                    aria-describedby={unchanged ? review.hintId : undefined}
+                    className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                  >
+                    <Save className="w-4 h-4" />
+                    {loading ? tc('saving') : tc('save')}
+                  </Button>
+                </div>
               </div>
             </div>
           </fieldset>
@@ -344,6 +450,7 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
             saveRef={saveRef}
           />
         )}
+        {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
       </div>
     </div>
   )

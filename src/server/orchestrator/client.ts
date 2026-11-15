@@ -22,8 +22,13 @@ export type OrchestratorErrorCode =
   | 'unreachable'
   | 'invalid_response'
   | 'invalid_path'
+  // 5xx numa escrita da API Admin (adminConfig.ts, P4-01): pode ter gravado
+  // sem entrar no ar.
+  | 'not_confirmed'
 
 // `field`/`indexes`: onde a API Admin recusou o corpo (422), sem o valor.
+// `notBuildable`/`errorType`: a config não monta no runtime (422 com
+// `error_type`, FA-04); o tipo só se for identificador (D-P4-01-2).
 // `usedByTeams`: ids dos teams que impedem excluir o agent (409, P3-04).
 export type OrchestratorFailure = {
   ok: false
@@ -31,10 +36,17 @@ export type OrchestratorFailure = {
   status?: number
   field?: string
   indexes?: number[]
+  notBuildable?: true
+  errorType?: string
   usedByTeams?: string[]
 }
 
-export type OrchestratorResult<T> = { ok: true; data: T } | OrchestratorFailure
+// `runtimeRevision`: a revisão do runtime que já serve a escrita (header
+// `Runtime-Revision` da API Admin, FA-04), quando veio válida. `status`: o
+// HTTP da resposta, só em chamada com `acceptStatus`.
+export type OrchestratorResult<T> =
+  | { ok: true; data: T; runtimeRevision?: number; status?: number }
+  | OrchestratorFailure
 
 const ORCHESTRATOR_TIMEOUT_MS = 10_000
 
@@ -49,6 +61,10 @@ type CallOptions<T> = {
   query?: Record<string, string>
   // Versão lida da config (API Admin): vai no If-Match do PUT/DELETE.
   ifMatch?: number
+  // Status de erro cujo corpo vale como resposta (o 503 do /admin/health
+  // degradado traz o corpo inteiro, P4-05): passa pelo schema como um 2xx;
+  // fora dele, é a falha do status.
+  acceptStatus?: number[]
   timeoutMs?: number
 }
 
@@ -90,9 +106,11 @@ function failure(
   return { ok: false, error, status }
 }
 
-// 422 da API Admin (admin_config.py): `{detail, field?, indexes?}`. Só o nome
-// do campo (identificador curto, com `.` no aninhado) e as posições saem
-// daqui; o resto do corpo, nunca.
+// 422 da API Admin (admin_config.py): `{detail, field?, indexes?}` ou, se a
+// config não monta no runtime, `{detail, error_type}` (nome da exceção). Só o
+// nome do campo (identificador curto, com `.` no aninhado), as posições e o
+// tipo do erro (identificador, D-P4-01-2) saem daqui; o `detail`, nunca.
+const ERROR_TYPE = /^[A-Za-z_][A-Za-z0-9_.]{0,79}$/
 const invalidFieldSchema = z.object({
   field: z
     .string()
@@ -103,17 +121,24 @@ const invalidFieldSchema = z.object({
     .array(z.number().int().nonnegative())
     .max(100)
     .optional()
-    .catch(undefined)
+    .catch(undefined),
+  error_type: z.unknown()
 })
 
 async function invalidField(response: Response) {
   try {
     const parsed = invalidFieldSchema.safeParse(JSON.parse(await response.text()))
     if (!parsed.success) return {}
-    const { field, indexes } = parsed.data
+    const { field, indexes, error_type: errorType } = parsed.data
     return {
       ...(field ? { field } : {}),
-      ...(field && indexes ? { indexes } : {})
+      ...(field && indexes ? { indexes } : {}),
+      ...(errorType === undefined
+        ? {}
+        : {
+            notBuildable: true as const,
+            ...(typeof errorType === 'string' && ERROR_TYPE.test(errorType) ? { errorType } : {})
+          })
     }
   } catch {
     // Corpo que não é JSON (ou prazo estourado na leitura): fica só o status.
@@ -135,6 +160,13 @@ async function usedByTeams(response: Response) {
     // Corpo que não é JSON (ou prazo estourado na leitura): fica só o status.
     return {}
   }
+}
+
+// Revisão do runtime no header das escritas da API Admin (FA-04): inteiro
+// ≥ 0; ausente ou outra coisa some, e a escrita segue aceita.
+function runtimeRevision(response: Response) {
+  const raw = response.headers.get('runtime-revision')
+  return raw && /^\d{1,15}$/.test(raw) ? { runtimeRevision: Number(raw) } : {}
 }
 
 // AbortSignal.timeout (e o abort do prazo do stream) rejeita com TimeoutError;
@@ -162,6 +194,7 @@ export async function callOrchestrator<T>(
     body,
     query,
     ifMatch,
+    acceptStatus,
     timeoutMs = ORCHESTRATOR_TIMEOUT_MS
   }: CallOptions<T>
 ): Promise<OrchestratorResult<T>> {
@@ -194,7 +227,8 @@ export async function callOrchestrator<T>(
     const where = await usedByTeams(response)
     return { ...fail('rejected', 409), ...where }
   }
-  if (!response.ok) {
+  const accepted = acceptStatus?.includes(response.status) ?? false
+  if (!response.ok && !accepted) {
     // Libera a conexão sem ler o corpo (que não sai daqui). Sem await: o
     // cancel de um corpo ainda chegando pode demorar, e o stream não está
     // travado (nunca lido), então não rejeita.
@@ -205,13 +239,22 @@ export async function callOrchestrator<T>(
     // Corpo vazio (204 do DELETE) é `undefined` para o schema.
     const text = await response.text()
     const parsed = schema.safeParse(text === '' ? undefined : JSON.parse(text))
-    if (parsed.success) return { ok: true, data: parsed.data }
+    if (parsed.success)
+      return {
+        ok: true,
+        data: parsed.data,
+        ...runtimeRevision(response),
+        ...(acceptStatus ? { status: response.status } : {})
+      }
   } catch (error) {
     // Corpo que não é JSON cai no invalid_response; o timeout no meio da
     // leitura é o único caso que vale distinguir.
     if (error instanceof Error && error.name === 'TimeoutError') return fail('timeout')
   }
-  return fail('invalid_response', response.status)
+  // Status de erro aceito com corpo fora do schema: a falha do status.
+  return response.ok
+    ? fail('invalid_response', response.status)
+    : fail(statusError(response.status), response.status)
 }
 
 // Run em stream (P2-03, sempre com a chave run): devolve o corpo cru para o

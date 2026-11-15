@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { useForm, type FieldErrors, type Path } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
+import { boolRow } from '@/lib/formDiff'
+import { referencePrefixes } from '@/lib/secretRef'
+import { useApplyRevision } from '@/components/layout/RuntimeRevision'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { withDefaults } from '@/lib/formDiff'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TextArea } from '@/components/ui/textarea'
@@ -18,6 +21,8 @@ import {
   Tool,
   isAgentFormField
 } from '@/types/management'
+import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
+import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
@@ -26,9 +31,12 @@ import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema } from '../common/useConfigSchema'
+import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useSaveReview } from '../common/useSaveReview'
+import { VersionHistory } from '../common/VersionHistory'
 import { diffAgent } from './agentDiff'
-import { AgentFormValues, executionDefaults, toFormValues, toPayload } from './agentFormValues'
+import { AgentFormValues, offeredEmbedder, readValues, toFormValues, toPayload } from './agentFormValues'
 import { ExecutionSection } from '../common/ExecutionSection'
 import { ModelSection } from '../common/ModelSection'
 import { SectionCard } from '../common/SectionCard'
@@ -58,6 +66,7 @@ interface AgentFormProps {
   agent?: AgentConfig | null
   /** Só na edição: recarregar, trocar a versão ou só atualizá-la (P3-06). */
   controls?: EntityControls<AgentConfig>
+  /** Criar ou excluir com sucesso (volta à lista); a edição salva fica (D-P4-01-4). */
   onSuccess: () => void
 }
 
@@ -73,10 +82,13 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
   const requestError = useRequestError()
   const saveRef = useRef<HTMLButtonElement>(null)
   const { state: schemaState, retrying, reload: reloadSchema } = useConfigSchema()
+  const applyRevision = useApplyRevision()
+  const appliedText = useAppliedText()
 
   const isEditing = !!agent
 
   const form = useForm<AgentFormValues>({ defaultValues: toFormValues(agent) })
+  const applyStatus = useApplyStatus(form, saveRef)
   const {
     register,
     handleSubmit,
@@ -106,8 +118,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     if (!schema) return
     if (!isEditing && !schema.chatProviders.some(({ name }) => name === getValues('factoryIaModel')))
       setValue('factoryIaModel', schema.chatProviders[0]?.name ?? '')
-    if (!storedEmbedder && !schema.embedderProviders.some(({ name }) => name === getValues('rag_factoryIaModel')))
-      setValue('rag_factoryIaModel', schema.embedderProviders[0]?.name ?? '')
+    if (!storedEmbedder) setValue('rag_factoryIaModel', offeredEmbedder(getValues('rag_factoryIaModel'), schema))
     // RAG novo (ou sem estratégia gravada): a 1ª do schema, que é o padrão do
     // orquestrador.
     if (!getValues('rag_search_strategy')) setValue('rag_search_strategy', schema.ragSearchStrategies[0] ?? '')
@@ -197,6 +208,16 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     } else setError(field, error, { shouldFocus: true })
   }
 
+  // O editor passa ao documento gravado (salvar, restaurar): o BFF apara e o
+  // orquestrador preenche defaults (D-P4-02-6). As edições não salvas somem (D-P4-04-2).
+  const showSaved = (saved: AgentConfig, result: ApplyResult) => {
+    const values = readValues(saved, schema)
+    controls?.set(saved)
+    form.reset(values)
+    setSelectedToolIds(values.tools_ids)
+    applyStatus.show(result)
+  }
+
   // Salva (PUT/POST). `base` é a versão atual lida no conflito (P3-06): o
   // "salvar por cima" grava o formulário com o If-Match e o `active` dela.
   // O estado nunca vem do formulário: salvar não liga nem desliga o agent.
@@ -207,6 +228,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
   ): Promise<OverwriteOutcome> => {
     try {
       setLoading(true)
+      applyStatus.clear()
       const target = base ?? agent
       const payload = toPayload({ ...data, active: target?.active ?? true }, selectedToolIds)
 
@@ -226,14 +248,27 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
       const result = response.ok ? await response.json() : null
 
       if (result?.success) {
-        toast.success(t('saved'))
-        onSuccess()
+        const revision = applyRevision(result)
+        // A edição fica no editor; criar volta à lista (D-P4-01-4).
+        if (isEditing) showSaved(result.data as AgentConfig, { status: 'applied', revision })
+        else {
+          toast.success(t('saved'), { description: appliedText(revision) })
+          onSuccess()
+        }
         return 'saved'
       }
       // 412: o diálogo de conflito decide (sem toast).
       if (isEditing && response.status === 412) return 'conflict'
+      const rejection = await errorBody(response)
+      // Não aplicada ou não confirmada (P4-01): o status substitui o toast.
+      const failure = applyFailure(response.status, rejection)
+      if (failure) {
+        dismiss?.()
+        applyStatus.show(failure)
+        return 'failed'
+      }
       // 422: o campo recusado pelo orquestrador ganha o erro (sem o valor).
-      const field = await rejectedField(response, isAgentFormField)
+      const field = rejectedField(response.status, rejection, isAgentFormField)
       if (field) {
         // Salvar por cima: o diálogo fecha antes, para o foco ir ao campo com erro.
         dismiss?.()
@@ -259,17 +294,34 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     }
   }
 
-  // O que difere entre o formulário e uma versão da config (P3-06), pelos
-  // mesmos valores que o salvar enviaria (o execution ausente vale o default do schema).
-  const compare = (other: AgentConfig) =>
-    diffAgent(
-      toPayload(getValues(), selectedToolIds),
-      toPayload(
-        withDefaults(toFormValues(other), schema ? executionDefaults(schema) : {}),
-        other.tools_ids
+  // O que difere entre o formulário (ou o `data` validado) e uma versão da config
+  // (P3-06, P4-02), pelos mesmos valores que o salvar enviaria.
+  const compare = useCallback(
+    (other: AgentConfig, values: AgentFormValues = getValues()) =>
+      diffAgent(
+        toPayload(values, selectedToolIds),
+        toPayload(readValues(other, schema), other.tools_ids),
+        tf,
+        referencePrefixes(schema?.apiKeyRefFormats ?? [])
       ),
-      tf
-    )
+    [getValues, schema, selectedToolIds, tf]
+  )
+
+  // De uma versão para outra (histórico, P4-04), como o formulário as mostraria
+  // abertas, mais o estado: restaurar pode ativar ou desativar (D-P4-04-3). Sem
+  // `before`, o agent novo.
+  const diffVersions = useCallback(
+    (before: AgentConfig | null, after: AgentConfig) => [
+      ...diffAgent(
+        toPayload(readValues(after, schema), after.tools_ids),
+        before ? toPayload(readValues(before, schema), before.tools_ids) : toPayload(toFormValues(), []),
+        tf,
+        referencePrefixes(schema?.apiKeyRefFormats ?? [])
+      ),
+      ...boolRow('active', t('active'), after.active, before?.active ?? true)
+    ],
+    [schema, tf, t]
+  )
 
   const conflict = useSaveConflict<AgentConfig>({
     url: `/api/agents/${encodeURIComponent(agent?.id ?? '')}`,
@@ -278,15 +330,29 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     controls
   })
 
+  const review = useSaveReview<AgentFormValues, AgentConfig>({
+    form,
+    entity: agent,
+    compare,
+    save: async (data, dismiss) => {
+      if ((await submit(data, undefined, dismiss)) === 'conflict' && agent) conflict.start(agent.version)
+    }
+  })
+
+  const saveDisabled = loading || acting || schemaState.status !== 'ready' || !writable
+  // Edição sem mudança (D-P4-02-1): o Salvar segue focável e o envio é barrado.
+  const unchanged = isEditing && !review.hasChanges && !saveDisabled
+
   const onSubmit = async (data: AgentFormValues) => {
-    if ((await submit(data)) === 'conflict' && agent) conflict.start(agent.version)
+    if (agent) review.open(agent, data)
+    else await submit(data)
   }
 
   return (
     <div>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/agents">
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
@@ -298,6 +364,12 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
                 {isEditing ? t('form.editTitle') : t('form.newTitle')}
               </h1>
+              {/* Versão lida (D-P4-04-7): muda no 200 do Salvar e do Restaurar. */}
+              {agent && (
+                <Badge variant="neutral" className="font-mono">
+                  {tc('historyVersion', { version: agent.version })}
+                </Badge>
+              )}
               {agent && (
                 <StatusBadge active={agent.active}>
                   {agent.active ? t('active') : t('inactive')}
@@ -308,6 +380,25 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               {isEditing ? t('form.editSubtitle') : t('form.newSubtitle')}
             </p>
           </div>
+          {agent && controls && (
+            <div className="ml-auto">
+              <VersionHistory
+                kind="agents"
+                url={`/api/agents/${encodeURIComponent(agent.id)}`}
+                entity={agent}
+                name={agent.nome}
+                isDirty={review.hasChanges}
+                diffVersions={diffVersions}
+                onRestored={showSaved}
+                onUnconfirmed={() => applyStatus.show({ status: 'not_confirmed' })}
+                onConflict={(chosen) =>
+                  conflict.startRestore(agent.version, chosen.version, (current) =>
+                    diffVersions(current, chosen.document)
+                  )
+                }
+              />
+            </div>
+          )}
         </div>
 
       <ConfigSchemaNotice
@@ -324,6 +415,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
       <form
         noValidate
         onSubmit={(event) => {
+          if (unchanged) return event.preventDefault()
           clearErrors()
           return handleSubmit(onSubmit, onInvalid)(event)
         }}
@@ -426,6 +518,8 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
                     id={`tool-${tool.id}`}
                     checked={selectedToolIds.includes(tool.id)}
                     onChange={(e) => {
+                      // As tools ficam fora do formulário: marcar também é edição.
+                      applyStatus.clear()
                       if (e.target.checked) {
                         setSelectedToolIds([...selectedToolIds, tool.id])
                       } else {
@@ -447,48 +541,63 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
           <FieldError message={errors.tools_ids?.message} />
         </SectionCard>
 
-        {/* Botões de ação */}
-        {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
-        <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {agent && controls && (
-            <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-              <EntityActions
-                kind="agents"
-                id={agent.id}
-                name={agent.nome}
-                version={agent.version}
-                active={agent.active}
-                isDirty={() => compare(agent).length > 0}
-                disabled={loading}
-                reactivateBody={() =>
-                  JSON.stringify(toPayload({ ...toFormValues(agent), active: true }, agent.tools_ids))
-                }
-                onDeleted={onSuccess}
-                onChanged={controls.update}
-                onReload={controls.reload}
-                onBusyChange={setActing}
-              />
-            </div>
+        {/* Status do último Salvar (P4-01) e botões de ação. */}
+        <div>
+          <ApplyStatus
+            kind="agents"
+            result={applyStatus.result}
+            onReload={controls?.reload}
+            isDirty={review.hasChanges}
+            testNowId={agent?.active ? agent.id : undefined}
+          />
+          {unchanged && (
+            <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
           )}
-          <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-            <Button
-              variant="outline"
-              asChild
-              className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-            >
-              <Link href="/agents" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
-                {tc('cancel')}
-              </Link>
-            </Button>
-            <Button
-              ref={saveRef}
-              type="submit"
-              disabled={loading || acting || schemaState.status !== 'ready'}
-              className="h-10 gap-2 sm:h-9"
-            >
-              <Save className="w-4 h-4" />
-              {loading ? tc('saving') : tc('save')}
-            </Button>
+          {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {agent && controls && (
+              <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+                <EntityActions
+                  kind="agents"
+                  id={agent.id}
+                  name={agent.nome}
+                  version={agent.version}
+                  active={agent.active}
+                  isDirty={review.hasChanges}
+                  disabled={loading}
+                  reactivateBody={() =>
+                    JSON.stringify(toPayload({ ...toFormValues(agent), active: true }, agent.tools_ids))
+                  }
+                  onStart={applyStatus.clear}
+                  onDeleted={onSuccess}
+                  onChanged={controls.update}
+                  onReload={controls.reload}
+                  onBusyChange={setActing}
+                />
+              </div>
+            )}
+            <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+              <Button
+                variant="outline"
+                asChild
+                className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+              >
+                <Link href="/agents" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                  {tc('cancel')}
+                </Link>
+              </Button>
+              <Button
+                ref={saveRef}
+                type="submit"
+                disabled={saveDisabled}
+                aria-disabled={unchanged || undefined}
+                aria-describedby={unchanged ? review.hintId : undefined}
+                className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+              >
+                <Save className="w-4 h-4" />
+                {loading ? tc('saving') : tc('save')}
+              </Button>
+            </div>
           </div>
         </div>
         </fieldset>
@@ -502,6 +611,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
           saveRef={saveRef}
         />
       )}
+      {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
       </div>
     </div>
   )

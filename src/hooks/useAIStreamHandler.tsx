@@ -41,6 +41,9 @@ const useAIChatStreamHandler = () => {
     (state) => state.setRunAbortController
   )
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
+  const setLoadedSessionId = usePlaygroundStore(
+    (state) => state.setLoadedSessionId
+  )
   const hasStorage = usePlaygroundStore((state) => state.hasStorage)
   const { streamResponse } = useAIResponseStream()
   const t = useTranslations('playground')
@@ -213,6 +216,9 @@ const processToolCall = useCallback(
             ) {
               newSessionId = chunk.session_id as string
               setSessionId(chunk.session_id as string)
+              // A conversa desta sessão já está na tela: o efeito de ChatArea
+              // que reage ao ?session= não a recarrega do servidor.
+              setLoadedSessionId(chunk.session_id as string)
               if (
                 hasStorage &&
                 (!sessionId || sessionId !== chunk.session_id) &&
@@ -474,6 +480,7 @@ const processToolCall = useCallback(
       setRunAbortController,
       focusChatInput,
       setSessionsData,
+      setLoadedSessionId,
       sessionId,
       setSessionId,
       hasStorage,

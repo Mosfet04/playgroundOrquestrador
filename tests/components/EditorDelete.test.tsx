@@ -9,6 +9,7 @@ import { ToolEditor } from '@/components/management/tools/ToolEditor'
 
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P1-05b (V-P1-05b-7): "Excluir" no rodapé do editor /{id}, nunca em /new.
 // Sem o App Router no jsdom (next/navigation 15.2): só o push é observado.
@@ -156,7 +157,8 @@ describe('excluir no editor de agente', () => {
 
     const remove = await screen.findByRole('button', { name: 'Excluir agente' })
     expect(remove).toBeEnabled()
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
     await waitFor(() => expect(remove).toBeDisabled())
   })
 })

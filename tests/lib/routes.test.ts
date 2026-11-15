@@ -41,6 +41,14 @@ describe('describeRoute', () => {
     })
   })
 
+  it('/settings (P4-05): grupo Configurar, sem criação', () => {
+    expect(describeRoute('/settings')).toEqual({
+      group: 'configure',
+      label: 'settings',
+      subtitle: 'configure'
+    })
+  })
+
   it('/ não tem grupo e usa "playground" como subtítulo', () => {
     expect(describeRoute('/')).toEqual({ label: 'home', subtitle: 'playground' })
   })

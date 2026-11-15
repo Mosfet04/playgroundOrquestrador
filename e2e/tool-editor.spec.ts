@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { hydrated } from './hydration'
+import { saveAndConfirm } from './saveReview'
 
 // P3-03: o editor de tool HTTP contra o fake orchestrator (sem page.route):
 // rota parametrizada ligada aos parâmetros, valor padrão por tipo, headers
@@ -134,7 +135,7 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
   await page.getByLabel('Nome do header 3').fill('X-Conta')
   await page.getByLabel('Valor de X-Conta', { exact: true }).fill('valor-em-texto')
   await page.getByLabel(/^Descrição \*/).first().fill('Consulta um pedido (editada)')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await expect(page.getByText('Tool salva').last()).toBeVisible()
   // O toast do 1º salvar pode seguir na tela: confere o documento gravado.
   await expect
@@ -146,12 +147,12 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
     })
 
   // Substituir e a origem da rota: mudar a origem sem trocar a linha oculta é
-  // recusado pelo orquestrador (422 em headers), com o erro no grupo.
-  await page.getByRole('link', { name: 'Pedidos do e2e' }).first().click()
-  await hydrated(page)
+  // recusado pelo orquestrador (422 em headers), com o erro no grupo. A edição
+  // salva fica no editor, já com o documento salvo (D-P4-01-4).
+  await expect(page.getByLabel('Valor de X-Conta (gravado, oculto)')).toHaveValue('***')
   await page.getByLabel(/^Rota/).fill('https://outro.example/v1/orders/{order_id}')
   await expect(page.getByText(/A origem da rota mudou/)).toContainText('Accept')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await expect(page.getByText(/O orquestrador recusou algum header e não diz qual/)).toBeVisible()
   await expect(page.getByLabel('Valor de Accept (gravado, oculto)')).toBeFocused()
 
@@ -161,7 +162,7 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
   await page.getByLabel('Valor de X-Conta (gravado, oculto)').waitFor()
   await page.getByRole('button', { name: 'Substituir o valor de X-Conta' }).click()
   await page.getByLabel('Novo valor de X-Conta').fill('env:CONTA_API_KEY')
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await saveAndConfirm(page)
   await expect(page.getByText('Tool salva').last()).toBeVisible()
   await expect
     .poll(() => storedTool(ID))
@@ -172,8 +173,6 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
     })
 
   // Limpeza: excluir de vez.
-  await page.getByRole('link', { name: 'Pedidos do e2e' }).first().click()
-  await hydrated(page)
   await page.getByRole('button', { name: 'Excluir tool' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
   await expect(page.getByText('Tool excluída')).toBeVisible()

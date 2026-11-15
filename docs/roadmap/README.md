@@ -10,7 +10,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P1 Design system e navegação | Design System no Claude Design, tokens claro/escuro, rotas por URL, i18n pt-BR/EN, estados de erro | P0 | [P1-design-navegacao.md](P1-design-navegacao.md) |
 | P2 BFF e auth | login, cliente do orquestrador no servidor, chat via BFF, markdown seguro, fim do Mongo | P1, FA-02 | [P2-bff-auth.md](P2-bff-auth.md) |
 | P3 Editores com paridade | formulários dirigidos por `/admin/schema`: agent, tool, team, RAG, segredos, concorrência | P2, FA-02/03/05/06 | [P3-editores.md](P3-editores.md) |
-| P4 UX realtime | status de aplicação, diff, "testar agora", histórico, configurações da plataforma | P3, FA-04/05 | [P2-P5.md](P2-P5.md) |
+| P4 UX realtime | status de aplicação, diff, "testar agora", histórico, configurações da plataforma | P3, FA-04/05 | [P4-realtime.md](P4-realtime.md) |
 | P5 Fase B | campos hoje fixos no orquestrador, tools MCP | P4, FA-07, F4-02 | [P2-P5.md](P2-P5.md) |
 
 ## Status dos itens
@@ -44,6 +44,11 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P3-04 | concluído (teams pela API Admin: BFF `/api/teams`, lista, editor com o documento inteiro — membros, modo em cartões, modelo do líder, prompt e execução —, Teams na navegação, excluir agent membro mostra os teams do 409 `used_by`; lista comum de agents/teams/tools como follow-up; decisão 0028) |
 | P3-05 | concluído (seletor de segredo único — formato `env:`/`file:` + alvo com a regra do orquestrador — no modelo do agent, do líder, no embedder e nos headers com modo Texto \| Segredo e "Usar segredo"; RAG com o documento inteiro — estratégia, parâmetros, URL base e referência do embedder —, desligado guarda os valores com `active: false`; decisão 0029) |
 | P3-06 | concluído (conflito no 412 em agent, team e tool com a comparação "o seu valor × atual" — Recarregar a atual ou Salvar as minhas por cima, segredo nunca exibido —; Desativar/Reativar ao lado de Excluir com selo de estado, switch "Ativo" removido; BFF `DELETE ?soft=true` e `soft` inválido ⇒ 400; colunas fixas, margem do Dialog, busca em 390 px, altura das Instruções; decisão 0030) |
+| P4-01 | concluído (status de aplicação no editor — aplicada na revisão N, não aplicada com o tipo do erro e a versão anterior no ar, não confirmada com Recarregar —; edição salva fica no editor; `runtimeRevision` nas escritas, `not_applied`/`not_confirmed` no BFF; indicador "runtime · rev. N" na navegação e no Sheet por `GET /api/orchestrator/runtime` + contexto; decisão 0031) |
+| P4-02 | concluído (diálogo "Revisar antes de salvar" em agent, team e tool: Antes × Depois sem segredo, cancelar sem request, o `data` listado é o enviado; Salvar `aria-disabled` com dica sem mudança; ids como conjunto; janela do texto longo também no conflito; criação sem diálogo) |
+| P4-03 | concluído ("Testar agora" no status aplicada de agent e team, para o playground com a entidade e conversa vazia; playground sem `?session=` vazio, Voltar/Avançar carrega a sessão, resposta de sessão atrasada descartada; decisão 0033) |
+| P4-04 | concluído (histórico de versões em painel lateral nos editores de agent, team e tool, com diff mascarado e paginação; restaurar com confirmação e o status aplicado da P4-01, 412 abre o conflito em modo restaurar; badge vN no editor; decisão 0034) |
+| P4-05 | concluído (página `/settings` com a saúde do orquestrador — badge geral, revisão, tempo de resposta e os checks —, config store gravável ou só leitura e providers de chat e embedder; "Recarregar runtime" com confirmação; indicador da navegação vira status de conexão online/degradado/fora do ar com link para `/settings`, uma leitura por carga, sem polling; sem versão do orquestrador; decisão 0035) |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 

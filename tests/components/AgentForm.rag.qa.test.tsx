@@ -10,6 +10,7 @@ import type { AgentConfig } from '@/types/management'
 import { renderWithIntl } from '../helpers/intl'
 import { stubBrowserApis } from '../helpers/toolForm'
 import { server } from '../msw/server'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // QA P3-05: o que AgentForm.rag.test.tsx não alcança. Reabrir e salvar sem
 // editar o RAG desligado com tudo preenchido (valores fora do schema e da regra
@@ -55,7 +56,7 @@ function serveSave() {
 
 const card = (name = 'Configuração RAG') => within(screen.getByRole('region', { name }))
 
-describe('RAG gravado desligado, reaberto e salvo sem editar', () => {
+describe('RAG gravado desligado, reaberto e salvo sem editar o RAG', () => {
   it('estratégia fora do schema, parâmetro fora do provedor e referência fora da regra seguem no corpo', async () => {
     const sent = serveSave()
     const user = userEvent.setup()
@@ -79,7 +80,8 @@ describe('RAG gravado desligado, reaberto e salvo sem editar', () => {
     )
     await waitFor(() => expect(screen.getByRole('combobox', { name: /^Provedor \*/ })).toBeEnabled())
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
     expect(sent[0]).toMatchObject({

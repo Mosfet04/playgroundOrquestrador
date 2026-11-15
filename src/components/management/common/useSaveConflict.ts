@@ -28,7 +28,9 @@ export type OverwriteOutcome = 'saved' | 'conflict' | 'missing' | 'failed'
  * o editor pela versão atual, e se o salvar por cima falha por outro motivo o
  * editor passa a ter a versão atual (documento inteiro, sem remontar), para o
  * próximo envio não sobrescrever o que ele não viu.
- * Devolve `start` (chamar no 412) e as props do `ConflictDialog`.
+ * Devolve `start` (chamar no 412), `startRestore` (412 ao restaurar uma versão
+ * do histórico, P4-04, D-P4-04-4: compara a versão escolhida com a atual e só
+ * recarrega) e as props do `ConflictDialog`.
  */
 export function useSaveConflict<T extends { version: number }>({
   url,
@@ -45,9 +47,11 @@ export function useSaveConflict<T extends { version: number }>({
   const [state, setState] = useState<ConflictState<T>>({ status: 'closed' })
   // A versão que o usuário estava editando quando o 412 veio.
   const [mine, setMine] = useState(0)
+  // Restaurar: a versão escolhida e o que a compara com a atual.
+  const [restoring, setRestoring] = useState<{ version: number; compare: (current: T) => DiffRow[] }>()
   const generation = useRef(0)
 
-  const fetchCurrent = async (again: boolean) => {
+  const fetchCurrent = async (again: boolean, rowsOf = restoring?.compare ?? compare) => {
     const run = ++generation.current
     setState({ status: 'loading', again })
     let next: ConflictState<T>
@@ -56,7 +60,7 @@ export function useSaveConflict<T extends { version: number }>({
       const body = response.ok ? await response.json() : null
       if (body?.success) {
         const current = body.data as T
-        next = { status: 'ready', current, rows: compare(current), again, saving: false }
+        next = { status: 'ready', current, rows: rowsOf(current), again, saving: false }
       } else next = response.status === 404 ? { status: 'deleted' } : { status: 'error', code: response.status }
     } catch (error) {
       console.error('Error loading current version:', url, error)
@@ -68,7 +72,14 @@ export function useSaveConflict<T extends { version: number }>({
 
   const start = (version: number) => {
     setMine(version)
-    void fetchCurrent(false)
+    setRestoring(undefined)
+    void fetchCurrent(false, compare)
+  }
+
+  const startRestore = (version: number, restored: number, compareRestored: (current: T) => DiffRow[]) => {
+    setMine(version)
+    setRestoring({ version: restored, compare: compareRestored })
+    void fetchCurrent(false, compareRestored)
   }
 
   const close = () => {
@@ -81,7 +92,7 @@ export function useSaveConflict<T extends { version: number }>({
     const { current } = state
     setState({ ...state, saving: true })
     const outcome = await overwrite(current, () => flushSync(close))
-    if (outcome === 'conflict') await fetchCurrent(true)
+    if (outcome === 'conflict') await fetchCurrent(true, compare)
     else if (outcome === 'missing') setState({ status: 'deleted' })
     else {
       if (outcome === 'failed') controls?.set(current)
@@ -91,9 +102,11 @@ export function useSaveConflict<T extends { version: number }>({
 
   return {
     start,
+    startRestore,
     dialog: {
       state,
       mine,
+      restored: restoring?.version,
       onClose: close,
       onRetry: () => fetchCurrent(false),
       onReload: (current: T) => {

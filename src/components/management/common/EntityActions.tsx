@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { ExternalLink, Info, Loader2, Power, PowerOff, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 
+import { useApplyRevision } from '@/components/layout/RuntimeRevision'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -17,6 +18,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { focusHeadingIfLost } from '@/components/ui/loading'
+import { applyFailure, errorBody, type ApplyFailure } from './applyResult'
+import { ErrorTypeCode, useAppliedText } from './ApplyStatus'
 import { useRequestError } from './useRequestError'
 
 type Action = 'delete' | 'deactivate' | 'reactivate'
@@ -55,7 +58,9 @@ const BUTTON = 'h-10 w-full sm:h-9 sm:w-auto'
  * de que a config mudou, com "Recarregar".
  * Excluir com sucesso: toast e `onDeleted` (volta para a lista), com o Dialog
  * aberto em "Excluindo…" até a troca de rota. Desativar e Reativar com
- * sucesso: toast e `onChanged` (a página fica). Falha: o Dialog fecha, o foco
+ * sucesso: toast e `onChanged` (a página fica). O toast de sucesso leva a
+ * revisão do runtime, que vai também para a casca; não aplicada e não
+ * confirmada têm toast próprio (P4-01 §5). Falha: o Dialog fecha, o foco
  * volta ao botão e o form fica como estava.
  */
 export function EntityActions({
@@ -67,6 +72,7 @@ export function EntityActions({
   isDirty,
   disabled,
   reactivateBody,
+  onStart,
   onDeleted,
   onChanged,
   onReload,
@@ -78,11 +84,13 @@ export function EntityActions({
   /** Versão lida da config: vai no If-Match (P2-06). */
   version: number
   active: boolean
-  /** O formulário tem edições não salvas? (lido ao abrir o Dialog). */
-  isDirty: () => boolean
+  /** O formulário tem edições não salvas? (a nota do Dialog). */
+  isDirty: boolean
   disabled: boolean
   /** Corpo do PUT que reativa: o documento carregado com `active: true`. */
   reactivateBody: () => string
+  /** A ação começou (o status do último Salvar some, P4-01). */
+  onStart: () => void
   onDeleted: () => void
   onChanged: (written: Written) => void
   /** Recarrega o editor com a versão atual (depois do 412). */
@@ -100,6 +108,8 @@ export function EntityActions({
   const origin = useRef<Action>('delete')
   const deleted = useRef(false)
   const requestError = useRequestError()
+  const applyRevision = useApplyRevision()
+  const appliedText = useAppliedText()
   const t = useTranslations(kind)
   const ta = useTranslations('agents')
   const tc = useTranslations('common')
@@ -129,9 +139,11 @@ export function EntityActions({
 
   const run = async (action: Action) => {
     origin.current = action
+    onStart()
     setBusy(action)
     const headers = { 'If-Match': `"${version}"` }
     let status: number | undefined
+    let failure: ApplyFailure | undefined
     try {
       const response =
         action === 'reactivate'
@@ -145,15 +157,18 @@ export function EntityActions({
               headers
             })
       const data = response.ok ? await response.json() : null
+      const revision = data?.success ? applyRevision(data) : undefined
       if (action === 'delete' && data?.success) {
         deleted.current = true
-        toast.success(t('deleted'))
+        toast.success(t('deleted'), { description: appliedText(revision) })
         onDeleted()
         return
       }
       const written = data?.success ? writtenSchema.safeParse(data.data) : undefined
       if (action !== 'delete' && written?.success) {
-        toast.success(action === 'deactivate' ? t('deactivated') : t('reactivated'))
+        toast.success(action === 'deactivate' ? t('deactivated') : t('reactivated'), {
+          description: appliedText(revision)
+        })
         onChanged(written.data)
         setDialog(null)
         setBusy(null)
@@ -171,6 +186,9 @@ export function EntityActions({
         setBusy(null)
         return
       }
+      // Não aplicada ou não confirmada (P4-01) tem toast próprio; a versão
+      // lida não muda, então o badge e o botão ficam como estavam.
+      if (status !== undefined) failure = applyFailure(status, await errorBody(response))
     } catch (error) {
       console.error('Error on', action, url, error)
     }
@@ -179,7 +197,22 @@ export function EntityActions({
       deactivate: t('deactivateError'),
       reactivate: t('reactivateError')
     }[action]
-    toast.error(requestError(status, { failed, notFound: t('notFound') }))
+    if (failure?.status === 'not_confirmed')
+      toast.warning(tc('notConfirmedAction', { action }), { description: tc('notConfirmedActionBody') })
+    else if (failure)
+      toast.error(failed, {
+        description: (
+          <>
+            <span className="block">{tc('notAppliedAction')}</span>
+            {failure.errorType && (
+              <span className="mt-1 block">
+                {tc('technicalDetail')}: <ErrorTypeCode>{failure.errorType}</ErrorTypeCode>
+              </span>
+            )}
+          </>
+        )
+      })
+    else toast.error(requestError(status, { failed, notFound: t('notFound') }))
     setBusy(null)
     setDialog(null)
   }
@@ -194,7 +227,7 @@ export function EntityActions({
   const blockedTeams = current?.kind === 'blocked' ? current.teams : []
   const running = busy !== null
   useEffect(() => onBusyChange(running), [running, onBusyChange])
-  const dirty = dialog !== null && isDirty()
+  const dirty = dialog !== null && isDirty
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">

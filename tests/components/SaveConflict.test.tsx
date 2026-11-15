@@ -10,6 +10,7 @@ import { ToolEditor } from '@/components/management/tools/ToolEditor'
 
 import { renderWithIntl } from '../helpers/intl'
 import { server } from '../msw/server'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P3-06 (D-P3-06-1): o 412 do salvar relê a versão atual pelo BFF e abre o
 // diálogo com o que difere. Spec: docs/design/P3-06.md §3 (V-P3-06-10 a 18).
@@ -99,7 +100,7 @@ async function openConflict(user: ReturnType<typeof userEvent.setup>) {
   await user.clear(name)
   await user.type(name, 'Meu nome')
   await waitFor(() => expect(save()).toBeEnabled())
-  await user.click(save())
+  await saveAndConfirm(user)
   return screen.findByRole('dialog', { name: 'O agente mudou' })
 }
 
@@ -177,7 +178,8 @@ describe('412 ao salvar (agent)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await waitFor(() => expect(save()).toHaveFocus())
     expect(screen.getByLabelText('Nome *')).toHaveValue('Meu nome')
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
     await screen.findByRole('dialog', { name: 'O agente mudou' })
     expect(seen.puts.map((put) => put.ifMatch)).toEqual(['"3"', '"3"'])
   })
@@ -201,12 +203,14 @@ describe('412 ao salvar (agent)', () => {
     )
     expect(seen.gets).toBe(2)
     // A versão passa a ser a atual.
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
     await waitFor(() => expect(seen.puts).toHaveLength(2))
     expect(seen.puts[1].ifMatch).toBe('"5"')
   })
 
-  it('Salvar as minhas por cima: PUT com o If-Match e o active da versão atual; toast e volta à lista', async () => {
+  // D-P4-01-4: a edição salva fica no editor, com o status de aplicação.
+  it('Salvar as minhas por cima: PUT com o If-Match e o active da versão atual; fica no editor com o status', async () => {
     const push = vi.spyOn(router, 'push')
     server.use(noTools)
     const seen = serve(
@@ -220,11 +224,42 @@ describe('412 ao salvar (agent)', () => {
     await within(dialog).findByRole('region', { name: 'Campos que diferem' })
     await user.click(within(dialog).getByRole('button', { name: 'Salvar as minhas por cima' }))
 
-    expect(await screen.findByText('Agente salvo')).toBeInTheDocument()
+    expect(await screen.findByText('Agente salvo.')).toBeInTheDocument()
     expect(seen.puts).toHaveLength(2)
     expect(seen.puts[1].ifMatch).toBe('"5"')
     expect(seen.puts[1].body).toMatchObject({ nome: 'Meu nome', active: false })
-    expect(push).toHaveBeenCalledWith('/agents')
+    expect(push).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' })).toHaveFocus())
+  })
+
+  it('salvando por cima: o X fica desabilitado, como os outros botões, e Esc não fecha', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    server.use(noTools)
+    serve([agent, newer], [])
+    server.use(
+      http.put('*/api/agents/:id', async ({ request }) => {
+        if (request.headers.get('if-match') === '"3"') return conflict412()
+        await gate
+        return HttpResponse.json({ success: true, data: { ...newer, version: 6 } })
+      })
+    )
+    const user = userEvent.setup()
+    renderAgent()
+
+    const dialog = await openConflict(user)
+    await within(dialog).findByRole('region', { name: 'Campos que diferem' })
+    const close = within(dialog).getByRole('button', { name: 'Fechar' })
+    expect(close).toBeEnabled()
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar as minhas por cima' }))
+
+    await within(dialog).findByRole('button', { name: 'Salvando…' })
+    expect(close).toBeDisabled()
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog', { name: 'O agente mudou' })).toBeInTheDocument()
+
+    release()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('outro 412 durante o salvar por cima: o diálogo fica, relê e avisa "Mudou de novo" com a versão nova', async () => {
@@ -265,7 +300,8 @@ describe('412 ao salvar (agent)', () => {
     await waitFor(() => expect(screen.getByLabelText(/^Modelo \*/)).toHaveFocus())
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(screen.getByLabelText(/^Modelo \*/)).toHaveFocus()
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
     await waitFor(() => expect(seen.puts).toHaveLength(3))
     expect(seen.puts[2].ifMatch).toBe('"5"')
   })
@@ -335,7 +371,7 @@ describe('412 ao salvar (agent)', () => {
 
     await user.type(await screen.findByLabelText('Nome *'), ' x')
     await waitFor(() => expect(save()).toBeEnabled())
-    await user.click(save())
+    await saveAndConfirm(user)
 
     const dialog = await screen.findByRole('dialog', { name: 'O agente foi excluído' })
     expect(dialog).toHaveTextContent('“Assistente” foi excluído enquanto você editava.')
@@ -366,13 +402,15 @@ describe('412 ao salvar (agent)', () => {
 
   it('só mudou o que o formulário não cobre: sem lista, ajuda e "Salvar por cima" como último botão', async () => {
     server.use(noTools)
-    serve([agent, { ...agent, version: 4, futuro: 'x' }], [conflict412()])
+    // A outra pessoa gravou o mesmo nome: só o campo fora do formulário difere.
+    serve([agent, { ...agent, nome: 'Assistente x', version: 4, futuro: 'x' }], [conflict412()])
     const user = userEvent.setup()
     renderAgent()
 
     await screen.findByLabelText('Nome *')
     await waitFor(() => expect(save()).toBeEnabled())
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
     const dialog = await screen.findByRole('dialog', { name: 'O agente mudou' })
 
     expect(await within(dialog).findByText(/nenhum campo do formulário difere/)).toBeInTheDocument()
@@ -394,7 +432,8 @@ describe('412 ao salvar (agent)', () => {
 
     await screen.findByLabelText('Nome *')
     await waitFor(() => expect(save()).toBeEnabled())
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
     const dialog = await screen.findByRole('dialog', { name: 'O agente mudou' })
 
     const more = await within(dialog).findByRole('button', { name: 'Mostrar tudo' })
@@ -415,7 +454,8 @@ describe('texto longo de uma linha', () => {
 
     await screen.findByLabelText('Nome *')
     await waitFor(() => expect(save()).toBeEnabled())
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
     const dialog = await screen.findByRole('dialog', { name: 'O agente mudou' })
 
     expect(await within(dialog).findByText(text)).not.toHaveClass('line-clamp-4')
@@ -453,7 +493,8 @@ describe('412 ao salvar (tool): segredos nunca aparecem', () => {
       </>
     )
 
-    await user.click(await screen.findByRole('button', { name: 'Salvar' }))
+    await touchName(user)
+    await saveAndConfirm(user)
     const dialog = await screen.findByRole('dialog', { name: 'A tool mudou' })
     const list = await within(dialog).findByRole('region', { name: 'Campos que diferem' })
 
@@ -504,7 +545,8 @@ describe('412 ao salvar (team)', () => {
     )
 
     await waitFor(() => expect(save()).toBeEnabled())
-    await user.click(save())
+    await touchName(user)
+    await saveAndConfirm(user)
     const dialog = await screen.findByRole('dialog', { name: 'O team mudou' })
 
     const list = await within(dialog).findByRole('region', { name: 'Campos que diferem' })

@@ -1,0 +1,74 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-28T12:00:00Z"
+  },
+  "title": "P4-01 Status de aplicação",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 900,
+      "title": "Desktop · claro · Editor de agent salvo: status “aplicada” perto do Salvar e revisão do runtime na navegação"
+    },
+    "Estados-claro.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 1000,
+      "h": 1500,
+      "title": "Desktop · claro · Status de aplicação (E1–E6) e indicador da casca (R1–R3)"
+    },
+    "Estados-escuro.dc.html": {
+      "x": 2440,
+      "y": 0,
+      "w": 1000,
+      "h": 1700,
+      "title": "Desktop · escuro · Status de aplicação, indicador e toasts das ações (T1–T6)"
+    },
+    "Celular-claro.dc.html": {
+      "x": 0,
+      "y": 1820,
+      "w": 390,
+      "h": 2200,
+      "title": "Celular · claro · Status acima do Salvar e revisão no menu"
+    },
+    "Celular-escuro.dc.html": {
+      "x": 470,
+      "y": 1820,
+      "w": 390,
+      "h": 1900,
+      "title": "Celular · escuro · Não confirmada, toasts e menu com revisão carregando/indisponível"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Estados-claro.dc.html",
+    "Estados-escuro.dc.html",
+    "Celular-claro.dc.html",
+    "Celular-escuro.dc.html"
+  ],
+  "notes": {
+    "t1": {
+      "x": 0,
+      "y": -300,
+      "text": "P4-01 · Status de aplicação e revisão do runtime",
+      "kind": "title1",
+      "maxW": 3440
+    }
+  },
+  "designSystems": [
+    {
+      "title": "Playground do Orquestrador",
+      "namespace": "playground",
+      "artifact": "https://claude.ai/artifact/Cy1ufZWym7KDKjgFFb7Bme",
+      "version": null,
+      "copiedAt": "2026-10-28T12:00:00Z"
+    }
+  ]
+}

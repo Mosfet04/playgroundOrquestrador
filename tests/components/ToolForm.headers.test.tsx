@@ -10,6 +10,7 @@ import type { Tool } from '@/types/management'
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
 import { captureSave, paste, saveButton, stubBrowserApis, tool } from '../helpers/toolForm'
+import { saveAndConfirm, touchName } from '../helpers/saveReview'
 
 // P3-03 (D-P3-03-3): headers em linhas nome + valor. Referência `env:`/`file:`
 // como está; `***` é o valor gravado, oculto e mantido; nome sensível com
@@ -97,7 +98,8 @@ describe('salvar', () => {
     const bodies = captureSave()
     const user = await renderReady(stored)
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({
@@ -122,7 +124,7 @@ describe('salvar', () => {
     expect(screen.queryByRole('button', { name: /Substituir/ })).toBeNull()
 
     await user.type(field, 'env:NOVA_API_KEY')
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toMatchObject({ Authorization: 'env:NOVA_API_KEY' })
@@ -140,7 +142,8 @@ describe('salvar', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Substituir o valor de Authorization' })).toHaveFocus()
     )
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toMatchObject({ Authorization: '***' })
   })
@@ -169,7 +172,7 @@ describe('salvar', () => {
     const user = await renderReady(stored)
 
     await user.click(screen.getByRole('button', { name: 'Remover Accept' }))
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ 'X-Api-Key': 'env:LOJA_API_KEY', Authorization: '***' })
@@ -210,7 +213,7 @@ describe('header sensível em texto (D-P3-03-3)', () => {
 
     await paste(user, within(row).getAllByRole('textbox')[1], 'env:LOJA_TOKEN_API_KEY')
     expect(within(row).queryByText(/é sensível/)).toBeNull()
-    await user.click(saveButton())
+    await saveAndConfirm(user)
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0].headers).toEqual({ Authorization: 'env:LOJA_TOKEN_API_KEY' })
@@ -292,7 +295,8 @@ describe('422 em headers', () => {
     )
     const user = await renderReady(stored)
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     const message = await screen.findByText(/O orquestrador recusou algum header e não diz qual/)
     expect(within(group()).getByText(message.textContent ?? '')).toBe(message)
@@ -310,7 +314,8 @@ describe('422 em headers sem nenhuma linha', () => {
     )
     const user = await renderReady(tool)
 
-    await user.click(saveButton())
+    await touchName(user)
+    await saveAndConfirm(user)
 
     expect(await screen.findByText(/O orquestrador recusou algum header e não diz qual/)).toBeVisible()
     await waitFor(() => expect(addHeader()).toHaveFocus())

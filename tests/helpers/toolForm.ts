@@ -37,12 +37,15 @@ export const tool: Tool = {
 }
 
 // Corpos recebidos pelo BFF no salvar (POST de tool nova, PUT de existente).
+// A resposta é o documento salvo, como a do BFF (a edição passa a ser ele,
+// P4-01): o corpo enviado com a versão seguinte.
 export function captureSave(method: 'post' | 'put' = 'put') {
   const bodies: Record<string, unknown>[] = []
   server.use(
     http[method](method === 'put' ? '*/api/tools/:id' : '*/api/tools', async ({ request }) => {
-      bodies.push((await request.json()) as Record<string, unknown>)
-      return HttpResponse.json({ success: true, data: {} })
+      const body = (await request.json()) as Record<string, unknown>
+      bodies.push(body)
+      return HttpResponse.json({ success: true, data: { ...body, version: tool.version + bodies.length } })
     })
   )
   return bodies

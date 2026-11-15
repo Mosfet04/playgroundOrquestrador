@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Revisar antes de salvar · celular claro</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pg-ds.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="p302.css">
+<link rel="stylesheet" href="p306.css">
+<link rel="stylesheet" href="p401.css">
+<link rel="stylesheet" href="p402.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pg-app" style="width: 390px; display: flex; flex-direction: column; gap: 24px; padding: 16px 0">
+<p class="cap" style="margin: 0; padding: 0 16px; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground)">M1 · Editor sem mudança em 390: dica logo acima do Salvar (esquerda), Salvar com aria-disabled</p>
+<div class="phone" style="height: auto; overflow: visible; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border)"><div class="ed" style="padding: 16px">
+<section class="sec"><div class="sec-head"><h2>Instruções</h2></div><textarea class="ta min44" aria-label="Prompt do sistema">Você é o assistente de pedidos da Loja Aurora.</textarea></section>
+<div class="foot-stack"><div class="apply-region" aria-live="polite" aria-atomic="true"></div><p class="save-hint" id="m1">Nenhuma alteração para salvar.</p><div class="foot"><div class="del-wrap"><div class="l"><button class="pg-btn pg-btn-outline" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.36 6.64A9 9 0 0 1 20.77 15"></path><path d="M6.16 6.16a9 9 0 1 0 12.68 12.68"></path><path d="M12 2v4"></path><path d="m2 2 20 20"></path></svg>Desativar agente</button><button class="pg-btn pg-btn-outline is-danger" type="button"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>Excluir agente</button></div></div><div class="r"><a class="pg-btn pg-btn-outline" href="#agents">Cancelar</a><button class="pg-btn" type="submit" aria-disabled="true" aria-describedby="m1"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path></svg>Salvar</button></div></div></div></div></div>
+<p class="cap" style="margin: 0; padding: 0 16px; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground)">M2 · Diálogo em 390 (5 alterações): margem de 16 px, colunas empilhadas (Antes primeiro), Confirmar no topo</p>
+<div class="phone" style="height: auto; overflow: visible; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border)"><div class="dlg-frame vp"><div class="pg-dialog vp" role="dialog" aria-modal="true" aria-labelledby="mc2-t" aria-describedby="mc2-d"><button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button><div class="dlg-head"><h2 class="pg-dialog-title" id="mc2-t">Revisar antes de salvar</h2><p id="mc2-d">5 alterações em relação à v5, a versão que você abriu. Nada é enviado até você confirmar.</p></div><div role="region" aria-label="Campos alterados" tabindex="0"><ul class="diff scroll"><li><p class="lbl" id="r37">Modelo</p><dl class="cmp" aria-labelledby="r37"><div><dt>Antes</dt><dd><span class="m">gpt-4o-mini</span></dd></div><div><dt>Depois</dt><dd><span class="m">gpt-4o</span></dd></div></dl></li><li><p class="lbl" id="r38">Parâmetros do modelo<span class="sep">›</span><span class="it">temperature</span></p><dl class="cmp" aria-labelledby="r38"><div><dt>Antes</dt><dd><span class="m">0.2</span></dd></div><div><dt>Depois</dt><dd><span class="m">0.7</span></dd></div></dl></li><li><p class="lbl" id="r39">Prompt do sistema</p><dl class="cmp" aria-labelledby="r39"><div><dt>Antes</dt><dd><span class="skip">… 6 linhas iguais acima</span><span class="clamp4">Nunca informe prazos sem consultar a tool.
+Responda em no máximo três frases.
+Em caso de dúvida, transfira para um atendente.
+Não invente políticas de troca.</span></dd></div><div><dt>Depois</dt><dd><span class="skip">… 6 linhas iguais acima</span><span class="clamp4">Nunca informe prazos sem consultar a tool.
+Responda em no máximo cinco frases.
+Em caso de dúvida, transfira para um atendente.
+Não invente políticas de troca.</span></dd></div></dl><button class="pg-btn pg-btn-link more" type="button" aria-expanded="false">Mostrar tudo</button></li><li><p class="lbl" id="r40">Enviar histórico da sessão</p><dl class="cmp" aria-labelledby="r40"><div><dt>Antes</dt><dd><span>Desligado</span></dd></div><div><dt>Depois</dt><dd><span>Ligado</span></dd></div></dl></li><li><p class="lbl" id="r41">Tools disponíveis</p><dl class="cmp" aria-labelledby="r41"><div><dt>Antes</dt><dd class="chips"><span class="pg-chip">pedidos</span></dd></div><div><dt>Depois</dt><dd class="chips"><span class="pg-chip">consulta-cep</span></dd></div></dl><p class="hint">Só as diferenças; 1 igual nos dois.</p></li></ul></div><p class="rev-note">Os campos que não aparecem aqui não mudam.</p><div class="dlg-foot stack"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><button class="pg-btn" type="button">Confirmar e salvar</button></div></div></div></div>
+<p class="cap" style="margin: 0; padding: 0 16px; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground)">M3 · Prompt recolhido em 390: a lista rola dentro de 40dvh; o Mostrar tudo vem abaixo das duas caixas</p>
+<div class="phone" style="height: auto; overflow: visible; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border)"><div class="dlg-frame vp"><div class="pg-dialog vp" role="dialog" aria-modal="true" aria-labelledby="mc3-t" aria-describedby="mc3-d"><button class="dlg-x" type="button" aria-label="Fechar"><svg class="pg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button><div class="dlg-head"><h2 class="pg-dialog-title" id="mc3-t">Revisar antes de salvar</h2><p id="mc3-d">2 alterações em relação à v5, a versão que você abriu. Nada é enviado até você confirmar.</p></div><div role="region" aria-label="Campos alterados" tabindex="0"><ul class="diff scroll"><li><p class="lbl" id="r42">Prompt do sistema</p><dl class="cmp" aria-labelledby="r42"><div><dt>Antes</dt><dd><span class="skip">… 6 linhas iguais acima</span><span class="clamp4">Nunca informe prazos sem consultar a tool.
+Responda em no máximo três frases.
+Em caso de dúvida, transfira para um atendente.
+Não invente políticas de troca.</span></dd></div><div><dt>Depois</dt><dd><span class="skip">… 6 linhas iguais acima</span><span class="clamp4">Nunca informe prazos sem consultar a tool.
+Responda em no máximo cinco frases.
+Em caso de dúvida, transfira para um atendente.
+Não invente políticas de troca.</span></dd></div></dl><button class="pg-btn pg-btn-link more" type="button" aria-expanded="false">Mostrar tudo</button></li><li><p class="lbl" id="r43">Modelo</p><dl class="cmp" aria-labelledby="r43"><div><dt>Antes</dt><dd><span class="m">gpt-4o-mini</span></dd></div><div><dt>Depois</dt><dd><span class="m">gpt-4o</span></dd></div></dl></li></ul></div><p class="rev-note">Os campos que não aparecem aqui não mudam.</p><div class="dlg-foot stack"><button class="pg-btn pg-btn-outline" type="button" style="outline: 2px solid var(--ring); outline-offset: 2px">Voltar ao formulário</button><button class="pg-btn" type="button">Confirmar e salvar</button></div></div></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
