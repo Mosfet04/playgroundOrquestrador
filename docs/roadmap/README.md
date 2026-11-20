@@ -11,6 +11,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P2 BFF e auth | login, cliente do orquestrador no servidor, chat via BFF, markdown seguro, fim do Mongo | P1, FA-02 | [P2-bff-auth.md](P2-bff-auth.md) |
 | P3 Editores com paridade | formulários dirigidos por `/admin/schema`: agent, tool, team, RAG, segredos, concorrência | P2, FA-02/03/05/06 | [P3-editores.md](P3-editores.md) |
 | P4 UX realtime | status de aplicação, diff, "testar agora", histórico, configurações da plataforma | P3, FA-04/05 | [P4-realtime.md](P4-realtime.md) |
+| AG3 Agno 3.1.12 | `expose_reasoning`, sessões por usuário, snapshot e fake 3.x, raciocínio no chat | P4, F3 | [AG3-agno3.md](AG3-agno3.md) |
 | P5 Fase B | campos hoje fixos no orquestrador, tools MCP | P4, FA-07, F4-02 | [P2-P5.md](P2-P5.md) |
 
 ## Status dos itens
@@ -49,6 +50,10 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P4-03 | concluído ("Testar agora" no status aplicada de agent e team, para o playground com a entidade e conversa vazia; playground sem `?session=` vazio, Voltar/Avançar carrega a sessão, resposta de sessão atrasada descartada; decisão 0033) |
 | P4-04 | concluído (histórico de versões em painel lateral nos editores de agent, team e tool, com diff mascarado e paginação; restaurar com confirmação e o status aplicado da P4-01, 412 abre o conflito em modo restaurar; badge vN no editor; decisão 0034) |
 | P4-05 | concluído (página `/settings` com a saúde do orquestrador — badge geral, revisão, tempo de resposta e os checks —, config store gravável ou só leitura e providers de chat e embedder; "Recarregar runtime" com confirmação; indicador da navegação vira status de conexão online/degradado/fora do ar com link para `/settings`, uma leitura por carga, sem polling; sem versão do orquestrador; decisão 0035) |
+| AG3-01 | pendente |
+| AG3-02 | pendente |
+| AG3-03 | pendente |
+| AG3-04 | pendente |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 
