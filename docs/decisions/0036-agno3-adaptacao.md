@@ -61,3 +61,15 @@ Opções:
 - C) Só corrigir o defeito.
 
 Escolha: **A**.
+
+## D-AG3-04-2 — Como o chat reconhece o raciocínio
+
+Data: 2026-11-20
+
+Contexto: no 3.1.12, o `ReasoningStep` só sai para uma tool `think` com `title` e `thought`, ou `analyze` com `title` (`agent/_response.py:752`), logo depois do `ToolCallCompleted` dela (`:1656`–`:1705`). O `/agents` do AgentOS não mostra a config de raciocínio do orquestrador, que usa `ReasoningTools` e não o `reasoning` do agno.
+
+Opções:
+- **A) Eventos do run:** o chip de `think`/`analyze` some quando chega o `ReasoningStep` dele, e o passo vai para o painel. O contrato do BFF não muda. O chip aparece por um instante enquanto a tool roda, e uma tool do usuário chamada `think` com os mesmos args do agno vira raciocínio, como no próprio agno.
+- B) Config do agente: o BFF manda `reasoning` na lista de agentes e nos membros de team, lido da `/admin/config` com a chave admin. Muda o contrato do BFF, e o e2e precisa ligar `reasoning` por PUT.
+
+Escolha: **A**.

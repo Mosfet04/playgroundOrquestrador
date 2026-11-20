@@ -23,14 +23,14 @@ export interface RunMetrics {
 export interface ReasoningSteps {
   title: string
   action?: string
-  result: string
-  reasoning: string
+  result?: string
+  reasoning?: string
   confidence?: number
   next_action?: string
 }
 export interface ReasoningStepProps {
   index: number
-  stepTitle: string
+  step: ReasoningSteps
 }
 export interface ReasoningProps {
   reasoning: ReasoningSteps[]
@@ -171,6 +171,8 @@ export interface RunResponse {
   tool?: ToolCall
   tools?: Array<ToolCall>
   created_at: number
+  // RunCompleted do agno 3: passos com null; validados em parseReasoningSteps.
+  reasoning_steps?: unknown
   extra_data?: PlaygroundAgentExtraData
   images?: ImageData[]
   videos?: VideoData[]

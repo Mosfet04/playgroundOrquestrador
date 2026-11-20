@@ -132,15 +132,16 @@ describe('fronteira do stream', () => {
     expect(error).toBeNull()
   })
 
+  // O ReasoningStep com content hostil virou campo ignorado (AG3-04); a falha
+  // inesperada vem agora de um setter do store que lança.
   it('falha no handler não prende o composer', async () => {
-    const { last, streaming } = await run([
-      started,
-      frame(
-        'ReasoningStep',
-        '{"event":"ReasoningStep","extra_data":{"reasoning_steps":5},"created_at":1}'
-      ),
-      completed()
-    ])
+    usePlaygroundStore.setState({
+      setLoadedSessionId: () => {
+        throw new Error('falha inesperada')
+      }
+    })
+
+    const { last, streaming } = await run([started, completed()])
 
     expect(streaming).toBe(false)
     expect(last.streamingError).toBe(true)
