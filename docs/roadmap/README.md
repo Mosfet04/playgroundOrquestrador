@@ -50,7 +50,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P4-03 | concluído ("Testar agora" no status aplicada de agent e team, para o playground com a entidade e conversa vazia; playground sem `?session=` vazio, Voltar/Avançar carrega a sessão, resposta de sessão atrasada descartada; decisão 0033) |
 | P4-04 | concluído (histórico de versões em painel lateral nos editores de agent, team e tool, com diff mascarado e paginação; restaurar com confirmação e o status aplicado da P4-01, 412 abre o conflito em modo restaurar; badge vN no editor; decisão 0034) |
 | P4-05 | concluído (página `/settings` com a saúde do orquestrador — badge geral, revisão, tempo de resposta e os checks —, config store gravável ou só leitura e providers de chat e embedder; "Recarregar runtime" com confirmação; indicador da navegação vira status de conexão online/degradado/fora do ar com link para `/settings`, uma leitura por carga, sem polling; sem versão do orquestrador; decisão 0035) |
-| AG3-01 | pendente |
+| AG3-01 | concluído (switch "Expor raciocínio" em Execução, desabilitado com o valor preservado sem `reasoning`; PUT preserva `expose_reasoning`; default do `/admin/schema`; 422 no campo; linha no diff e no histórico; decisão 0036) |
 | AG3-02 | pendente |
 | AG3-03 | pendente |
 | AG3-04 | pendente |

@@ -112,6 +112,7 @@ const agentDoc = (id: string, nome: string, extra: Record<string, unknown> = {})
   num_history_runs: 5,
   add_datetime_to_context: true,
   reasoning: false,
+  expose_reasoning: true,
   version: 1,
   ...extra
 })
@@ -195,7 +196,8 @@ const SCHEMA_DOCUMENT = {
     add_history_to_context: { type: 'boolean', default: true },
     add_datetime_to_context: { type: 'boolean', default: true },
     num_history_runs: { type: 'integer', default: 5, ...NUM_HISTORY_RUNS_RANGE },
-    reasoning: { type: 'boolean', default: false }
+    reasoning: { type: 'boolean', default: false },
+    expose_reasoning: { type: 'boolean', default: true }
   },
   team: {
     mode: TEAM_MODES,
@@ -247,6 +249,7 @@ const BOOLEAN_AGENT_KEYS = [
   'add_history_to_context',
   'add_datetime_to_context',
   'reasoning',
+  'expose_reasoning',
   'user_memory_active',
   'summary_active'
 ]

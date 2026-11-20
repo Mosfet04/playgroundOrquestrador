@@ -17,6 +17,7 @@ type Label =
   | 'addHistory'
   | 'numHistoryRuns'
   | 'reasoning'
+  | 'exposeReasoning'
   | 'userMemory'
   | 'summary'
   | 'ragEnable'
@@ -67,6 +68,7 @@ export function diffAgent(
     ...boolRow('add_history_to_context', l('addHistory'), mine.add_history_to_context, current.add_history_to_context),
     ...textRow('num_history_runs', l('numHistoryRuns'), mine.num_history_runs, current.num_history_runs, mono),
     ...boolRow('reasoning', l('reasoning'), mine.reasoning, current.reasoning),
+    ...boolRow('expose_reasoning', l('exposeReasoning'), mine.expose_reasoning, current.expose_reasoning),
     ...boolRow('user_memory_active', l('userMemory'), mine.user_memory_active, current.user_memory_active),
     ...boolRow('summary_active', l('summary'), mine.summary_active, current.summary_active),
     ...boolRow('rag_active', l('ragEnable'), mine.rag_active, current.rag_active),

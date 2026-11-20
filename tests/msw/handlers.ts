@@ -74,6 +74,7 @@ export const schemaFixture = {
     addHistoryToContext: true,
     addDatetimeToContext: true,
     reasoning: false,
+    exposeReasoning: true,
     numHistoryRuns: { default: 5, minimum: 1, maximum: 50 }
   },
   team: {

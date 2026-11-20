@@ -21,6 +21,7 @@ export interface AgentConfig {
   num_history_runs?: number
   add_datetime_to_context?: boolean
   reasoning?: boolean
+  expose_reasoning?: boolean
   user_memory_active?: boolean
   summary_active?: boolean
   // Versão lida: volta no If-Match do PUT/DELETE.
@@ -127,6 +128,7 @@ export interface ConfigSchema {
     addHistoryToContext: boolean
     addDatetimeToContext: boolean
     reasoning: boolean
+    exposeReasoning: boolean
     numHistoryRuns: { default: number; minimum: number; maximum: number }
   }
   // Modos e defaults de execução do team (P3-04).
@@ -168,6 +170,7 @@ export const AGENT_FORM_FIELDS = [
   'num_history_runs',
   'add_datetime_to_context',
   'reasoning',
+  'expose_reasoning',
   'user_memory_active',
   'summary_active'
 ] as const
@@ -241,6 +244,7 @@ export interface CreateAgentForm {
   num_history_runs?: number
   add_datetime_to_context?: boolean
   reasoning?: boolean
+  expose_reasoning?: boolean
   user_memory_active?: boolean
   summary_active?: boolean
 }

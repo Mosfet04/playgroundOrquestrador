@@ -107,6 +107,7 @@ const newFields = {
   num_history_runs: 12,
   add_datetime_to_context: false,
   reasoning: true,
+  expose_reasoning: false,
   user_memory_active: true,
   summary_active: true
 }
@@ -619,6 +620,7 @@ describe('POST /api/agents', () => {
     ['num_history_runs', 'num_history_runs'],
     ['add_datetime_to_context', 'add_datetime_to_context'],
     ['reasoning', 'reasoning'],
+    ['expose_reasoning', 'expose_reasoning'],
     ['user_memory_active', 'user_memory_active'],
     ['summary_active', 'summary_active']
   ])('422 em %s ⇒ 422 no campo %s do formulário, sem o valor', async (field, formField) => {
@@ -675,6 +677,62 @@ describe('GET /api/agents/[id]: RAG completo (P3-05)', () => {
       base_url: 'http://embed.local/v1',
       api_key_ref: 'env:EMBED_API_KEY'
     })
+  })
+})
+
+// AG3-01: o orquestrador 3.x tem `expose_reasoning` (default true no schema); o
+// PUT troca o documento inteiro, então ler e devolver o valor evita apagá-lo.
+describe('expose_reasoning (AG3-01)', () => {
+  const { id: _id, ...updateBody } = formBody
+  void _id
+
+  it.each([false, true])('lê %s do documento e devolve no formato do formulário', async (value) => {
+    serveItem('get', () => HttpResponse.json(doc({ expose_reasoning: value })))
+
+    const response = await GET_BY_ID(new NextRequest(`${API}/assistente`), params('assistente'))
+
+    expect((await response.json()).data).toMatchObject({ expose_reasoning: value })
+  })
+
+  it('documento sem o campo (ou null) segue sem ele: o formulário usa o default do schema', async () => {
+    serveItem('get', () => HttpResponse.json(doc({ expose_reasoning: null })))
+
+    const response = await GET_BY_ID(new NextRequest(`${API}/assistente`), params('assistente'))
+
+    expect((await response.json()).data.expose_reasoning).toBeUndefined()
+  })
+
+  it('PUT com false leva false no documento (salvar não apaga o valor)', async () => {
+    serveItem('get', () => HttpResponse.json(doc({ expose_reasoning: false })))
+    serveItem('put', () => HttpResponse.json(doc({ expose_reasoning: false, version: 4 })))
+
+    const response = await PUT(
+      jsonRequest(
+        `${API}/assistente`,
+        'PUT',
+        { ...updateBody, reasoning: true, expose_reasoning: false },
+        { 'If-Match': '"3"' }
+      ),
+      params('assistente')
+    )
+
+    expect(response.status).toBe(200)
+    expect(seen[1].body).toMatchObject({ expose_reasoning: false })
+  })
+
+  it('POST com false leva false no documento', async () => {
+    serveItem('post', () => HttpResponse.json(doc({ id: 'novo' }), { status: 201 }))
+
+    await POST(jsonRequest(API, 'POST', { ...formBody, expose_reasoning: false }))
+
+    expect(seen[0].body).toMatchObject({ expose_reasoning: false })
+  })
+
+  it('valor que não é booleano ⇒ 400 sem chamar o orquestrador', async () => {
+    const response = await POST(jsonRequest(API, 'POST', { ...formBody, expose_reasoning: 'nao' }))
+
+    expect(response.status).toBe(400)
+    expect(seen).toEqual([])
   })
 })
 
@@ -782,6 +840,7 @@ describe('PUT /api/agents/[id]', () => {
       'num_history_runs',
       'add_datetime_to_context',
       'reasoning',
+      'expose_reasoning',
       'user_memory_active',
       'summary_active'
     ])

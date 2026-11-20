@@ -22,6 +22,7 @@ Critérios de aceite:
 - Copy em pt-BR e EN, tokens do design system.
 Testes exigidos: unit do mapeamento de agents (ida e volta, documento sem o campo, 422); componente do ExecutionSection (habilitado e desabilitado, valor preservado); e2e salvando um agente com `false` contra o fake (o fake guarda e devolve o campo).
 Riscos e dependências: documento antigo sem o campo ⇒ o schema zod aceita a ausência e o formulário usa o default do schema.
+Resultado: `expose_reasoning` lido, editado e enviado (BFF, `agentSchema`, `FORM_FIELDS`, `/admin/schema` obrigatório como os demais flags: orquestrador anterior à F3-10 deixa a seção Execução indisponível). Com `reasoning` desligado, o switch fica `disabled` com dica e o valor segue no PUT; 422 nesse estado foca o switch do raciocínio. Fake guarda e devolve o campo.
 
 ## AG3-02 — Sessões do usuário logado e 404 de sessão alheia
 UI: não            Depende (orq.): — (F3 concluída)

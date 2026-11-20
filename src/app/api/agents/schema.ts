@@ -38,6 +38,7 @@ export const agentBodySchema = z.object({
   num_history_runs: z.number().int().optional(),
   add_datetime_to_context: z.boolean().optional(),
   reasoning: z.boolean().optional(),
+  expose_reasoning: z.boolean().optional(),
   user_memory_active: z.boolean().optional(),
   summary_active: z.boolean().optional()
 }) satisfies z.ZodType<AgentInput>

@@ -133,7 +133,8 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
       ['markdown', defaults.markdown],
       ['add_datetime_to_context', defaults.addDatetimeToContext],
       ['add_history_to_context', defaults.addHistoryToContext],
-      ['reasoning', defaults.reasoning]
+      ['reasoning', defaults.reasoning],
+      ['expose_reasoning', defaults.exposeReasoning]
     ] as const
     for (const [field, value] of flags) if (getValues(field) === undefined) setValue(field, value)
     const runs = getValues('num_history_runs')
@@ -187,7 +188,8 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
   // Erro do orquestrador no campo recusado, sem o valor. `model_params` é um
   // grupo (o orquestrador não diz qual parâmetro): erro no grupo e foco no 1º
   // valor. `num_history_runs` com o histórico desligado tem o input desabilitado,
-  // que não recebe foco: vai ao switch do histórico.
+  // que não recebe foco: vai ao switch do histórico. O mesmo vale para
+  // `expose_reasoning` com o raciocínio desligado: o foco vai ao switch do raciocínio.
   // Campo do RAG com o switch desligado: os campos reaparecem e o foco vai a
   // ele depois do render (P3-05).
   const markRejected = (field: AgentFormField, data: AgentFormValues) => {
@@ -205,6 +207,9 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     } else if (field === 'num_history_runs' && !getValues('add_history_to_context')) {
       setError(field, error)
       setFocus('add_history_to_context')
+    } else if (field === 'expose_reasoning' && !getValues('reasoning')) {
+      setError(field, error)
+      setFocus('reasoning')
     } else setError(field, error, { shouldFocus: true })
   }
 
