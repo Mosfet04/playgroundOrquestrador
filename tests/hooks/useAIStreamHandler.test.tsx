@@ -13,11 +13,12 @@ import { IntlProvider } from '../helpers/intl'
 
 const initialStoreState = usePlaygroundStore.getState()
 
-// Mesmo framing SSE do AgentOS (agno/os/utils.py: format_sse_event).
+// Mesmo framing SSE do AgentOS (agno/os/utils.py: format_sse_event); no agno 3
+// todo evento traz `nested_depth` (0 fora de workflow aninhado).
 const sseStream = (events: Record<string, unknown>[]) =>
   new HttpResponse(
     events
-      .map((e) => `event: ${e.event}\ndata: ${JSON.stringify(e)}\n\n`)
+      .map((e) => `event: ${e.event}\ndata: ${JSON.stringify({ nested_depth: 0, ...e })}\n\n`)
       .join(''),
     { headers: { 'Content-Type': 'text/event-stream' } }
   )
@@ -216,6 +217,139 @@ describe('useAIChatStreamHandler: eventos de membro no stream do team', () => {
     const lastMessage = await sendMessage('agent', '?agent=agent-1')
 
     expect(lastMessage.content).toBe('a\\\\b\\"c')
+  })
+})
+
+// Team em modo `route` no agno 3.1.12 (agno/team/_default_tools.py): a
+// delegação é um TeamToolCall `delegate_task_to_member`, e os eventos do membro
+// saem entre o Started e o Completed dela, com `parent_run_id`. Com
+// `respond_directly` a resposta do membro também sai como TeamRunContent.
+describe('useAIChatStreamHandler: team route do agno 3', () => {
+  const team = {
+    team_id: 'team-1',
+    team_name: 'Time',
+    run_id: 'run-team',
+    session_id: 'session-1',
+    created_at: 1
+  }
+  const member = {
+    agent_id: 'agent-1',
+    agent_name: 'Agente',
+    run_id: 'run-member',
+    parent_run_id: 'run-team',
+    session_id: 'session-1',
+    created_at: 1
+  }
+  const delegation = {
+    tool_call_id: 'call-delegate',
+    tool_name: 'delegate_task_to_member',
+    tool_args: { member_id: 'agent-1', task: 'oi' }
+  }
+  const memberTool = {
+    tool_call_id: 'call-consulta',
+    tool_name: 'consultar_pedido',
+    tool_args: {}
+  }
+  const routeRun = [
+    { ...team, event: 'TeamRunStarted', model: 'm' },
+    { ...team, event: 'TeamModelRequestStarted', model: 'm' },
+    {
+      ...team,
+      event: 'TeamModelRequestCompleted',
+      model: 'm',
+      input_tokens: 300,
+      output_tokens: 20,
+      total_tokens: 320
+    },
+    { ...team, event: 'TeamToolCallStarted', tool: delegation },
+    { ...member, event: 'RunStarted', model: 'm' },
+    { ...member, event: 'ModelRequestStarted', model: 'm' },
+    { ...member, event: 'ToolCallStarted', tool: memberTool },
+    {
+      ...member,
+      event: 'ToolCallCompleted',
+      tool: { ...memberTool, tool_call_error: false, metrics: { duration: 0.2 } }
+    },
+    { ...team, event: 'TeamRunContent', content: 'Resposta ', content_type: 'str' },
+    { ...member, event: 'RunContent', content: 'Resposta ', content_type: 'str' },
+    { ...team, event: 'TeamRunContent', content: 'do membro', content_type: 'str' },
+    { ...member, event: 'RunContent', content: 'do membro', content_type: 'str' },
+    { ...member, event: 'ModelRequestCompleted', model: 'm', input_tokens: 300 },
+    { ...member, event: 'RunContentCompleted' },
+    {
+      ...member,
+      event: 'RunCompleted',
+      content: 'Resposta do membro',
+      content_type: 'str',
+      metrics: { duration: 0.9, input_tokens: 300, output_tokens: 90 }
+    },
+    {
+      ...team,
+      event: 'TeamToolCallCompleted',
+      tool: {
+        ...delegation,
+        tool_call_error: false,
+        result: 'Resposta do membro',
+        child_run_id: 'run-member',
+        metrics: { duration: 1.2 }
+      }
+    },
+    {
+      ...team,
+      event: 'TeamRunCompleted',
+      content: 'Resposta do membro',
+      content_type: 'str',
+      member_responses: [
+        { ...member, content: 'Resposta do membro', content_type: 'str' }
+      ],
+      metrics: { duration: 1.4, input_tokens: 600, output_tokens: 212 }
+    }
+  ]
+
+  const runRoute = async () => {
+    server.use(
+      http.post(`${BFF}/teams/team-1/runs`, () => sseStream(routeRun))
+    )
+    return sendMessage('team', '?team=team-1')
+  }
+
+  it('mostra só a resposta do team, sem duplicar a do membro, e conclui o run', async () => {
+    const lastMessage = await runRoute()
+
+    expect(lastMessage).toMatchObject({
+      role: 'agent',
+      content: 'Resposta do membro'
+    })
+    expect(lastMessage.streamingError).toBe(false)
+    expect(usePlaygroundStore.getState().streamingErrorMessage).toBeNull()
+  })
+
+  it('lista a delegação e a tool do membro, cada uma concluída', async () => {
+    const lastMessage = await runRoute()
+
+    expect(lastMessage.tool_calls).toEqual([
+      expect.objectContaining({
+        tool_call_id: 'call-delegate',
+        tool_name: 'delegate_task_to_member',
+        tool_call_error: false,
+        metrics: { duration: 1.2 }
+      }),
+      expect.objectContaining({
+        tool_call_id: 'call-consulta',
+        tool_name: 'consultar_pedido',
+        tool_call_error: false
+      })
+    ])
+  })
+
+  it('as métricas são as do team, não as do membro', async () => {
+    const lastMessage = await runRoute()
+
+    expect(lastMessage.metrics).toEqual({
+      duration: 1.4,
+      input_tokens: 600,
+      output_tokens: 212
+    })
   })
 })
 

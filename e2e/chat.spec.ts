@@ -75,7 +75,7 @@ test('chat pelo BFF: escolhe o agente e recebe a resposta final, sem requisiçã
 })
 
 // BUG-P0-03-1 (corrigido no P0-06): o chat anexa os deltas `RunContent` do
-// agno 2.5. O fake segura o RunCompleted por 3 s para esta mensagem; os deltas
+// agno 3. O fake segura o RunCompleted por 3 s para esta mensagem; os deltas
 // chegam em ~100 ms.
 test('chat: mostra o texto parcial em stream antes do RunCompleted (BUG-P0-03-1)', async ({
   page

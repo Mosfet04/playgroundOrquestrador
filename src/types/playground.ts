@@ -5,7 +5,7 @@ export interface ToolCall {
   tool_name: string
   tool_args: Record<string, string>
   tool_call_error?: boolean
-  // agno 2.5: ToolCallMetrics (agno/metrics.py); só no ToolCallCompleted.
+  // agno 3: ToolCallMetrics (agno/metrics.py); só no ToolCallCompleted.
   metrics?: {
     duration?: number
   }
@@ -93,11 +93,11 @@ export enum RunEvent {
   RunStarted = 'RunStarted',
   RunResponse = 'RunResponse',
   RunResponseContent = 'RunResponseContent',
-  // agno 2.5: cada RunContent/TeamRunContent traz só o delta do texto
+  // agno 3: cada RunContent/TeamRunContent traz só o delta do texto
   RunContent = 'RunContent',
   RunCompleted = 'RunCompleted',
   RunError = 'RunError',
-  // agno 2.5: fim do run do agente por cancelamento. O RunPaused (aprovação de
+  // agno 3: fim do run do agente por cancelamento. O RunPaused (aprovação de
   // tool) não é tratado: aparece como interrompido (limitação do P2-03).
   RunCancelled = 'RunCancelled',
   ToolCallStarted = 'ToolCallStarted',

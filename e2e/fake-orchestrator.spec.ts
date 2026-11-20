@@ -5,6 +5,18 @@ import { TEST_ENV } from './test-env'
 
 const bearer = (key: string) => ({ Authorization: `Bearer ${key}` })
 
+const parseSse = (text: string) =>
+  text
+    .trim()
+    .split('\n\n')
+    .map((block) => {
+      const [eventLine, dataLine] = block.split('\n')
+      return {
+        name: eventLine.replace('event: ', ''),
+        data: JSON.parse(dataLine.replace('data: ', ''))
+      }
+    })
+
 // QA P3-05: o teste do `rag_config` cria e apaga o agent `fake-rag` no fake
 // compartilhado; em paralelo com o de /admin/config/agents (que conta 3
 // agents) o total virava 4 sob carga. Em série no mesmo worker, não se cruzam.
@@ -184,18 +196,12 @@ test.describe('fake orchestrator', () => {
     expect(response.status()).toBe(200)
     expect(response.headers()['content-type']).toContain('text/event-stream')
 
-    const blocks = (await response.text()).trim().split('\n\n')
-    const events = blocks.map((block) => {
-      const [eventLine, dataLine] = block.split('\n')
-      return {
-        name: eventLine.replace('event: ', ''),
-        data: JSON.parse(dataLine.replace('data: ', ''))
-      }
-    })
+    const events = parseSse(await response.text())
     // P1-06: uma tool ok e uma com erro (a 2ª antes do último delta) e as
-    // métricas do RunCompleted, nos campos do agno 2.5.
+    // métricas do RunCompleted, nos campos do agno 3.
     expect(events.map((e) => e.name)).toEqual([
       'RunStarted',
+      'ModelRequestStarted',
       'ToolCallStarted',
       'ToolCallCompleted',
       'RunContent',
@@ -203,6 +209,8 @@ test.describe('fake orchestrator', () => {
       'ToolCallStarted',
       'ToolCallCompleted',
       'RunContent',
+      'ModelRequestCompleted',
+      'RunContentCompleted',
       'RunCompleted'
     ])
     const completed = events.filter((e) => e.name === 'ToolCallCompleted')
@@ -243,6 +251,152 @@ test.describe('fake orchestrator', () => {
       `${FAKE_ORCHESTRATOR_URL}/sessions?type=agent&component_id=agente-alfa`
     )
     expect(JSON.stringify(await other.json())).not.toContain(sessionId)
+  })
+
+  // AG3-03: todo evento traz `nested_depth` (0 no agno 3, também nos de membro).
+  test('team route: delegação e eventos do membro com parent_run_id, no formato do agno 3', async ({
+    request
+  }) => {
+    const response = await request.post(
+      `${FAKE_ORCHESTRATOR_URL}/teams/time-suporte/runs`,
+      { multipart: { message: 'ping', stream: 'true' } }
+    )
+    const events = parseSse(await response.text())
+
+    expect(events.map((e) => e.name)).toEqual([
+      'TeamRunStarted',
+      'TeamModelRequestStarted',
+      'TeamModelRequestCompleted',
+      'TeamToolCallStarted',
+      'RunStarted',
+      'ModelRequestStarted',
+      'ToolCallStarted',
+      'ToolCallCompleted',
+      'TeamRunContent',
+      'RunContent',
+      'TeamRunContent',
+      'RunContent',
+      'ToolCallStarted',
+      'ToolCallCompleted',
+      'TeamRunContent',
+      'RunContent',
+      'ModelRequestCompleted',
+      'RunContentCompleted',
+      'RunCompleted',
+      'TeamToolCallCompleted',
+      'TeamRunContentCompleted',
+      'TeamRunCompleted'
+    ])
+    for (const e of events) expect(e.data.nested_depth).toBe(0)
+    const teamRunId = events[0].data.run_id
+    const member = events.find((e) => e.name === 'RunStarted')!.data
+    expect(member).toMatchObject({ agent_id: 'agente-alfa', parent_run_id: teamRunId })
+    for (const e of events.filter((e) => !e.name.startsWith('Team'))) {
+      expect(e.data).toMatchObject({ run_id: member.run_id, parent_run_id: teamRunId })
+    }
+    const delegation = events.find((e) => e.name === 'TeamToolCallCompleted')!.data.tool
+    expect(delegation).toMatchObject({
+      tool_name: 'delegate_task_to_member',
+      tool_args: { member_id: 'agente-alfa', task: 'ping' },
+      child_run_id: member.run_id
+    })
+    expect(
+      events.find((e) => e.name === 'TeamModelRequestCompleted')!.data
+    ).not.toHaveProperty('time_to_first_token')
+    const completed = events.at(-1)!.data
+    expect(completed).toMatchObject({
+      content: 'Time Suporte recebeu: ping',
+      metrics: { duration: 1.4, total_tokens: 812 }
+    })
+    expect(completed.member_responses).toEqual([
+      expect.objectContaining({
+        agent_id: 'agente-alfa',
+        run_id: member.run_id,
+        parent_run_id: teamRunId,
+        content: 'Time Suporte recebeu: ping'
+      })
+    ])
+  })
+
+  // AG3-03: cenário para o AG3-04 (raciocínio do agno 3 no chat).
+  test('agente com reasoning: tools think/analyze, ReasoningStep e ReasoningCompleted', async ({
+    request
+  }) => {
+    const response = await request.post(
+      `${FAKE_ORCHESTRATOR_URL}/agents/agente-alfa/runs`,
+      { multipart: { message: 'raciocine passo a passo', stream: 'true' } }
+    )
+    const events = parseSse(await response.text())
+
+    // Uma volta do modelo por tool e a última responde; o ReasoningCompleted sai
+    // antes do RunContentCompleted (agno/agent/_response.py, _run.py).
+    expect(events.map((e) => e.name)).toEqual([
+      'RunStarted',
+      'ModelRequestStarted',
+      'ModelRequestCompleted',
+      'ToolCallStarted',
+      'ToolCallCompleted',
+      'ReasoningStarted',
+      'ReasoningStep',
+      'ModelRequestStarted',
+      'ModelRequestCompleted',
+      'ToolCallStarted',
+      'ToolCallCompleted',
+      'ReasoningStep',
+      'ModelRequestStarted',
+      'RunContent',
+      'RunContent',
+      'RunContent',
+      'ModelRequestCompleted',
+      'ReasoningCompleted',
+      'RunContentCompleted',
+      'RunCompleted'
+    ])
+    for (const e of events) expect(e.data.nested_depth).toBe(0)
+    expect(
+      events.filter((e) => e.name === 'ToolCallStarted').map((e) => e.data.tool.tool_name)
+    ).toEqual(['think', 'analyze'])
+    const steps = events.filter((e) => e.name === 'ReasoningStep')
+    expect(steps[0].data.content).toEqual({
+      title: 'Entender o pedido',
+      action: 'Conferir o contexto da conversa',
+      reasoning: 'O usuário quer uma resposta curta; vou conferir o contexto antes.',
+      next_action: 'continue',
+      confidence: 0.8
+    })
+    expect(steps[1].data.content).toMatchObject({
+      title: 'Validar a resposta',
+      result: 'O contexto cobre o pedido.',
+      next_action: 'final_answer'
+    })
+    // reasoning_content acumula os passos.
+    expect(steps[1].data.reasoning_content.startsWith(steps[0].data.reasoning_content)).toBe(true)
+    const titles = (list: { title: string }[]) => list.map((s) => s.title)
+    const expectedTitles = ['Entender o pedido', 'Validar a resposta']
+    // O content de ReasoningStep/ReasoningCompleted vem sem os campos None; o
+    // reasoning_steps de RunContent e RunCompleted, com os seis campos (null onde falta).
+    const completed = events.find((e) => e.name === 'ReasoningCompleted')!.data
+    expect(titles(completed.content.reasoning_steps)).toEqual(expectedTitles)
+    expect(completed.content.reasoning_steps[0]).not.toHaveProperty('result')
+    const runCompleted = events.at(-1)!.data
+    expect(titles(runCompleted.reasoning_steps)).toEqual(expectedTitles)
+    expect(runCompleted.reasoning_steps[0]).toMatchObject({ result: null, confidence: 0.8 })
+    expect(runCompleted.reasoning_steps[1]).toMatchObject({ action: null, result: 'O contexto cobre o pedido.' })
+    expect(runCompleted.reasoning_content).toBe(steps[1].data.reasoning_content)
+    expect(runCompleted.reasoning_messages).toEqual([
+      expect.objectContaining({
+        role: 'assistant',
+        content: runCompleted.reasoning_content,
+        metrics: { duration: expect.any(Number) }
+      })
+    ])
+    // O RunContent leva os passos acumulados e reasoning_content vazio, sem reasoning_messages.
+    for (const e of events.filter((e) => e.name === 'RunContent')) {
+      expect(titles(e.data.reasoning_steps)).toEqual(expectedTitles)
+      expect(e.data.reasoning_content).toBe('')
+      expect(e.data).not.toHaveProperty('reasoning_messages')
+    }
+    expect(events.at(-1)!.data.content).toBe('Agente Alfa recebeu: raciocine passo a passo')
   })
 
   // AG3-02: o dono é o user_id do 1º run; a lista filtra por ele e o run de

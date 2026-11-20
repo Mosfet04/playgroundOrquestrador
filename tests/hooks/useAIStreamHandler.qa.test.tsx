@@ -16,7 +16,7 @@ const initialStoreState = usePlaygroundStore.getState()
 const sse = (events: Record<string, unknown>[]) =>
   new HttpResponse(
     events
-      .map((e) => `event: ${e.event}\ndata: ${JSON.stringify(e)}\n\n`)
+      .map((e) => `event: ${e.event}\ndata: ${JSON.stringify({ nested_depth: 0, ...e })}\n\n`)
       .join(''),
     { headers: { 'Content-Type': 'text/event-stream' } }
   )

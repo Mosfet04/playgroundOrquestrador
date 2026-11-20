@@ -186,7 +186,7 @@ test.describe('desktop 1440', () => {
             created_at: 1
           }
         ]
-          .map((e) => `event: ${e.event}\ndata: ${JSON.stringify(e)}\n\n`)
+          .map((e) => `event: ${e.event}\ndata: ${JSON.stringify({ nested_depth: 0, ...e })}\n\n`)
           .join('')
       })
     )
@@ -359,7 +359,7 @@ test.describe('celular 390', () => {
     await page.route(RUNS, (route) =>
       route.fulfill({
         headers: { 'Content-Type': 'text/event-stream' },
-        body: `event: RunContent\ndata: ${JSON.stringify({ event: 'RunContent', content: 'Partial', created_at: 1 })}\n\n`
+        body: `event: RunContent\ndata: ${JSON.stringify({ event: 'RunContent', content: 'Partial', nested_depth: 0, created_at: 1 })}\n\n`
       })
     )
     await page.route(

@@ -59,6 +59,7 @@ Critérios de aceite:
 - Um cenário de agente com `reasoning` disponível no fake para o AG3-04.
 Testes exigidos: os existentes contra o fake novo; um teste de stream de team `route` 3.x (delegação e membro).
 Riscos e dependências: depende de o usuário rodar o `contract:update` com o orquestrador 3.1.12 de pé.
+Resultado: snapshot do 3.1.12 (110 rotas) e `openapi.d.ts` regenerados pelo usuário; nada do código usava rota removida. Fake: `nested_depth: 0` em todo evento (só um workflow aninhado o incrementa no agno, então o membro de team também fica em 0); team `time-suporte` em `route` (delegação `delegate_task_to_member` ao redor dos eventos do membro `agente-alfa`, com `parent_run_id`; `member_responses`; `TeamRunContentCompleted`; sem `time_to_first_token`); cenário de reasoning no run de agente com a mensagem `raciocine passo a passo` (uma volta do modelo por tool `think`/`analyze`, `ReasoningStarted`, dois `ReasoningStep`, `ReasoningCompleted` antes do `RunContentCompleted`, `RunCompleted` com `reasoning_steps` (seis campos, null onde falta), `reasoning_content` e `reasoning_messages`; o `RunContent` leva os passos acumulados). Handler sem mudança: o teste de team `route` 3.x passou sem defeito.
 
 ## AG3-04 — Raciocínio do agno 3 no chat
 UI: sim            Depende (orq.): — · Depende: AG3-03 (fixtures)
@@ -77,3 +78,4 @@ Critérios de aceite:
 - Textos novos nos dois idiomas.
 Testes exigidos: unit do handler com os payloads do 3.1.12 (vermelho primeiro); componente do painel; e2e com o cenário de reasoning do fake.
 Riscos e dependências: a deduplicação dos passos depende da identidade de cada um (título + ordem). O critério tem que estar no teste.
+O agno emite `ReasoningStep` para qualquer tool chamada `think`/`analyze` com os args certos (`agent/_response.py:757`, `:785`), então "eventos `Reasoning*` do mesmo run" não distingue uma tool do usuário com esse nome; a via pela config do agente é mais sólida, mas o e2e terá de ligar `reasoning` no agente (PUT) antes do run, e o fake não tem `reasoning` em membro de team.

@@ -52,7 +52,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P4-05 | concluído (página `/settings` com a saúde do orquestrador — badge geral, revisão, tempo de resposta e os checks —, config store gravável ou só leitura e providers de chat e embedder; "Recarregar runtime" com confirmação; indicador da navegação vira status de conexão online/degradado/fora do ar com link para `/settings`, uma leitura por carga, sem polling; sem versão do orquestrador; decisão 0035) |
 | AG3-01 | concluído (switch "Expor raciocínio" em Execução, desabilitado com o valor preservado sem `reasoning`; PUT preserva `expose_reasoning`; default do `/admin/schema`; 422 no campo; linha no diff e no histórico; decisão 0036) |
 | AG3-02 | concluído (lista de sessões com o `user_id` do login; 404 "Session not found" do run vira `session_not_owned` no BFF e a mensagem "Esta conversa é de outro usuário. Comece uma nova." no chat; fake com dono de sessão; decisão 0036) |
-| AG3-03 | pendente |
+| AG3-03 | concluído (snapshot 3.1.12; fake e fixtures com `nested_depth`; team `route` com delegação e membro; cenário de reasoning no fake para o AG3-04) |
 | AG3-04 | pendente |
 
 ## Molde de item (lido pelo `/dev-cycle`)
