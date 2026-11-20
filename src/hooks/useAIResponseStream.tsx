@@ -113,6 +113,18 @@ function parseBuffer(
   return buffer
 }
 
+// O BFF devolve 404 com o código session_not_owned quando a sessão é de outro
+// usuário (AG3-02); o corpo só tem o código, nunca o detalhe do orquestrador.
+const sessionNotOwnedSchema = z.object({ error: z.literal('session_not_owned') })
+
+async function failureKind(response: Response): Promise<StreamingError['kind']> {
+  if ([503, 504].includes(response.status)) return 'unavailable'
+  const notOwned =
+    response.status === 404 &&
+    sessionNotOwnedSchema.safeParse(await response.json().catch(() => null)).success
+  return notOwned ? 'sessionNotOwned' : 'runError'
+}
+
 /**
  * Custom React hook to handle streaming API responses as JSON objects.
  *
@@ -161,9 +173,10 @@ export default function useAIResponseStream() {
       if (response.status === 401) return redirectToLogin()
       // O BFF não ecoa o corpo do orquestrador: só o tipo pelo status.
       if (!response.ok || !response.body) {
-        onError({
-          kind: [503, 504].includes(response.status) ? 'unavailable' : 'runError'
-        })
+        const kind = await failureKind(response)
+        // Abortado durante a leitura do corpo: nenhum callback.
+        if (signal.aborted) return
+        onError({ kind })
         return
       }
 

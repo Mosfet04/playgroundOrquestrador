@@ -15,6 +15,7 @@ const STATUS: Record<OrchestratorErrorCode, number> = {
   timeout: 504,
   invalid_path: 400,
   not_found: 404,
+  session_not_owned: 404,
   unauthorized: 502,
   forbidden: 502,
   rejected: 502,
@@ -86,6 +87,9 @@ export const badRequest = () =>
     { success: false, error: 'invalid_request' },
     { status: 400 }
   )
+
+export const unauthorized = () =>
+  NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
 
 export const ok = (data?: unknown) =>
   NextResponse.json(

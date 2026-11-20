@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import useAIChatStreamHandler from '@/hooks/useAIStreamHandler'
+import useAIResponseStream from '@/hooks/useAIResponseStream'
 import { usePlaygroundStore } from '@/store'
 
 import { BFF } from '../msw/handlers'
@@ -90,6 +91,56 @@ describe('erro do stream no store', () => {
     runAgentWith(() => HttpResponse.json({ success: false, error: 'x', detail: 'eco' }, { status }))
 
     expect((await send('?agent=agent-1')).error).toEqual({ kind })
+  })
+
+  // AG3-02: o 404 do BFF com o código session_not_owned é a sessão de outro
+  // usuário; qualquer outro 404 segue runError.
+  it('BFF 404 session_not_owned: tipo sessionNotOwned, sem detalhe', async () => {
+    runAgentWith(() =>
+      HttpResponse.json({ success: false, error: 'session_not_owned' }, { status: 404 })
+    )
+
+    expect((await send('?agent=agent-1')).error).toEqual({ kind: 'sessionNotOwned' })
+  })
+
+  // Review AG3-02: abortar enquanto o corpo do erro é lido não chama
+  // onError (contrato "abortado: nenhum callback").
+  it('abort durante a leitura do corpo do erro: nenhum callback', async () => {
+    runAgentWith(
+      () =>
+        new HttpResponse(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              setTimeout(() => {
+                controller.enqueue(
+                  new TextEncoder().encode('{"success":false,"error":"session_not_owned"}')
+                )
+                controller.close()
+              }, 150)
+            }
+          }),
+          { status: 404, headers: { 'Content-Type': 'application/json' } }
+        )
+    )
+    const { result } = renderHook(() => useAIResponseStream())
+    const controller = new AbortController()
+    const onError = vi.fn()
+    const onComplete = vi.fn()
+
+    const pending = result.current.streamResponse({
+      apiUrl: `${BFF}/agents/agent-1/runs`,
+      requestBody: { message: 'oi' },
+      signal: controller.signal,
+      onChunk: vi.fn(),
+      onError,
+      onComplete
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    controller.abort()
+    await pending
+
+    expect(onError).not.toHaveBeenCalled()
+    expect(onComplete).not.toHaveBeenCalled()
   })
 
   it('stream que acaba sem o RunCompleted: o texto parcial fica e o tipo é interrupted', async () => {

@@ -245,6 +245,39 @@ test.describe('fake orchestrator', () => {
     expect(JSON.stringify(await other.json())).not.toContain(sessionId)
   })
 
+  // AG3-02: o dono é o user_id do 1º run; a lista filtra por ele e o run de
+  // outro usuário é 404 "Session not found" (agno 3.1.12).
+  test('sessão com dono: GET /sessions filtra por user_id e o run de outro usuário é 404', async ({
+    request
+  }) => {
+    const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_RUN)
+    const sessionId = `qa-dono-${Date.now()}-${Math.random()}`
+    const run = (userId: string) =>
+      request.post(`${FAKE_ORCHESTRATOR_URL}/agents/agente-beta/runs`, {
+        headers,
+        multipart: { message: 'oi', session_id: sessionId, user_id: userId }
+      })
+    const idsOf = async (query: string) =>
+      (
+        (await (
+          await request.get(
+            `${FAKE_ORCHESTRATOR_URL}/sessions?type=agent&component_id=agente-beta${query}`,
+            { headers }
+          )
+        ).json()) as { data: { session_id: string }[] }
+      ).data.map((s) => s.session_id)
+
+    await (await run('dono-a')).text()
+
+    expect(await idsOf('&user_id=dono-a')).toContain(sessionId)
+    expect(await idsOf('&user_id=dono-b')).not.toContain(sessionId)
+    expect(await idsOf('')).toContain(sessionId)
+    const foreign = await run('dono-b')
+    expect(foreign.status()).toBe(404)
+    expect(await foreign.json()).toEqual({ detail: 'Session not found' })
+    expect((await run('dono-a')).status()).toBe(200)
+  })
+
   test('reusar o session_id não duplica a sessão', async ({ request }) => {
     const sessionId = `qa-dup-${Date.now()}-${Math.random()}`
     for (const message of ['um', 'dois']) {

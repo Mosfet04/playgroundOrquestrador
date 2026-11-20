@@ -827,7 +827,8 @@
       "runError": "Erro durante a execução.",
       "network": "Sem resposta do servidor.",
       "unavailable": "O orquestrador não respondeu. Confira se ele está no ar e envie de novo.",
-      "interrupted": "A resposta foi interrompida antes do fim."
+      "interrupted": "A resposta foi interrompida antes do fim.",
+      "sessionNotOwned": "Esta conversa é de outro usuário. Comece uma nova."
     },
     "parseError": "Não foi possível ler a resposta.",
     "imageUnavailable": "Imagem indisponível",

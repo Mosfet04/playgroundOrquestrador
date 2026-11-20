@@ -222,7 +222,7 @@ describe('ids e query hostis do browser', () => {
     expect(called).toBe(false)
   })
 
-  it('component_id com & e = chega como UM valor; user_id, limit e page do browser não passam', async () => {
+  it('component_id com & e = chega como UM valor; user_id (só o do login), limit e page do browser não passam', async () => {
     let seen: URL | null = null
     server.use(
       http.get(`${BASE}/sessions`, ({ request }) => {
@@ -244,7 +244,7 @@ describe('ids e query hostis do browser', () => {
     )
     expect(seen!.searchParams.getAll('limit')).toEqual(['20'])
     expect(seen!.searchParams.getAll('page')).toEqual(['1'])
-    expect(seen!.searchParams.has('user_id')).toBe(false)
+    expect(seen!.searchParams.getAll('user_id')).toEqual([TEST_USER.username])
   })
 
   it('GET /sessions/[id]: type fora do enum ⇒ 400', async () => {

@@ -16,6 +16,9 @@ export type OrchestratorErrorCode =
   | 'unauthorized'
   | 'forbidden'
   | 'not_found'
+  // Run numa sessão de outro `user_id` (404 "Session not found" no agno 3,
+  // AG3-02): só o stream de run o devolve.
+  | 'session_not_owned'
   | 'rejected'
   | 'server_error'
   | 'timeout'
@@ -257,9 +260,23 @@ export async function callOrchestrator<T>(
     : fail(statusError(response.status), response.status)
 }
 
+// 404 de run: `{"detail":"Session not found"}` é a sessão de outro dono; o
+// resto (agente inexistente...) segue not_found. O corpo nunca sai daqui.
+const sessionNotFoundSchema = z.object({ detail: z.literal('Session not found') })
+
+async function isSessionNotFound(response: Response) {
+  try {
+    return sessionNotFoundSchema.safeParse(JSON.parse(await response.text())).success
+  } catch {
+    // Corpo que não é JSON (ou lido além do prazo, que aborta a leitura): é um
+    // 404 qualquer.
+    return false
+  }
+}
+
 // Run em stream (P2-03, sempre com a chave run): devolve o corpo cru para o
 // BFF repassar sem buffer. O prazo vale só até os cabeçalhos (um run pode
-// durar minutos); o `signal` do pedido do browser corta o fetch e o corpo, e
+// durar minutos; no 404, também até o fim do corpo); o `signal` do pedido do browser corta o fetch e o corpo, e
 // o orquestrador vê a conexão fechar.
 export async function streamOrchestrator(
   path: `/${string}`,
@@ -288,15 +305,20 @@ export async function streamOrchestrator(
       signal: AbortSignal.any([signal, deadline.signal])
     })
   } catch (error) {
+    clearTimeout(timer)
     // O browser saiu antes dos cabeçalhos: ninguém lê a resposta e não é
     // falha do orquestrador (sem log).
     if (signal.aborted) return { ok: false, error: 'unreachable' }
     return fail(fetchError(error))
-  } finally {
-    clearTimeout(timer)
   }
+  // O corpo do 404 é lido ainda sob o prazo (que aborta a leitura); só depois
+  // o timer cai.
+  const notOwned = response.status === 404 && (await isSessionNotFound(response))
+  clearTimeout(timer)
+  if (notOwned) return fail('session_not_owned', 404)
   if (!response.ok) {
-    void response.body?.cancel()
+    // Libera a conexão sem ler (o corpo do 404 já foi lido acima).
+    if (response.status !== 404) void response.body?.cancel()
     return fail(statusError(response.status), response.status)
   }
   if (!response.body) return fail('invalid_response', response.status)

@@ -3,7 +3,13 @@ import { z } from 'zod'
 
 import { streamRun, type ChatKind } from '@/server/orchestrator/chat'
 
-import { badRequest, idSchema, orchestratorError, sessionUser } from '../respond'
+import {
+  badRequest,
+  idSchema,
+  orchestratorError,
+  sessionUser,
+  unauthorized
+} from '../respond'
 
 // Teto da mensagem do chat (texto colado grande cabe; corpo abusivo não).
 const MAX_MESSAGE_LENGTH = 32_000
@@ -24,11 +30,7 @@ export async function postRun(
   params: Promise<{ id: string }>
 ) {
   const userId = await sessionUser(request)
-  if (!userId)
-    return NextResponse.json(
-      { success: false, error: 'unauthorized' },
-      { status: 401 }
-    )
+  if (!userId) return unauthorized()
   const id = idSchema.safeParse((await params).id)
   if (!id.success) return badRequest()
   if (Number(request.headers.get('content-length')) > MAX_BODY_BYTES)

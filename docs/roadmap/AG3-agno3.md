@@ -40,6 +40,7 @@ Critérios de aceite:
 - 404 de outra causa continua `not_found`.
 Testes exigidos: BFF (query `user_id`; 404 `Session not found` ⇒ código próprio; outro 404 ⇒ `not_found`); componente da mensagem; e2e no fake.
 Riscos e dependências: o `user_id` vem da sessão do servidor, nunca do browser.
+Resultado: `listSessions` com o `user_id` do cookie (401 sem sessão; `user_id` da query ignorado). `streamOrchestrator` lê o corpo só do 404, dentro do prazo, e `Session not found` vira `session_not_owned` (404); outro 404 ou corpo inválido segue `not_found`. O chat mostra "Esta conversa é de outro usuário. Comece uma nova." no erro existente; a ação é o "Nova conversa" da barra lateral (no Sheet em 390 px). Fake com dono de sessão (o `user_id` do 1º run).
 
 ## AG3-03 — Snapshot do contrato 3.1.12 e fake orchestrator no formato 3.x
 UI: não            Depende (orq.): — (F3 concluída)

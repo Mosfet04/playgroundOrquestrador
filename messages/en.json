@@ -827,7 +827,8 @@
       "runError": "Error during the run.",
       "network": "No response from the server.",
       "unavailable": "The orchestrator didn't respond. Check that it's running and send again.",
-      "interrupted": "The response was cut off before it finished."
+      "interrupted": "The response was cut off before it finished.",
+      "sessionNotOwned": "This conversation belongs to another user. Start a new one."
     },
     "parseError": "Couldn't read the response.",
     "imageUnavailable": "Image unavailable",

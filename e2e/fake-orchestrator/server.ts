@@ -17,6 +17,8 @@ type FakeSession = {
   session_name: string
   created_at: string
   updated_at: string
+  // Dono da sessão (o `user_id` do 1º run); sem ele, a sessão não tem dono.
+  user_id?: string
 }
 
 const PORT = Number(process.env.FAKE_ORCHESTRATOR_PORT ?? 7790)
@@ -795,16 +797,22 @@ const runAgent = async (
   const form = await readFormData(req)
   const message = String(form.get('message') ?? '')
   const sessionId = String(form.get('session_id') ?? '') || randomUUID()
+  const userId = String(form.get('user_id') ?? '') || undefined
   const now = new Date().toISOString()
   const agentSessions = sessionsByAgent.get(agent.id) ?? []
-  if (!agentSessions.some((s) => s.session_id === sessionId)) {
+  const existing = agentSessions.find((s) => s.session_id === sessionId)
+  // Como o agno 3.1.12: run em sessão de outro dono é 404 antes de rodar.
+  if (existing?.user_id !== undefined && existing.user_id !== userId)
+    return sendJson(res, 404, { detail: 'Session not found' })
+  if (!existing) {
     sessionsByAgent.set(agent.id, [
       ...agentSessions,
       {
         session_id: sessionId,
         session_name: message,
         created_at: now,
-        updated_at: now
+        updated_at: now,
+        user_id: userId
       }
     ])
   }
@@ -961,9 +969,13 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   if (route === 'GET /sessions') {
     const componentId = url.searchParams.get('component_id') ?? ''
     const owners = url.searchParams.get('type') === 'team' ? teams : agents
-    const data = owners.some((owner) => owner.id === componentId)
-      ? (sessionsByAgent.get(componentId) ?? [])
-      : []
+    // Com `user_id`, só as sessões desse dono (o GET /sessions do agno 3).
+    const userId = url.searchParams.get('user_id')
+    const data = (
+      owners.some((owner) => owner.id === componentId)
+        ? (sessionsByAgent.get(componentId) ?? [])
+        : []
+    ).filter((s) => userId === null || s.user_id === userId)
     return sendJson(res, 200, {
       data,
       meta: { page: 1, limit: 20, total_pages: 1, total_count: data.length }

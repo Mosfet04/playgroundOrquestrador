@@ -29,7 +29,8 @@ export interface Team {
 // texto do orquestrador (content do RunError), que é dado e não se traduz.
 // Nulo: erro sem tipo conhecido. `unavailable`: o BFF respondeu 503/504;
 // `interrupted`: o stream acabou sem o fim do run; `network`: sem resposta do
-// servidor do playground (P2-03).
+// servidor do playground (P2-03); `sessionNotOwned`: o BFF recusou o envio
+// numa conversa de outro usuário (AG3-02).
 export interface StreamingError {
   kind:
     | 'noEntity'
@@ -38,6 +39,7 @@ export interface StreamingError {
     | 'network'
     | 'unavailable'
     | 'interrupted'
+    | 'sessionNotOwned'
   detail?: string
 }
 

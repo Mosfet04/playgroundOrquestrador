@@ -218,6 +218,39 @@ describe('GET /api/playground/sessions', () => {
     expect(seen!.searchParams.get('component_id')).toBe('a b&c')
   })
 
+  // AG3-02 (D-AG3-02-1): o 3.1.12 só deixa rodar na sessão do dono, então a
+  // lista vai filtrada pelo usuário do login (cookie), nunca pelo browser.
+  it('manda o user_id do login ao orquestrador', async () => {
+    let seen: URL | null = null
+    server.use(
+      http.get(`${BASE}/sessions`, ({ request }) => {
+        seen = new URL(request.url)
+        return HttpResponse.json({ data: [] })
+      })
+    )
+
+    await listSessions(
+      await request('/api/playground/sessions?type=agent&component_id=x')
+    )
+
+    expect(seen!.searchParams.getAll('user_id')).toEqual([TEST_USER.username])
+  })
+
+  it('sem sessão válida ⇒ 401, sem chamar o orquestrador', async () => {
+    let called = false
+    server.use(
+      http.get(`${BASE}/sessions`, () => ((called = true), HttpResponse.json({ data: [] })))
+    )
+
+    const response = await listSessions(
+      new NextRequest(`${APP}/api/playground/sessions?type=agent&component_id=x`)
+    )
+
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({ success: false, error: 'unauthorized' })
+    expect(called).toBe(false)
+  })
+
   it('404 do orquestrador (sem storage): lista vazia', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     server.use(
@@ -513,6 +546,54 @@ describe('POST /api/playground/{agents,teams}/[id]/runs', () => {
       expectNoLeak(text)
     }
   )
+
+  // AG3-02: no 3.1.12 o run numa sessão de outro dono é 404 "Session not found";
+  // vira código próprio. Outro 404 (agente inexistente) segue not_found.
+  it.each([
+    ['agents', runAgent],
+    ['teams', runTeam]
+  ])('run %s em sessão de outro dono ⇒ 404 session_not_owned, sem eco', async (kind, run) => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    server.use(
+      http.post(`${BASE}/${kind}/:id/runs`, () =>
+        HttpResponse.json({ detail: 'Session not found' }, { status: 404 })
+      )
+    )
+
+    const response = await run(
+      await request(`/api/playground/${kind}/x-1/runs`, {
+        method: 'POST',
+        body: { message: 'oi', session_id: 's-alheia' }
+      }),
+      params('x-1')
+    )
+    const text = await response.text()
+
+    expect(response.status).toBe(404)
+    expect(JSON.parse(text)).toEqual({ success: false, error: 'session_not_owned' })
+  })
+
+  it('404 com outro detail (ou sem corpo) continua not_found', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    for (const respond of [
+      () => HttpResponse.json({ detail: 'Agent not found' }, { status: 404 }),
+      () => new HttpResponse('Session not found', { status: 404 }),
+      () => new HttpResponse(null, { status: 404 })
+    ]) {
+      server.use(http.post(`${BASE}/agents/:id/runs`, respond))
+
+      const response = await runAgent(
+        await request('/api/playground/agents/agent-1/runs', {
+          method: 'POST',
+          body: { message: 'oi' }
+        }),
+        params('agent-1')
+      )
+
+      expect(response.status).toBe(404)
+      expect(await response.json()).toEqual({ success: false, error: 'not_found' })
+    }
+  })
 
   it('sem sessão válida ⇒ 401, sem chamar o orquestrador', async () => {
     let called = false
