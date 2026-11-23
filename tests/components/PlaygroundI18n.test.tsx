@@ -169,6 +169,7 @@ describe('bolha de erro do stream', () => {
       'O orquestrador não respondeu. Confira se ele está no ar e envie de novo.'
     ],
     [{ kind: 'interrupted' as const }, 'A resposta foi interrompida antes do fim.'],
+    [{ kind: 'sessionNotOwned' as const }, 'Esta conversa é de outro usuário. Comece uma nova.'],
     [null, 'Recarregue a página ou tente de novo mais tarde.']
   ])('%o: frase do meio', (error, phrase) => {
     usePlaygroundStore.setState({ streamingErrorMessage: error })
@@ -176,6 +177,19 @@ describe('bolha de erro do stream', () => {
 
     expect(
       screen.getByText(`Algo deu errado durante a resposta. ${phrase}`)
+    ).toBeInTheDocument()
+  })
+})
+
+describe('sessão de outro usuário (AG3-02)', () => {
+  it('em inglês, sem detalhe do orquestrador', () => {
+    usePlaygroundStore.setState({ streamingErrorMessage: { kind: 'sessionNotOwned' } })
+    renderWithIntl(<Messages messages={[errorBubble]} />, { locale: 'en' })
+
+    expect(
+      screen.getByText(
+        'Something went wrong during the response. This conversation belongs to another user. Start a new one.'
+      )
     ).toBeInTheDocument()
   })
 })

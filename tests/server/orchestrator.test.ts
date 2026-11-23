@@ -1,5 +1,7 @@
 // @vitest-environment node
-import { delay, http, HttpResponse } from 'msw'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
+import { delay, http, HttpResponse, passthrough } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
@@ -448,6 +450,12 @@ describe('streamOrchestrator', () => {
 
   it.each([
     ['HTTP 404', () => HttpResponse.json({ detail: LEAK }, { status: 404 }), { error: 'not_found', status: 404 }],
+    // AG3-02: o 404 do agno 3 numa sessão de outro dono.
+    [
+      'HTTP 404 Session not found',
+      () => HttpResponse.json({ detail: 'Session not found' }, { status: 404 }),
+      { error: 'session_not_owned', status: 404 }
+    ],
     ['HTTP 500', () => HttpResponse.json({ detail: LEAK }, { status: 500 }), { error: 'server_error', status: 500 }],
     ['rede', () => HttpResponse.error(), { error: 'unreachable' }]
   ])('%s ⇒ erro mapeado, sem eco', async (_, respond, expected) => {
@@ -501,6 +509,34 @@ describe('streamOrchestrator', () => {
 
     expect(result).toEqual({ ok: false, error: 'timeout' })
   })
+
+  // AG3-02 (review): o corpo do 404 também é lido sob o prazo; um corpo que não
+  // termina não prende o BFF, e o 404 segue not_found. Servidor real: o msw
+  // não liga o abort do fetch à leitura do corpo.
+  it('404 com corpo que não termina ⇒ not_found no prazo', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const stalled = createServer((_, res) => {
+      res.writeHead(404, { 'Content-Type': 'application/json' })
+      res.write('{"detail":')
+    })
+    await new Promise<void>((resolve) => stalled.listen(0, '127.0.0.1', resolve))
+    const { port } = stalled.address() as AddressInfo
+    vi.stubEnv('ORCHESTRATOR_URL', `http://127.0.0.1:${port}`)
+    server.use(http.post(`http://127.0.0.1:${port}/*`, () => passthrough()))
+
+    try {
+      const result = await streamOrchestrator('/agents/agent-1/runs', {
+        form: new FormData(),
+        signal: new AbortController().signal,
+        timeoutMs: 50
+      })
+
+      expect(result).toEqual({ ok: false, error: 'not_found', status: 404 })
+    } finally {
+      stalled.closeAllConnections()
+      stalled.close()
+    }
+  }, 2_000)
 
   it('path inseguro ⇒ invalid_path, sem chamar o orquestrador', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})

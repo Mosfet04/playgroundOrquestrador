@@ -1,5 +1,5 @@
 // Orquestrador falso para os testes E2E: imita só os endpoints do AgentOS
-// (agno 2.5) e da API Admin que o BFF chama (src/server/orchestrator/). Exige
+// (agno 3.1.12) e da API Admin que o BFF chama (src/server/orchestrator/). Exige
 // a chave como o real (decisão 0018): Bearer run ou admin; 401 sem chave
 // válida, 403 com a run em /admin*, /metrics* e DELETE /sessions*. As rotas de
 // controle do teste (/hold/release, /aborts, /test/config/*, /test/health) não
@@ -17,6 +17,8 @@ type FakeSession = {
   session_name: string
   created_at: string
   updated_at: string
+  // Dono da sessão (o `user_id` do 1º run); sem ele, a sessão não tem dono.
+  user_id?: string
 }
 
 const PORT = Number(process.env.FAKE_ORCHESTRATOR_PORT ?? 7790)
@@ -63,6 +65,8 @@ const agents: FakeAgent[] = [
 ]
 // Team com storage (P2-03): o e2e do chat em modo Team pelo BFF.
 const teams: FakeAgent[] = [{ id: 'time-suporte', name: 'Time Suporte' }]
+// Membro do team: o time `route` delega a ele (o seed de config usa o mesmo id).
+const teamMember = agents[0]
 // Sessões por agente ou team (ids distintos entre os dois).
 const sessionsByAgent = new Map<string, FakeSession[]>()
 // Histórico no formato v2.5 lido por src/hooks/useSessionLoader.tsx
@@ -112,6 +116,7 @@ const agentDoc = (id: string, nome: string, extra: Record<string, unknown> = {})
   num_history_runs: 5,
   add_datetime_to_context: true,
   reasoning: false,
+  expose_reasoning: true,
   version: 1,
   ...extra
 })
@@ -195,7 +200,8 @@ const SCHEMA_DOCUMENT = {
     add_history_to_context: { type: 'boolean', default: true },
     add_datetime_to_context: { type: 'boolean', default: true },
     num_history_runs: { type: 'integer', default: 5, ...NUM_HISTORY_RUNS_RANGE },
-    reasoning: { type: 'boolean', default: false }
+    reasoning: { type: 'boolean', default: false },
+    expose_reasoning: { type: 'boolean', default: true }
   },
   team: {
     mode: TEAM_MODES,
@@ -247,6 +253,7 @@ const BOOLEAN_AGENT_KEYS = [
   'add_history_to_context',
   'add_datetime_to_context',
   'reasoning',
+  'expose_reasoning',
   'user_memory_active',
   'summary_active'
 ]
@@ -779,9 +786,89 @@ const readFormData = async (req: IncomingMessage) => {
 const delay = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-// Mesmo framing SSE do AgentOS (agno/os/utils.py: format_sse_event).
+// Mesmo framing SSE do AgentOS (agno/os/utils.py: format_sse_event). No agno 3
+// todo evento traz `nested_depth` (agno/run/agent.py, team.py); só um workflow
+// aninhado o incrementa (agno/workflow/workflow.py), então aqui é sempre 0,
+// inclusive nos eventos de membro de team.
 const writeEvent = (res: ServerResponse, payload: Record<string, unknown>) =>
-  res.write(`event: ${payload.event}\ndata: ${JSON.stringify(payload)}\n\n`)
+  res.write(
+    `event: ${payload.event}\ndata: ${JSON.stringify({ nested_depth: 0, ...payload })}\n\n`
+  )
+
+// Mensagem que aciona o cenário de agente com `reasoning` (agno 3: as tools
+// think/analyze no próprio run, mais ReasoningStarted/Step/Completed). Vale só
+// no run de agente.
+const REASONING_MESSAGE = 'raciocine passo a passo'
+// ReasoningTools do agno (agno/tools/reasoning.py): os argumentos de cada tool,
+// o ReasoningStep que o run deriva deles (agno/agent/_response.py,
+// update_reasoning_content_from_tool_call) e o trecho que ele acrescenta ao
+// `reasoning_content`.
+const REASONING_STEPS = [
+  {
+    tool: 'think',
+    args: {
+      title: 'Entender o pedido',
+      thought: 'O usuário quer uma resposta curta; vou conferir o contexto antes.',
+      action: 'Conferir o contexto da conversa',
+      confidence: 0.8
+    },
+    step: {
+      title: 'Entender o pedido',
+      action: 'Conferir o contexto da conversa',
+      reasoning: 'O usuário quer uma resposta curta; vou conferir o contexto antes.',
+      next_action: 'continue',
+      confidence: 0.8
+    },
+    content:
+      '## Entender o pedido\nO usuário quer uma resposta curta; vou conferir o contexto antes.\nAction: Conferir o contexto da conversa\nConfidence: 0.8\n\n'
+  },
+  {
+    tool: 'analyze',
+    args: {
+      title: 'Validar a resposta',
+      result: 'O contexto cobre o pedido.',
+      analysis: 'Posso responder sem buscar mais dados.',
+      next_action: 'final_answer',
+      confidence: 0.9
+    },
+    step: {
+      title: 'Validar a resposta',
+      result: 'O contexto cobre o pedido.',
+      reasoning: 'Posso responder sem buscar mais dados.',
+      next_action: 'final_answer',
+      confidence: 0.9
+    },
+    content:
+      '## Validar a resposta\nResult: O contexto cobre o pedido.\nPosso responder sem buscar mais dados.\nNext Action: final_answer\nConfidence: 0.9\n\n'
+  }
+]
+// O `to_dict` do agno (run/base.py) serializa o `content` de ReasoningStep e
+// ReasoningCompleted sem os campos None (exclude_none), mas o `reasoning_steps`
+// de RunContent e RunCompleted com os seis campos, null onde falta.
+const NULL_STEP = {
+  title: null,
+  action: null,
+  result: null,
+  reasoning: null,
+  next_action: null,
+  confidence: null
+}
+const REASONING_STEPS_WITH_NULLS = REASONING_STEPS.map(({ step }) => ({ ...NULL_STEP, ...step }))
+// Retorno das tools: os passos do run até ali (agno/tools/reasoning.py).
+const reasoningToolResult = (upTo: number) =>
+  REASONING_STEPS.slice(0, upTo)
+    .map(
+      ({ step }, index) =>
+        `Step ${index + 1}:\nTitle: ${step.title}\nReasoning: ${step.reasoning}\nAction: ${'action' in step ? step.action : 'None'}\nConfidence: ${step.confidence}`
+    )
+    .join('\n\n')
+
+// Tool no formato do agno (ToolExecution em agno/models/response.py).
+const toolExecution = (runId: string, name: string, args: Record<string, unknown> = {}) => ({
+  tool_call_id: `${runId}-${name}`,
+  tool_name: name,
+  tool_args: args
+})
 
 const runAgent = async (
   req: IncomingMessage,
@@ -792,98 +879,239 @@ const runAgent = async (
   const form = await readFormData(req)
   const message = String(form.get('message') ?? '')
   const sessionId = String(form.get('session_id') ?? '') || randomUUID()
+  const userId = String(form.get('user_id') ?? '') || undefined
   const now = new Date().toISOString()
   const agentSessions = sessionsByAgent.get(agent.id) ?? []
-  if (!agentSessions.some((s) => s.session_id === sessionId)) {
+  const existing = agentSessions.find((s) => s.session_id === sessionId)
+  // Como o agno 3.1.12: run em sessão de outro dono é 404 antes de rodar.
+  if (existing?.user_id !== undefined && existing.user_id !== userId)
+    return sendJson(res, 404, { detail: 'Session not found' })
+  if (!existing) {
     sessionsByAgent.set(agent.id, [
       ...agentSessions,
       {
         session_id: sessionId,
         session_name: message,
         created_at: now,
-        updated_at: now
+        updated_at: now,
+        user_id: userId
       }
     ])
   }
 
-  // No team os eventos levam o prefixo Team (TeamRunStarted, TeamRunContent…).
-  const event = (name: string) => (kind === 'team' ? `Team${name}` : name)
   let finished = false
   res.on('close', () => {
     if (!finished) abortedRuns.push({ entity: agent.id, message })
   })
+  const isTeam = kind === 'team'
   const base = {
-    ...(kind === 'team'
+    ...(isTeam
       ? { team_id: agent.id, team_name: agent.name }
       : { agent_id: agent.id, agent_name: agent.name }),
     run_id: randomUUID(),
     session_id: sessionId,
     created_at: Math.floor(Date.now() / 1000)
   }
+  // Team em modo `route` (agno 3.1.12, agno/team/_default_tools.py): o líder
+  // delega por TeamToolCall `delegate_task_to_member`, e os eventos do membro
+  // saem entre o Started e o Completed da delegação, com `parent_run_id` (o
+  // run do team). Com `respond_directly` a resposta do membro vira TeamRunContent.
+  const contentRun = isTeam
+    ? {
+        agent_id: teamMember.id,
+        agent_name: teamMember.name,
+        run_id: randomUUID(),
+        parent_run_id: base.run_id,
+        session_id: sessionId,
+        created_at: base.created_at
+      }
+    : base
+  const reasoning = !isTeam && message === REASONING_MESSAGE
   const deltas = [`${agent.name} `, 'recebeu: ', message]
-  // Tools e métricas no formato do agno 2.5 (ToolExecution e RunMetrics em
+  const answer = deltas.join('')
+  // Tools e métricas no formato do agno (ToolExecution e RunMetrics em
   // agno/metrics.py): uma tool ok e uma com erro por resposta (P1-06).
-  const tool = (name: string) => ({
-    tool_call_id: `${base.run_id}-${name}`,
-    tool_name: name,
-    tool_args: {}
+  const toolOk = toolExecution(contentRun.run_id, 'consultar_pedido')
+  const toolError = toolExecution(contentRun.run_id, 'abrir_troca')
+  const delegation = toolExecution(base.run_id, 'delegate_task_to_member', {
+    member_id: teamMember.id,
+    task: message
   })
-  const toolOk = tool('consultar_pedido')
-  const toolError = tool('abrir_troca')
+  const metrics = {
+    input_tokens: 600,
+    output_tokens: 212,
+    total_tokens: 812,
+    duration: 1.4
+  }
+  // As métricas do membro não são as da resposta do team.
+  const runMetrics = isTeam
+    ? { input_tokens: 300, output_tokens: 90, total_tokens: 390, duration: 0.9 }
+    : metrics
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Access-Control-Allow-Origin': '*'
   })
-  writeEvent(res, { ...base, event: event('RunStarted'), model: 'fake-model' })
-  writeEvent(res, { ...base, event: event('ToolCallStarted'), tool: toolOk })
-  await delay(CHUNK_DELAY_MS)
-  writeEvent(res, {
-    ...base,
-    event: event('ToolCallCompleted'),
-    tool: { ...toolOk, tool_call_error: false, metrics: { duration: 0.18 } }
-  })
+  if (isTeam) {
+    writeEvent(res, { ...base, event: 'TeamRunStarted', model: 'fake-model' })
+    writeEvent(res, { ...base, event: 'TeamModelRequestStarted', model: 'fake-model' })
+    // O TeamModelRequestCompleted do agno 3 não traz `time_to_first_token`.
+    writeEvent(res, {
+      ...base,
+      event: 'TeamModelRequestCompleted',
+      model: 'fake-model',
+      input_tokens: 300,
+      output_tokens: 20,
+      total_tokens: 320
+    })
+    writeEvent(res, { ...base, event: 'TeamToolCallStarted', tool: delegation })
+  }
+  // ModelRequestCompleted/Started saem em cada volta do modelo (agno/models/base.py).
+  // No cenário de reasoning o fake segue isso (uma volta por tool, e a última
+  // responde). No caminho padrão é uma simplificação: as tools ficam entre os
+  // deltas para o e2e segurar a 2ª "executando" com o texto parcial na tela.
+  const modelRequestStarted = () =>
+    writeEvent(res, { ...contentRun, event: 'ModelRequestStarted', model: 'fake-model' })
+  const modelRequestCompleted = () =>
+    writeEvent(res, {
+      ...contentRun,
+      event: 'ModelRequestCompleted',
+      model: 'fake-model',
+      input_tokens: runMetrics.input_tokens,
+      output_tokens: runMetrics.output_tokens,
+      total_tokens: runMetrics.total_tokens
+    })
+  writeEvent(res, { ...contentRun, event: 'RunStarted', model: 'fake-model' })
+  if (reasoning) {
+    // Cada passo vem como tool think/analyze, e o run deriva dela o ReasoningStep
+    // (o ReasoningStarted antes do primeiro).
+    for (const [index, { tool, args, step }] of REASONING_STEPS.entries()) {
+      modelRequestStarted()
+      modelRequestCompleted()
+      const execution = toolExecution(contentRun.run_id, tool, args)
+      writeEvent(res, { ...contentRun, event: 'ToolCallStarted', tool: execution })
+      await delay(CHUNK_DELAY_MS)
+      writeEvent(res, {
+        ...contentRun,
+        event: 'ToolCallCompleted',
+        tool: {
+          ...execution,
+          tool_call_error: false,
+          result: reasoningToolResult(index + 1),
+          metrics: { duration: 0.02 }
+        }
+      })
+      if (index === 0) writeEvent(res, { ...contentRun, event: 'ReasoningStarted' })
+      writeEvent(res, {
+        ...contentRun,
+        event: 'ReasoningStep',
+        content: step,
+        content_type: 'ReasoningStep',
+        reasoning_content: REASONING_STEPS.slice(0, index + 1)
+          .map((item) => item.content)
+          .join('')
+      })
+    }
+    modelRequestStarted()
+  } else {
+    modelRequestStarted()
+    writeEvent(res, { ...contentRun, event: 'ToolCallStarted', tool: toolOk })
+    await delay(CHUNK_DELAY_MS)
+    writeEvent(res, {
+      ...contentRun,
+      event: 'ToolCallCompleted',
+      tool: { ...toolOk, tool_call_error: false, metrics: { duration: 0.18 } }
+    })
+  }
   for (const [index, delta] of deltas.entries()) {
-    if (index === deltas.length - 1) {
+    if (index === deltas.length - 1 && !reasoning) {
       // A 2ª tool fica "executando" enquanto o stream está retido.
-      writeEvent(res, { ...base, event: event('ToolCallStarted'), tool: toolError })
+      writeEvent(res, { ...contentRun, event: 'ToolCallStarted', tool: toolError })
       if (message === HOLD_UNTIL_RELEASE_MESSAGE) await waitForRelease(agent.id)
       await delay(CHUNK_DELAY_MS)
       writeEvent(res, {
-        ...base,
-        event: event('ToolCallCompleted'),
+        ...contentRun,
+        event: 'ToolCallCompleted',
         tool: { ...toolError, tool_call_error: true, metrics: { duration: 0.05 } }
       })
     }
     await delay(CHUNK_DELAY_MS)
+    if (isTeam)
+      writeEvent(res, {
+        ...base,
+        event: 'TeamRunContent',
+        content: delta,
+        content_type: 'str'
+      })
+    // Todo RunContent do agno traz o `reasoning_steps` acumulado (com null) e
+    // `reasoning_content: ""` (agno/utils/events.py: create_run_output_content_event).
     writeEvent(res, {
-      ...base,
-      event: event('RunContent'),
+      ...contentRun,
+      event: 'RunContent',
       content: delta,
-      content_type: 'str'
+      content_type: 'str',
+      ...(reasoning && { reasoning_content: '', reasoning_steps: REASONING_STEPS_WITH_NULLS })
     })
   }
   await delay(
     message === HOLD_COMPLETION_MESSAGE ? HOLD_COMPLETION_MS : CHUNK_DELAY_MS
   )
+  modelRequestCompleted()
+  // O ReasoningCompleted sai no fim do stream do modelo, antes do RunContentCompleted.
+  if (reasoning)
+    writeEvent(res, {
+      ...contentRun,
+      event: 'ReasoningCompleted',
+      content: { reasoning_steps: REASONING_STEPS.map(({ step }) => step) },
+      content_type: 'ReasoningSteps'
+    })
+  writeEvent(res, { ...contentRun, event: 'RunContentCompleted' })
+  const reasoningContent = REASONING_STEPS.map(({ content }) => content).join('')
   writeEvent(res, {
-    ...base,
-    event: event('RunCompleted'),
-    content: deltas.join(''),
+    ...contentRun,
+    event: 'RunCompleted',
+    content: answer,
     content_type: 'str',
-    metrics: {
-      input_tokens: 600,
-      output_tokens: 212,
-      total_tokens: 812,
-      duration: 1.4
-    }
+    ...(reasoning && {
+      reasoning_content: reasoningContent,
+      reasoning_steps: REASONING_STEPS_WITH_NULLS,
+      // Uma mensagem com o raciocínio e o tempo gasto nele (agno/utils/reasoning.py).
+      reasoning_messages: [
+        { role: 'assistant', content: reasoningContent, metrics: { duration: 0.04 } }
+      ]
+    }),
+    metrics: runMetrics
   })
+  if (isTeam) {
+    writeEvent(res, {
+      ...base,
+      event: 'TeamToolCallCompleted',
+      tool: {
+        ...delegation,
+        tool_call_error: false,
+        result: answer,
+        child_run_id: contentRun.run_id,
+        metrics: { duration: 1.2 }
+      }
+    })
+    writeEvent(res, { ...base, event: 'TeamRunContentCompleted' })
+    writeEvent(res, {
+      ...base,
+      event: 'TeamRunCompleted',
+      content: answer,
+      content_type: 'str',
+      member_responses: [
+        { ...contentRun, content: answer, content_type: 'str', metrics: runMetrics }
+      ],
+      metrics
+    })
+  }
   finished = true
   historyBySession.set(sessionId, [
     ...(historyBySession.get(sessionId) ?? []),
     { role: 'user', content: message, created_at: base.created_at },
-    { role: 'assistant', content: deltas.join(''), created_at: base.created_at }
+    { role: 'assistant', content: answer, created_at: base.created_at }
   ])
   res.end()
 }
@@ -958,9 +1186,13 @@ const handle = async (req: IncomingMessage, res: ServerResponse) => {
   if (route === 'GET /sessions') {
     const componentId = url.searchParams.get('component_id') ?? ''
     const owners = url.searchParams.get('type') === 'team' ? teams : agents
-    const data = owners.some((owner) => owner.id === componentId)
-      ? (sessionsByAgent.get(componentId) ?? [])
-      : []
+    // Com `user_id`, só as sessões desse dono (o GET /sessions do agno 3).
+    const userId = url.searchParams.get('user_id')
+    const data = (
+      owners.some((owner) => owner.id === componentId)
+        ? (sessionsByAgent.get(componentId) ?? [])
+        : []
+    ).filter((s) => userId === null || s.user_id === userId)
     return sendJson(res, 200, {
       data,
       meta: { page: 1, limit: 20, total_pages: 1, total_count: data.length }

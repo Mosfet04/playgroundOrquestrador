@@ -511,10 +511,11 @@ describe('AgentForm P3-02: execução', () => {
     defaultOf('Enviar data e hora atuais').getByText('Padrão: ligado')
     defaultOf('Enviar histórico da sessão').getByText('Padrão: ligado')
     defaultOf('Raciocínio passo a passo').getByText('Padrão: desligado')
+    defaultOf('Expor raciocínio').getByText('Padrão: ligado')
     defaultOf('Memória do usuário').getByText('Padrão: desligado')
     defaultOf('Resumo da sessão').getByText('Padrão: desligado')
     expect(execution.getAllByText('Padrão: desligado')).toHaveLength(4)
-    expect(execution.getAllByText('Padrão: ligado')).toHaveLength(2)
+    expect(execution.getAllByText('Padrão: ligado')).toHaveLength(3)
 
     await user.type(screen.getByLabelText(/ID do agente/), 'novo')
     await user.type(screen.getByLabelText('Nome *'), 'Novo')
@@ -675,7 +676,7 @@ describe('AgentForm P3-02: só leitura', () => {
     )
     expect(await screen.findByText(/somente leitura/)).toBeVisible()
     const execution = within(screen.getByRole('region', { name: 'Execução' }))
-    await waitFor(() => expect(execution.getAllByRole('switch').length).toBe(6))
+    await waitFor(() => expect(execution.getAllByRole('switch').length).toBe(7))
 
     for (const control of [
       ...execution.getAllByRole('switch'),
@@ -775,5 +776,153 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
     await waitFor(() =>
       expect(screen.getByRole('switch', { name: 'Enviar histórico da sessão' })).toHaveFocus()
     )
+  })
+})
+
+// AG3-01: `expose_reasoning` (só vale para clientes AG-UI) é editável e salvar
+// não o apaga. Spec: docs/design/AG3-01.md.
+describe('AgentForm AG3-01: expor raciocínio', () => {
+  const exposeSwitch = () => screen.getByRole('switch', { name: 'Expor raciocínio' })
+  const reasoningSwitch = () => screen.getByRole('switch', { name: 'Raciocínio passo a passo' })
+  const hint = /Disponível só com "Raciocínio passo a passo" ligado/
+
+  it('o item vem logo abaixo de "Raciocínio passo a passo", com o padrão do schema e a ajuda', async () => {
+    await ready()
+
+    const items = within(screen.getByRole('region', { name: 'Execução' })).getAllByRole('listitem')
+    const labels = items.map((item) => within(item).getAllByRole('switch')[0]?.getAttribute('id'))
+    expect(labels.indexOf('expose_reasoning')).toBe(labels.indexOf('reasoning') + 1)
+    const item = exposeSwitch().closest('li') as HTMLElement
+    expect(within(item).getByText('Padrão: ligado')).toBeVisible()
+    expect(exposeSwitch()).toHaveAccessibleDescription(/Vale para clientes AG-UI, como o os\.agno\.com/)
+  })
+
+  it('agent lido com false e salvo sem tocar no campo: o PUT leva false', async () => {
+    const sent = serveSave()
+    const user = await ready(
+      <AgentForm agent={{ ...agent, reasoning: true, expose_reasoning: false }} onSuccess={() => {}} />
+    )
+    expect(exposeSwitch()).not.toBeChecked()
+
+    await touchName(user)
+    await saveAndConfirm(user)
+
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0].body).toMatchObject({ reasoning: true, expose_reasoning: false })
+  })
+
+  it('agent antigo sem o campo: o switch mostra o default do schema e o PUT o leva', async () => {
+    const sent = serveSave()
+    const user = await ready()
+    await waitFor(() => expect(exposeSwitch()).toBeChecked())
+
+    await touchName(user)
+    await saveAndConfirm(user)
+
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0].body).toMatchObject({ expose_reasoning: true })
+  })
+
+  it('ligar e desligar o switch: o PUT leva o valor novo e o diff mostra Antes × Depois logo após o raciocínio', async () => {
+    const sent = serveSave()
+    const user = await ready(
+      <AgentForm agent={{ ...agent, reasoning: true, expose_reasoning: true }} onSuccess={() => {}} />
+    )
+
+    await user.click(exposeSwitch())
+    expect(exposeSwitch()).not.toBeChecked()
+    await user.click(saveButton())
+
+    const dialog = await screen.findByRole('dialog', { name: 'Revisar antes de salvar' })
+    const rows = within(within(dialog).getByRole('region', { name: 'Campos alterados' })).getAllByRole('listitem')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toHaveTextContent('Expor raciocínio')
+    expect(within(rows[0]).getByText('Antes').nextElementSibling).toHaveTextContent('Ligado')
+    expect(within(rows[0]).getByText('Depois').nextElementSibling).toHaveTextContent('Desligado')
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar e salvar' }))
+
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0].body).toMatchObject({ expose_reasoning: false })
+  })
+
+  it('agent novo sem tocar no campo: vai o default do schema', async () => {
+    serveSchema({ agent: { ...schemaFixture.agent, exposeReasoning: false } })
+    const sent = serveSave()
+    const user = await ready(<AgentForm onSuccess={() => {}} />)
+    await waitFor(() => expect(exposeSwitch()).not.toBeChecked())
+    expect(within(exposeSwitch().closest('li') as HTMLElement).getByText('Padrão: desligado')).toBeVisible()
+
+    await user.type(screen.getByLabelText(/ID do agente/), 'novo')
+    await user.type(screen.getByLabelText('Nome *'), 'Novo')
+    await user.type(screen.getByLabelText(/^Modelo \*/), 'm')
+    await user.click(saveButton())
+
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0].body).toMatchObject({ expose_reasoning: false })
+  })
+
+  it.each([true, false])(
+    'raciocínio desligado: o switch fica desabilitado com o valor %s preservado, a dica aparece e o valor é enviado',
+    async (stored) => {
+      const sent = serveSave()
+      const user = await ready(
+        <AgentForm agent={{ ...agent, reasoning: false, expose_reasoning: stored }} onSuccess={() => {}} />
+      )
+
+      expect(exposeSwitch()).toBeDisabled()
+      if (stored) expect(exposeSwitch()).toBeChecked()
+      else expect(exposeSwitch()).not.toBeChecked()
+      expect(screen.getByText(hint)).toBeVisible()
+      expect(exposeSwitch()).toHaveAccessibleDescription(hint)
+
+      await touchName(user)
+      await saveAndConfirm(user)
+
+      await waitFor(() => expect(sent).toHaveLength(1))
+      expect(sent[0].body).toMatchObject({ reasoning: false, expose_reasoning: stored })
+    }
+  )
+
+  it('ligar o raciocínio habilita o switch e tira a dica; desligar volta a desabilitar', async () => {
+    const user = await ready(
+      <AgentForm agent={{ ...agent, reasoning: false, expose_reasoning: false }} onSuccess={() => {}} />
+    )
+    expect(exposeSwitch()).toBeDisabled()
+
+    await user.click(reasoningSwitch())
+    expect(exposeSwitch()).toBeEnabled()
+    expect(screen.queryByText(hint)).toBeNull()
+    expect(exposeSwitch()).toHaveAccessibleDescription(/Vale para clientes AG-UI/)
+
+    await user.click(reasoningSwitch())
+    expect(exposeSwitch()).toBeDisabled()
+    expect(screen.getByText(hint)).toBeVisible()
+  })
+
+  it('422 em expose_reasoning com o raciocínio desligado: erro no item e foco no switch do raciocínio', async () => {
+    serveSave(rejectWith('expose_reasoning'))
+    const user = await ready(<AgentForm agent={{ ...agent, reasoning: false }} onSuccess={() => {}} />)
+
+    await touchName(user)
+    await saveAndConfirm(user)
+
+    const item = (await screen.findByRole('switch', { name: 'Expor raciocínio' })).closest('li') as HTMLElement
+    expect(await within(item).findByText('Valor recusado pelo orquestrador')).toBeVisible()
+    await waitFor(() => expect(reasoningSwitch()).toHaveFocus())
+  })
+
+  it('422 em expose_reasoning: erro no item, ligado ao switch, e foco nele', async () => {
+    serveSave(rejectWith('expose_reasoning'))
+    const user = await ready(
+      <AgentForm agent={{ ...agent, reasoning: true }} onSuccess={() => {}} />
+    )
+
+    await touchName(user)
+    await saveAndConfirm(user)
+
+    const item = (await screen.findByRole('switch', { name: 'Expor raciocínio' })).closest('li') as HTMLElement
+    expect(await within(item).findByText('Valor recusado pelo orquestrador')).toBeVisible()
+    expect(screen.getAllByText('Valor recusado pelo orquestrador')).toHaveLength(1)
+    await waitFor(() => expect(exposeSwitch()).toHaveFocus())
   })
 })

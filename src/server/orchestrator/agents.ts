@@ -67,6 +67,7 @@ const agentSchema = z.looseObject({
   num_history_runs: optional(z.number().int()),
   add_datetime_to_context: optional(z.boolean()),
   reasoning: optional(z.boolean()),
+  expose_reasoning: optional(z.boolean()),
   user_memory_active: optional(z.boolean()),
   summary_active: optional(z.boolean()),
   version: z.number().int().nonnegative()
@@ -99,6 +100,7 @@ export type AgentInput = {
   num_history_runs?: number
   add_datetime_to_context?: boolean
   reasoning?: boolean
+  expose_reasoning?: boolean
   user_memory_active?: boolean
   summary_active?: boolean
 }
@@ -140,6 +142,7 @@ const toAgent = (doc: AgentDocument): AgentConfig => ({
   num_history_runs: doc.num_history_runs,
   add_datetime_to_context: doc.add_datetime_to_context,
   reasoning: doc.reasoning,
+  expose_reasoning: doc.expose_reasoning,
   user_memory_active: doc.user_memory_active,
   summary_active: doc.summary_active,
   version: doc.version
@@ -196,6 +199,7 @@ function formFields(input: Omit<AgentInput, 'id'>, current?: AgentDocument) {
     num_history_runs: input.num_history_runs,
     add_datetime_to_context: input.add_datetime_to_context,
     reasoning: input.reasoning,
+    expose_reasoning: input.expose_reasoning,
     user_memory_active: input.user_memory_active,
     summary_active: input.summary_active,
     rag_config: ragFields(input, current)
@@ -222,6 +226,7 @@ const FORM_FIELDS = new Map<string, AgentFormField>([
   ['num_history_runs', 'num_history_runs'],
   ['add_datetime_to_context', 'add_datetime_to_context'],
   ['reasoning', 'reasoning'],
+  ['expose_reasoning', 'expose_reasoning'],
   ['user_memory_active', 'user_memory_active'],
   ['summary_active', 'summary_active'],
   ['rag_config', 'rag_active'],

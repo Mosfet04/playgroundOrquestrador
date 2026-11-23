@@ -34,6 +34,7 @@ export const toFormValues = (agent?: AgentConfig | null): AgentFormValues => ({
   num_history_runs: agent?.num_history_runs,
   add_datetime_to_context: agent?.add_datetime_to_context,
   reasoning: agent?.reasoning,
+  expose_reasoning: agent?.expose_reasoning,
   user_memory_active: agent?.user_memory_active ?? false,
   summary_active: agent?.summary_active ?? false
 })
@@ -72,6 +73,7 @@ const executionDefaults = ({ agent }: ConfigSchema): Partial<AgentFormValues> =>
   add_datetime_to_context: agent.addDatetimeToContext,
   add_history_to_context: agent.addHistoryToContext,
   reasoning: agent.reasoning,
+  expose_reasoning: agent.exposeReasoning,
   num_history_runs: agent.numHistoryRuns.default
 })
 

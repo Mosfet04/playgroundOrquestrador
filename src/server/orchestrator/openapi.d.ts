@@ -369,30 +369,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * API Information
-         * @description Get basic information about this AgentOS API instance, including:
-         *
-         *     - API metadata and version
-         *     - Available capabilities overview
-         *     - Links to key endpoints and documentation
-         */
-        get: operations["get_api_info"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/health": {
         parameters: {
             query?: never;
@@ -405,6 +381,26 @@ export interface paths {
          * @description Check the health status of the AgentOS API. Returns a simple status indicator.
          */
         get: operations["health_check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get OS Info
+         * @description Return lightweight, unauthenticated metadata about this AgentOS instance.
+         */
+        get: operations["get_info"];
         put?: never;
         post?: never;
         delete?: never;
@@ -430,26 +426,6 @@ export interface paths {
          *     - Available interfaces and their routes
          */
         get: operations["get_config"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/models": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Available Models
-         * @description Retrieve a list of all unique models currently used by agents and teams in this OS instance. This includes the model ID and provider information for each model.
-         */
-        get: operations["get_models"];
         put?: never;
         post?: never;
         delete?: never;
@@ -505,18 +481,69 @@ export interface paths {
         put?: never;
         /**
          * Continue Agent Run
-         * @description Continue a paused or incomplete agent run with updated tool results.
+         * @description Advance a persisted agent run from its current state. Dispatches on the body shape and the persisted run state.
          *
-         *     **Use Cases:**
-         *     - Resume execution after tool approval/rejection
-         *     - Provide manual tool execution results
-         *     - Resume after admin approval (tools can be empty; resolution fetched from DB)
+         *     **Variants:**
+         *     - PAUSED + tools provided → apply HITL tool results, resume
+         *     - PAUSED + resolved admin approval (empty tools) → apply resolution, resume
+         *     - RUNNING / ERROR (no unresolved HITL requirements) → resume from last persisted state
+         *     - COMPLETED + new tools → continue with appended messages
          *
          *     **Tools Parameter:**
-         *     JSON string containing array of tool execution objects with results.
-         *     Can be empty when an admin-required approval has been resolved.
+         *     JSON string containing array of tool execution objects with results. Optional — only required when the persisted run has unresolved HITL requirements.
          */
         post: operations["continue_agent_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent_id}/sessions/{session_id}/fork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fork Agent Session
+         * @description Deep-copy a session into a new independent session. Every run is copied with a fresh ``run_id``; the new session has a fresh ``session_id``. The original is untouched. Use to explore alternative conversation paths without mutating the source.
+         *
+         *     Distinct from ``/continue?fork=true``: that creates a sibling **run** inside the **same** session. This creates a sibling **session**.
+         */
+        post: operations["fork_agent_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent_id}/sessions/{session_id}/compact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compact Agent Session
+         * @description Fold this session's older history into a summary now, without waiting for the context to reach ``compact_at_tokens``. The stored transcript is never modified - compaction shortens what is sent to the model, not the record.
+         *
+         *     A compaction can legitimately decline, which is reported rather than raised. Check ``compacted``, and show ``message`` to the user:
+         *     - ``compacted`` - the fold happened; ``record`` carries the token counts
+         *     - ``not_worth_it`` - with ``enforce_min_fold_ratio``, the span is too small to pay for the summary replacing it, so folding would leave the context bigger
+         *     - ``nothing_to_fold`` - the kept tail covers the whole conversation
+         *     - ``already_compacted`` - a previous fold already covers everything up to the only safe cut point
+         *     - ``no_history`` - the session exists but has no stored history yet
+         *     - ``not_enabled`` - compaction is not configured on this agent
+         *     - ``summary_failed`` - the summarizer returned nothing
+         */
+        post: operations["compact_agent_session"];
         delete?: never;
         options?: never;
         head?: never;
@@ -600,6 +627,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents/{agent_id}/runs/{run_id}/checkpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Agent Run Checkpoints
+         * @description List FE-friendly continuation boundaries derived from the current stored run. No separate checkpoint table is used; entries are inferred from message-level checkpoint markers and the terminal end of the transcript.
+         */
+        get: operations["list_agent_run_checkpoints"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent_id}/runs/{run_id}/checkpoints/{message_index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Agent Run Checkpoint Snapshot
+         * @description Return a derived run snapshot truncated at a message boundary. Use the returned message_index as `continue_from` when continuing this run.
+         */
+        get: operations["get_agent_run_checkpoint_snapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent_id}/runs/{run_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Agent Run Stream
+         * @description Resume an SSE stream for an agent run after disconnection.
+         *
+         *     Sends missed events since `last_event_index`, then continues streaming live events if the run is still active.
+         *
+         *     **Three reconnection paths:**
+         *     1. **Run still active**: Sends catch-up events + continues live streaming
+         *     2. **Run completed (in buffer)**: Replays missed buffered events
+         *     3. **Run completed (in database)**: Replays events from database
+         *
+         *     A run submitted with `stream=false`, inline or with `background=true`, has no event stream: nothing is published while it runs and no events are stored with it. For such a run this endpoint sends one `replay` frame with `total_events: 0` and its current status; poll the run endpoint for the result instead.
+         *
+         *     **Client usage:**
+         *     Track `event_index` from each SSE event. On reconnection, pass the last received `event_index` as `last_event_index`.
+         */
+        post: operations["resume_agent_run_stream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/teams/{team_id}/runs": {
         parameters: {
             query?: never;
@@ -630,6 +729,89 @@ export interface paths {
          *     When `stream=true`, returns SSE events with `event` and `data` fields.
          */
         post: operations["create_team_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/teams/{team_id}/runs/{run_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Team Run Stream
+         * @description Resume an SSE stream for a team run after disconnection.
+         *
+         *     Sends missed events since `last_event_index`, then continues streaming live events if the run is still active.
+         *
+         *     **Three reconnection paths:**
+         *     1. **Run still active**: Sends catch-up events + continues live streaming
+         *     2. **Run completed (in buffer)**: Replays missed buffered events
+         *     3. **Run completed (in database)**: Replays events from database
+         *
+         *     A run submitted with `stream=false`, inline or with `background=true`, has no event stream: nothing is published while it runs and no events are stored with it. For such a run this endpoint sends one `replay` frame with `total_events: 0` and its current status; poll the run endpoint for the result instead.
+         *
+         *     **Client usage:**
+         *     Track `event_index` from each SSE event. On reconnection, pass the last received `event_index` as `last_event_index`.
+         */
+        post: operations["resume_team_run_stream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/teams/{team_id}/runs/{run_id}/continue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Continue Team Run
+         * @description Continue a paused or incomplete team run with updated requirements.
+         *
+         *     **Use Cases:**
+         *     - Resume execution after tool approval/rejection
+         *     - Provide manual tool execution results
+         *     - Resume after admin approval (requirements can be empty; resolution fetched from DB)
+         *
+         *     **Requirements Parameter:**
+         *     JSON string containing array of requirement objects with tool execution results.
+         *     Can be empty when an admin-required approval has been resolved.
+         */
+        post: operations["continue_team_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/teams/{team_id}/sessions/{session_id}/fork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fork Team Session
+         * @description Deep-copy a team session into a new independent session. Every run is copied with a fresh ``run_id``; the new session has a fresh ``session_id``. The original is untouched. Use to explore alternative conversation paths without mutating the source.
+         *
+         *     Distinct from ``/continue?fork=true``: that creates a sibling **run** inside the **same** session. This creates a sibling **session**.
+         */
+        post: operations["fork_team_session"];
         delete?: never;
         options?: never;
         head?: never;
@@ -704,6 +886,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/teams/{team_id}/runs/{run_id}/checkpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Team Run Checkpoints
+         * @description List FE-friendly continuation boundaries derived from the current stored team run. No separate checkpoint table is used; entries are inferred from message-level checkpoint markers and the terminal end of the transcript.
+         */
+        get: operations["list_team_run_checkpoints"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/teams/{team_id}/runs/{run_id}/checkpoints/{message_index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Team Run Checkpoint Snapshot
+         * @description Return a derived team run snapshot truncated at a message boundary. Use the returned message_index as `continue_from` when continuing this run.
+         */
+        get: operations["get_team_run_checkpoint_snapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflows": {
         parameters: {
             query?: never;
@@ -757,7 +979,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Workflow Runs
+         * @description List runs for a workflow within a session, optionally filtered by status.
+         *
+         *     Useful for monitoring background runs and viewing run history.
+         */
+        get: operations["list_workflow_runs"];
         put?: never;
         /**
          * Execute Workflow
@@ -784,6 +1012,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workflows/{workflow_id}/runs/{run_id}/continue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Continue Workflow Run
+         * @description Continue a paused workflow run with resolved requirements.
+         *
+         *     **Use Cases:**
+         *     - Resume after step-level HITL (confirmation, user input, router selection)
+         *     - Resume after executor-level HITL (agent/team tool confirmation within a step)
+         *
+         *     **Requirements Parameter:**
+         *     JSON string containing the resolved step requirements.
+         */
+        post: operations["continue_workflow_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflows/{workflow_id}/runs/{run_id}/cancel": {
         parameters: {
             query?: never;
@@ -799,6 +1054,38 @@ export interface paths {
          *     **Note:** Complex workflows with multiple parallel steps may take time to fully cancel.
          */
         post: operations["cancel_workflow_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{workflow_id}/runs/{run_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Workflow Run Stream
+         * @description Resume an SSE stream for a workflow run after disconnection.
+         *
+         *     Sends missed events since `last_event_index`, then continues streaming live events if the run is still active.
+         *
+         *     **Three reconnection paths:**
+         *     1. **Run still active**: Sends catch-up events + continues live streaming
+         *     2. **Run completed (in buffer)**: Replays missed buffered events
+         *     3. **Run completed (in database)**: Replays events from database
+         *
+         *     A run submitted with `stream=false`, inline or with `background=true`, has no event stream: nothing is published while it runs and no events are stored with it. For such a run this endpoint sends one `replay` frame with `total_events: 0` and its current status; poll the run endpoint for the result instead.
+         *
+         *     **Client usage:**
+         *     Track `event_index` from each SSE event. On reconnection, pass the last received `event_index` as `last_event_index`.
+         */
+        post: operations["resume_workflow_run_stream"];
         delete?: never;
         options?: never;
         head?: never;
@@ -827,6 +1114,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disabled */
+        get: operations["disabled_queue_get"];
+        /** Disabled */
+        put: operations["disabled_queue_put"];
+        /** Disabled */
+        post: operations["disabled_queue_post"];
+        /** Disabled */
+        delete: operations["disabled_queue_delete"];
+        options?: never;
+        head?: never;
+        /** Disabled */
+        patch: operations["disabled_queue_patch"];
+        trace?: never;
+    };
     "/sessions": {
         parameters: {
             query?: never;
@@ -850,6 +1158,43 @@ export interface paths {
          * @description Delete multiple sessions by their IDs in a single operation. This action cannot be undone and will permanently remove all specified sessions and their runs.
          */
         delete: operations["delete_sessions"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/filter-schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session Filter Schema */
+        get: operations["get_sessions_filter_schema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search Sessions
+         * @description Search session fields with nested AND/OR/NOT expressions, sorting, and pagination.
+         */
+        post: operations["search_sessions"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -892,9 +1237,29 @@ export interface paths {
         };
         /**
          * Get Session Runs
-         * @description Retrieve all runs (executions) for a specific session with optional timestamp filtering. Runs represent individual interactions or executions within a session. Response schema varies based on session type.
+         * @description Retrieve all runs (executions) for a specific session with optional timestamp and status filtering. Repeat the status param to match any of several (case-insensitive; e.g. status=PENDING&status=RUNNING&status=PAUSED is the live set a queue tray shows). Response schema varies based on session type. For lightweight entries, use GET /sessions/{session_id}/run-previews.
          */
         get: operations["get_session_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{session_id}/run-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Session Run Previews
+         * @description Lightweight listing of a session's runs for polling clients such as a queue tray: ids, status, timestamps and truncated input/output previews, without messages, events, media or metrics. Accepts the same filters as GET /sessions/{session_id}/runs.
+         */
+        get: operations["get_session_run_previews"];
         put?: never;
         post?: never;
         delete?: never;
@@ -937,6 +1302,26 @@ export interface paths {
          * @description Update the name of an existing session. Useful for organizing and categorizing sessions with meaningful names for better identification and management.
          */
         post: operations["rename_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{session_id}/media/{storage_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fetch stored media for a session
+         * @description Stream (or, with redirect=true, redirect to a freshly-signed URL for) a piece of media stored in external media storage. Scoped to the caller's session ownership; the storage_key must belong to the session.
+         */
+        get: operations["get_session_media"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1059,7 +1444,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/eval-runs": {
+    "/learnings": {
         parameters: {
             query?: never;
             header?: never;
@@ -1067,27 +1452,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Evaluation Runs
-         * @description Retrieve paginated evaluation runs with filtering and sorting options. Filter by agent, team, workflow, model, or evaluation type.
+         * List Learnings
+         * @description List learning records with pagination and optional filters. For a scoped (non-admin) caller with user isolation enabled, results are bound to that user and also include records with no owner (`user_id IS NULL`) — this covers global, agent, team, session, and entity-scoped learnings; passing a `user_id` that differs from the caller is rejected with 403. Admins and unscoped callers see all records (optionally filtered by `user_id`).
          */
-        get: operations["get_eval_runs"];
+        get: operations["list_learnings"];
         put?: never;
         /**
-         * Execute Evaluation
-         * @description Run evaluation tests on agents or teams. Supports accuracy, agent-as-judge, performance, and reliability evaluations. Requires either agent_id or team_id, but not both.
+         * Create Learning
+         * @description Create a new learning record. For the identity-keyed learning types (`user_profile`, `user_memory`, `session_context`, `entity_memory`) the record id is derived deterministically from the identity fields so it reconciles with what the agent reads/writes — provide those fields (else 422), and if a record already exists the request is rejected with 409 (use PATCH to update it). Other types get a generated id. For a scoped (non-admin) caller, the body's `user_id` must be omitted/null or match the caller (mismatch → 403); admins and unscoped callers may set any `user_id`. An `entity_memory` record whose body omits `namespace` is stored under the `global` default; the endpoint cannot see how a given store is configured, so a caller writing for a store running with `namespace="user"` or a custom namespace must pass `namespace` explicitly or the record will not be visible to it.
          */
-        post: operations["run_eval"];
-        /**
-         * Delete Evaluation Runs
-         * @description Delete multiple evaluation runs by their IDs. This action cannot be undone.
-         */
-        delete: operations["delete_eval_runs"];
+        post: operations["create_learning"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/eval-runs/{eval_run_id}": {
+    "/learnings/users": {
         parameters: {
             query?: never;
             header?: never;
@@ -1095,20 +1476,64 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Evaluation Run
-         * @description Retrieve detailed results and metrics for a specific evaluation run.
+         * List Learning Users
+         * @description List the users that own learning records, with a per-user count and last-updated timestamp. Intended as the entry point for a per-user view: list users here, then drill into a single user's learnings via `GET /learnings?user_id=...`. Records with no owner (`user_id IS NULL`) are excluded. Pass `learning_type` to restrict the grouping to a single store (e.g. `user_profile` or `user_memory`). For a scoped (non-admin) caller results are bound to that user; an explicit `user_id` that differs is rejected with 403. Admins and unscoped callers list all users. Sortable by `user_id` or `last_learning_updated_at` (the default).
          */
-        get: operations["get_eval_run"];
+        get: operations["list_learning_users"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learnings/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
         /**
-         * Update Evaluation Run
-         * @description Update the name or other properties of an existing evaluation run.
+         * Delete Learning User
+         * @description Delete the learning records owned by a user. By default removes every learning type backed by the agno_learnings table (user_profile, user_memory, and any user-scoped entity records); pass `learning_type` to restrict deletion to a single store. Records with no owner (`user_id IS NULL`) are not affected. For a scoped (non-admin) caller, only their own learnings may be deleted; a different `user_id` is rejected with 403. Admins and unscoped callers may delete any user's learnings. Returns 204 even if the user had no matching records.
          */
-        patch: operations["update_eval_run"];
+        delete: operations["delete_learning_user"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learnings/{learning_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Learning
+         * @description Retrieve a single learning record by its ID.
+         */
+        get: operations["get_learning"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Learning
+         * @description Permanently delete a learning record by its ID. Records with no owner (`user_id IS NULL` — shared agent/team/session/entity learnings) may only be deleted by an admin.
+         */
+        delete: operations["delete_learning"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Learning
+         * @description Update a learning record. Only `content` and `metadata` may be modified; identity fields (user_id, agent_id, team_id, etc.) are immutable. Provided fields fully replace the existing values. Records with no owner (`user_id IS NULL` — shared agent/team/session/entity learnings) are readable by any caller but may only be modified by an admin.
+         */
+        patch: operations["update_learning"];
         trace?: never;
     };
     "/metrics": {
@@ -1142,9 +1567,29 @@ export interface paths {
         put?: never;
         /**
          * Refresh Metrics
-         * @description Manually trigger recalculation of system metrics from raw data. This operation analyzes system activity logs and regenerates aggregated metrics. Useful for ensuring metrics are up-to-date or after system maintenance.
+         * @description Manually trigger recalculation of system metrics from raw data. This operation analyzes system activity logs and regenerates aggregated metrics. Useful for ensuring metrics are up-to-date or after system maintenance. By default the refresh runs synchronously and returns the refreshed metrics. Pass background=true to run the refresh in the background instead: the endpoint returns 202 Accepted immediately and GET /metrics can be polled for results. If a background refresh is already in progress for the target database, returns status 'already_running' without starting a new one.
          */
         post: operations["refresh_metrics"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metrics/refresh/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Metrics Refresh Status
+         * @description Get the status of the most recent metrics refresh for the target database. Returns 'running' while a refresh is in progress, then 'completed' or 'failed' with the finish timestamp — the state updates even when a refresh completes without writing new data. Returns 'idle' if no refresh has been triggered since this server process started. For remote databases the status is fetched from the remote AgentOS. Intended for polling after starting a background refresh via POST /metrics/refresh?background=true.
+         */
+        get: operations["get_metrics_refresh_status"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1225,6 +1670,26 @@ export interface paths {
          * @description Update content properties such as name, description, metadata, or processing configuration. Allows modification of existing content without re-uploading.
          */
         patch: operations["update_content"];
+        trace?: never;
+    };
+    "/knowledge/content/{content_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Content
+         * @description Re-ingest a URL-sourced content row from its source. For a site row this refreshes changed pages, retries failed ones, and removes pages that left the site.
+         */
+        post: operations["refresh_content"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/knowledge/content/{content_id}/status": {
@@ -1567,6 +2032,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/filesystem/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Filesystem Files
+         * @description List files across the configured agent filesystems visible to the caller. Use agent_id or namespace to narrow the result, and query to search file contents.
+         */
+        get: operations["list_filesystem_files"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/filesystem/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Filesystem Entries
+         * @description List the files and directories directly under a directory of one filesystem.
+         */
+        get: operations["list_filesystem_entries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/filesystem/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Filesystem Content
+         * @description Read a preview of one file, continuing from offset when the file is longer than limit.
+         */
+        get: operations["read_filesystem_content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/filesystem/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Filesystem
+         * @description Search file contents within one filesystem.
+         */
+        get: operations["search_filesystem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/components": {
         parameters: {
             query?: never;
@@ -1796,6 +2341,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/service-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Service Accounts
+         * @description List service accounts. Returns metadata and display prefixes only - never hashes or plaintext.
+         */
+        get: operations["list_service_accounts_service_accounts_get"];
+        put?: never;
+        /**
+         * Create Service Account
+         * @description Mint a service account token. The plaintext token is returned exactly once.
+         */
+        post: operations["create_service_account_service_accounts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service-accounts/{service_account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Service Account
+         * @description Revoke a service account. Idempotent.
+         *
+         *     Takes effect immediately on this worker (the local verification cache entry is
+         *     evicted) and within the cache TTL on other workers.
+         */
+        delete: operations["revoke_service_account_service_accounts__service_account_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/registry": {
         parameters: {
             query?: never;
@@ -1912,10 +2504,20 @@ export interface components {
             name?: string | null;
             /** Db Id */
             db_id?: string | null;
+            /**
+             * Filesystem
+             * @default false
+             */
+            filesystem: boolean;
             /** Description */
             description?: string | null;
             /** Role */
             role?: string | null;
+            /**
+             * Is Factory
+             * @default false
+             */
+            is_factory: boolean;
             model?: components["schemas"]["ModelResponse"] | null;
             /** Tools */
             tools?: {
@@ -1967,6 +2569,10 @@ export interface components {
             input_schema?: {
                 [key: string]: unknown;
             } | null;
+            /** Factory Input Schema */
+            factory_input_schema?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Is Component
              * @default false
@@ -1976,6 +2582,11 @@ export interface components {
             current_version?: number | null;
             /** Stage */
             stage?: string | null;
+            /**
+             * Sandboxed
+             * @default false
+             */
+            sandboxed: boolean;
         };
         /** AgentSessionDetailSchema */
         AgentSessionDetailSchema: {
@@ -2084,6 +2695,20 @@ export interface components {
              * @description Database identifier
              */
             db_id?: string | null;
+            /** @description Model used by the agent */
+            model?: components["schemas"]["Model"] | null;
+            /**
+             * Metadata
+             * @description Additional metadata
+             */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Sandboxed
+             * @default false
+             */
+            sandboxed: boolean;
         };
         /**
          * ApprovalCountResponse
@@ -2235,21 +2860,25 @@ export interface components {
         /**
          * BadRequestResponse
          * @example {
-         *       "detail": "Bad request",
-         *       "error_code": "BAD_REQUEST"
+         *       "detail": "Bad request"
          *     }
          */
         BadRequestResponse: {
             /**
              * Detail
-             * @description Error detail message
+             * @description Human-readable error message
              */
             detail: string;
             /**
-             * Error Code
-             * @description Error code for categorization
+             * Error Id
+             * @description Stable identifier for the specific error, present only when the error carries one
              */
-            error_code?: string | null;
+            error_id?: string | null;
+            /**
+             * Error Type
+             * @description Category of the error, present only when the error carries one
+             */
+            error_type?: string | null;
         };
         /**
          * BinaryInputContent
@@ -2278,85 +2907,291 @@ export interface components {
         Body_continue_agent_run: {
             /**
              * Tools
+             * @description JSON string of tool call results to continue the paused run
              * @default
              */
             tools: string;
-            /** Session Id */
+            /**
+             * Input
+             * @description Optional new user-message text to append to the run before resuming. Use for continuing a COMPLETED run with a follow-up, or adding context to a RUNNING/ERROR resume.
+             */
+            input?: string | null;
+            /**
+             * Continue From
+             * @description Continuation boundary. Use 'end', 'last_user', or a numeric message index.
+             * @default end
+             */
+            continue_from: string;
+            /**
+             * Fork
+             * @description When true, clone the run with a new ``run_id`` before resuming. The original is untouched; the clone becomes a sibling within the same session, with ``forked_from_run_id`` set.
+             * @default false
+             */
+            fork: boolean;
+            /**
+             * Regenerate
+             * @description Sugar: regenerate the last response of this run. Auto-computes ``continue_from='last_user'`` to land just after the last user message. Pair with ``additional_instructions`` to steer the new output. By default the original response is hidden from history (replaced); pass ``replace_original=false`` to keep both the original and the regenerated response visible side by side.
+             * @default false
+             */
+            regenerate: boolean;
+            /**
+             * Replace Original
+             * @description Only valid with ``regenerate=true``. Controls history visibility of the original response; the original run is always retained in storage. Defaults to true: the original is marked REGENERATED and hidden from history so the new response replaces it. Pass false to keep both the original and regenerated responses visible.
+             */
+            replace_original?: boolean | null;
+            /**
+             * Additional Instructions
+             * @description Only valid with ``regenerate=true``: extra guidance appended as a user message before re-generation. Friendly alias for ``input``.
+             */
+            additional_instructions?: string | null;
+            /**
+             * Session Id
+             * @description Session ID for the paused run
+             */
             session_id?: string | null;
-            /** User Id */
+            /**
+             * User Id
+             * @description User identifier for tracking and personalization
+             */
             user_id?: string | null;
             /**
              * Stream
+             * @description Enable streaming responses via Server-Sent Events (SSE)
              * @default true
              */
             stream: boolean;
+            /**
+             * Background
+             * @description Run continue in background (survives client disconnect). Requires database. Use /resume to reconnect.
+             * @default false
+             */
+            background: boolean;
         };
-        /** Body_create_agent_run */
-        Body_create_agent_run: {
-            /** Message */
-            message: string;
+        /** Body_continue_team_run */
+        Body_continue_team_run: {
+            /**
+             * Requirements
+             * @default
+             */
+            requirements: string;
+            /** Input */
+            input?: string | null;
+            /**
+             * Continue From
+             * @description Continuation boundary. Use 'end', 'last_user', or a numeric message index.
+             * @default end
+             */
+            continue_from: string;
+            /**
+             * Fork
+             * @default false
+             */
+            fork: boolean;
+            /**
+             * Regenerate
+             * @default false
+             */
+            regenerate: boolean;
+            /** Replace Original */
+            replace_original?: boolean | null;
+            /** Additional Instructions */
+            additional_instructions?: string | null;
+            /** Session Id */
+            session_id?: string | null;
+            /** User Id */
+            user_id?: string | null;
             /**
              * Stream
              * @default true
              */
             stream: boolean;
-            /** Session Id */
-            session_id?: string | null;
-            /** User Id */
-            user_id?: string | null;
-            /** Files */
-            files?: string[] | null;
-            /** Version */
-            version?: string | null;
             /**
              * Background
              * @default false
              */
             background: boolean;
         };
-        /** Body_create_team_run */
-        Body_create_team_run: {
-            /** Message */
+        /** Body_continue_workflow_run */
+        Body_continue_workflow_run: {
+            /**
+             * Step Requirements
+             * @description JSON string of step requirement objects with resolution status
+             * @default
+             */
+            step_requirements: string;
+            /**
+             * Session Id
+             * @description Session ID for the paused run
+             */
+            session_id?: string | null;
+            /**
+             * User Id
+             * @description User identifier for tracking and personalization
+             */
+            user_id?: string | null;
+            /**
+             * Stream
+             * @description Enable streaming responses via Server-Sent Events (SSE)
+             * @default true
+             */
+            stream: boolean;
+            /**
+             * Background
+             * @description Continue in background (survives client disconnect). Requires database. Use /resume to reconnect.
+             * @default false
+             */
+            background: boolean;
+            /**
+             * Factory Input
+             * @description JSON object with factory-specific parameters for dynamic workflow reconstruction
+             */
+            factory_input?: string | null;
+        };
+        /** Body_create_agent_run */
+        Body_create_agent_run: {
+            /**
+             * Message
+             * @description The input message or prompt to send to the agent
+             */
             message: string;
             /**
              * Stream
+             * @description Enable streaming responses via Server-Sent Events (SSE)
+             * @default true
+             */
+            stream: boolean;
+            /**
+             * Session Id
+             * @description Session ID for conversation continuity. If not provided, a new session is created
+             */
+            session_id?: string | null;
+            /**
+             * User Id
+             * @description User identifier for tracking and personalization
+             */
+            user_id?: string | null;
+            /**
+             * Files
+             * @description Files to upload (images, audio, video, or documents)
+             */
+            files?: string[] | null;
+            /**
+             * Files Metadata
+             * @description JSON array of per-file metadata objects, matched to files[] by position
+             */
+            files_metadata?: string | null;
+            /**
+             * Version
+             * @description Agent version to use for this run
+             */
+            version?: number | null;
+            /**
+             * Background
+             * @description Run in background and return immediately with run metadata (requires database)
+             * @default false
+             */
+            background: boolean;
+            /**
+             * Factory Input
+             * @description JSON object with factory-specific parameters for dynamic agent construction
+             */
+            factory_input?: string | null;
+        };
+        /** Body_create_team_run */
+        Body_create_team_run: {
+            /**
+             * Message
+             * @description The input message or prompt to send to the team
+             */
+            message: string;
+            /**
+             * Stream
+             * @description Enable streaming responses via Server-Sent Events (SSE)
              * @default true
              */
             stream: boolean;
             /**
              * Monitor
+             * @description Enable monitoring and logging for this run
              * @default true
              */
             monitor: boolean;
-            /** Session Id */
+            /**
+             * Session Id
+             * @description Session ID for conversation continuity. If not provided, a new session is created
+             */
             session_id?: string | null;
-            /** User Id */
+            /**
+             * User Id
+             * @description User identifier for tracking and personalization
+             */
             user_id?: string | null;
-            /** Files */
+            /**
+             * Files
+             * @description Files to upload (images, audio, video, or documents)
+             */
             files?: string[] | null;
-            /** Version */
+            /**
+             * Files Metadata
+             * @description JSON array of per-file metadata objects, matched to files[] by position
+             */
+            files_metadata?: string | null;
+            /**
+             * Version
+             * @description Team version to use for this run
+             */
             version?: number | null;
             /**
              * Background
+             * @description Run in background and return immediately with run metadata (requires database)
              * @default false
              */
             background: boolean;
+            /**
+             * Factory Input
+             * @description JSON object with factory-specific parameters for dynamic team construction
+             */
+            factory_input?: string | null;
         };
         /** Body_create_workflow_run */
         Body_create_workflow_run: {
-            /** Message */
+            /**
+             * Message
+             * @description The input message or prompt to send to the workflow
+             */
             message: string;
             /**
              * Stream
+             * @description Enable streaming responses via Server-Sent Events (SSE)
              * @default true
              */
             stream: boolean;
-            /** Session Id */
+            /**
+             * Background
+             * @description Run workflow in background (survives client disconnect). Requires database. Use /resume to reconnect.
+             * @default false
+             */
+            background: boolean;
+            /**
+             * Session Id
+             * @description Session ID for conversation continuity. If not provided, a new session is created
+             */
             session_id?: string | null;
-            /** User Id */
+            /**
+             * User Id
+             * @description User identifier for tracking and personalization
+             */
             user_id?: string | null;
-            /** Version */
+            /**
+             * Version
+             * @description Workflow version to use for this run
+             */
             version?: number | null;
+            /**
+             * Factory Input
+             * @description JSON object with factory-specific parameters for dynamic workflow construction
+             */
+            factory_input?: string | null;
         };
         /** Body_rename_session */
         Body_rename_session: {
@@ -2365,6 +3200,45 @@ export interface components {
              * @description New name for the session
              */
             session_name: string;
+        };
+        /** Body_resume_agent_run_stream */
+        Body_resume_agent_run_stream: {
+            /**
+             * Last Event Index
+             * @description Index of last event received by client (0-based)
+             */
+            last_event_index?: number | null;
+            /**
+             * Session Id
+             * @description Session ID for database fallback
+             */
+            session_id?: string | null;
+        };
+        /** Body_resume_team_run_stream */
+        Body_resume_team_run_stream: {
+            /**
+             * Last Event Index
+             * @description Index of last event received by client (0-based)
+             */
+            last_event_index?: number | null;
+            /**
+             * Session Id
+             * @description Session ID for database fallback
+             */
+            session_id?: string | null;
+        };
+        /** Body_resume_workflow_run_stream */
+        Body_resume_workflow_run_stream: {
+            /**
+             * Last Event Index
+             * @description Index of last event received by client (0-based)
+             */
+            last_event_index?: number | null;
+            /**
+             * Session Id
+             * @description Session ID for database fallback
+             */
+            session_id?: string | null;
         };
         /** Body_update_content */
         Body_update_content: {
@@ -2403,7 +3277,7 @@ export interface components {
             description?: string | null;
             /**
              * Url
-             * @description URL to fetch content from (JSON array or single URL string)
+             * @description Single URL string, optionally JSON encoded. Submit multiple URLs in separate requests.
              */
             url?: string | null;
             /**
@@ -2454,6 +3328,11 @@ export interface components {
              * @description Path to file or folder in the remote source
              */
             path: string;
+            /**
+             * Source Params
+             * @description JSON object of per-request parameters forwarded to the source's factory. Used for provider-specific routing that shouldn't be baked into the config. Currently supported keys: GitHub accepts 'repo' ('owner/repo'), letting one configured GitHub source serve multiple repositories the credentials can access.
+             */
+            source_params?: string | null;
             /**
              * Name
              * @description Content name (auto-generated if not provided)
@@ -2514,74 +3393,25 @@ export interface components {
             } | null;
         };
         /**
-         * ConfigResponse
-         * @description Response schema for the general config endpoint
+         * CompanyDomainConfig
+         * @description Display configuration for the Company domain.
          */
+        CompanyDomainConfig: {
+            /** Display Name */
+            display_name?: string | null;
+        };
+        /**
+         * CompanySectionConfig
+         * @description Company database and table configuration exposed to clients.
+         */
+        CompanySectionConfig: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Dbs */
+            dbs?: components["schemas"]["DatabaseConfig_CompanyDomainConfig_"][];
+        };
         ConfigResponse: {
-            /**
-             * Os Id
-             * @description Unique identifier for the OS instance
-             */
-            os_id: string;
-            /**
-             * Name
-             * @description Name of the OS instance
-             */
-            name?: string | null;
-            /**
-             * Description
-             * @description Description of the OS instance
-             */
-            description?: string | null;
-            /**
-             * Available Models
-             * @description List of available models
-             */
-            available_models?: string[] | null;
-            /**
-             * Os Database
-             * @description ID of the database used for the OS instance
-             */
-            os_database?: string | null;
-            /**
-             * Databases
-             * @description List of database IDs used by the components of the OS instance
-             */
-            databases: string[];
-            /** @description Chat configuration */
-            chat?: components["schemas"]["ChatConfig"] | null;
-            /** @description Session configuration */
-            session?: components["schemas"]["SessionConfig"] | null;
-            /** @description Metrics configuration */
-            metrics?: components["schemas"]["MetricsConfig"] | null;
-            /** @description Memory configuration */
-            memory?: components["schemas"]["MemoryConfig"] | null;
-            /** @description Knowledge configuration */
-            knowledge?: components["schemas"]["KnowledgeConfig"] | null;
-            /** @description Evaluations configuration */
-            evals?: components["schemas"]["EvalsConfig"] | null;
-            /** @description Traces configuration */
-            traces?: components["schemas"]["TracesConfig"] | null;
-            /**
-             * Agents
-             * @description List of registered agents
-             */
-            agents: components["schemas"]["AgentSummaryResponse"][];
-            /**
-             * Teams
-             * @description List of registered teams
-             */
-            teams: components["schemas"]["TeamSummaryResponse"][];
-            /**
-             * Workflows
-             * @description List of registered workflows
-             */
-            workflows: components["schemas"]["WorkflowSummaryResponse"][];
-            /**
-             * Interfaces
-             * @description List of available interfaces
-             */
-            interfaces: components["schemas"]["InterfaceResponse"][];
+            [key: string]: unknown;
         };
         /** ConfigResponseSchema */
         ConfigResponseSchema: {
@@ -2621,6 +3451,20 @@ export interface components {
              * @description Configured remote content sources (S3, GCS, SharePoint, GitHub)
              */
             remote_content_sources?: components["schemas"]["RemoteContentSourceSchema"][] | null;
+            /**
+             * Unavailable Readers
+             * @description Readers that are not usable in this install, and the packages they need
+             */
+            unavailable_readers?: {
+                [key: string]: components["schemas"]["UnavailableReaderSchema"];
+            } | null;
+            /**
+             * Unavailable Chunkers
+             * @description Chunking strategies that are not usable in this install, and the packages they need
+             */
+            unavailable_chunkers?: {
+                [key: string]: components["schemas"]["UnavailableChunkerSchema"];
+            } | null;
         };
         /** ContentResponseSchema */
         ContentResponseSchema: {
@@ -2689,7 +3533,7 @@ export interface components {
          * @description Enumeration of possible content processing statuses.
          * @enum {string}
          */
-        ContentStatus: "processing" | "completed" | "failed";
+        ContentStatus: "processing" | "completed" | "partial" | "failed";
         /**
          * ContentStatusResponse
          * @description Response model for content status endpoint.
@@ -2768,11 +3612,27 @@ export interface components {
              */
             workflow_id?: string | null;
         };
+        /** DatabaseConfig[CompanyDomainConfig] */
+        DatabaseConfig_CompanyDomainConfig_: {
+            /** Db Id */
+            db_id: string;
+            domain_config?: components["schemas"]["CompanyDomainConfig"] | null;
+            /** Tables */
+            tables?: string[] | null;
+        };
         /** DatabaseConfig[EvalsDomainConfig] */
         DatabaseConfig_EvalsDomainConfig_: {
             /** Db Id */
             db_id: string;
             domain_config?: components["schemas"]["EvalsDomainConfig"] | null;
+            /** Tables */
+            tables?: string[] | null;
+        };
+        /** DatabaseConfig[LearningDomainConfig] */
+        DatabaseConfig_LearningDomainConfig_: {
+            /** Db Id */
+            db_id: string;
+            domain_config?: components["schemas"]["LearningDomainConfig"] | null;
             /** Tables */
             tables?: string[] | null;
         };
@@ -2886,14 +3746,6 @@ export interface components {
              */
             updated_at: string;
         };
-        /** DeleteEvalRunsRequest */
-        DeleteEvalRunsRequest: {
-            /**
-             * Eval Run Ids
-             * @description List of evaluation run IDs to delete
-             */
-            eval_run_ids: string[];
-        };
         /** DeleteMemoriesRequest */
         DeleteMemoriesRequest: {
             /**
@@ -2965,177 +3817,12 @@ export interface components {
             [key: string]: unknown;
         };
         /**
-         * EvalFilterType
-         * @enum {string}
-         */
-        EvalFilterType: "agent" | "team" | "workflow";
-        /** EvalRunInput */
-        EvalRunInput: {
-            /**
-             * Agent Id
-             * @description Agent ID to evaluate
-             */
-            agent_id?: string | null;
-            /**
-             * Team Id
-             * @description Team ID to evaluate
-             */
-            team_id?: string | null;
-            /**
-             * Model Id
-             * @description Model ID to use for evaluation
-             */
-            model_id?: string | null;
-            /**
-             * Model Provider
-             * @description Model provider name
-             */
-            model_provider?: string | null;
-            /** @description Type of evaluation to run (accuracy, performance, or reliability) */
-            eval_type: components["schemas"]["EvalType"];
-            /**
-             * Input
-             * @description Input text/query for the evaluation
-             */
-            input: string;
-            /**
-             * Additional Guidelines
-             * @description Additional guidelines for the evaluation
-             */
-            additional_guidelines?: string | null;
-            /**
-             * Additional Context
-             * @description Additional context for the evaluation
-             */
-            additional_context?: string | null;
-            /**
-             * Num Iterations
-             * @description Number of times to run the evaluation
-             * @default 1
-             */
-            num_iterations: number;
-            /**
-             * Name
-             * @description Name for this evaluation run
-             */
-            name?: string | null;
-            /**
-             * Expected Output
-             * @description Expected output for accuracy evaluation
-             */
-            expected_output?: string | null;
-            /**
-             * Criteria
-             * @description Evaluation criteria for agent-as-judge evaluation
-             */
-            criteria?: string | null;
-            /**
-             * Scoring Strategy
-             * @description Scoring strategy: 'numeric' (1-10 with threshold) or 'binary' (PASS/FAIL)
-             * @default binary
-             */
-            scoring_strategy: ("numeric" | "binary") | null;
-            /**
-             * Threshold
-             * @description Score threshold for pass/fail (1-10), only used with numeric scoring
-             * @default 7
-             */
-            threshold: number | null;
-            /**
-             * Warmup Runs
-             * @description Number of warmup runs before measuring performance
-             * @default 0
-             */
-            warmup_runs: number;
-            /**
-             * Expected Tool Calls
-             * @description Expected tool calls for reliability evaluation
-             */
-            expected_tool_calls?: string[] | null;
-        };
-        /** EvalSchema */
-        EvalSchema: {
-            /**
-             * Id
-             * @description Unique identifier for the evaluation run
-             */
-            id: string;
-            /**
-             * Agent Id
-             * @description Agent ID that was evaluated
-             */
-            agent_id?: string | null;
-            /**
-             * Model Id
-             * @description Model ID used in evaluation
-             */
-            model_id?: string | null;
-            /**
-             * Model Provider
-             * @description Model provider name
-             */
-            model_provider?: string | null;
-            /**
-             * Team Id
-             * @description Team ID that was evaluated
-             */
-            team_id?: string | null;
-            /**
-             * Workflow Id
-             * @description Workflow ID that was evaluated
-             */
-            workflow_id?: string | null;
-            /**
-             * Name
-             * @description Name of the evaluation run
-             */
-            name?: string | null;
-            /**
-             * Evaluated Component Name
-             * @description Name of the evaluated component
-             */
-            evaluated_component_name?: string | null;
-            /** @description Type of evaluation (accuracy, performance, or reliability) */
-            eval_type: components["schemas"]["EvalType"];
-            /**
-             * Eval Data
-             * @description Evaluation results and metrics
-             */
-            eval_data: {
-                [key: string]: unknown;
-            };
-            /**
-             * Eval Input
-             * @description Input parameters used for the evaluation
-             */
-            eval_input?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * Created At
-             * @description Timestamp when evaluation was created
-             */
-            created_at?: string | null;
-            /**
-             * Updated At
-             * @description Timestamp when evaluation was last updated
-             */
-            updated_at?: string | null;
-        };
-        /**
-         * EvalType
-         * @enum {string}
-         */
-        EvalType: "accuracy" | "agent_as_judge" | "performance" | "reliability";
-        /**
          * EvalsConfig
          * @description Configuration for the Evals domain of the AgentOS
          */
         EvalsConfig: {
             /** Display Name */
             display_name?: string | null;
-            /** Available Models */
-            available_models?: string[] | null;
             /** Dbs */
             dbs?: components["schemas"]["DatabaseConfig_EvalsDomainConfig_"][] | null;
         };
@@ -3146,8 +3833,204 @@ export interface components {
         EvalsDomainConfig: {
             /** Display Name */
             display_name?: string | null;
-            /** Available Models */
-            available_models?: string[] | null;
+        };
+        /** FileSystemAgent */
+        FileSystemAgent: {
+            /**
+             * Id
+             * @description ID of an agent using this filesystem namespace
+             */
+            id: string;
+            /**
+             * Access
+             * @description Agent access to this namespace. Omitted for full access; tool-specific restrictions still apply.
+             * @default full
+             * @enum {string}
+             */
+            access: "full" | "read_only";
+        };
+        /** FileSystemConfig */
+        FileSystemConfig: {
+            /**
+             * Namespaces
+             * @description Filesystem namespaces with their backend details, limits, and linked agents
+             */
+            namespaces?: components["schemas"]["FileSystemNamespace"][];
+        };
+        /** FileSystemContentResponse */
+        FileSystemContentResponse: {
+            /** Namespace */
+            namespace: string;
+            /** Agent Ids */
+            agent_ids: string[];
+            /** Path */
+            path: string;
+            /** Content */
+            content: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Version */
+            version?: number | null;
+            /** Updated At */
+            updated_at?: number | null;
+            /** User Id */
+            user_id?: string | null;
+            /** Line Count */
+            line_count: number;
+            /** Truncated */
+            truncated: boolean;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Next Offset */
+            next_offset?: number | null;
+        };
+        /** FileSystemEntry */
+        FileSystemEntry: {
+            /** Path */
+            path: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "file" | "directory";
+            /** Size Bytes */
+            size_bytes?: number | null;
+            /** Version */
+            version?: number | null;
+            /** Updated At */
+            updated_at?: number | null;
+            /** User Id */
+            user_id?: string | null;
+        };
+        /** FileSystemListResponse */
+        FileSystemListResponse: {
+            /** Namespace */
+            namespace: string;
+            /** Agent Ids */
+            agent_ids: string[];
+            /** Directory */
+            directory: string;
+            /** Entries */
+            entries: components["schemas"]["FileSystemEntry"][];
+            usage: components["schemas"]["FileSystemUsage"];
+            meta: components["schemas"]["PaginationInfo"];
+        };
+        /** FileSystemNamespace */
+        FileSystemNamespace: {
+            /**
+             * Backend Type
+             * @description Filesystem backend type
+             */
+            backend_type: string;
+            /**
+             * Db Id
+             * @description Database identifier for a database-backed filesystem
+             */
+            db_id?: string | null;
+            /**
+             * Db Schema
+             * @description Database schema containing filesystem rows
+             */
+            db_schema?: string | null;
+            /**
+             * Table Name
+             * @description Database table containing filesystem rows
+             */
+            table_name?: string | null;
+            /**
+             * Namespace
+             * @description Canonical namespace resolved for the caller; placeholders remain when identity is unavailable
+             */
+            namespace: string;
+            /**
+             * User Isolation
+             * @description Whether the namespace is partitioned by user identity
+             */
+            user_isolation: boolean;
+            /**
+             * Max File Bytes
+             * @description Maximum UTF-8 bytes per file
+             */
+            max_file_bytes: number;
+            /**
+             * Max Namespace Bytes
+             * @description Maximum bytes across the namespace
+             */
+            max_namespace_bytes: number;
+            /**
+             * Agents
+             * @description Agents using this filesystem namespace and their access
+             */
+            agents: components["schemas"]["FileSystemAgent"][];
+        };
+        /** FileSystemSearchEntry */
+        FileSystemSearchEntry: {
+            /** Path */
+            path: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Snippet */
+            snippet: string;
+            /** Line */
+            line?: number | null;
+            /** Match Count */
+            match_count: number;
+            /** User Id */
+            user_id?: string | null;
+        };
+        /** FileSystemSearchResponse */
+        FileSystemSearchResponse: {
+            /** Namespace */
+            namespace: string;
+            /** Agent Ids */
+            agent_ids: string[];
+            /** Query */
+            query: string;
+            /** Directory */
+            directory: string;
+            /** Entries */
+            entries: components["schemas"]["FileSystemSearchEntry"][];
+            meta: components["schemas"]["PaginationInfo"];
+        };
+        /** FileSystemTableEntry */
+        FileSystemTableEntry: {
+            /** Namespace */
+            namespace: string;
+            /** Path */
+            path: string;
+            /** Agent Ids */
+            agent_ids: string[];
+            /** Size Bytes */
+            size_bytes: number;
+            /** Version */
+            version?: number | null;
+            /** Updated At */
+            updated_at?: number | null;
+            /** User Id */
+            user_id?: string | null;
+            /** Snippet */
+            snippet?: string | null;
+            /** Line */
+            line?: number | null;
+            /** Match Count */
+            match_count?: number | null;
+        };
+        /** FileSystemTableResponse */
+        FileSystemTableResponse: {
+            /** Entries */
+            entries: components["schemas"]["FileSystemTableEntry"][];
+            meta: components["schemas"]["PaginationInfo"];
+        };
+        /** FileSystemUsage */
+        FileSystemUsage: {
+            /** File Count */
+            file_count: number;
+            /** Total Bytes */
+            total_bytes: number;
+            /** Bytes Limit */
+            bytes_limit: number;
         };
         /**
          * FilterFieldSchema
@@ -3255,6 +4138,65 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * InfoResponse
+         * @description Response schema for the /info endpoint returning lightweight OS metadata.
+         */
+        InfoResponse: {
+            /**
+             * Os Id
+             * @description Unique identifier for the OS instance
+             */
+            os_id: string;
+            /**
+             * Name
+             * @description Name of the OS instance
+             */
+            name?: string | null;
+            /**
+             * Os Version
+             * @description Version of this AgentOS instance
+             */
+            os_version: string;
+            /**
+             * Agno Version
+             * @description Version of the agno framework
+             */
+            agno_version: string;
+            /**
+             * Agent Count
+             * @description Number of agents registered in the OS
+             * @default 0
+             */
+            agent_count: number;
+            /**
+             * Team Count
+             * @description Number of teams registered in the OS
+             * @default 0
+             */
+            team_count: number;
+            /**
+             * Workflow Count
+             * @description Number of workflows registered in the OS
+             * @default 0
+             */
+            workflow_count: number;
+            /** @description MCP server availability for this OS instance */
+            mcp?: components["schemas"]["McpInfo"];
+            /**
+             * Auth Mode
+             * @description Authentication mode enforced on the REST/WS plane of this OS instance. MCP OAuth, when enabled, is described separately under `mcp.oauth`.
+             * @default none
+             * @enum {string}
+             */
+            auth_mode: "none" | "security_key" | "jwt";
+            /**
+             * User Isolation
+             * @description Whether per-user data isolation is switched on for this OS instance. Read it together with `auth_mode`: under `jwt` the token names the user, so a client sends nothing extra. Under `none` or `security_key` the OS cannot tell who a request is for, so a client that wants each user to see only their own data sends that user's id as `user_id` on every request, reads included, not only on runs.
+             * @default false
+             */
+            user_isolation: boolean;
+        };
+        /**
          * InputContentDataSource
          * @description Inline base64-encoded source.
          */
@@ -3309,21 +4251,25 @@ export interface components {
         /**
          * InternalServerErrorResponse
          * @example {
-         *       "detail": "Internal server error",
-         *       "error_code": "INTERNAL_SERVER_ERROR"
+         *       "detail": "Internal server error"
          *     }
          */
         InternalServerErrorResponse: {
             /**
              * Detail
-             * @description Error detail message
+             * @description Human-readable error message
              */
             detail: string;
             /**
-             * Error Code
-             * @description Error code for categorization
+             * Error Id
+             * @description Stable identifier for the specific error, present only when the error carries one
              */
-            error_code?: string | null;
+            error_id?: string | null;
+            /**
+             * Error Type
+             * @description Category of the error, present only when the error carries one
+             */
+            error_type?: string | null;
         };
         /**
          * KnowledgeConfig
@@ -3374,6 +4320,262 @@ export interface components {
             db_id: string;
             /** Table */
             table: string;
+        };
+        /**
+         * LearningConfig
+         * @description Configuration for the Learning domain of the AgentOS
+         */
+        LearningConfig: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Dbs */
+            dbs?: components["schemas"]["DatabaseConfig_LearningDomainConfig_"][] | null;
+        };
+        /**
+         * LearningCreate
+         * @description Request body for creating a learning record.
+         */
+        LearningCreate: {
+            /**
+             * Learning Type
+             * @description Type of learning (e.g. 'user_profile', 'entity_memory')
+             */
+            learning_type: string;
+            /**
+             * Content
+             * @description The learning content payload
+             */
+            content: {
+                [key: string]: unknown;
+            };
+            /**
+             * Namespace
+             * @description Namespace for scoping ('user', 'global', or custom)
+             */
+            namespace?: string | null;
+            /**
+             * User Id
+             * @description Associated user ID. When the request is authenticated, must match the JWT subject or be omitted/null (which creates a global / non-user-scoped record).
+             */
+            user_id?: string | null;
+            /**
+             * Agent Id
+             * @description Associated agent ID
+             */
+            agent_id?: string | null;
+            /**
+             * Team Id
+             * @description Associated team ID
+             */
+            team_id?: string | null;
+            /**
+             * Session Id
+             * @description Associated session ID
+             */
+            session_id?: string | null;
+            /**
+             * Entity Id
+             * @description Associated entity ID
+             */
+            entity_id?: string | null;
+            /**
+             * Entity Type
+             * @description Entity type
+             */
+            entity_type?: string | null;
+            /**
+             * Metadata
+             * @description Optional metadata
+             */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * LearningDomainConfig
+         * @description Configuration for the Learning domain of the AgentOS
+         */
+        LearningDomainConfig: {
+            /** Display Name */
+            display_name?: string | null;
+        };
+        /**
+         * LearningResponse
+         * @description A single learning record as returned by the API.
+         */
+        LearningResponse: {
+            /**
+             * Learning Id
+             * @description Unique identifier for the learning record
+             */
+            learning_id: string;
+            /**
+             * Learning Type
+             * @description Type of learning (e.g. 'user_profile', 'entity_memory')
+             */
+            learning_type: string;
+            /**
+             * Namespace
+             * @description Namespace for scoping ('user', 'global', or custom)
+             */
+            namespace?: string | null;
+            /**
+             * User Id
+             * @description Associated user ID
+             */
+            user_id?: string | null;
+            /**
+             * Agent Id
+             * @description Associated agent ID
+             */
+            agent_id?: string | null;
+            /**
+             * Team Id
+             * @description Associated team ID
+             */
+            team_id?: string | null;
+            /**
+             * Session Id
+             * @description Associated session ID
+             */
+            session_id?: string | null;
+            /**
+             * Entity Id
+             * @description Associated entity ID (for entity-specific learnings)
+             */
+            entity_id?: string | null;
+            /**
+             * Entity Type
+             * @description Entity type (e.g. 'person', 'company')
+             */
+            entity_type?: string | null;
+            /**
+             * Content
+             * @description The learning content payload
+             */
+            content?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Metadata
+             * @description Optional metadata
+             */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * @description Creation timestamp (Unix epoch seconds)
+             */
+            created_at?: number | null;
+            /**
+             * Updated At
+             * @description Last update timestamp (Unix epoch seconds)
+             */
+            updated_at?: number | null;
+        };
+        /**
+         * LearningUpdate
+         * @description Request body for updating a learning record. Identity fields are immutable.
+         */
+        LearningUpdate: {
+            /**
+             * Content
+             * @description Replacement content payload
+             */
+            content?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Metadata
+             * @description Replacement metadata
+             */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * LearningUserStats
+         * @description A user that owns learning records, with their most recent activity.
+         *
+         *     Used as a lightweight index for the per-user view: list users here, then drill into a
+         *     single user's records via ``GET /learnings?user_id=...``. No per-user count is returned
+         *     -- the user-scoped stores (``user_profile``, ``user_memory``) keep a single record per
+         *     user, so a record count would always be 1; the actual memory count lives in that
+         *     record's ``content``.
+         */
+        LearningUserStats: {
+            /**
+             * User Id
+             * @description The user ID
+             */
+            user_id: string;
+            /**
+             * Last Learning Updated At
+             * @description Most recent learning update for this user (Unix epoch seconds)
+             */
+            last_learning_updated_at?: number | null;
+        };
+        /**
+         * Manifest
+         * @description OS-level UI metadata for an agent/team/workflow.
+         *
+         *     Fields here are AgentOS UI metadata only. ``description`` is unrelated to
+         *     ``Agent.description`` / ``Team.description`` / ``Workflow.description``,
+         *     which are sent to the model.
+         *
+         *     Rendering surfaces:
+         *     - ``description``, ``labels``: home/landing card
+         *     - ``quick_prompts``: chat page
+         */
+        Manifest: {
+            /** Description */
+            description?: string | null;
+            /** Labels */
+            labels?: string[] | null;
+            /** Quick Prompts */
+            quick_prompts?: string[] | null;
+        };
+        /**
+         * McpInfo
+         * @description MCP server availability for the /info endpoint.
+         */
+        McpInfo: {
+            /**
+             * Enabled
+             * @description Whether the MCP server is enabled on this OS instance
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Path
+             * @description Path where the MCP server is mounted, null when disabled
+             */
+            path?: string | null;
+            /** @description OAuth discovery details when the MCP endpoint is OAuth-protected, null otherwise */
+            oauth?: components["schemas"]["McpOAuthInfo"] | null;
+            /**
+             * Tool Run Endpoint
+             * @description Whether this deployment serves the plain-HTTP tool runner at `{path}/server/tools/{tool_name}/run`. False both when the MCP server is off and when it is on with `MCPConfig(tool_run_endpoint=False)`, so a client can tell upfront whether running a tool is possible instead of discovering it on the call.
+             * @default false
+             */
+            tool_run_endpoint: boolean;
+        };
+        /**
+         * McpOAuthInfo
+         * @description OAuth discovery details for an MCP endpoint protected by ``AgentOS(mcp_auth=...)``.
+         */
+        McpOAuthInfo: {
+            /**
+             * Authorization Servers
+             * @description Issuer URL(s) of the authorization server(s) protecting the MCP endpoint
+             */
+            authorization_servers?: string[] | null;
+            /**
+             * Resource
+             * @description RFC 9728 resource URL advertised for the MCP endpoint
+             */
+            resource?: string | null;
         };
         /**
          * MemoryConfig
@@ -3429,6 +4631,42 @@ export interface components {
             /** Display Name */
             display_name?: string | null;
         };
+        /** MetricsRefreshResponse */
+        MetricsRefreshResponse: {
+            /**
+             * Status
+             * @description Status of the refresh request
+             */
+            status: string;
+            /**
+             * Message
+             * @description Additional details
+             */
+            message?: string | null;
+        };
+        /** MetricsRefreshStatusResponse */
+        MetricsRefreshStatusResponse: {
+            /**
+             * Status
+             * @description Refresh status: 'idle', 'running', 'completed' or 'failed'
+             */
+            status: string;
+            /**
+             * Started At
+             * @description When the most recent refresh started
+             */
+            started_at?: string | null;
+            /**
+             * Finished At
+             * @description When the most recent refresh finished
+             */
+            finished_at?: string | null;
+            /**
+             * Error
+             * @description Error message if the most recent refresh failed
+             */
+            error?: string | null;
+        };
         /** MetricsResponse */
         MetricsResponse: {
             /**
@@ -3476,21 +4714,25 @@ export interface components {
         /**
          * NotFoundResponse
          * @example {
-         *       "detail": "Not found",
-         *       "error_code": "NOT_FOUND"
+         *       "detail": "Not found"
          *     }
          */
         NotFoundResponse: {
             /**
              * Detail
-             * @description Error detail message
+             * @description Human-readable error message
              */
             detail: string;
             /**
-             * Error Code
-             * @description Error code for categorization
+             * Error Id
+             * @description Stable identifier for the specific error, present only when the error carries one
              */
-            error_code?: string | null;
+            error_id?: string | null;
+            /**
+             * Error Type
+             * @description Category of the error, present only when the error carries one
+             */
+            error_type?: string | null;
         };
         /**
          * OptimizeMemoriesRequest
@@ -3575,13 +4817,23 @@ export interface components {
             /** @description Pagination metadata */
             meta: components["schemas"]["PaginationInfo"];
         };
-        /** PaginatedResponse[EvalSchema] */
-        PaginatedResponse_EvalSchema_: {
+        /** PaginatedResponse[LearningResponse] */
+        PaginatedResponse_LearningResponse_: {
             /**
              * Data
              * @description List of items for the current page
              */
-            data: components["schemas"]["EvalSchema"][];
+            data: components["schemas"]["LearningResponse"][];
+            /** @description Pagination metadata */
+            meta: components["schemas"]["PaginationInfo"];
+        };
+        /** PaginatedResponse[LearningUserStats] */
+        PaginatedResponse_LearningUserStats_: {
+            /**
+             * Data
+             * @description List of items for the current page
+             */
+            data: components["schemas"]["LearningUserStats"][];
             /** @description Pagination metadata */
             meta: components["schemas"]["PaginationInfo"];
         };
@@ -3612,6 +4864,16 @@ export interface components {
              * @description List of items for the current page
              */
             data: components["schemas"]["ScheduleRunResponse"][];
+            /** @description Pagination metadata */
+            meta: components["schemas"]["PaginationInfo"];
+        };
+        /** PaginatedResponse[ServiceAccountResponse] */
+        PaginatedResponse_ServiceAccountResponse_: {
+            /**
+             * Data
+             * @description List of items for the current page
+             */
+            data: components["schemas"]["ServiceAccountResponse"][];
             /** @description Pagination metadata */
             meta: components["schemas"]["PaginationInfo"];
         };
@@ -3689,7 +4951,7 @@ export interface components {
         PaginationInfo: {
             /**
              * Page
-             * @description Current page number (0-indexed)
+             * @description Current page number (1-indexed)
              * @default 0
              */
             page: number;
@@ -3718,6 +4980,38 @@ export interface components {
              */
             search_time_ms: number;
         };
+        /**
+         * QueueCapabilities
+         * @description Deployment-level background-run capabilities: what a client may rely on
+         *     when deciding whether to render queue-aware UI (e.g. a chat tray).
+         *
+         *     Reported as EFFECTIVE behavior, not raw settings: queue_per_session is
+         *     true only when a durable queue actually enforces the per-session gate -
+         *     a queue_per_session flag without durable=True, or with a custom store
+         *     that does not serialize sessions, gates nothing and is reported false. Readable by any authenticated caller (deployment
+         *     capability, not operator data - the admin-scoped /queue surface stays
+         *     the only view of actual jobs).
+         *
+         *     Both fields describe submissions the durable queue can carry. A
+         *     background submission the queue cannot carry (media uploads, payloads
+         *     plain JSON cannot store, factory-backed or off-registry components)
+         *     executes in-process on the accepting replica, outside the gate and
+         *     without durability, and the server logs each such bypass; the client
+         *     still receives 202 PENDING. A caller that sends those knows it is
+         *     sending them; the capability does not change per submission.
+         */
+        QueueCapabilities: {
+            /**
+             * Durable
+             * @description Accepted background runs survive crashes and deploys (ticketed queue with a worker)
+             */
+            durable: boolean;
+            /**
+             * Queue Per Session
+             * @description Same-session background submissions execute at most one at a time, FIFO by submission; false when no durable queue enforces the gate
+             */
+            queue_per_session: boolean;
+        };
         /** ReaderSchema */
         ReaderSchema: {
             /**
@@ -3740,6 +5034,18 @@ export interface components {
              * @description List of supported chunking strategies
              */
             chunkers?: string[] | null;
+            /**
+             * Content Types
+             * @description Content types this reader can read in this install
+             */
+            content_types?: string[] | null;
+            /**
+             * Unavailable Content Types
+             * @description Content types this reader supports but cannot read here, and the packages each needs
+             */
+            unavailable_content_types?: {
+                [key: string]: string[];
+            } | null;
         };
         /**
          * ReasoningMessage
@@ -3779,13 +5085,18 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Sandboxed
+             * @default false
+             */
+            sandboxed: boolean;
         };
         /**
          * RegistryResourceType
          * @description Types of resources that can be stored in a registry.
          * @enum {string}
          */
-        RegistryResourceType: "tool" | "model" | "db" | "vector_db" | "schema" | "function" | "agent" | "team";
+        RegistryResourceType: "tool" | "model" | "db" | "vector_db" | "schema" | "function" | "agent" | "team" | "workflow" | "knowledge" | "memory_manager" | "session_summary_manager" | "learning";
         /**
          * RemoteContentSourceSchema
          * @description Schema for remote content source configuration.
@@ -3898,6 +5209,11 @@ export interface components {
              */
             status?: string | null;
             /**
+             * Cancellation Stage
+             * @description For CANCELLED runs, where the run was when it was cancelled: PENDING, EXECUTING, PAUSED. Absent means unknown.
+             */
+            cancellation_stage?: string | null;
+            /**
              * Run Input
              * @description Input provided to the run
              */
@@ -3931,6 +5247,13 @@ export interface components {
              * @description Performance and usage metrics
              */
             metrics?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Metadata
+             * @description Run metadata, including sdk for external agent sessions
+             */
+            metadata?: {
                 [key: string]: unknown;
             } | null;
             /**
@@ -4029,18 +5352,52 @@ export interface components {
             input_media?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Followups
+             * @description Followup suggestions generated after the run
+             */
+            followups?: string[] | null;
+            /**
+             * Forked From Run Id
+             * @description If this run was forked from another run, the source run's ID
+             */
+            forked_from_run_id?: string | null;
+            /**
+             * Forked From Message Index
+             * @description If this run was forked, the message index at which the source was truncated
+             */
+            forked_from_message_index?: number | null;
+            /**
+             * Forked From Session Id
+             * @description If this run was created via session branch, the source session's ID
+             */
+            forked_from_session_id?: string | null;
+            /**
+             * Regenerated From
+             * @description If this run was produced via regenerate=true, the source run's ID
+             */
+            regenerated_from?: string | null;
+            /**
+             * Last Checkpoint At Message Index
+             * @description Message index of the most recent mid-run checkpoint (checkpoint='tool-batch' runs)
+             */
+            last_checkpoint_at_message_index?: number | null;
         };
         /**
          * RunStatus
          * @description State of the main run response
          * @enum {string}
          */
-        RunStatus: "PENDING" | "RUNNING" | "COMPLETED" | "PAUSED" | "CANCELLED" | "ERROR";
+        RunStatus: "PENDING" | "RUNNING" | "COMPLETED" | "PAUSED" | "CANCELLED" | "ERROR" | "REGENERATED";
         /** ScheduleCreate */
         ScheduleCreate: {
             /** Name */
             name: string;
-            /** Cron Expr */
+            /**
+             * Cron Expr
+             * @description An empty or omitted cron makes the schedule on demand; it runs only through trigger.
+             * @default
+             */
             cron_expr: string;
             /** Endpoint */
             endpoint: string;
@@ -4080,6 +5437,8 @@ export interface components {
         ScheduleResponse: {
             /** Id */
             id: string;
+            /** User Id */
+            user_id?: string | null;
             /** Name */
             name: string;
             /** Description */
@@ -4093,7 +5452,7 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             /** Cron Expr */
-            cron_expr: string;
+            cron_expr?: string | null;
             /** Timezone */
             timezone: string;
             /** Timeout Seconds */
@@ -4106,6 +5465,14 @@ export interface components {
             enabled: boolean;
             /** Next Run At */
             next_run_at?: number | null;
+            /** Managed By */
+            managed_by?: string | null;
+            /** Target Type */
+            target_type?: string | null;
+            /** Target Id */
+            target_id?: string | null;
+            /** Disabled Reason */
+            disabled_reason?: string | null;
             /** Created At */
             created_at?: number | null;
             /** Updated At */
@@ -4117,6 +5484,8 @@ export interface components {
             id: string;
             /** Schedule Id */
             schedule_id: string;
+            /** User Id */
+            user_id?: string | null;
             /** Attempt */
             attempt: number;
             /** Triggered At */
@@ -4168,7 +5537,10 @@ export interface components {
         ScheduleUpdate: {
             /** Name */
             name?: string | null;
-            /** Cron Expr */
+            /**
+             * Cron Expr
+             * @description An empty cron makes the schedule on demand; it runs only through trigger. Omit to keep the current cron.
+             */
             cron_expr?: string | null;
             /** Endpoint */
             endpoint?: string | null;
@@ -4190,6 +5562,185 @@ export interface components {
             retry_delay_seconds?: number | null;
         };
         /**
+         * ScopeItem
+         * @description Write shape for one scope grant — the canonical RBAC payload for every scope-bearing API.
+         *
+         *     Endpoints that take scopes accept these objects only (a bare string is a validation
+         *     error). ``effect`` is constrained here so every consumer rejects typos at the model
+         *     layer; whether ``deny`` is *semantically* legal stays per-endpoint (roles support
+         *     deny rules, service-account tokens are pure grants and reject it).
+         */
+        ScopeItem: {
+            /**
+             * Scope
+             * @description Scope string, e.g. 'agents:*:run'
+             */
+            scope: string;
+            /**
+             * Effect
+             * @description 'allow' or 'deny'
+             * @default allow
+             * @enum {string}
+             */
+            effect: "allow" | "deny";
+        };
+        /**
+         * ScopeSchema
+         * @description Read shape for one scope — the parsed RBAC payload shared by every scope-bearing API.
+         *
+         *     Mirrors the cloud RBAC scope shape ({raw, namespace, sub_namespace, permission, value})
+         *     so a frontend renders scopes from any AgentOS API with one integration.
+         */
+        ScopeSchema: {
+            /**
+             * Id
+             * @description Scope id (always null here; kept for shape parity with the cloud RBAC API, which addresses scopes individually)
+             */
+            id?: string | null;
+            /**
+             * Raw
+             * @description Original scope string, e.g. 'agents:*:run'
+             */
+            raw: string;
+            /**
+             * Namespace
+             * @description Resource namespace, e.g. 'agents'
+             */
+            namespace: string;
+            /**
+             * Sub Namespace
+             * @description Specific resource id or wildcard '*'
+             */
+            sub_namespace?: string | null;
+            /**
+             * Permission
+             * @description Action, e.g. 'read' / 'run' / 'write'
+             */
+            permission: string;
+            /**
+             * Value
+             * @description 'allow' or 'deny'
+             * @default allow
+             */
+            value: string;
+        };
+        /** ServiceAccountCreate */
+        ServiceAccountCreate: {
+            /**
+             * Name
+             * @description Machine identity name (lowercase slug), e.g. 'claude-code' or 'github-actions'
+             */
+            name: string;
+            /**
+             * Scopes
+             * @description Scopes granted to the token, as {scope, effect} objects (the shared RBAC write shape; token scopes are grants, so only effect='allow' is accepted). Defaults to run and read scopes: agents:run, teams:run, workflows:run, sessions:read
+             */
+            scopes?: components["schemas"]["ScopeItem"][] | null;
+            /**
+             * Expires In Days
+             * @description Days until the token expires (default: 90)
+             * @default 90
+             */
+            expires_in_days: number | null;
+            /**
+             * Never Expires
+             * @description Mint a non-expiring token. Must be set explicitly; overrides expires_in_days.
+             * @default false
+             */
+            never_expires: boolean;
+            /**
+             * Allow Privileged Scopes
+             * @description Required to grant privileged scopes: any write or delete action, the admin scope, or any service_accounts scope. Privileged tokens must be deliberate, never accidental.
+             * @default false
+             */
+            allow_privileged_scopes: boolean;
+        };
+        /**
+         * ServiceAccountCreateResponse
+         * @description Returned once, at creation. The token is never retrievable again.
+         */
+        ServiceAccountCreateResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Principal
+             * @description The user_id attached to runs made with this token, e.g. 'sa:claude-code'
+             */
+            principal: string;
+            /**
+             * User Id
+             * @description The user this account belongs to; None for workspace-level accounts. Distinct from created_by, which records who minted the token.
+             */
+            user_id?: string | null;
+            /**
+             * Token Prefix
+             * @description First characters of the token, for display only
+             */
+            token_prefix: string;
+            /**
+             * Scopes
+             * @description Scopes granted to the token, in the shared RBAC read shape
+             */
+            scopes?: components["schemas"]["ScopeSchema"][];
+            /** Created At */
+            created_at: number;
+            /** Expires At */
+            expires_at?: number | null;
+            /** Last Used At */
+            last_used_at?: number | null;
+            /** Revoked At */
+            revoked_at?: number | null;
+            /** Created By */
+            created_by?: string | null;
+            /**
+             * Token
+             * @description The plaintext token. Shown exactly once - store it securely now.
+             */
+            token: string;
+        };
+        /**
+         * ServiceAccountResponse
+         * @description Service account metadata. Never includes the token hash or plaintext.
+         */
+        ServiceAccountResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Principal
+             * @description The user_id attached to runs made with this token, e.g. 'sa:claude-code'
+             */
+            principal: string;
+            /**
+             * User Id
+             * @description The user this account belongs to; None for workspace-level accounts. Distinct from created_by, which records who minted the token.
+             */
+            user_id?: string | null;
+            /**
+             * Token Prefix
+             * @description First characters of the token, for display only
+             */
+            token_prefix: string;
+            /**
+             * Scopes
+             * @description Scopes granted to the token, in the shared RBAC read shape
+             */
+            scopes?: components["schemas"]["ScopeSchema"][];
+            /** Created At */
+            created_at: number;
+            /** Expires At */
+            expires_at?: number | null;
+            /** Last Used At */
+            last_used_at?: number | null;
+            /** Revoked At */
+            revoked_at?: number | null;
+            /** Created By */
+            created_by?: string | null;
+        };
+        /**
          * SessionConfig
          * @description Configuration for the Session domain of the AgentOS
          */
@@ -4206,6 +5757,65 @@ export interface components {
         SessionDomainConfig: {
             /** Display Name */
             display_name?: string | null;
+        };
+        /**
+         * SessionRunPreviewSchema
+         * @description Lightweight session-run listing entry: the shape a queue tray or
+         *     session sidebar polls for. Deliberately excludes messages, events, media,
+         *     metrics and step results - the full shapes stay on the default listing
+         *     and the single-run endpoint. Previews are truncated to 280 characters.
+         */
+        SessionRunPreviewSchema: {
+            /**
+             * Run Id
+             * @description Unique identifier for the run
+             */
+            run_id: string;
+            /**
+             * Parent Run Id
+             * @description Parent run ID if this is a nested run
+             */
+            parent_run_id?: string | null;
+            /**
+             * Agent Id
+             * @description Agent ID, when this is an agent run
+             */
+            agent_id?: string | null;
+            /**
+             * Team Id
+             * @description Team ID, when this is a team run
+             */
+            team_id?: string | null;
+            /**
+             * Workflow Id
+             * @description Workflow ID, when this is a workflow run
+             */
+            workflow_id?: string | null;
+            /**
+             * User Id
+             * @description User ID associated with the run
+             */
+            user_id?: string | null;
+            /**
+             * Status
+             * @description Run status (PENDING, RUNNING, PAUSED, COMPLETED, CANCELLED, ERROR, REGENERATED)
+             */
+            status?: string | null;
+            /**
+             * Run Input
+             * @description Input preview, truncated
+             */
+            run_input?: string | null;
+            /**
+             * Content Preview
+             * @description Output content preview, truncated
+             */
+            content_preview?: string | null;
+            /**
+             * Created At
+             * @description Run creation timestamp
+             */
+            created_at?: string | null;
         };
         /** SessionSchema */
         SessionSchema: {
@@ -4236,6 +5846,87 @@ export interface components {
              * @description Timestamp when session was last updated
              */
             updated_at?: string | null;
+            /**
+             * Session Type
+             * @description Type of session: agent, team, or workflow
+             */
+            session_type?: string | null;
+            /**
+             * User Id
+             * @description User ID associated with the session
+             */
+            user_id?: string | null;
+            /**
+             * Agent Id
+             * @description Agent ID if this is an agent session
+             */
+            agent_id?: string | null;
+            /**
+             * Team Id
+             * @description Team ID if this is a team session
+             */
+            team_id?: string | null;
+            /**
+             * Workflow Id
+             * @description Workflow ID if this is a workflow session
+             */
+            workflow_id?: string | null;
+            /**
+             * Session Summary
+             * @description Summary of session interactions
+             */
+            session_summary?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Metrics
+             * @description Session metrics
+             */
+            metrics?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Total Tokens
+             * @description Total tokens used in this session
+             */
+            total_tokens?: number | null;
+            /**
+             * Metadata
+             * @description Additional metadata
+             */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** SessionSearchRequest */
+        SessionSearchRequest: {
+            /** Filter */
+            filter?: {
+                [key: string]: unknown;
+            } | null;
+            session_type?: components["schemas"]["SessionType"] | null;
+            /**
+             * Page
+             * @default 1
+             */
+            page: number;
+            /**
+             * Limit
+             * @default 20
+             */
+            limit: number;
+            /**
+             * Sort By
+             * @default created_at
+             * @enum {string}
+             */
+            sort_by: "created_at" | "updated_at";
+            /**
+             * Sort Order
+             * @default desc
+             * @enum {string}
+             */
+            sort_order: "asc" | "desc";
         };
         /**
          * SessionType
@@ -4424,6 +6115,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             /**
+             * Is Factory
+             * @default false
+             */
+            is_factory: boolean;
+            /** Factory Input Schema */
+            factory_input_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Is Component
              * @default false
              */
@@ -4432,6 +6132,11 @@ export interface components {
             current_version?: number | null;
             /** Stage */
             stage?: string | null;
+            /**
+             * Sandboxed
+             * @default false
+             */
+            sandboxed: boolean;
         };
         /** TeamRunSchema */
         TeamRunSchema: {
@@ -4451,10 +6156,20 @@ export interface components {
              */
             team_id?: string | null;
             /**
+             * User Id
+             * @description User ID associated with the run
+             */
+            user_id?: string | null;
+            /**
              * Status
              * @description Run status (PENDING, RUNNING, COMPLETED, ERROR, etc.)
              */
             status?: string | null;
+            /**
+             * Cancellation Stage
+             * @description For CANCELLED runs, where the run was when it was cancelled: PENDING, EXECUTING, PAUSED. Absent means unknown.
+             */
+            cancellation_stage?: string | null;
             /**
              * Content
              * @description Output content from the team run
@@ -4587,6 +6302,36 @@ export interface components {
             response_audio?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Followups
+             * @description Followup suggestions generated after the run
+             */
+            followups?: string[] | null;
+            /**
+             * Forked From Run Id
+             * @description If this team run was forked from another run, the source run's ID
+             */
+            forked_from_run_id?: string | null;
+            /**
+             * Forked From Message Index
+             * @description If this team run was forked, the message index at which the source was truncated
+             */
+            forked_from_message_index?: number | null;
+            /**
+             * Forked From Session Id
+             * @description If this team run was created via session branch, the source session's ID
+             */
+            forked_from_session_id?: string | null;
+            /**
+             * Regenerated From
+             * @description If this team run was produced via regenerate=true, the source run's ID
+             */
+            regenerated_from?: string | null;
+            /**
+             * Last Checkpoint At Message Index
+             * @description Message index of the most recent mid-run checkpoint (checkpoint='tool-batch' runs)
+             */
+            last_checkpoint_at_message_index?: number | null;
         };
         /** TeamSessionDetailSchema */
         TeamSessionDetailSchema: {
@@ -4695,6 +6440,20 @@ export interface components {
              * @description Team execution mode (coordinate, route, broadcast, tasks)
              */
             mode?: string | null;
+            /** @description Model used by the team leader */
+            model?: components["schemas"]["Model"] | null;
+            /**
+             * Metadata
+             * @description Framework component metadata
+             */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Sandboxed
+             * @default false
+             */
+            sandboxed: boolean;
         };
         /**
          * TextInputContent
@@ -5186,29 +6945,81 @@ export interface components {
         /**
          * UnauthenticatedResponse
          * @example {
-         *       "detail": "Unauthenticated access",
-         *       "error_code": "UNAUTHENTICATED"
+         *       "detail": "Unauthenticated access"
          *     }
          */
         UnauthenticatedResponse: {
             /**
              * Detail
-             * @description Error detail message
+             * @description Human-readable error message
              */
             detail: string;
             /**
-             * Error Code
-             * @description Error code for categorization
+             * Error Id
+             * @description Stable identifier for the specific error, present only when the error carries one
              */
-            error_code?: string | null;
+            error_id?: string | null;
+            /**
+             * Error Type
+             * @description Category of the error, present only when the error carries one
+             */
+            error_type?: string | null;
         };
-        /** UpdateEvalRunRequest */
-        UpdateEvalRunRequest: {
+        /** UnavailableChunkerSchema */
+        UnavailableChunkerSchema: {
+            /**
+             * Id
+             * @description Chunker key that could not be loaded
+             */
+            id: string;
             /**
              * Name
-             * @description New name for the evaluation run
+             * @description Name of the chunker
              */
-            name: string;
+            name?: string | null;
+            /**
+             * Description
+             * @description Description of the chunking strategy
+             */
+            description?: string | null;
+            /**
+             * Missing Packages
+             * @description Packages that are not importable
+             */
+            missing_packages?: string[];
+            /**
+             * Reason
+             * @description Verbatim import failure, including its install instruction
+             */
+            reason: string;
+        };
+        /** UnavailableReaderSchema */
+        UnavailableReaderSchema: {
+            /**
+             * Id
+             * @description Reader key that could not be loaded
+             */
+            id: string;
+            /**
+             * Name
+             * @description Name of the reader
+             */
+            name?: string | null;
+            /**
+             * Description
+             * @description Description of the reader's capabilities
+             */
+            description?: string | null;
+            /**
+             * Missing Packages
+             * @description Packages that are not importable
+             */
+            missing_packages?: string[];
+            /**
+             * Reason
+             * @description Verbatim import failure, including its install instruction
+             */
+            reason: string;
         };
         /** UpdateSessionRequest */
         UpdateSessionRequest: {
@@ -5360,23 +7171,55 @@ export interface components {
             ctx?: Record<string, never>;
         };
         /**
+         * ValidationErrorDetail
+         * @description One field-level error inside a 422 body, matching FastAPI's default shape.
+         */
+        ValidationErrorDetail: {
+            /**
+             * Loc
+             * @description Path to the offending field, e.g. ['body', 'endpoint']
+             */
+            loc: (string | number)[];
+            /**
+             * Msg
+             * @description Human-readable error message
+             */
+            msg: string;
+            /**
+             * Type
+             * @description Error type identifier, e.g. 'value_error' or 'missing'
+             */
+            type: string;
+        };
+        /**
          * ValidationErrorResponse
+         * @description 422 body. Two runtime shapes share this status code, and the same endpoint can
+         *     return either, so ``detail`` is typed as their union:
+         *
+         *     - FastAPI's request-validation handler emits a **list** of field-level errors (built-in
+         *       coercion errors and custom-validator ``ValueError``s alike).
+         *     - A route that raises ``HTTPException(status_code=422, detail="...")`` for a semantic
+         *       check (e.g. an invalid cron expression) emits a **string** through the HTTPException
+         *       handler.
          * @example {
-         *       "detail": "Validation error",
-         *       "error_code": "VALIDATION_ERROR"
+         *       "detail": [
+         *         {
+         *           "loc": [
+         *             "body",
+         *             "endpoint"
+         *           ],
+         *           "msg": "Value error, Endpoint must be a path, not a full URL",
+         *           "type": "value_error"
+         *         }
+         *       ]
          *     }
          */
         ValidationErrorResponse: {
             /**
              * Detail
-             * @description Error detail message
+             * @description A single message for an explicitly raised 422, or a list of field-level errors for a request-validation failure
              */
-            detail: string;
-            /**
-             * Error Code
-             * @description Error code for categorization
-             */
-            error_code?: string | null;
+            detail: string | components["schemas"]["ValidationErrorDetail"][];
         };
         /** VectorDbSchema */
         VectorDbSchema: {
@@ -5455,7 +7298,7 @@ export interface components {
              * Id
              * @description Unique identifier for the search result document
              */
-            id: string;
+            id?: string | null;
             /**
              * Content
              * @description Content text of the document
@@ -5572,6 +7415,19 @@ export interface components {
              */
             workflow_agent: boolean;
             /**
+             * Is Factory
+             * @description Whether this workflow is a factory
+             * @default false
+             */
+            is_factory: boolean;
+            /**
+             * Factory Input Schema
+             * @description JSON Schema for factory_input
+             */
+            factory_input_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Is Component
              * @description Whether this workflow was created via Builder
              * @default false
@@ -5587,6 +7443,11 @@ export interface components {
              * @description Stage of the loaded config (draft/published)
              */
             stage?: string | null;
+            /**
+             * Sandboxed
+             * @default false
+             */
+            sandboxed: boolean;
         };
         /** WorkflowRunSchema */
         WorkflowRunSchema: {
@@ -5635,6 +7496,11 @@ export interface components {
              */
             status?: string | null;
             /**
+             * Cancellation Stage
+             * @description For CANCELLED runs, where the run was when it was cancelled: PENDING, EXECUTING, PAUSED. Absent means unknown.
+             */
+            cancellation_stage?: string | null;
+            /**
              * Step Results
              * @description Results from each workflow step
              */
@@ -5648,6 +7514,28 @@ export interface components {
             step_executor_runs?: {
                 [key: string]: unknown;
             }[] | null;
+            /**
+             * Step Requirements
+             * @description HITL step requirements (resolved state for historical display)
+             */
+            step_requirements?: {
+                [key: string]: unknown;
+            }[] | null;
+            /**
+             * Pause Kind
+             * @description Kind of HITL pause: 'step' or 'executor'
+             */
+            pause_kind?: string | null;
+            /**
+             * Paused Step Name
+             * @description Name of the step that caused the pause
+             */
+            paused_step_name?: string | null;
+            /**
+             * Paused Step Index
+             * @description Index of the step that caused the pause
+             */
+            paused_step_index?: number | null;
             /**
              * Metrics
              * @description Performance and usage metrics
@@ -5818,6 +7706,19 @@ export interface components {
              */
             db_id?: string | null;
             /**
+             * Is Factory
+             * @description Whether this workflow is a factory
+             * @default false
+             */
+            is_factory: boolean;
+            /**
+             * Factory Input Schema
+             * @description JSON Schema for factory_input
+             */
+            factory_input_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Is Component
              * @description Whether this workflow was created via Builder
              * @default false
@@ -5833,6 +7734,11 @@ export interface components {
              * @description Stage of the loaded config (draft/published)
              */
             stage?: string | null;
+            /**
+             * Sandboxed
+             * @default false
+             */
+            sandboxed: boolean;
         };
     };
     responses: never;
@@ -6633,26 +8539,6 @@ export interface operations {
             };
         };
     };
-    get_api_info: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description API information retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
     health_check: {
         parameters: {
             query?: never;
@@ -6679,6 +8565,26 @@ export interface operations {
             };
         };
     };
+    get_info: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfoResponse"];
+                };
+            };
+        };
+    };
     get_config: {
         parameters: {
             query?: never;
@@ -6698,7 +8604,16 @@ export interface operations {
                      * @example {
                      *       "id": "demo",
                      *       "description": "Example AgentOS configuration",
-                     *       "available_models": [],
+                     *       "available_models": [
+                     *         {
+                     *           "id": "gpt-4",
+                     *           "provider": "openai"
+                     *         },
+                     *         {
+                     *           "id": "claude-3-sonnet",
+                     *           "provider": "anthropic"
+                     *         }
+                     *       ],
                      *       "databases": [
                      *         "9c884dc4-9066-448c-9074-ef49ec7eb73c"
                      *       ],
@@ -6765,83 +8680,6 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["ConfigResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BadRequestResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthenticatedResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotFoundResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValidationErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternalServerErrorResponse"];
-                };
-            };
-        };
-    };
-    get_models: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of models retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example [
-                     *       {
-                     *         "id": "gpt-4",
-                     *         "provider": "openai"
-                     *       },
-                     *       {
-                     *         "id": "claude-3-sonnet",
-                     *         "provider": "anthropic"
-                     *       }
-                     *     ]
-                     */
-                    "application/json": components["schemas"]["Model"][];
                 };
             };
             /** @description Bad Request */
@@ -7099,12 +8937,154 @@ export interface operations {
                     "application/json": components["schemas"]["NotFoundResponse"];
                 };
             };
-            /** @description Run is not paused (e.g. run is already running, continued, or errored). Only PAUSED runs can be continued. */
+            /** @description Continuation conflict: a durable queue ticket owns this run's continuation (continue it with background=true), or a continuation is already queued or executing. Runs in any state can be continued - a COMPLETED run forks into a follow-up; RUNNING/ERROR runs resume. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    fork_agent_session: {
+        parameters: {
+            query?: {
+                user_id?: string | null;
+            };
+            header?: never;
+            path: {
+                agent_id: string;
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session forked successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Source session is empty or missing */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Agent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    compact_agent_session: {
+        parameters: {
+            query?: {
+                user_id?: string | null;
+            };
+            header?: never;
+            path: {
+                agent_id: string;
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Compaction attempted; see status for the outcome */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Agent or session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7375,6 +9355,222 @@ export interface operations {
             };
         };
     };
+    list_agent_run_checkpoints: {
+        parameters: {
+            query: {
+                /** @description Session ID for the run */
+                session_id: string;
+            };
+            header?: never;
+            path: {
+                agent_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run checkpoints retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Agent or run not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    get_agent_run_checkpoint_snapshot: {
+        parameters: {
+            query: {
+                /** @description Session ID for the run */
+                session_id: string;
+            };
+            header?: never;
+            path: {
+                agent_id: string;
+                run_id: string;
+                message_index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run checkpoint snapshot retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Invalid checkpoint message index */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Agent or run not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    resume_agent_run_stream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_resume_agent_run_stream"];
+            };
+        };
+        responses: {
+            /** @description SSE stream of catch-up and/or live events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Not supported for remote agents */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Agent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
     list_team_runs: {
         parameters: {
             query: {
@@ -7477,6 +9673,240 @@ export interface operations {
                 };
             };
             /** @description Invalid request or unsupported file type */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Team not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    resume_team_run_stream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_resume_team_run_stream"];
+            };
+        };
+        responses: {
+            /** @description SSE stream of catch-up and/or live events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Not supported for remote teams */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Team not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    continue_team_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_continue_team_run"];
+            };
+        };
+        responses: {
+            /** @description Team run continued successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    /**
+                     * @example event: RunContent
+                     *     data: {"created_at": 1757348314, "run_id": "123..."}
+                     */
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Invalid JSON in requirements field or invalid requirement structure */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Run has a pending admin approval and cannot be continued by the user yet. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Team not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Continuation conflict: a durable queue ticket owns this run's continuation (continue it with background=true), or a continuation is already queued or executing. Runs in any state can be continued - a COMPLETED run forks into a follow-up; RUNNING/ERROR runs resume. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    fork_team_session: {
+        parameters: {
+            query?: {
+                user_id?: string | null;
+            };
+            header?: never;
+            path: {
+                team_id: string;
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session forked successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Source session is empty or missing */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -7875,6 +10305,149 @@ export interface operations {
             };
         };
     };
+    list_team_run_checkpoints: {
+        parameters: {
+            query: {
+                /** @description Session ID for the run */
+                session_id: string;
+            };
+            header?: never;
+            path: {
+                team_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run checkpoints retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Team or run not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    get_team_run_checkpoint_snapshot: {
+        parameters: {
+            query: {
+                /** @description Session ID for the run */
+                session_id: string;
+            };
+            header?: never;
+            path: {
+                team_id: string;
+                run_id: string;
+                message_index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run checkpoint snapshot retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Invalid checkpoint message index */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Team or run not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
     get_workflows: {
         parameters: {
             query?: never;
@@ -7952,7 +10525,10 @@ export interface operations {
     };
     get_workflow: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Workflow version to retrieve */
+                version?: number | null;
+            };
             header?: never;
             path: {
                 workflow_id: string;
@@ -7976,6 +10552,80 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["WorkflowResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Workflow not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    list_workflow_runs: {
+        parameters: {
+            query: {
+                /** @description Session ID to list runs for */
+                session_id: string;
+                /** @description Filter by run status (PENDING, RUNNING, COMPLETED, ERROR, PAUSED) */
+                status?: string | null;
+                /** @description JSON object with factory-specific parameters for dynamic workflow reconstruction */
+                factory_input?: string | null;
+            };
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of runs retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request */
@@ -8101,9 +10751,96 @@ export interface operations {
             };
         };
     };
-    cancel_workflow_run: {
+    continue_workflow_run: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_continue_workflow_run"];
+            };
+        };
+        responses: {
+            /** @description Workflow run continued successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    /**
+                     * @example event: StepCompleted
+                     *     data: {"step_name": "step1"}
+                     */
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Invalid JSON in requirements field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Workflow not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Run is not paused. Only PAUSED runs can be continued. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    cancel_workflow_run: {
+        parameters: {
+            query?: {
+                /** @description Session ID the run belongs to. Required for non-admin JWT users. */
+                session_id?: string | null;
+            };
             header?: never;
             path: {
                 workflow_id: string;
@@ -8169,11 +10906,86 @@ export interface operations {
             };
         };
     };
+    resume_workflow_run_stream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_resume_workflow_run_stream"];
+            };
+        };
+        responses: {
+            /** @description SSE stream of catch-up and/or live events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Not supported for remote workflows */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Workflow not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
     get_workflow_run: {
         parameters: {
             query: {
                 /** @description Session ID for the run */
                 session_id: string;
+                /** @description Ignored; kept for compatibility. Reading a run no longer invokes the factory */
+                factory_input?: string | null;
             };
             header?: never;
             path: {
@@ -8240,11 +11052,111 @@ export interface operations {
             };
         };
     };
+    disabled_queue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    disabled_queue_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    disabled_queue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    disabled_queue_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    disabled_queue_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     get_sessions: {
         parameters: {
             query?: {
-                /** @description Type of sessions to retrieve (agent, team, or workflow) */
-                type?: components["schemas"]["SessionType"];
+                /** @description Type of sessions to retrieve (agent, team, or workflow). If not provided, returns all session types. */
+                type?: components["schemas"]["SessionType"] | null;
                 /** @description Filter sessions by component ID (agent/team/workflow ID) */
                 component_id?: string | null;
                 /** @description Filter sessions by user ID */
@@ -8398,6 +11310,13 @@ export interface operations {
                     "application/json": components["schemas"]["NotFoundResponse"];
                 };
             };
+            /** @description A session with the supplied session_id already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation error */
             422: {
                 headers: {
@@ -8427,6 +11346,8 @@ export interface operations {
                 db_id?: string | null;
                 /** @description Table to use for deletion */
                 table?: string | null;
+                /** @description Also delete the sessions' offloaded media from media storage */
+                delete_media?: boolean;
             };
             header?: never;
             path?: never;
@@ -8492,11 +11413,148 @@ export interface operations {
             };
         };
     };
+    get_sessions_filter_schema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilterSchemaResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    search_sessions: {
+        parameters: {
+            query?: {
+                db_id?: string | null;
+                table?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionSearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_SessionSchema_"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
     get_session_by_id: {
         parameters: {
             query?: {
-                /** @description Session type (agent, team, or workflow) */
-                type?: components["schemas"]["SessionType"];
+                /** @description Session type (agent, team, or workflow). If not provided, auto-detected from session data. */
+                type?: components["schemas"]["SessionType"] | null;
                 /** @description User ID to query session from */
                 user_id?: string | null;
                 /** @description Database ID to query session from */
@@ -8578,6 +11636,8 @@ export interface operations {
                 db_id?: string | null;
                 /** @description Table to use for deletion */
                 table?: string | null;
+                /** @description Also delete the session's offloaded media from media storage */
+                delete_media?: boolean;
             };
             header?: never;
             path: {
@@ -8645,8 +11705,8 @@ export interface operations {
     update_session: {
         parameters: {
             query?: {
-                /** @description Session type (agent, team, or workflow) */
-                type?: components["schemas"]["SessionType"];
+                /** @description Session type (agent, team, or workflow). If not provided, auto-detected from session data. */
+                type?: components["schemas"]["SessionType"] | null;
                 /** @description User ID */
                 user_id?: string | null;
                 /** @description Database ID to use for update operation */
@@ -8726,14 +11786,16 @@ export interface operations {
     get_session_runs: {
         parameters: {
             query?: {
-                /** @description Session type (agent, team, or workflow) */
-                type?: components["schemas"]["SessionType"];
+                /** @description Session type (agent, team, or workflow). If not provided, auto-detected from session data. */
+                type?: components["schemas"]["SessionType"] | null;
                 /** @description User ID to query runs from */
                 user_id?: string | null;
                 /** @description Filter runs created after this Unix timestamp (epoch time in seconds) */
                 created_after?: number | null;
                 /** @description Filter runs created before this Unix timestamp (epoch time in seconds) */
                 created_before?: number | null;
+                /** @description Status filter; repeatable to match any of several, case-insensitive (PENDING, RUNNING, PAUSED, COMPLETED, CANCELLED, ERROR, REGENERATED) */
+                status?: string[] | null;
                 /** @description Database ID to query runs from */
                 db_id?: string | null;
                 /** @description Table to query runs from */
@@ -8804,11 +11866,94 @@ export interface operations {
             };
         };
     };
+    get_session_run_previews: {
+        parameters: {
+            query?: {
+                /** @description Session type (agent, team, or workflow). If not provided, auto-detected from session data. */
+                type?: components["schemas"]["SessionType"] | null;
+                /** @description User ID to query runs from */
+                user_id?: string | null;
+                /** @description Filter runs created after this Unix timestamp (epoch time in seconds) */
+                created_after?: number | null;
+                /** @description Filter runs created before this Unix timestamp (epoch time in seconds) */
+                created_before?: number | null;
+                /** @description Status filter; repeatable to match any of several, case-insensitive (PENDING, RUNNING, PAUSED, COMPLETED, CANCELLED, ERROR, REGENERATED) */
+                status?: string[] | null;
+                /** @description Database ID to query runs from */
+                db_id?: string | null;
+                /** @description Table to query runs from */
+                table?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Session ID to get runs from */
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionRunPreviewSchema"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Invalid session type */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
     get_session_run: {
         parameters: {
             query?: {
-                /** @description Session type (agent, team, or workflow) */
-                type?: components["schemas"]["SessionType"];
+                /** @description Session type (agent, team, or workflow). If not provided, the run type is inferred from the run's own fields. */
+                type?: components["schemas"]["SessionType"] | null;
                 /** @description User ID to query run from */
                 user_id?: string | null;
                 /** @description Database ID to query run from */
@@ -8886,8 +12031,8 @@ export interface operations {
     rename_session: {
         parameters: {
             query?: {
-                /** @description Session type (agent, team, or workflow) */
-                type?: components["schemas"]["SessionType"];
+                /** @description Session type (agent, team, or workflow). If not provided, auto-detected from session data. */
+                type?: components["schemas"]["SessionType"] | null;
                 /** @description User ID to scope rename to */
                 user_id?: string | null;
                 /** @description Database ID to use for rename operation */
@@ -8961,6 +12106,91 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+        };
+    };
+    get_session_media: {
+        parameters: {
+            query?: {
+                /** @description Session type (agent, team, or workflow). If not provided, auto-detected from session data. */
+                type?: components["schemas"]["SessionType"] | null;
+                /** @description User ID to query session from */
+                user_id?: string | null;
+                /** @description Database ID to query session from */
+                db_id?: string | null;
+                /** @description Table to query session from */
+                table?: string | null;
+                /** @description Redirect to a freshly-signed URL instead of streaming bytes */
+                redirect?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Session ID the media belongs to */
+                session_id: string;
+                /** @description Storage key of the media to fetch */
+                storage_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The media bytes, served with the stored mime type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Unauthenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Session or media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Media storage could not be reached */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Remote databases are not supported */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Media storage is not configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -9745,33 +12975,37 @@ export interface operations {
             };
         };
     };
-    get_eval_runs: {
+    list_learnings: {
         parameters: {
             query?: {
-                /** @description Agent ID */
+                /** @description Filter by learning type */
+                learning_type?: string | null;
+                /** @description Filter by user ID */
+                user_id?: string | null;
+                /** @description Filter by agent ID */
                 agent_id?: string | null;
-                /** @description Team ID */
+                /** @description Filter by team ID */
                 team_id?: string | null;
-                /** @description Workflow ID */
-                workflow_id?: string | null;
-                /** @description Model ID */
-                model_id?: string | null;
-                /** @description Filter type */
-                type?: components["schemas"]["EvalFilterType"] | null;
-                /** @description Number of eval runs to return */
-                limit?: number | null;
-                /** @description Page number */
-                page?: number | null;
-                /** @description Field to sort by */
+                /** @description Filter by session ID */
+                session_id?: string | null;
+                /** @description Filter by namespace */
+                namespace?: string | null;
+                /** @description Filter by entity ID */
+                entity_id?: string | null;
+                /** @description Filter by entity type */
+                entity_type?: string | null;
+                /** @description Page size */
+                limit?: number;
+                /** @description 1-indexed page number */
+                page?: number;
+                /** @description Field to sort by, e.g. `created_at` or `updated_at` (the default). An unrecognised field is ignored (the default ordering is used). */
                 sort_by?: string | null;
                 /** @description Sort order (asc or desc) */
                 sort_order?: components["schemas"]["SortOrder"] | null;
-                /** @description The ID of the database to use */
+                /** @description Database ID to query */
                 db_id?: string | null;
-                /** @description The database table to use */
+                /** @description The database table to use (requires db_id) */
                 table?: string | null;
-                /** @description Comma-separated eval types (accuracy,agent_as_judge,performance,reliability) */
-                eval_types?: string | null;
             };
             header?: never;
             path?: never;
@@ -9779,41 +13013,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Evaluation runs retrieved successfully */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "data": [
-                     *         {
-                     *           "id": "a03fa2f4-900d-482d-afe0-470d4cd8d1f4",
-                     *           "agent_id": "basic-agent",
-                     *           "model_id": "gpt-4o",
-                     *           "model_provider": "OpenAI",
-                     *           "name": "Test ",
-                     *           "eval_type": "reliability",
-                     *           "eval_data": {
-                     *             "eval_status": "PASSED",
-                     *             "failed_tool_calls": [],
-                     *             "passed_tool_calls": [
-                     *               "multiply"
-                     *             ]
-                     *           },
-                     *           "eval_input": {
-                     *             "expected_tool_calls": [
-                     *               "multiply"
-                     *             ]
-                     *           },
-                     *           "created_at": "2025-08-27T15:41:59Z",
-                     *           "updated_at": "2025-08-27T15:41:59Z"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["PaginatedResponse_EvalSchema_"];
+                    "application/json": components["schemas"]["PaginatedResponse_LearningResponse_"];
                 };
             };
             /** @description Bad Request */
@@ -9863,12 +13069,12 @@ export interface operations {
             };
         };
     };
-    run_eval: {
+    create_learning: {
         parameters: {
             query?: {
-                /** @description Database ID to use for evaluation */
+                /** @description Database ID to use */
                 db_id?: string | null;
-                /** @description Table to use for evaluation */
+                /** @description The database table to use (requires db_id) */
                 table?: string | null;
             };
             header?: never;
@@ -9877,38 +13083,20 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EvalRunInput"];
+                "application/json": components["schemas"]["LearningCreate"];
             };
         };
         responses: {
-            /** @description Evaluation executed successfully */
-            200: {
+            /** @description Successful Response */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "id": "f2b2d72f-e9e2-4f0e-8810-0a7e1ff58614",
-                     *       "agent_id": "basic-agent",
-                     *       "model_id": "gpt-4o",
-                     *       "model_provider": "OpenAI",
-                     *       "eval_type": "reliability",
-                     *       "eval_data": {
-                     *         "eval_status": "PASSED",
-                     *         "failed_tool_calls": [],
-                     *         "passed_tool_calls": [
-                     *           "multiply"
-                     *         ]
-                     *       },
-                     *       "created_at": "2025-08-27T15:41:59Z",
-                     *       "updated_at": "2025-08-27T15:41:59Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["EvalSchema"];
+                    "application/json": components["schemas"]["LearningResponse"];
                 };
             };
-            /** @description Invalid request - provide either agent_id or team_id */
+            /** @description Bad Request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9926,7 +13114,7 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthenticatedResponse"];
                 };
             };
-            /** @description Agent or team not found */
+            /** @description Not Found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -9955,23 +13143,106 @@ export interface operations {
             };
         };
     };
-    delete_eval_runs: {
+    list_learning_users: {
         parameters: {
             query?: {
-                /** @description Database ID to use for deletion */
+                /** @description Restrict the grouping to a single learning type */
+                learning_type?: string | null;
+                /** @description Restrict the result to a single user */
+                user_id?: string | null;
+                /** @description Page size */
+                limit?: number;
+                /** @description 1-indexed page number */
+                page?: number;
+                /** @description Field to sort by: user_id or last_learning_updated_at (the default) */
+                sort_by?: string | null;
+                /** @description Sort order (asc or desc) */
+                sort_order?: components["schemas"]["SortOrder"] | null;
+                /** @description Database ID to query */
                 db_id?: string | null;
-                /** @description Table to use for deletion */
+                /** @description The database table to use (requires db_id) */
                 table?: string | null;
             };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DeleteEvalRunsRequest"];
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_LearningUserStats_"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
             };
         };
+    };
+    delete_learning_user: {
+        parameters: {
+            query?: {
+                /** @description Restrict deletion to a single learning type; omit to delete all of the user's learnings */
+                learning_type?: string | null;
+                /** @description Database ID to use */
+                db_id?: string | null;
+                /** @description The database table to use (requires db_id) */
+                table?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The user whose learnings should be deleted */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             204: {
@@ -10016,7 +13287,7 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationErrorResponse"];
                 };
             };
-            /** @description Failed to delete evaluation runs */
+            /** @description Internal Server Error */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -10027,53 +13298,30 @@ export interface operations {
             };
         };
     };
-    get_eval_run: {
+    get_learning: {
         parameters: {
             query?: {
-                /** @description The ID of the database to use */
+                /** @description Database ID to query */
                 db_id?: string | null;
-                /** @description Table to query eval run from */
+                /** @description The database table to use (requires db_id) */
                 table?: string | null;
             };
             header?: never;
             path: {
-                eval_run_id: string;
+                /** @description The learning ID */
+                learning_id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Evaluation run details retrieved successfully */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "id": "a03fa2f4-900d-482d-afe0-470d4cd8d1f4",
-                     *       "agent_id": "basic-agent",
-                     *       "model_id": "gpt-4o",
-                     *       "model_provider": "OpenAI",
-                     *       "name": "Test ",
-                     *       "eval_type": "reliability",
-                     *       "eval_data": {
-                     *         "eval_status": "PASSED",
-                     *         "failed_tool_calls": [],
-                     *         "passed_tool_calls": [
-                     *           "multiply"
-                     *         ]
-                     *       },
-                     *       "eval_input": {
-                     *         "expected_tool_calls": [
-                     *           "multiply"
-                     *         ]
-                     *       },
-                     *       "created_at": "2025-08-27T15:41:59Z",
-                     *       "updated_at": "2025-08-27T15:41:59Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["EvalSchema"];
+                    "application/json": components["schemas"]["LearningResponse"];
                 };
             };
             /** @description Bad Request */
@@ -10094,7 +13342,7 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthenticatedResponse"];
                 };
             };
-            /** @description Evaluation run not found */
+            /** @description Not Found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -10123,57 +13371,105 @@ export interface operations {
             };
         };
     };
-    update_eval_run: {
+    delete_learning: {
         parameters: {
             query?: {
-                /** @description The ID of the database to use */
+                /** @description Database ID to use */
                 db_id?: string | null;
-                /** @description Table to use for rename operation */
+                /** @description The database table to use (requires db_id) */
                 table?: string | null;
             };
             header?: never;
             path: {
-                eval_run_id: string;
+                /** @description The learning ID */
+                learning_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    update_learning: {
+        parameters: {
+            query?: {
+                /** @description Database ID to use */
+                db_id?: string | null;
+                /** @description The database table to use (requires db_id) */
+                table?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The learning ID */
+                learning_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateEvalRunRequest"];
+                "application/json": components["schemas"]["LearningUpdate"];
             };
         };
         responses: {
-            /** @description Evaluation run updated successfully */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "id": "a03fa2f4-900d-482d-afe0-470d4cd8d1f4",
-                     *       "agent_id": "basic-agent",
-                     *       "model_id": "gpt-4o",
-                     *       "model_provider": "OpenAI",
-                     *       "name": "Test ",
-                     *       "eval_type": "reliability",
-                     *       "eval_data": {
-                     *         "eval_status": "PASSED",
-                     *         "failed_tool_calls": [],
-                     *         "passed_tool_calls": [
-                     *           "multiply"
-                     *         ]
-                     *       },
-                     *       "eval_input": {
-                     *         "expected_tool_calls": [
-                     *           "multiply"
-                     *         ]
-                     *       },
-                     *       "created_at": "2025-08-27T15:41:59Z",
-                     *       "updated_at": "2025-08-27T15:41:59Z"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["EvalSchema"];
+                    "application/json": components["schemas"]["LearningResponse"];
                 };
             };
             /** @description Bad Request */
@@ -10194,7 +13490,7 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthenticatedResponse"];
                 };
             };
-            /** @description Evaluation run not found */
+            /** @description Not Found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -10212,7 +13508,7 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationErrorResponse"];
                 };
             };
-            /** @description Failed to update evaluation run */
+            /** @description Internal Server Error */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -10230,6 +13526,8 @@ export interface operations {
                 starting_date?: string | null;
                 /** @description Ending date for metrics range (YYYY-MM-DD format) */
                 ending_date?: string | null;
+                /** @description Return only this user's metrics. Ignored for non-admin callers */
+                user_id?: string | null;
                 /** @description Database ID to query metrics from */
                 db_id?: string | null;
                 /** @description The database table to use */
@@ -10251,7 +13549,7 @@ export interface operations {
                      * @example {
                      *       "metrics": [
                      *         {
-                     *           "id": "7bf39658-a00a-484c-8a28-67fd8a9ddb2a",
+                     *           "id": "2025-07-31_daily",
                      *           "agent_runs_count": 5,
                      *           "agent_sessions_count": 5,
                      *           "team_runs_count": 0,
@@ -10341,6 +13639,10 @@ export interface operations {
                 db_id?: string | null;
                 /** @description Table to use for metrics calculation */
                 table?: string | null;
+                /** @description Return only this user's metrics. Ignored for non-admin callers */
+                user_id?: string | null;
+                /** @description Run the refresh in the background and return 202 immediately */
+                background?: boolean;
             };
             header?: never;
             path?: never;
@@ -10357,7 +13659,7 @@ export interface operations {
                     /**
                      * @example [
                      *       {
-                     *         "id": "e77c9531-818b-47a5-99cd-59fed61e5403",
+                     *         "id": "2025-08-12_daily",
                      *         "agent_runs_count": 2,
                      *         "agent_sessions_count": 2,
                      *         "team_runs_count": 0,
@@ -10368,17 +13670,11 @@ export interface operations {
                      *         "token_metrics": {
                      *           "input_tokens": 256,
                      *           "output_tokens": 441,
-                     *           "total_tokens": 697,
-                     *           "audio_total_tokens": 0,
-                     *           "audio_input_tokens": 0,
-                     *           "audio_output_tokens": 0,
-                     *           "cache_read_tokens": 0,
-                     *           "cache_write_tokens": 0,
-                     *           "reasoning_tokens": 0
+                     *           "total_tokens": 697
                      *         },
                      *         "model_metrics": [
                      *           {
-                     *             "model_id": "gpt-4o",
+                     *             "model_id": "gpt-5.5",
                      *             "model_provider": "OpenAI",
                      *             "count": 2
                      *           }
@@ -10389,7 +13685,22 @@ export interface operations {
                      *       }
                      *     ]
                      */
-                    "application/json": components["schemas"]["DayAggregatedMetrics"][];
+                    "application/json": components["schemas"]["DayAggregatedMetrics"][] | components["schemas"]["MetricsRefreshResponse"];
+                };
+            };
+            /** @description Background refresh started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "status": "started",
+                     *       "message": "Metrics refresh started in background"
+                     *     }
+                     */
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request */
@@ -10439,6 +13750,83 @@ export interface operations {
             };
         };
     };
+    get_metrics_refresh_status: {
+        parameters: {
+            query?: {
+                /** @description Database ID to get the refresh status for */
+                db_id?: string | null;
+                /** @description Table to get the refresh status for */
+                table?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current refresh status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "status": "completed",
+                     *       "started_at": "2025-08-12T08:01:47Z",
+                     *       "finished_at": "2025-08-12T08:01:49Z"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MetricsRefreshStatusResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Database not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Failed to get refresh status */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
     get_content: {
         parameters: {
             query?: {
@@ -10454,6 +13842,8 @@ export interface operations {
                 db_id?: string | null;
                 /** @description Knowledge base ID to use */
                 knowledge_id?: string | null;
+                /** @description Only page rows of this site row (exact id match) */
+                parent_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -10539,6 +13929,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10626,6 +14023,13 @@ export interface operations {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
             };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     delete_all_content: {
@@ -10695,6 +14099,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10780,6 +14191,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10868,6 +14286,13 @@ export interface operations {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
             };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     delete_content_by_id: {
@@ -10939,6 +14364,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11032,6 +14464,93 @@ export interface operations {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
             };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refresh_content: {
+        parameters: {
+            query?: {
+                /** @description Database ID to use */
+                db_id?: string | null;
+                /** @description Knowledge base ID to use */
+                knowledge_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Content ID to refresh */
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refresh started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentResponseSchema"];
+                };
+            };
+            /** @description Content has no source URL */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Content not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     get_content_status: {
@@ -11103,6 +14622,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11194,6 +14720,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11290,6 +14823,19 @@ export interface operations {
                      *             "AgenticChunker",
                      *             "DocumentChunker",
                      *             "RecursiveChunker"
+                     *           ]
+                     *         },
+                     *         "docling": {
+                     *           "id": "docling",
+                     *           "name": "DoclingReader",
+                     *           "description": "Converts multiple document formats like PDF, DOCX, PPTX, images, HTML, etc. using IBM's Docling library",
+                     *           "chunkers": [
+                     *             "AgenticChunker",
+                     *             "CodeChunker",
+                     *             "DocumentChunker",
+                     *             "FixedSizeChunker",
+                     *             "RecursiveChunker",
+                     *             "SemanticChunker"
                      *           ]
                      *         },
                      *         "docx": {
@@ -11391,10 +14937,12 @@ export interface operations {
                      *         ],
                      *         ".csv": [
                      *           "csv",
-                     *           "field_labeled_csv"
+                     *           "field_labeled_csv",
+                     *           "docling"
                      *         ],
                      *         ".xlsx": [
-                     *           "excel"
+                     *           "excel",
+                     *           "docling"
                      *         ],
                      *         ".xls": [
                      *           "excel"
@@ -11406,22 +14954,140 @@ export interface operations {
                      *           "excel"
                      *         ],
                      *         ".docx": [
-                     *           "docx"
+                     *           "docx",
+                     *           "docling"
                      *         ],
-                     *         ".doc": [
-                     *           "docx"
+                     *         ".dotx": [
+                     *           "docling"
+                     *         ],
+                     *         ".docm": [
+                     *           "docling"
+                     *         ],
+                     *         ".dotm": [
+                     *           "docling"
+                     *         ],
+                     *         ".pptx": [
+                     *           "docling",
+                     *           "pptx"
+                     *         ],
+                     *         ".potx": [
+                     *           "docling"
+                     *         ],
+                     *         ".ppsx": [
+                     *           "docling"
+                     *         ],
+                     *         ".pptm": [
+                     *           "docling"
+                     *         ],
+                     *         ".ppsm": [
+                     *           "docling"
+                     *         ],
+                     *         ".potm": [
+                     *           "docling"
                      *         ],
                      *         ".json": [
                      *           "json"
                      *         ],
                      *         ".md": [
-                     *           "markdown"
+                     *           "markdown",
+                     *           "docling"
                      *         ],
                      *         ".pdf": [
-                     *           "pdf"
+                     *           "pdf",
+                     *           "docling"
                      *         ],
                      *         ".txt": [
                      *           "text"
+                     *         ],
+                     *         ".html": [
+                     *           "docling"
+                     *         ],
+                     *         ".htm": [
+                     *           "docling"
+                     *         ],
+                     *         ".xhtml": [
+                     *           "docling"
+                     *         ],
+                     *         ".xml": [
+                     *           "docling"
+                     *         ],
+                     *         ".nxml": [
+                     *           "docling"
+                     *         ],
+                     *         ".xbrl": [
+                     *           "docling"
+                     *         ],
+                     *         ".adoc": [
+                     *           "docling"
+                     *         ],
+                     *         ".asciidoc": [
+                     *           "docling"
+                     *         ],
+                     *         ".asc": [
+                     *           "docling"
+                     *         ],
+                     *         ".xlsm": [
+                     *           "docling"
+                     *         ],
+                     *         ".tex": [
+                     *           "docling"
+                     *         ],
+                     *         ".latex": [
+                     *           "docling"
+                     *         ],
+                     *         ".tar.gz": [
+                     *           "docling"
+                     *         ],
+                     *         ".vtt": [
+                     *           "docling"
+                     *         ],
+                     *         ".png": [
+                     *           "docling"
+                     *         ],
+                     *         ".jpeg": [
+                     *           "docling"
+                     *         ],
+                     *         ".jpg": [
+                     *           "docling"
+                     *         ],
+                     *         ".tiff": [
+                     *           "docling"
+                     *         ],
+                     *         ".tif": [
+                     *           "docling"
+                     *         ],
+                     *         ".bmp": [
+                     *           "docling"
+                     *         ],
+                     *         ".webp": [
+                     *           "docling"
+                     *         ],
+                     *         ".wav": [
+                     *           "docling"
+                     *         ],
+                     *         ".mp3": [
+                     *           "docling"
+                     *         ],
+                     *         ".m4a": [
+                     *           "docling"
+                     *         ],
+                     *         ".aac": [
+                     *           "docling"
+                     *         ],
+                     *         ".ogg": [
+                     *           "docling"
+                     *         ],
+                     *         ".flac": [
+                     *           "docling"
+                     *         ],
+                     *         ".mp4": [
+                     *           "docling"
+                     *         ],
+                     *         ".avi": [
+                     *           "docling"
+                     *         ],
+                     *         ".mov": [
+                     *           "docling"
                      *         ]
                      *       },
                      *       "chunkers": {
@@ -11558,6 +15224,13 @@ export interface operations {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
             };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     list_content_sources: {
@@ -11638,6 +15311,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11748,6 +15428,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
+            };
+            /** @description No knowledge base is configured on this AgentOS */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -12319,6 +16006,322 @@ export interface operations {
                 };
             };
             /** @description Failed to migrate database */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    list_filesystem_files: {
+        parameters: {
+            query?: {
+                /** @description Filter by agent ID */
+                agent_id?: string | null;
+                /** @description Filter by resolved namespace */
+                namespace?: string | null;
+                /** @description Search file contents */
+                query?: string | null;
+                /** @description Sort by type, size or updated_at; the default order is by path */
+                sort_by?: ("type" | "size" | "updated_at") | null;
+                /** @description Sort order (asc or desc) */
+                sort_order?: components["schemas"]["SortOrder"];
+                /** @description 1-indexed page number */
+                page?: number;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSystemTableResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    list_filesystem_entries: {
+        parameters: {
+            query?: {
+                /** @description Resolved namespace of the filesystem to browse */
+                namespace?: string | null;
+                /** @description Agent holding the filesystem; alone, selects that agent's first filesystem */
+                agent_id?: string | null;
+                /** @description Relative directory inside the filesystem */
+                directory?: string;
+                /** @description Sort by type, size or updated_at; the default order is by path */
+                sort_by?: ("type" | "size" | "updated_at") | null;
+                /** @description Sort order (asc or desc) */
+                sort_order?: components["schemas"]["SortOrder"];
+                /** @description 1-indexed page number */
+                page?: number;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSystemListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    read_filesystem_content: {
+        parameters: {
+            query: {
+                /** @description Resolved namespace of the filesystem to browse */
+                namespace?: string | null;
+                /** @description Agent holding the filesystem; alone, selects that agent's first filesystem */
+                agent_id?: string | null;
+                /** @description Relative file path inside the filesystem */
+                path: string;
+                /** @description User partition to browse: your own, or any user's for an admin. An admin who names none sees every partition */
+                user_id?: string | null;
+                /** @description Character offset into the file */
+                offset?: number;
+                /** @description Characters to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSystemContentResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    search_filesystem: {
+        parameters: {
+            query: {
+                /** @description Resolved namespace of the filesystem to browse */
+                namespace?: string | null;
+                /** @description Agent holding the filesystem; alone, selects that agent's first filesystem */
+                agent_id?: string | null;
+                query: string;
+                directory?: string;
+                /** @description User partition to browse: your own, or any user's for an admin. An admin who names none sees every partition */
+                user_id?: string | null;
+                /** @description 1-indexed page number */
+                page?: number;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSystemSearchResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthenticatedResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -12936,6 +16939,103 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApprovalResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_service_accounts_service_accounts_get: {
+        parameters: {
+            query?: {
+                include_revoked?: boolean;
+                limit?: number;
+                page?: number;
+                sort_by?: string;
+                sort_order?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_ServiceAccountResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_service_account_service_accounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceAccountCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceAccountCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_service_account_service_accounts__service_account_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

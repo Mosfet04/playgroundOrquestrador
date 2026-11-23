@@ -10,7 +10,7 @@ import {
 } from '@/types/playground'
 import React, { type FC } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { Check, CircleX, Wrench } from 'lucide-react'
+import { Check, ChevronRight, CircleX, Wrench } from 'lucide-react'
 import ChatBlankState from './ChatBlankState'
 import Icon from '@/components/ui/icon'
 import { Chip } from '@/components/ui/loading'
@@ -88,7 +88,7 @@ const AgentMessageWrapper = ({ message, isLastMessage, entity }: MessageWrapperP
         </p>
         {message.extra_data?.reasoning_steps &&
           message.extra_data.reasoning_steps.length > 0 && (
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3 md:gap-4">
               <Tooltip
                 delayDuration={0}
                 content={
@@ -98,7 +98,7 @@ const AgentMessageWrapper = ({ message, isLastMessage, entity }: MessageWrapperP
               >
                 <Icon type="reasoning" size="sm" />
               </Tooltip>
-              <div className="flex flex-col gap-3">
+              <div className="flex min-w-0 flex-1 flex-col gap-3">
                 <p className="text-xs uppercase">{t('reasoning')}</p>
                 <Reasonings reasoning={message.extra_data.reasoning_steps} />
               </div>
@@ -224,28 +224,87 @@ const ToolCallChip = ({ tool, running }: { tool: ToolCall; running: boolean }) =
   )
 }
 
-const Reasoning: FC<ReasoningStepProps> = ({ index, stepTitle }) => {
+// Um passo: com detalhe vira `details` recolhido; só com título, uma linha.
+const Reasoning: FC<ReasoningStepProps> = ({ index, step }) => {
   const t = useTranslations('playground')
+  const format = useFormatter()
+  // Rótulo dos `next_action` do agno; valor desconhecido aparece cru.
+  const nextActionLabel = (value: string) => {
+    switch (value) {
+      case 'continue':
+        return t('reasoningNextContinue')
+      case 'validate':
+        return t('reasoningNextValidate')
+      case 'final_answer':
+        return t('reasoningNextFinal')
+      case 'reset':
+        return t('reasoningNextReset')
+      default:
+        return value
+    }
+  }
+  const details = [
+    [t('reasoningAction'), step.action],
+    [t('reasoningResult'), step.result],
+    [t('reasoningThought'), step.reasoning],
+    [t('reasoningNext'), step.next_action && nextActionLabel(step.next_action)]
+  ].filter(([, value]) => value)
+  const head = (
+    <>
+      <span className="flex h-[20px] items-center rounded-md bg-muted p-2">
+        <span className="text-xs uppercase">{t('step', { n: index + 1 })}</span>
+      </span>
+      <span className="min-w-0 break-words text-xs text-foreground">{step.title}</span>
+      {step.confidence !== undefined && (
+        <span className="font-mono text-xs text-muted-foreground md:ml-auto">
+          {t('reasoningConfidence', {
+            percent: format.number(Math.round(step.confidence * 100))
+          })}
+        </span>
+      )}
+    </>
+  )
+  const row = 'flex flex-wrap items-center gap-2 text-foreground'
+  if (details.length === 0) return <li className={row}>{head}</li>
   return (
-    <div className="flex items-center gap-2 text-foreground">
-      <div className="flex h-[20px] items-center rounded-md bg-muted p-2">
-        <p className="text-xs uppercase">{t('step', { n: index + 1 })}</p>
-      </div>
-      <p className="text-xs">{stepTitle}</p>
-    </div>
+    <li>
+      <details className="group">
+        <summary
+          className={`${row} min-h-11 cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-0 [&::-webkit-details-marker]:hidden`}
+        >
+          <ChevronRight
+            aria-hidden="true"
+            className="size-3 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+          />
+          {head}
+        </summary>
+        <dl className="ml-1.5 flex flex-col gap-2 border-l border-border pl-3 pt-2">
+          {details.map(([label, value]) => (
+            <div key={label} className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase text-muted-foreground">{label}</dt>
+              <dd className="whitespace-pre-wrap break-words text-xs text-foreground">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+    </li>
   )
 }
-const Reasonings: FC<ReasoningProps> = ({ reasoning }) => (
-  <div className="flex flex-col items-start justify-center gap-2">
-    {reasoning.map((title, index) => (
-      <Reasoning
-        key={`${title.title}-${title.action}-${index}`}
-        stepTitle={title.title}
-        index={index}
-      />
-    ))}
-  </div>
-)
+const Reasonings: FC<ReasoningProps> = ({ reasoning }) => {
+  const t = useTranslations('playground')
+  return (
+    <ol
+      aria-label={t('reasoning')}
+      aria-live="polite"
+      aria-relevant="additions"
+      className="flex flex-col items-stretch gap-2"
+    >
+      {reasoning.map((step, index) => (
+        <Reasoning key={`${step.title}-${index}`} step={step} index={index} />
+      ))}
+    </ol>
+  )
+}
 
 const Messages = ({ messages, entity }: MessageListProps) => {
   if (messages.length === 0) {

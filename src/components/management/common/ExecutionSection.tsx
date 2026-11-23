@@ -18,6 +18,7 @@ type SwitchField =
   | 'add_datetime_to_context'
   | 'add_history_to_context'
   | 'reasoning'
+  | 'expose_reasoning'
   | 'user_memory_active'
   | 'summary_active'
 
@@ -28,6 +29,7 @@ type ExecutionFormValues = {
   add_datetime_to_context?: boolean
   add_history_to_context?: boolean
   reasoning?: boolean
+  expose_reasoning?: boolean
   user_memory_active?: boolean
   summary_active?: boolean
   num_history_runs?: number
@@ -38,7 +40,7 @@ const ITEM_CLASS = 'space-y-2 border-t border-border py-3 first:border-t-0 first
 // Seção Execução (P3-02, reusada pelo team na P3-04): o que a entidade recebe
 // de contexto e como responde. Os defaults e a faixa são os do schema (`agent`
 // ou `team`); a memória do agent desliga por padrão e a do team liga (defaults
-// das entidades). O team só tem 4 das 6 opções. Sem o schema não há default a
+// das entidades). O team só tem 4 das 7 opções. Sem o schema não há default a
 // mostrar: skeleton (carregando) ou aviso (falha).
 export function ExecutionSection<T extends ExecutionFormValues>({
   entity,
@@ -74,7 +76,7 @@ export function ExecutionSection<T extends ExecutionFormValues>({
           <>
             <LiveStatus>{tc('optionsLoading')}</LiveStatus>
             <ul aria-hidden="true">
-              {Array.from({ length: isAgent ? 6 : 4 }, (_, key) => key).map((key) => (
+              {Array.from({ length: isAgent ? 7 : 4 }, (_, key) => key).map((key) => (
                 <li key={key} className={`${ITEM_CLASS} flex items-start gap-3`}>
                   <Skeleton className="h-5 w-9 shrink-0 rounded-full" />
                   <div className="flex-1 space-y-2">
@@ -102,7 +104,7 @@ export function ExecutionSection<T extends ExecutionFormValues>({
     label: string,
     help: string,
     defaultOn: boolean,
-    extra?: { controls?: string; describedBy?: string; children?: React.ReactNode }
+    extra?: { controls?: string; describedBy?: string; disabled?: boolean; children?: React.ReactNode }
   ) => (
     <li key={field} className={ITEM_CLASS}>
       <div className="flex items-start gap-3">
@@ -114,7 +116,7 @@ export function ExecutionSection<T extends ExecutionFormValues>({
               id={field}
               ref={control.ref}
               checked={!!control.value}
-              disabled={locked}
+              disabled={locked || extra?.disabled}
               aria-controls={extra?.controls}
               aria-describedby={`${field}-help${extra?.describedBy ? ` ${extra.describedBy}` : ''}`}
               onCheckedChange={control.onChange}
@@ -136,7 +138,7 @@ export function ExecutionSection<T extends ExecutionFormValues>({
         </div>
       </div>
       {extra?.children}
-      <FieldError message={errors[field]?.message} />
+      <FieldError id={`${field}-error`} message={errors[field]?.message} />
     </li>
   )
 
@@ -200,6 +202,22 @@ export function ExecutionSection<T extends ExecutionFormValues>({
               <div className="pl-12">
                 <FieldWarning id="reasoning-warning">{t('reasoningWarning')}</FieldWarning>
               </div>
+            )
+          })}
+        {isAgent &&
+          item('expose_reasoning', t('exposeReasoning'), t('exposeReasoningHelp'), schema.agent.exposeReasoning, {
+            // O valor é mantido e enviado com o raciocínio desligado; só a edição fica travada.
+            disabled: !reasoningOn,
+            describedBy: [
+              reasoningOn ? '' : 'expose_reasoning-off',
+              errors.expose_reasoning ? 'expose_reasoning-error' : ''
+            ]
+              .filter(Boolean)
+              .join(' '),
+            children: !reasoningOn && (
+              <p id="expose_reasoning-off" className="pl-12 text-xs text-muted-foreground">
+                {t('exposeReasoningOff')}
+              </p>
             )
           })}
         {item('user_memory_active', t('userMemory'), t('userMemoryHelp'), !isAgent)}

@@ -27,6 +27,7 @@ const schemaDocument = z.object({
     add_history_to_context: flag,
     add_datetime_to_context: flag,
     reasoning: flag,
+    expose_reasoning: flag,
     num_history_runs: z.object({
       type: z.literal('integer'),
       default: z.number().int(),
@@ -67,6 +68,7 @@ const toConfigSchema = (doc: z.infer<typeof schemaDocument>): ConfigSchema => ({
     addHistoryToContext: doc.agent.add_history_to_context.default,
     addDatetimeToContext: doc.agent.add_datetime_to_context.default,
     reasoning: doc.agent.reasoning.default,
+    exposeReasoning: doc.agent.expose_reasoning.default,
     numHistoryRuns: {
       default: doc.agent.num_history_runs.default,
       minimum: doc.agent.num_history_runs.minimum,

@@ -8,6 +8,7 @@ import { usePlaygroundStore, type StreamingError } from '../store'
 import {
   RunEvent,
   RunResponseContent,
+  type PlaygroundChatMessage,
   type RunMetrics,
   type RunResponse
 } from '@/types/playground'
@@ -15,6 +16,13 @@ import useAIResponseStream from './useAIResponseStream'
 import { ToolCall } from '@/types/playground'
 import { useQueryState } from 'nuqs'
 import { getJsonMarkdown } from '@/lib/utils'
+import {
+  dropReasoningToolCall,
+  mergeReasoningSteps,
+  parseCompletedSteps,
+  parseReasoningStep,
+  parseReasoningSteps
+} from '@/lib/reasoningSteps'
 
 // Só os números da resposta (tempo e tokens); o resto do RunMetrics fica de
 // fora. Sem nenhum deles, a mensagem fica sem métricas.
@@ -25,6 +33,15 @@ const pickRunMetrics = (metrics?: RunMetrics): RunMetrics | undefined => {
   }
   return Object.keys(picked).length > 0 ? picked : undefined
 }
+
+// Atualiza só a última mensagem, se for do agente (a bolha do run em curso).
+const updateLastAgentMessage = (
+  messages: PlaygroundChatMessage[],
+  update: (message: PlaygroundChatMessage) => PlaygroundChatMessage
+) =>
+  messages.map((message, index) =>
+    index === messages.length - 1 && message.role === 'agent' ? update(message) : message
+  )
 
 const useAIChatStreamHandler = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
@@ -284,13 +301,6 @@ const processToolCall = useCallback(
                     chunk,
                     lastMessage.tool_calls
                   )
-                  if (chunk.extra_data?.reasoning_steps) {
-                    lastMessage.extra_data = {
-                      ...lastMessage.extra_data,
-                      reasoning_steps: chunk.extra_data.reasoning_steps
-                    }
-                  }
-
                   if (chunk.extra_data?.references) {
                     lastMessage.extra_data = {
                       ...lastMessage.extra_data,
@@ -336,37 +346,47 @@ const processToolCall = useCallback(
               chunk.event === RunEvent.ReasoningStep ||
               chunk.event === RunEvent.TeamReasoningStep
             ) {
-              setMessages((prevMessages) => {
-                const newMessages = [...prevMessages]
-                const lastMessage = newMessages[newMessages.length - 1]
-                if (lastMessage && lastMessage.role === 'agent') {
-                  const existingSteps =
-                    lastMessage.extra_data?.reasoning_steps ?? []
-                  const incomingSteps = chunk.extra_data?.reasoning_steps ?? []
-                  lastMessage.extra_data = {
-                    ...lastMessage.extra_data,
-                    reasoning_steps: [...existingSteps, ...incomingSteps]
-                  }
-                }
-                return newMessages
-              })
+              // O passo vem em `content` (agno 3). A tool think/analyze que o
+              // gerou deixa de ser chip: o passo a representa no painel.
+              const step = parseReasoningStep(chunk.content)
+              if (step) {
+                setMessages((prevMessages) =>
+                  updateLastAgentMessage(prevMessages, (message) => ({
+                    ...message,
+                    tool_calls: dropReasoningToolCall(message.tool_calls ?? [], step),
+                    extra_data: {
+                      ...message.extra_data,
+                      reasoning_steps: [...(message.extra_data?.reasoning_steps ?? []), step]
+                    }
+                  }))
+                )
+              }
             } else if (
               chunk.event === RunEvent.ReasoningCompleted ||
               chunk.event === RunEvent.TeamReasoningCompleted
             ) {
-              setMessages((prevMessages) => {
-                const newMessages = [...prevMessages]
-                const lastMessage = newMessages[newMessages.length - 1]
-                if (lastMessage && lastMessage.role === 'agent') {
-                  if (chunk.extra_data?.reasoning_steps) {
-                    lastMessage.extra_data = {
-                      ...lastMessage.extra_data,
-                      reasoning_steps: chunk.extra_data.reasoning_steps
+              // No team, a lista do membro (ReasoningCompleted sem o prefixo
+              // Team) é de outro run: o ReasoningStep ao vivo já trouxe cada
+              // passo, e juntar por título tomaria o lugar do passo de outro
+              // membro.
+              const steps =
+                mode === 'team' && chunk.event === RunEvent.ReasoningCompleted
+                  ? []
+                  : parseCompletedSteps(chunk.content)
+              if (steps.length > 0) {
+                setMessages((prevMessages) =>
+                  updateLastAgentMessage(prevMessages, (message) => ({
+                    ...message,
+                    extra_data: {
+                      ...message.extra_data,
+                      reasoning_steps: mergeReasoningSteps(
+                        message.extra_data?.reasoning_steps ?? [],
+                        steps
+                      )
                     }
-                  }
-                }
-                return newMessages
-              })
+                  }))
+                )
+              }
             } else if (
               chunk.event === RunEvent.RunError ||
               chunk.event === RunEvent.TeamRunError ||
@@ -396,56 +416,48 @@ const processToolCall = useCallback(
               chunk.event === RunEvent.TeamRunCompleted
             ) {
               if (!isTeamMemberEvent) finished = true
-              setMessages((prevMessages) => {
-                const newMessages = prevMessages.map((message, index) => {
-                  if (
-                    index === prevMessages.length - 1 &&
-                    message.role === 'agent'
-                  ) {
-                    let updatedContent: string
-                    if (typeof chunk.content === 'string') {
-                      updatedContent = chunk.content
-                    } else {
-                      try {
-                        updatedContent = JSON.stringify(chunk.content)
-                      } catch {
-                        updatedContent = t('parseError')
-                      }
-                    }
-                    return {
-                      ...message,
-                      // Membro de team não sobrescreve o texto, mas a mídia
-                      // dele segue mesclada (decisão 0007)
-                      content: isTeamMemberEvent
-                        ? message.content
-                        : updatedContent,
-                      tool_calls: processChunkToolCalls(
-                        chunk,
-                        message.tool_calls
-                      ),
-                      // As métricas do membro não são as da resposta do team
-                      // (D-P1-06-2, decisão 0015)
-                      metrics: isTeamMemberEvent
-                        ? message.metrics
-                        : pickRunMetrics(chunk.metrics),
-                      images: chunk.images ?? message.images,
-                      videos: chunk.videos ?? message.videos,
-                      response_audio: chunk.response_audio,
-                      created_at: chunk.created_at ?? message.created_at,
-                      extra_data: {
-                        reasoning_steps:
-                          chunk.extra_data?.reasoning_steps ??
-                          message.extra_data?.reasoning_steps,
-                        references:
-                          chunk.extra_data?.references ??
-                          message.extra_data?.references
-                      }
+              setMessages((prevMessages) =>
+                updateLastAgentMessage(prevMessages, (message) => {
+                  let updatedContent: string
+                  if (typeof chunk.content === 'string') {
+                    updatedContent = chunk.content
+                  } else {
+                    try {
+                      updatedContent = JSON.stringify(chunk.content)
+                    } catch {
+                      updatedContent = t('parseError')
                     }
                   }
-                  return message
+                  return {
+                    ...message,
+                    // Membro de team não sobrescreve o texto, mas a mídia
+                    // dele segue mesclada (decisão 0007)
+                    content: isTeamMemberEvent ? message.content : updatedContent,
+                    tool_calls: processChunkToolCalls(chunk, message.tool_calls),
+                    // As métricas do membro não são as da resposta do team
+                    // (D-P1-06-2, decisão 0015)
+                    metrics: isTeamMemberEvent
+                      ? message.metrics
+                      : pickRunMetrics(chunk.metrics),
+                    images: chunk.images ?? message.images,
+                    videos: chunk.videos ?? message.videos,
+                    response_audio: chunk.response_audio,
+                    created_at: chunk.created_at ?? message.created_at,
+                    extra_data: {
+                      // A lista do membro não entra (ver ReasoningCompleted)
+                      reasoning_steps: isTeamMemberEvent
+                        ? message.extra_data?.reasoning_steps
+                        : mergeReasoningSteps(
+                            message.extra_data?.reasoning_steps ?? [],
+                            parseReasoningSteps(chunk.reasoning_steps)
+                          ),
+                      references:
+                        chunk.extra_data?.references ??
+                        message.extra_data?.references
+                    }
+                  }
                 })
-                return newMessages
-              })
+              )
             }
           },
           onError: failRun,

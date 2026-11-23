@@ -216,6 +216,58 @@ test('cria e edita agent com modelo, execução, memória e resumo', async ({ pa
   await expect(page.getByText('Agente excluído')).toBeVisible()
 })
 
+// AG3-01: `expose_reasoning: false` sobrevive a salvar o agent pelo editor, e com
+// o raciocínio desligado o switch fica travado com o valor preservado.
+test('salva agent com "Expor raciocínio" desligado e o valor sobrevive a nova edição', async ({ page }) => {
+  const id = 'e2e-agente-expose'
+  await page.goto('/agents/new')
+  await hydrated(page)
+  await page.getByLabel(/^ID do agente/).fill(id)
+  await page.getByLabel(/^Nome \*/).fill('Agente expose')
+  await page.getByLabel(/^Modelo \*/).fill('fake-model')
+  const execution = page.getByRole('region', { name: 'Execução' })
+  const expose = execution.getByRole('switch', { name: 'Expor raciocínio' })
+  await expect(expose).toBeDisabled()
+  await execution.getByRole('switch', { name: 'Raciocínio passo a passo' }).click()
+  await expect(expose).toBeEnabled()
+  await expect(expose).toBeChecked()
+  await expose.click()
+  await page.getByRole('button', { name: 'Salvar' }).click()
+
+  await expect(page.getByText('Agente salvo').last()).toBeVisible()
+  expect(await (await storedAgent(id)).json()).toMatchObject({
+    reasoning: true,
+    expose_reasoning: false,
+    version: 1
+  })
+
+  // Editar outro campo e salvar não apaga o valor.
+  await page.getByRole('link', { name: 'Agente expose' }).first().click()
+  await hydrated(page)
+  await expect(expose).not.toBeChecked()
+  await page.getByLabel(/^Nome \*/).fill('Agente expose editado')
+  await saveAndConfirm(page)
+  await expect
+    .poll(async () => ((await (await storedAgent(id)).json()) as { version: number }).version)
+    .toBe(2)
+  expect(await (await storedAgent(id)).json()).toMatchObject({ reasoning: true, expose_reasoning: false })
+
+  // Raciocínio desligado: o switch trava, com o valor, e o diff mostra a mudança do raciocínio só.
+  await execution.getByRole('switch', { name: 'Raciocínio passo a passo' }).click()
+  await expect(expose).toBeDisabled()
+  await expect(expose).not.toBeChecked()
+  await expect(execution.getByText(/Disponível só com "Raciocínio passo a passo" ligado/)).toBeVisible()
+  await saveAndConfirm(page)
+  await expect
+    .poll(async () => ((await (await storedAgent(id)).json()) as { version: number }).version)
+    .toBe(3)
+  expect(await (await storedAgent(id)).json()).toMatchObject({ reasoning: false, expose_reasoning: false })
+
+  await page.getByRole('button', { name: 'Excluir agente' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
+  await expect(page.getByText('Agente excluído')).toBeVisible()
+})
+
 test('valor recusado pelo orquestrador aparece no campo (URL base inválida)', async ({ page }) => {
   await page.goto('/agents/new')
   await hydrated(page)

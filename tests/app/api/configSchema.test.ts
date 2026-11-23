@@ -31,7 +31,8 @@ const document = {
     add_history_to_context: { type: 'boolean', default: true },
     add_datetime_to_context: { type: 'boolean', default: false },
     num_history_runs: { type: 'integer', default: 5, minimum: 1, maximum: 50 },
-    reasoning: { type: 'boolean', default: false }
+    reasoning: { type: 'boolean', default: false },
+    expose_reasoning: { type: 'boolean', default: true }
   },
   team: {
     mode: ['route', 'coordinate'],
@@ -76,6 +77,7 @@ describe('GET /api/config/schema', () => {
           addHistoryToContext: true,
           addDatetimeToContext: false,
           reasoning: false,
+          exposeReasoning: true,
           numHistoryRuns: { default: 5, minimum: 1, maximum: 50 }
         },
         team: { modes: ['route', 'coordinate'], markdown: true, addHistoryToContext: false },

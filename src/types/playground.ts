@@ -5,7 +5,7 @@ export interface ToolCall {
   tool_name: string
   tool_args: Record<string, string>
   tool_call_error?: boolean
-  // agno 2.5: ToolCallMetrics (agno/metrics.py); só no ToolCallCompleted.
+  // agno 3: ToolCallMetrics (agno/metrics.py); só no ToolCallCompleted.
   metrics?: {
     duration?: number
   }
@@ -23,14 +23,14 @@ export interface RunMetrics {
 export interface ReasoningSteps {
   title: string
   action?: string
-  result: string
-  reasoning: string
+  result?: string
+  reasoning?: string
   confidence?: number
   next_action?: string
 }
 export interface ReasoningStepProps {
   index: number
-  stepTitle: string
+  step: ReasoningSteps
 }
 export interface ReasoningProps {
   reasoning: ReasoningSteps[]
@@ -93,11 +93,11 @@ export enum RunEvent {
   RunStarted = 'RunStarted',
   RunResponse = 'RunResponse',
   RunResponseContent = 'RunResponseContent',
-  // agno 2.5: cada RunContent/TeamRunContent traz só o delta do texto
+  // agno 3: cada RunContent/TeamRunContent traz só o delta do texto
   RunContent = 'RunContent',
   RunCompleted = 'RunCompleted',
   RunError = 'RunError',
-  // agno 2.5: fim do run do agente por cancelamento. O RunPaused (aprovação de
+  // agno 3: fim do run do agente por cancelamento. O RunPaused (aprovação de
   // tool) não é tratado: aparece como interrompido (limitação do P2-03).
   RunCancelled = 'RunCancelled',
   ToolCallStarted = 'ToolCallStarted',
@@ -171,6 +171,8 @@ export interface RunResponse {
   tool?: ToolCall
   tools?: Array<ToolCall>
   created_at: number
+  // RunCompleted do agno 3: passos com null; validados em parseReasoningSteps.
+  reasoning_steps?: unknown
   extra_data?: PlaygroundAgentExtraData
   images?: ImageData[]
   videos?: VideoData[]

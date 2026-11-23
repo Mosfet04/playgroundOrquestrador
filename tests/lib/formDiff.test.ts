@@ -372,6 +372,7 @@ describe('documento cru e formulário sem tocar (§7)', () => {
     add_datetime_to_context: doc.add_datetime_to_context ?? schema.agent.addDatetimeToContext,
     add_history_to_context: doc.add_history_to_context ?? schema.agent.addHistoryToContext,
     reasoning: doc.reasoning ?? schema.agent.reasoning,
+    expose_reasoning: doc.expose_reasoning ?? schema.agent.exposeReasoning,
     num_history_runs: doc.num_history_runs ?? schema.agent.numHistoryRuns.default,
     rag_factoryIaModel: doc.rag_config?.factoryIaModel || embedder,
     rag_search_strategy: doc.rag_config?.search_strategy || strategy

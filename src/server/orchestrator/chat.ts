@@ -73,13 +73,19 @@ const sessionListSchema = z.object({
   >[]
 }>
 
-export async function listSessions(kind: ChatKind, componentId: string) {
+// Só as sessões do `userId`: no agno 3 o run numa sessão de outro dono é 404.
+export async function listSessions(
+  kind: ChatKind,
+  componentId: string,
+  userId: string
+) {
   const result = await callOrchestrator('/sessions', {
     key: 'run',
     schema: sessionListSchema,
     query: {
       type: kind,
       component_id: componentId,
+      user_id: userId,
       limit: '20',
       page: '1',
       sort_by: 'updated_at',
