@@ -12,6 +12,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | P3 Editores com paridade | formulários dirigidos por `/admin/schema`: agent, tool, team, RAG, segredos, concorrência | P2, FA-02/03/05/06 | [P3-editores.md](P3-editores.md) |
 | P4 UX realtime | status de aplicação, diff, "testar agora", histórico, configurações da plataforma | P3, FA-04/05 | [P4-realtime.md](P4-realtime.md) |
 | AG3 Agno 3.1.12 | `expose_reasoning`, sessões por usuário, snapshot e fake 3.x, raciocínio no chat | P4, F3 | [AG3-agno3.md](AG3-agno3.md) |
+| QA1 Correções do QA de 23/11 | shell fixo, sessões e status, erro do modelo, truncamento, padrão de erro de campo, validação e rascunho, headers, dashboard, consistência | AG3 (QA1-09: FA-08) | [QA1-correcoes.md](QA1-correcoes.md) |
 | P5 Fase B | campos hoje fixos no orquestrador, tools MCP | P4, FA-07, F4-02 | [P2-P5.md](P2-P5.md) |
 
 ## Status dos itens
@@ -54,6 +55,17 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | AG3-02 | concluído (lista de sessões com o `user_id` do login; 404 "Session not found" do run vira `session_not_owned` no BFF e a mensagem "Esta conversa é de outro usuário. Comece uma nova." no chat; fake com dono de sessão; decisão 0036) |
 | AG3-03 | concluído (snapshot 3.1.12; fake e fixtures com `nested_depth`; team `route` com delegação e membro; cenário de reasoning no fake para o AG3-04) |
 | AG3-04 | concluído (painel de raciocínio com os passos do agno 3 — `ReasoningStep`, `ReasoningCompleted`, `RunCompleted` — por título + ordem, `<details>` por passo; chip de `think`/`analyze` some quando chega o passo dele; ajuda e aviso do raciocínio reescritos; decisão 0036) |
+| QA1-01 | pendente |
+| QA1-02 | pendente |
+| QA1-03 | pendente |
+| QA1-04 | pendente |
+| QA1-05 | pendente |
+| QA1-06 | pendente |
+| QA1-07 | pendente |
+| QA1-08 | pendente |
+| QA1-09 | pendente (espera o FA-08 no orquestrador) |
+| QA1-10 | pendente |
+| QA1-11 | pendente |
 
 ## Molde de item (lido pelo `/dev-cycle`)
 
