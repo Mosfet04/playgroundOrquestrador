@@ -39,6 +39,20 @@ export function focusHeadingIfLost() {
   if (!active || active === document.body) document.querySelector<HTMLElement>('h1')?.focus()
 }
 
+// Troca de rota: o loading.tsx da seção mostra um fallback sem h1 antes da
+// página nova. Se ainda não há h1, espera o da página nova (no máximo 5 s).
+export function focusHeadingWhenReady() {
+  if (document.querySelector('h1')) return focusHeadingIfLost()
+  const timer = setTimeout(() => observer.disconnect(), 5000)
+  const observer = new MutationObserver(() => {
+    if (!document.querySelector('h1')) return
+    observer.disconnect()
+    clearTimeout(timer)
+    focusHeadingIfLost()
+  })
+  observer.observe(document.body, { childList: true, subtree: true })
+}
+
 /** Texto `role="status"` com o ponto `signal` ao vivo. */
 export function LiveStatus({ children }: { children: ReactNode }) {
   return (

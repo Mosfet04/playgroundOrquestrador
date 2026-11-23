@@ -25,6 +25,8 @@ Escopo:
 - [AppShell.tsx](../../src/components/layout/AppShell.tsx): `main#conteudo` com `relative`, para os inputs nativos ocultos do Radix (`<select aria-hidden>` do Select, `<input aria-hidden>` do Switch, `position:absolute`) terem o `main` como containing block. `html`/`body` travados na altura da viewport (`h-dvh overflow-hidden`), sem rolagem do documento.
 - Header mobile opaco (#29): fundo por token, sem translucidez que deixe o conteúdo rolado aparecer por baixo.
 - Navegação com feedback (#30): `loading.tsx` nas rotas do `(app)` usando o skeleton que já existe, para o clique na sidebar mostrar carregamento na hora.
+- Desvio (travar a casca, não `html`/`body`): a trava ficou na casca do AppShell (`overflow-clip`) com `relative` no `main`, porque o `/login` rola o documento (`min-h-dvh`).
+- Desvio (`loading.tsx` por seção): um `loading.tsx` por seção de `(app)`, e não na raiz do grupo, porque lá o 404 do catch-all `[...rest]` sairia com HTTP 200.
 Fora de escopo: layout interno das páginas.
 Critérios de aceite:
 - Em `/tools/new` com parâmetro criado pela rota (`/anything/{order_id}` → Criar parâmetro), em `/agents/new` ligando "Habilitar RAG" e numa tool que volta 422: `window.scrollY === 0` e `document.documentElement.scrollHeight === innerHeight`; header e sidebar visíveis; Salvar/Cancelar alcançáveis rolando o `main`.

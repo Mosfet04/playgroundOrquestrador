@@ -55,7 +55,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | AG3-02 | concluído (lista de sessões com o `user_id` do login; 404 "Session not found" do run vira `session_not_owned` no BFF e a mensagem "Esta conversa é de outro usuário. Comece uma nova." no chat; fake com dono de sessão; decisão 0036) |
 | AG3-03 | concluído (snapshot 3.1.12; fake e fixtures com `nested_depth`; team `route` com delegação e membro; cenário de reasoning no fake para o AG3-04) |
 | AG3-04 | concluído (painel de raciocínio com os passos do agno 3 — `ReasoningStep`, `ReasoningCompleted`, `RunCompleted` — por título + ordem, `<details>` por passo; chip de `think`/`analyze` some quando chega o passo dele; ajuda e aviso do raciocínio reescritos; decisão 0036) |
-| QA1-01 | pendente |
+| QA1-01 | concluído (só o `main` rola: `relative` no main + `overflow-clip` na casca do AppShell; header mobile opaco; `loading.tsx` por seção; foco no h1 pós-exclusão com `focusHeadingWhenReady`) |
 | QA1-02 | pendente |
 | QA1-03 | pendente |
 | QA1-04 | pendente |

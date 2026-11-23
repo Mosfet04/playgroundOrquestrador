@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { focusHeadingIfLost } from '@/components/ui/loading'
+import { focusHeadingWhenReady } from '@/components/ui/loading'
 import { applyFailure, errorBody, type ApplyFailure } from './applyResult'
 import { ErrorTypeCode, useAppliedText } from './ApplyStatus'
 import { useRequestError } from './useRequestError'
@@ -119,7 +119,7 @@ export function EntityActions({
   // da lista: o foco vai para o h1 dela.
   useEffect(
     () => () => {
-      if (deleted.current) focusHeadingIfLost()
+      if (deleted.current) focusHeadingWhenReady()
     },
     []
   )
