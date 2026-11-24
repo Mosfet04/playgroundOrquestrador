@@ -99,12 +99,14 @@ export async function listSessions(
       : result
   return {
     ok: true as const,
+    // Horário da linha: a última atividade (a ordem já é por updated_at), que
+    // mandar outra mensagem atualiza (D-QA1-02-3).
     data: result.data.data.map((session) => ({
       session_id: session.session_id,
       title: session.session_name,
-      created_at:
+      updated_at:
         Math.floor(
-          Date.parse(session.created_at ?? session.updated_at ?? '') / 1000
+          Date.parse(session.updated_at ?? session.created_at ?? '') / 1000
         ) || 0
     }))
   }

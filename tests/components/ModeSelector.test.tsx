@@ -19,7 +19,8 @@ const agent = {
 const team = {
   value: 'team-1',
   label: 'Time de suporte',
-  model: { provider: 'OpenAI' }
+  model: { provider: 'OpenAI' },
+  storage: true
 }
 
 const initialStoreState = usePlaygroundStore.getState()
@@ -80,7 +81,9 @@ describe('ModeSelector', () => {
     expect(usePlaygroundStore.getState().mode).toBe('team')
   })
 
-  it('ao escolher Team limpa o agente, a sessão e as mensagens', async () => {
+  // QA1-02 (D-QA1-0-4): a aba vai à URL no clique, com o 1º team; um reload
+  // antes da carga seguinte do orquestrador volta na aba Team.
+  it('ao escolher Team troca o agente e a sessão da URL pelo 1º team e limpa as mensagens', async () => {
     const user = userEvent.setup()
     usePlaygroundStore.setState({
       agents: [agent],
@@ -103,6 +106,33 @@ describe('ModeSelector', () => {
     expect(state.mode).toBe('team')
     expect(state.messages).toEqual([])
     await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled())
-    expect(onUrlUpdate.mock.lastCall?.[0].queryString).toBe('')
+    expect(onUrlUpdate.mock.lastCall?.[0].queryString).toBe('?team=team-1')
+    expect(state.hasStorage).toBe(true)
+  })
+
+  it('clique duplo em Team: uma troca só', async () => {
+    const user = userEvent.setup()
+    usePlaygroundStore.setState({ agents: [agent], teams: [team], mode: 'agent' })
+    const { onUrlUpdate } = renderModeSelector('?agent=agent-1')
+
+    await user.dblClick(segment('Team'))
+    await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled())
+
+    expect(onUrlUpdate).toHaveBeenCalledTimes(1)
+    expect(onUrlUpdate.mock.lastCall?.[0].queryString).toBe('?team=team-1')
+    expect(usePlaygroundStore.getState().mode).toBe('team')
+  })
+
+  it('de volta para Agente: o 1º agente na URL, com o storage dele', async () => {
+    const user = userEvent.setup()
+    usePlaygroundStore.setState({ agents: [agent], teams: [team], mode: 'team' })
+    const { onUrlUpdate } = renderModeSelector('?team=team-1&session=session-t1')
+
+    await user.click(segment('Agente'))
+
+    await waitFor(() =>
+      expect(onUrlUpdate.mock.lastCall?.[0].queryString).toBe('?agent=agent-1')
+    )
+    expect(usePlaygroundStore.getState().hasStorage).toBe(false)
   })
 })

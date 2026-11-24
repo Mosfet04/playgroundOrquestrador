@@ -8,6 +8,7 @@ import { useSelectedEntity } from '@/hooks/useSelectedEntity'
 import { usePlaygroundStore } from '@/store'
 import Messages from './Messages'
 import ScrollToBottom from '@/components/playground/ChatArea/ScrollToBottom'
+import { cn } from '@/lib/utils'
 
 // Fora do log: o leitor de tela ouve o início e o fim da resposta, uma vez
 // cada, não token a token (docs/design/P1-06.md, § 6). No erro do stream, "falhou"
@@ -47,7 +48,14 @@ const MessageArea = () => {
         resize="smooth"
         initial="smooth"
       >
-        <StickToBottom.Content className="flex min-h-full flex-col justify-center px-4 lg:px-6">
+        {/* Poucas mensagens ficam embaixo, junto do composer, com o vazio no
+            topo (D-QA1-02-2); a conversa vazia fica no centro. */}
+        <StickToBottom.Content
+          className={cn(
+            'flex min-h-full flex-col px-4 lg:px-6',
+            messages.length > 0 ? 'justify-end' : 'justify-center'
+          )}
+        >
           <div
             role="log"
             aria-live="polite"

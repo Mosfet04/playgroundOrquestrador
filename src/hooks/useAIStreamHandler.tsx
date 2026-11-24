@@ -13,6 +13,7 @@ import {
   type RunResponse
 } from '@/types/playground'
 import useAIResponseStream from './useAIResponseStream'
+import useSessionLoader from './useSessionLoader'
 import { ToolCall } from '@/types/playground'
 import { useQueryState } from 'nuqs'
 import { getJsonMarkdown } from '@/lib/utils'
@@ -63,6 +64,7 @@ const useAIChatStreamHandler = () => {
   )
   const hasStorage = usePlaygroundStore((state) => state.hasStorage)
   const { streamResponse } = useAIResponseStream()
+  const { getSessions } = useSessionLoader()
   const t = useTranslations('playground')
 
   const updateMessagesWithErrorState = useCallback(() => {
@@ -180,14 +182,6 @@ const processToolCall = useCallback(
       const failRun = (error: StreamingError | null) => {
         updateMessagesWithErrorState()
         setStreamingErrorMessage(error)
-        if (hasStorage && newSessionId) {
-          setSessionsData(
-            (prevSessionsData) =>
-              prevSessionsData?.filter(
-                (session) => session.session_id !== newSessionId
-              ) ?? null
-          )
-        }
       }
       try {
         // O user_id vem da sessão do playground, no BFF (P2-03).
@@ -244,7 +238,7 @@ const processToolCall = useCallback(
                 const sessionData = {
                   session_id: chunk.session_id as string,
                   title: messageText,
-                  created_at: chunk.created_at
+                  updated_at: chunk.created_at
                 }
                 setSessionsData((prevSessionsData) => {
                   const sessionExists = prevSessionsData?.some(
@@ -477,6 +471,11 @@ const processToolCall = useCallback(
           focusChatInput()
           setIsStreaming(false)
         }
+        // A lista é do servidor: no fim do run, ok ou com erro (o agno grava
+        // a sessão antes do RunError), ela é relida com o horário novo. Run
+        // abortado não relê: a conversa já é outra (troca, nova, saída).
+        if (hasStorage && newSessionId && !controller.signal.aborted)
+          getSessions({ entityType: mode, agentId, teamId }, { quiet: true })
       }
     },
     [
@@ -493,6 +492,7 @@ const processToolCall = useCallback(
       focusChatInput,
       setSessionsData,
       setLoadedSessionId,
+      getSessions,
       sessionId,
       setSessionId,
       hasStorage,

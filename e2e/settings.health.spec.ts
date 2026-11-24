@@ -43,8 +43,15 @@ test('fora do ar: seções em erro com "Tentar de novo", indicador "fora do ar";
   page
 }) => {
   await setHealth('down')
+  // O backoff do indicador (QA1-02: 1ª releitura em 5 s) relê sozinho; com o
+  // fake já `healthy`, uma releitura entre o `setHealth` e o clique tiraria o
+  // botão "Tentar de novo". O relógio da página corre normal na carga e para
+  // logo depois da hidratação (sem nenhuma releitura pendente que dispare), e o clique é que
+  // dá a leitura.
+  await page.clock.install({ time: Date.now() })
   await page.goto('/settings')
   await hydrated(page)
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 200)
 
   const shell = page.getByRole('link', { name: 'Orquestrador fora do ar' })
   await expect(shell).toHaveAttribute('title', 'Orquestrador não respondeu. Veja os detalhes em Configurações.')

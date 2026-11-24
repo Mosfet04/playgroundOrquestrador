@@ -325,7 +325,7 @@ describe('sessões', () => {
           <SessionItem
             session_id="session-a1"
             title="Minha sessão"
-            created_at={1}
+            updated_at={1}
             isSelected={false}
             currentSessionId={null}
             onSessionClick={() => undefined}
@@ -337,7 +337,7 @@ describe('sessões', () => {
     beforeEach(() => {
       usePlaygroundStore.setState({
         mode: 'agent',
-        sessionsData: [{ session_id: 'session-a1', title: 'Minha sessão', created_at: 1 }]
+        sessionsData: [{ session_id: 'session-a1', title: 'Minha sessão', updated_at: 1 }]
       })
     })
 

@@ -270,6 +270,7 @@ export interface Reference {
 export interface SessionEntry {
   session_id: string
   title: string
-  created_at: number
+  /** Última atividade, em segundos (sem ela no orquestrador, a criação). */
+  updated_at: number
 }
 

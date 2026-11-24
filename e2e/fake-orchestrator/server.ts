@@ -44,6 +44,10 @@ const HOLD_COMPLETION_MS = 3000
 // POST /hold/release: o e2e troca o idioma com o stream aberto (P1-04b). O
 // prazo máximo evita stream preso se o teste cair antes de liberar.
 const HOLD_UNTIL_RELEASE_MESSAGE = 'segure até liberar'
+// Mensagem que faz o run do agente falhar depois do RunStarted, como o 503
+// "high demand" do provedor: o agno grava a sessão e encerra com RunError
+// (agno/agent/_run.py, acleanup_and_store antes do yield). QA1-02.
+const RUN_ERROR_MESSAGE = 'falhe o run'
 const HOLD_MAX_MS = 60_000
 // POST /hold/release solta tudo; com `?agent=<id>`, só os streams desse agente
 // (testes em paralelo não soltam os retidos uns dos outros).
@@ -897,6 +901,12 @@ const runAgent = async (
         user_id: userId
       }
     ])
+  } else {
+    // O agno grava o `updated_at` a cada run (QA1-02: a lista mostra o novo).
+    sessionsByAgent.set(
+      agent.id,
+      agentSessions.map((s) => (s.session_id === sessionId ? { ...s, updated_at: now } : s))
+    )
   }
 
   let finished = false
@@ -983,6 +993,13 @@ const runAgent = async (
       total_tokens: runMetrics.total_tokens
     })
   writeEvent(res, { ...contentRun, event: 'RunStarted', model: 'fake-model' })
+  if (!isTeam && message === RUN_ERROR_MESSAGE) {
+    await delay(CHUNK_DELAY_MS)
+    writeEvent(res, { ...contentRun, event: 'RunError', content: 'Fake provider: high demand' })
+    finished = true
+    res.end()
+    return
+  }
   if (reasoning) {
     // Cada passo vem como tool think/analyze, e o run deriva dela o ReasoningStep
     // (o ReasoningStarted antes do primeiro).

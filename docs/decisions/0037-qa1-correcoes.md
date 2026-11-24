@@ -70,3 +70,11 @@ Contexto: a regra por tamanho ([0033](0033-p4-03-testar-agora.md)) punha item co
 Opções: **A) classificar por risco: estado assíncrono, auth/segurança, rota/BFF ou `src/server` novo ⇒ dev opus/high; senão dev sonnet/high. Revisor fixo em opus/high, QA em sonnet/high (QA enxuto), revisão dos testes do QA sonnet/medium; xhigh sai do revisor**; B) manter a regra por tamanho.
 
 Escolha: **A** (2026-11-23). Vale do QA1-02 em diante; tabela em `.claude/skills/dev-cycle/SKILL.md`. Frontmatter: revisor `effort: high`, QA `model: sonnet`.
+
+## D-QA1-02-3 — Horário da sessão na resposta do BFF (#4)
+
+Contexto: para a lista mostrar o horário novo de uma sessão existente, o BFF precisa devolver o `updated_at` do orquestrador. A 1ª versão do QA1-02 mandava esse valor no campo `created_at`.
+
+Opções: **A) renomear o campo da resposta do BFF para `updated_at` (com fallback para o `created_at` do orquestrador) e o cliente ler esse nome**; B) manter `created_at` com o valor de `updated_at`.
+
+Escolha: **A** (2026-11-24). Contrato só browser↔BFF; nada muda no orquestrador.

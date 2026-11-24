@@ -126,13 +126,13 @@ describe('entidade com nome hostil', () => {
 })
 
 describe('sessão com data inválida', () => {
-  const renderPanel = (created_at: unknown) => {
+  const renderPanel = (updatedAt: unknown) => {
     usePlaygroundStore.setState({
       isOrchestratorActive: true,
       isOrchestratorLoading: false,
       hasStorage: true,
       agents: [{ value: 'suporte-n1', label: 'Suporte N1', model: { provider: 'x' }, storage: true }],
-      sessionsData: [{ session_id: 's1', title: 'Conversa sem data', created_at: created_at as number }]
+      sessionsData: [{ session_id: 's1', title: 'Conversa sem data', updated_at: updatedAt as number }]
     })
     return renderWithIntl(
       <NuqsTestingAdapter searchParams="?agent=suporte-n1">
@@ -146,9 +146,9 @@ describe('sessão com data inválida', () => {
   // orquestrador pode mandar `created_at` ausente ou texto que não é data
   // (desde a P2-03 o BFF já troca por 0, tests/app/api/playgroundChat.test.ts).
   it.each([[Number.NaN], [undefined], [1e20]])(
-    'BUG-P1-06-1: created_at %s: a linha fica sem horário, não "Invalid Date"',
-    (createdAt) => {
-      renderPanel(createdAt)
+    'BUG-P1-06-1: updated_at %s: a linha fica sem horário, não "Invalid Date"',
+    (updatedAt) => {
+      renderPanel(updatedAt)
 
       // nome exato: com "Invalid Date" no horário o nome seria outro
       expect(screen.getByRole('button', { name: 'Conversa sem data' })).toBeInTheDocument()

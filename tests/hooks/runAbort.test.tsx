@@ -193,7 +193,7 @@ describe('abort do run', () => {
       hasStorage: true,
       agents: agentsFixture,
       sessionsData: [
-        { session_id: 'session-b', title: 'Sessão B', created_at: 1 }
+        { session_id: 'session-b', title: 'Sessão B', updated_at: 1 }
       ]
     })
     let run!: (message: string) => Promise<void>

@@ -36,9 +36,9 @@ beforeEach(() => {
     hasStorage: true,
     agents,
     sessionsData: [
-      { session_id: 's1', title: 'Prazo de troca no app', created_at: now },
-      { session_id: 's2', title: 'Cupom não aplicado', created_at: now - 86_400 },
-      { session_id: 's3', title: 'Endereço errado', created_at: Date.UTC(2020, 9, 12, 15) / 1000 }
+      { session_id: 's1', title: 'Prazo de troca no app', updated_at: now },
+      { session_id: 's2', title: 'Cupom não aplicado', updated_at: now - 86_400 },
+      { session_id: 's3', title: 'Endereço errado', updated_at: Date.UTC(2020, 9, 12, 15) / 1000 }
     ]
   })
 })

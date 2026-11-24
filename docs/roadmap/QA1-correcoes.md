@@ -43,6 +43,9 @@ Escopo:
 - #5 (D-QA1-02-1): com o status fora do ar ou degradado, o indicador relê `/api/orchestrator/runtime` com backoff (5 s, 15 s, 30 s, depois a cada 60 s) e na volta do foco da aba. Online: nenhuma leitura extra. Revoga em parte a D-P4-05 da 0035.
 - #7 (D-QA1-02-2): poucas mensagens ficam ancoradas embaixo, perto do composer; o espaço vazio fica no topo. O scroll automático para a última continua.
 - Aba Agente/Team na URL (nuqs), como o resto do estado navegável do playground (D-QA1-0-4).
+- Desvio (aba na URL): a aba é o `?agent=`/`?team=` que já existia, gravado no clique com a 1ª entidade da aba; sem `?mode=`, que repetiria o que a URL já diz. Antes, o clique limpava os dois e só a releitura de agents/teams gravava o `?team=`: um reload no meio (orquestrador lento) voltava em Agente.
+- Desvio (#4, horário, D-QA1-02-3): a resposta do BFF de sessões troca `created_at` por `updated_at` (a última atividade do orquestrador; sem ela, a criação), e o fim do run relê a lista sem skeleton. A causa do esvaziamento: no erro do run o chat tirava a sessão ativa da lista local, e o agno a grava antes do `RunError`.
+- Desvio (#5): com a aba escondida o timer não relê; a volta dela relê na hora.
 Fora de escopo: polling com o status online.
 Critérios de aceite:
 - Abrir a sessão "Ola", enviar ⇒ a lista mostra "Ola" destacada com o horário novo, sem reload; idem numa conversa nova com outro agente.

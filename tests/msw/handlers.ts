@@ -34,14 +34,14 @@ const sessionsFixture = {
     {
       session_id: 'session-a1',
       title: 'Primeira conversa',
-      created_at: Date.UTC(2026, 0, 2, 3, 4, 5) / 1000
+      updated_at: Date.UTC(2026, 0, 2, 3, 4, 5) / 1000
     }
   ],
   team: [
     {
       session_id: 'session-t1',
       title: 'Conversa do time',
-      created_at: Date.UTC(2026, 1, 3, 4, 5, 6) / 1000
+      updated_at: Date.UTC(2026, 1, 3, 4, 5, 6) / 1000
     }
   ]
 }

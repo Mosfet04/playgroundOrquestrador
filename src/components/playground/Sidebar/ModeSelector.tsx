@@ -10,33 +10,26 @@ import { cn, focusRing } from '@/lib/utils'
 // Segmentado Agente | Team (docs/design/P1-06.md): o lado sem entidades fica
 // desabilitado; `labelledBy` é o rótulo "Conversar com" do painel.
 export function ModeSelector({ labelledBy }: { labelledBy: string }) {
-  const {
-    mode,
-    setMode,
-    teams,
-    agents,
-    setMessages,
-    setHasStorage
-  } = usePlaygroundStore()
+  const { mode, setMode, teams, agents, setHasStorage } = usePlaygroundStore()
   const { clearChat } = useChatActions()
   const [, setAgentId] = useQueryState('agent')
   const [, setTeamId] = useQueryState('team')
-  const [, setSessionId] = useQueryState('session')
   const t = useTranslations('playground')
 
   const hasTeams = teams.length > 0
   const hasAgents = agents.length > 0
 
+  // A aba vai à URL no clique, com a 1ª entidade dela (o lado sem entidades
+  // fica desabilitado): um reload antes da próxima carga do orquestrador volta
+  // na mesma aba (QA1-02). `clearChat` tira a sessão e aborta o run.
   const handleModeChange = (newMode: 'agent' | 'team') => {
     if (newMode === mode) return
+    const [first] = newMode === 'team' ? teams : agents
 
     setMode(newMode)
-
-    setAgentId(null)
-    setTeamId(null)
-    setHasStorage(false)
-    setMessages([])
-    setSessionId(null)
+    setAgentId(newMode === 'agent' ? first.value : null)
+    setTeamId(newMode === 'team' ? first.value : null)
+    setHasStorage(!!first.storage)
     clearChat()
   }
 

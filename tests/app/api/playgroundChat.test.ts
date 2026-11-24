@@ -209,13 +209,43 @@ describe('GET /api/playground/sessions', () => {
         {
           session_id: 's1',
           title: 'Primeira',
-          created_at: Date.UTC(2026, 0, 2, 3, 4, 5) / 1000
+          updated_at: Date.UTC(2026, 0, 2, 3, 4, 5) / 1000
         },
-        { session_id: 's2', title: 'Sem data', created_at: 0 }
+        { session_id: 's2', title: 'Sem data', updated_at: 0 }
       ]
     })
     expect(seen!.searchParams.get('type')).toBe('team')
     expect(seen!.searchParams.get('component_id')).toBe('a b&c')
+  })
+
+  // QA1-02 (#4): o horário da linha é o da última atividade (a ordem da lista
+  // já é por updated_at); sem ele, o da criação.
+  it('horário da sessão: o updated_at, e o created_at sem ele', async () => {
+    server.use(
+      http.get(`${BASE}/sessions`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              session_id: 's1',
+              session_name: 'Ola',
+              created_at: '2026-01-02T03:04:05Z',
+              updated_at: '2026-01-05T10:00:00Z'
+            },
+            { session_id: 's2', session_name: 'Só criada', created_at: '2026-01-02T03:04:05Z' }
+          ],
+          meta: { page: 1, limit: 20, total_pages: 1, total_count: 2 }
+        })
+      )
+    )
+
+    const response = await listSessions(
+      await request('/api/playground/sessions?type=agent&component_id=a')
+    )
+
+    expect((await response.json()).data).toEqual([
+      { session_id: 's1', title: 'Ola', updated_at: Date.UTC(2026, 0, 5, 10) / 1000 },
+      { session_id: 's2', title: 'Só criada', updated_at: Date.UTC(2026, 0, 2, 3, 4, 5) / 1000 }
+    ])
   })
 
   // AG3-02 (D-AG3-02-1): o 3.1.12 só deixa rodar na sessão do dono, então a

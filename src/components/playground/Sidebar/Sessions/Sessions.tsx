@@ -67,8 +67,10 @@ const Sessions = () => {
           <SessionBlankState />
         ) : (
           <ul className="flex flex-col gap-0.5">
-            {sessions.map((entry, idx) => (
-              <li key={`${entry.session_id}-${idx}`}>
+            {/* Chave pelo id (único na lista): a releitura do servidor muda a
+                ordem sem remontar a linha nem fechar o diálogo de excluir. */}
+            {sessions.map((entry) => (
+              <li key={entry.session_id}>
                 <SessionItem
                   {...entry}
                   currentSessionId={selectedSessionId}
