@@ -1,11 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import { StickToBottom } from 'use-stick-to-bottom'
 
+import useAIChatStreamHandler from '@/hooks/useAIStreamHandler'
 import { useSelectedEntity } from '@/hooks/useSelectedEntity'
 import { usePlaygroundStore } from '@/store'
+import type { PlaygroundChatMessage } from '@/types/playground'
 import Messages from './Messages'
 import ScrollToBottom from '@/components/playground/ChatArea/ScrollToBottom'
 import { cn } from '@/lib/utils'
@@ -40,6 +43,24 @@ const MessageArea = () => {
   const { messages } = usePlaygroundStore()
   const isStreaming = usePlaygroundStore((state) => state.isStreaming)
   const entity = useSelectedEntity()
+  const { handleStreamResponse } = useAIChatStreamHandler()
+  const t = useTranslations('playground')
+
+  // Reenviar (QA1-03): a mesma mensagem na sessão da URL. Com um run em
+  // andamento não faz nada, inclusive o 2º clique de um clique duplo (o 1º já
+  // ligou o isStreaming). O botão some com a bolha: o foco vai ao composer.
+  const resend = useCallback(
+    (question: PlaygroundChatMessage) => {
+      const { isStreaming, chatInputRef } = usePlaygroundStore.getState()
+      if (isStreaming) return
+      chatInputRef.current?.focus()
+      handleStreamResponse(question.content, question).catch((error) => {
+        console.error('Error resending the message:', error)
+        toast.error(t('sendError'))
+      })
+    },
+    [handleStreamResponse, t]
+  )
 
   return (
     <>
@@ -62,7 +83,7 @@ const MessageArea = () => {
             aria-busy={isStreaming || undefined}
             className="mx-auto flex w-full max-w-3xl flex-col gap-5 py-5 text-base leading-6 lg:gap-6 lg:py-8"
           >
-            <Messages messages={messages} entity={entity} />
+            <Messages messages={messages} entity={entity} onResend={resend} />
           </div>
         </StickToBottom.Content>
         <ScrollToBottom />

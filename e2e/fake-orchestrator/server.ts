@@ -45,9 +45,35 @@ const HOLD_COMPLETION_MS = 3000
 // prazo máximo evita stream preso se o teste cair antes de liberar.
 const HOLD_UNTIL_RELEASE_MESSAGE = 'segure até liberar'
 // Mensagem que faz o run do agente falhar depois do RunStarted, como o 503
-// "high demand" do provedor: o agno grava a sessão e encerra com RunError
+// "high demand" do provedor: o agno grava a sessão, com a pergunta e sem
+// resposta (flush_in_flight_messages_on_error), e encerra com RunError
 // (agno/agent/_run.py, acleanup_and_store antes do yield). QA1-02.
 const RUN_ERROR_MESSAGE = 'falhe o run'
+// QA1-03: o 503 que passa no Reenviar (falha só no 1º run da sessão) e o erro
+// pydantic de parâmetro do modelo (`temperature` "0,7", QA1-06 #3). O
+// `content` é o str() da exceção, como no RunErrorEvent do agno 3.1.12.
+const RUN_ERROR_ONCE_MESSAGE = 'sobrecarregue uma vez'
+const INVALID_PARAM_MESSAGE = 'parametro invalido'
+const HIGH_DEMAND_ERROR = {
+  error_type: 'model_provider_error',
+  content:
+    "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+}
+const INVALID_PARAM_ERROR = {
+  error_type: 'ValidationError',
+  content:
+    "1 validation error for GenerateContentConfig\ntemperature\n  Input should be a valid number, unable to parse string as a number [type=float_parsing, input_value='0,7', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.14/v/float_parsing"
+}
+// Run que falha depois de uma tool: o agno grava a pergunta e o assistant da
+// chamada, sem texto (flush_in_flight_messages_on_error). QA1-03, D-QA1-03-5.
+const RUN_ERROR_AFTER_TOOL_MESSAGE = 'falhe depois da tool'
+const RUN_ERRORS = new Map([
+  [RUN_ERROR_MESSAGE, HIGH_DEMAND_ERROR],
+  [INVALID_PARAM_MESSAGE, INVALID_PARAM_ERROR],
+  [RUN_ERROR_AFTER_TOOL_MESSAGE, HIGH_DEMAND_ERROR]
+])
+// Sessões em que o RUN_ERROR_ONCE_MESSAGE já falhou.
+const failedOnceSessions = new Set<string>()
 const HOLD_MAX_MS = 60_000
 // POST /hold/release solta tudo; com `?agent=<id>`, só os streams desse agente
 // (testes em paralelo não soltam os retidos uns dos outros).
@@ -75,7 +101,14 @@ const teamMember = agents[0]
 const sessionsByAgent = new Map<string, FakeSession[]>()
 // Histórico no formato v2.5 lido por src/hooks/useSessionLoader.tsx
 // (`chat_history` com role, content e created_at).
-type ChatEntry = { role: 'user' | 'assistant'; content: string; created_at: number }
+// O assistant da tool call do run que falhou vem com `content` null e os
+// `tool_calls` (QA1-03, D-QA1-03-5).
+type ChatEntry = {
+  role: 'user' | 'assistant'
+  content: string | null
+  created_at: number
+  tool_calls?: Record<string, unknown>[]
+}
 const historyBySession = new Map<string, ChatEntry[]>()
 
 // Formato do AgentResponse do AgentOS (agno/os/routers/agents/schema.py).
@@ -993,9 +1026,41 @@ const runAgent = async (
       total_tokens: runMetrics.total_tokens
     })
   writeEvent(res, { ...contentRun, event: 'RunStarted', model: 'fake-model' })
-  if (!isTeam && message === RUN_ERROR_MESSAGE) {
+  const failsOnce = message === RUN_ERROR_ONCE_MESSAGE && !failedOnceSessions.has(sessionId)
+  const runError = isTeam ? undefined : failsOnce ? HIGH_DEMAND_ERROR : RUN_ERRORS.get(message)
+  if (runError) {
+    if (failsOnce) failedOnceSessions.add(sessionId)
+    const afterTool = message === RUN_ERROR_AFTER_TOOL_MESSAGE
+    if (afterTool) {
+      writeEvent(res, { ...contentRun, event: 'ToolCallStarted', tool: toolOk })
+      writeEvent(res, {
+        ...contentRun,
+        event: 'ToolCallCompleted',
+        tool: { ...toolOk, tool_call_error: false, metrics: { duration: 0.18 } }
+      })
+    }
     await delay(CHUNK_DELAY_MS)
-    writeEvent(res, { ...contentRun, event: 'RunError', content: 'Fake provider: high demand' })
+    writeEvent(res, { ...contentRun, event: 'RunError', ...runError })
+    historyBySession.set(sessionId, [
+      ...(historyBySession.get(sessionId) ?? []),
+      { role: 'user', content: message, created_at: base.created_at },
+      ...(afterTool
+        ? [
+            {
+              role: 'assistant' as const,
+              content: null,
+              created_at: base.created_at,
+              tool_calls: [
+                {
+                  id: toolOk.tool_call_id,
+                  type: 'function',
+                  function: { name: toolOk.tool_name, arguments: '{}' }
+                }
+              ]
+            }
+          ]
+        : [])
+    ])
     finished = true
     res.end()
     return

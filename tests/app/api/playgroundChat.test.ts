@@ -344,6 +344,67 @@ describe('/api/playground/sessions/[id]', () => {
     expectNoLeak(text)
   })
 
+  // QA1-03 (review R7, D-QA1-03-5): no agno 3.1.12 o run que falha depois de
+  // uma tool grava o assistant com `tool_calls` e sem texto
+  // (flush_in_flight_messages_on_error). Ele não é resposta: sai do histórico,
+  // e a pergunta fica "sem resposta". Com mídia, ou sem nada, continua.
+  it.each([
+    ['content nulo', null],
+    ['content vazio', ''],
+    ['content lista vazia', []]
+  ])('assistant sem texto (%s) que só tem tool_calls sai do histórico', async (_, content) => {
+    server.use(
+      http.get(`${BASE}/sessions/:id`, () =>
+        HttpResponse.json({
+          chat_history: [
+            { role: 'user', content: 'consulte o pedido', created_at: 1 },
+            {
+              role: 'assistant',
+              content,
+              tool_calls: [{ id: 'c1', type: 'function', function: { name: 'consultar_pedido', arguments: '{}' } }],
+              created_at: 2
+            }
+          ]
+        })
+      )
+    )
+
+    const response = await getSession(await request('/api/playground/sessions/s1?type=agent'), params('s1'))
+
+    expect((await response.json()).data.chat_history).toEqual([
+      { role: 'user', content: 'consulte o pedido', created_at: 1 }
+    ])
+  })
+
+  it('assistant sem texto com mídia, ou sem nada, continua; o formato da resposta não muda', async () => {
+    const toolCalls = [{ id: 'c1', type: 'function', function: { name: 'gerar', arguments: '{}' } }]
+    server.use(
+      http.get(`${BASE}/sessions/:id`, () =>
+        HttpResponse.json({
+          chat_history: [
+            { role: 'user', content: 'gere', created_at: 1 },
+            { role: 'assistant', content: null, tool_calls: toolCalls, images: [{ url: 'https://x.test/a.png' }], created_at: 2 },
+            { role: 'user', content: 'e agora', created_at: 3 },
+            { role: 'assistant', content: null, created_at: 4 },
+            { role: 'user', content: 'ok', created_at: 5 },
+            { role: 'assistant', content: 'feito', tool_calls: toolCalls, created_at: 6 }
+          ]
+        })
+      )
+    )
+
+    const response = await getSession(await request('/api/playground/sessions/s1?type=agent'), params('s1'))
+
+    expect((await response.json()).data.chat_history).toEqual([
+      { role: 'user', content: 'gere', created_at: 1 },
+      { role: 'assistant', content: null, created_at: 2 },
+      { role: 'user', content: 'e agora', created_at: 3 },
+      { role: 'assistant', content: null, created_at: 4 },
+      { role: 'user', content: 'ok', created_at: 5 },
+      { role: 'assistant', content: 'feito', created_at: 6 }
+    ])
+  })
+
   it('DELETE usa a chave admin e o id codificado', async () => {
     let authorization: string | null = null
     let path = ''
@@ -759,5 +820,319 @@ describe('POST /api/playground/{agents,teams}/[id]/runs', () => {
       success: false,
       error: 'invalid_path'
     })
+  })
+})
+
+// QA1-03 (D-QA1-03-1): o RunError do run vira um código do playground
+// (`overloaded`, `invalidParam` + parâmetro, `other`) e o texto do provedor só
+// vai saneado em `error.detail`; os outros eventos passam como vieram.
+describe('RunError do run classificado pelo BFF', () => {
+  // Formato do agno 3.1.12 (RunErrorEvent): `content` é o str(exceção).
+  const HIGH_DEMAND =
+    "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  const PYDANTIC =
+    "1 validation error for GenerateContentConfig\ntemperature\n  Input should be a valid number, unable to parse string as a number [type=float_parsing, input_value='0,7', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.14/v/float_parsing"
+
+  const runWith = async (
+    body: string | Record<string, unknown>[],
+    run: typeof runAgent = runAgent,
+    kind = 'agents'
+  ) => {
+    server.use(
+      http.post(`${BASE}/${kind}/:id/runs`, () =>
+        typeof body === 'string'
+          ? new HttpResponse(body, { headers: { 'Content-Type': 'text/event-stream' } })
+          : sse(body)
+      )
+    )
+    const response = await run(
+      await request(`/api/playground/${kind}/x-1/runs`, {
+        method: 'POST',
+        body: { message: 'oi' }
+      }),
+      params('x-1')
+    )
+    return response.text()
+  }
+  // Os dados de cada evento SSE da resposta, na ordem.
+  const events = (text: string) =>
+    text
+      .split('\n')
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => JSON.parse(line.slice('data:'.length)))
+  const runError = (extra: Record<string, unknown>) => ({
+    event: 'RunError',
+    session_id: 's1',
+    run_id: 'r1',
+    agent_id: 'x-1',
+    created_at: 2,
+    error_type: 'model_provider_error',
+    error_id: 'model_provider_error',
+    additional_data: { raw: LEAK },
+    ...extra
+  })
+
+  it.each([
+    ['503 "high demand" do Gemini', HIGH_DEMAND],
+    ['texto do fake', 'Fake provider: high demand'],
+    ['429', 'Error code: 429 - Too Many Requests'],
+    ['limite de taxa', 'Rate limit reached for gpt-4o'],
+    ['cota', '429 RESOURCE_EXHAUSTED. Quota exceeded'],
+    ['Anthropic sobrecarregado', "Error code: 529 - {'type': 'overloaded_error'}"]
+  ])('sobrecarga ou limite (%s) ⇒ overloaded, com o texto em detail', async (_, content) => {
+    const text = await runWith([runError({ content })])
+
+    expect(events(text)).toEqual([
+      { event: 'RunError', session_id: 's1', error: { kind: 'overloaded', detail: content } }
+    ])
+    expect(text).toContain('event: RunError\n')
+    expectNoLeak(text)
+  })
+
+  it('erro pydantic de parâmetro ⇒ invalidParam com o nome; o texto só em detail', async () => {
+    const [event] = events(await runWith([runError({ content: PYDANTIC, error_type: 'ValidationError' })]))
+
+    expect(event).toEqual({
+      event: 'RunError',
+      session_id: 's1',
+      error: { kind: 'invalidParam', param: 'temperature', detail: PYDANTIC }
+    })
+  })
+
+  it.each([
+    ['texto desconhecido', 'Connection reset by peer'],
+    // Pydantic sem um nome de parâmetro legível não cita parâmetro.
+    ['pydantic sem nome', '1 validation error for Config\n  Field required [type=missing]'],
+    ['número solto não é status', 'Invalid input_value=5030 for seed']
+  ])('%s ⇒ other, com o texto em detail', async (_, content) => {
+    const [event] = events(await runWith([runError({ content })]))
+
+    expect(event.error).toEqual({ kind: 'other', detail: content })
+  })
+
+  it('RunError sem content ⇒ other, sem detail', async () => {
+    const [event] = events(await runWith([runError({ content: undefined })]))
+
+    expect(event).toEqual({ event: 'RunError', session_id: 's1', error: { kind: 'other' } })
+  })
+
+  it('TeamRunError do team também é classificado', async () => {
+    const [event] = events(
+      await runWith(
+        [{ event: 'TeamRunError', session_id: 's2', team_id: 'x-1', content: HIGH_DEMAND }],
+        runTeam,
+        'teams'
+      )
+    )
+
+    expect(event).toEqual({
+      event: 'TeamRunError',
+      session_id: 's2',
+      error: { kind: 'overloaded', detail: HIGH_DEMAND }
+    })
+  })
+
+  it('detail saneado: sem stack, sem URL nem chave do orquestrador', async () => {
+    const content = [
+      'Traceback (most recent call last):',
+      '  File "/app/src/agents/runner.py", line 42, in run',
+      '    response = model.invoke(messages)',
+      `RuntimeError: falhou ao chamar ${BASE}/agents/x-1/runs com ${TEST_ENV.ORCHESTRATOR_API_KEY_RUN}`,
+      '  File "/app/src/other.py", line 7, in f',
+      `host ${new URL(BASE).host} e ${TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN}`
+    ].join('\n')
+
+    const text = await runWith([runError({ content })])
+    const [event] = events(text)
+
+    expect(event.error.detail).toBe(
+      'RuntimeError: falhou ao chamar [orquestrador] com [redacted]\nhost [orquestrador] e [redacted]'
+    )
+    expect(text).not.toMatch(/Traceback|File "|line 42|\/app\/src/)
+    expectNoLeak(text)
+  })
+
+  // Review R1: o saneamento não pode travar o BFF num texto longo sem espaço.
+  it('content de 200k caracteres responde rápido e o detail sai truncado', async () => {
+    const started = performance.now()
+    const [event] = events(await runWith([runError({ content: 'x'.repeat(200_000) })]))
+
+    // Sem o teto, o regex antigo levava ~27 s neste texto.
+    expect(performance.now() - started).toBeLessThan(2_000)
+    expect(event.error.kind).toBe('other')
+    expect(event.error.detail).toHaveLength(8_001)
+    expect(event.error.detail.endsWith('…')).toBe(true)
+  })
+
+  // Review R5: o fim de evento é procurado só no trecho novo de cada chunk.
+  it('evento grande em muitos chunks pequenos passa rápido e inteiro', async () => {
+    const block = `event: RunContent\ndata: ${JSON.stringify({ event: 'RunContent', content: 'y'.repeat(8_000_000) })}\n\n`
+    server.use(
+      http.post(`${BASE}/agents/:id/runs`, () => {
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            for (let at = 0; at < block.length; at += 2_048)
+              controller.enqueue(encoder.encode(block.slice(at, at + 2_048)))
+            controller.close()
+          }
+        })
+        return new HttpResponse(stream, { headers: { 'Content-Type': 'text/event-stream' } })
+      })
+    )
+    const started = performance.now()
+
+    const response = await runAgent(
+      await request('/api/playground/agents/x-1/runs', { method: 'POST', body: { message: 'oi' } }),
+      params('x-1')
+    )
+
+    expect(await response.text()).toBe(block)
+    // Juntando o buffer a cada chunk, isto passava de 5 s.
+    expect(performance.now() - started).toBeLessThan(3_000)
+  })
+
+  // Review R2: segredos e endereços internos que não são as chaves do env.
+  it.each([
+    ['host do orquestrador sem a porta', `falhou em http://${new URL(BASE).hostname}/agents`, 'falhou em [orquestrador]'],
+    ['usuário e senha na URL', 'mongodb://admin:s3cret@mongo:27017/db caiu', 'mongodb://[redacted]@mongo:27017/db caiu'],
+    ['chave na query', 'GET https://generativelanguage.googleapis.com/v1/models?alt=sse&key=AIzaSyA1b2C3d4E5f6 403', 'GET https://generativelanguage.googleapis.com/v1/models?alt=sse&key=[redacted] 403'],
+    ['token na query', 'https://api.test/x?access_token=abc123&x=1', 'https://api.test/x?access_token=[redacted]&x=1'],
+    ['Bearer', 'Authorization: Bearer abc.def-ghi_123 recusado', 'Authorization: Bearer [redacted] recusado'],
+    ['chave sk-', 'Incorrect API key provided: sk-proj-AbCdEf123456. See docs', 'Incorrect API key provided: [redacted]. See docs'],
+    // QA1-03-B2: a frase "Basic authentication" não é credencial.
+    ['credencial Basic, sem a frase', 'Basic authentication failed: Basic dXNlcjpwYXNzd29yZA==', 'Basic authentication failed: Basic [redacted]'],
+    [
+      'Traceback no meio da linha',
+      'Erro: Traceback (most recent call last):\n  File "/app/x.py", line 1, in f\n    f()\nValueError: ruim',
+      'Erro:\nValueError: ruim'
+    ]
+  ])('detail sem %s', async (_, content, detail) => {
+    const [event] = events(await runWith([runError({ content })]))
+
+    expect(event.error.detail).toBe(detail)
+  })
+
+  // Review D1: o segredo que cruza o corte dos 8k sai inteiro (o saneamento
+  // roda no texto todo, antes do corte).
+  it.each([
+    // O corte cai no meio da senha / logo depois do `sk-proj-a`.
+    ['usuário e senha na URL', 7_979, 'mongodb://admin:Sup3rSecreta@mongo:27017/db', /admin|Sup3r/],
+    ['chave sk-', 7_990, 'sk-proj-abcdefghijklmnop', /sk-proj/]
+  ])('%s cruzando o corte dos 8k não vaza o começo', async (_, at, secret, leak) => {
+    const content = `${'a'.repeat(at - 1)} ${secret} fim`
+
+    const [event] = events(await runWith([runError({ content })]))
+
+    expect(event.error.detail.endsWith('…')).toBe(true)
+    expect(event.error.detail).not.toMatch(leak)
+  })
+
+  // Review D5: com hostname curto, só a palavra que cita o host sai.
+  it('hostname curto: só o endereço do orquestrador sai, não as palavras que o contêm', async () => {
+    vi.stubEnv('ORCHESTRATOR_URL', 'http://orq:7777')
+    server.use(
+      http.post('http://orq:7777/agents/:id/runs', () =>
+        sse([runError({ content: 'falhou http://orq:7777/x e orq:7777; a orquestra e o sorq seguem' })])
+      )
+    )
+
+    const response = await runAgent(
+      await request('/api/playground/agents/x-1/runs', { method: 'POST', body: { message: 'oi' } }),
+      params('x-1')
+    )
+    const [event] = events(await response.text())
+
+    expect(event.error.detail).toBe('falhou [orquestrador] e [orquestrador] a orquestra e o sorq seguem')
+  })
+
+  // Review R3: textos que não são sobrecarga nem parâmetro do modelo.
+  it.each([
+    ['nome de tool com "unavailable"', 'Tool search_unavailable_items failed'],
+    ['modelo indisponível na versão da API', 'models/gemini-x is unavailable for this API version'],
+    [
+      'cota esgotada (cobrança)',
+      "Error code: 429 - {'error': {'message': 'You exceeded your current quota', 'type': 'insufficient_quota'}}"
+    ],
+    ['pydantic de outro model', '1 validation error for WeatherOutput\ncity\n  Field required [type=missing]']
+  ])('%s ⇒ other', async (_, content) => {
+    const [event] = events(await runWith([runError({ content })]))
+
+    expect(event.error.kind).toBe('other')
+  })
+
+  // Review R6: na falha de serialização o agno manda `event: message`; o
+  // RunError do `data` também é reescrito.
+  it.each(['RunError', 'TeamRunError'])('fallback `event: message` com %s no data é classificado', async (name) => {
+    const text = await runWith(
+      `event: message\ndata: ${JSON.stringify({ event: name, session_id: 's1', content: HIGH_DEMAND, additional_data: { raw: LEAK } })}\n\n`
+    )
+
+    expect(events(text)).toEqual([
+      { event: name, session_id: 's1', error: { kind: 'overloaded', detail: HIGH_DEMAND } }
+    ])
+    expectNoLeak(text)
+  })
+
+  it('RunError que não é JSON válido ⇒ other, sem o texto cru', async () => {
+    const text = await runWith(
+      `event: RunError\ndata: {"event":"RunError","content":"${LEAK}","metrics":NaN}\n\n`
+    )
+
+    expect(events(text)).toEqual([{ event: 'RunError', error: { kind: 'other' } }])
+    expectNoLeak(text)
+  })
+
+  it('RunError cortado no fim do stream ⇒ other, sem o texto cru', async () => {
+    const text = await runWith(`event: RunError\ndata: {"event":"RunError","content":"${LEAK}`)
+
+    expect(events(text)).toEqual([{ event: 'RunError', error: { kind: 'other' } }])
+    expectNoLeak(text)
+  })
+
+  // Review D2: `event: message` com JSON ilegível e o tipo RunError no texto.
+  it.each(['RunError', 'TeamRunError'])('fallback `event: message` ilegível com %s ⇒ other, sem o texto cru', async (name) => {
+    const text = await runWith(
+      `event: message\ndata: {"event": "${name}","content":"${LEAK}","metrics":NaN}\n\n`
+    )
+
+    expect(events(text)).toEqual([{ event: name, error: { kind: 'other' } }])
+    expectNoLeak(text)
+  })
+
+  it('outros eventos passam byte a byte, mesmo citando RunError no texto', async () => {
+    const body = [
+      'event: RunStarted\ndata: {"event":"RunStarted","session_id":"s1"}\n\n',
+      `event: RunContent\ndata: {"event":"RunContent","content":"RunError: ${LEAK}"}\n\n`,
+      'event: RunCompleted\ndata: {"event":"RunCompleted","content":"ok"}\n\n'
+    ].join('')
+
+    expect(await runWith(body)).toBe(body)
+  })
+
+  it('RunError partido entre dois chunks é classificado inteiro', async () => {
+    const block = `event: RunError\ndata: ${JSON.stringify(runError({ content: HIGH_DEMAND }))}\n\n`
+    server.use(
+      http.post(`${BASE}/agents/:id/runs`, () => {
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(block.slice(0, 40)))
+            controller.enqueue(encoder.encode(block.slice(40)))
+            controller.close()
+          }
+        })
+        return new HttpResponse(stream, { headers: { 'Content-Type': 'text/event-stream' } })
+      })
+    )
+
+    const response = await runAgent(
+      await request('/api/playground/agents/x-1/runs', { method: 'POST', body: { message: 'oi' } }),
+      params('x-1')
+    )
+
+    expect(events(await response.text())).toEqual([
+      { event: 'RunError', session_id: 's1', error: { kind: 'overloaded', detail: HIGH_DEMAND } }
+    ])
   })
 })

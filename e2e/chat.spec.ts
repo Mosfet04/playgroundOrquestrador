@@ -233,7 +233,7 @@ test('"Nova conversa" no meio do stream aborta o run no orquestrador', async ({
 
   await expect.poll(aborts, { timeout: 5000 }).toBeGreaterThan(before)
   // a conversa nova começa limpa, sem bolha de erro do run abortado
-  await expect(page.getByText(/Algo deu errado/)).toHaveCount(0)
+  await expect(page.getByRole('group', { name: 'Erro na resposta' })).toHaveCount(0)
   await expect(
     page.getByRole('heading', { name: 'Converse com Time Suporte' })
   ).toBeVisible()

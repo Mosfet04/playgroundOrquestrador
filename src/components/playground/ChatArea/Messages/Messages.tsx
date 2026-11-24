@@ -24,12 +24,16 @@ interface MessageListProps {
   messages: PlaygroundChatMessage[]
   /** Agente ou team da conversa: nome e modelo na resposta. */
   entity?: SelectedEntity | null
+  /** Reenviar a pergunta (QA1-03); sem ele, a conversa não oferece o botão. */
+  onResend?: (question: PlaygroundChatMessage) => void
 }
 
 interface MessageWrapperProps {
   message: PlaygroundChatMessage
   isLastMessage: boolean
   entity?: SelectedEntity | null
+  /** Reenviar a pergunta desta resposta, quando ela falhou. */
+  onResend?: () => void
 }
 
 interface ReferenceProps {
@@ -70,10 +74,28 @@ const References: FC<ReferenceProps> = ({ references }) => (
 // Resposta do agente (docs/design/P1-06.md, § 2): avatar, nome e modelo,
 // raciocínio e referências, chips de tool, texto e mídia; no fim, as métricas
 // ou, em stream, "gerando".
-const AgentMessageWrapper = ({ message, isLastMessage, entity }: MessageWrapperProps) => {
+const AgentMessageWrapper = ({
+  message,
+  isLastMessage,
+  entity,
+  onResend
+}: MessageWrapperProps) => {
   const t = useTranslations('playground')
   const isStreaming = usePlaygroundStore((state) => state.isStreaming)
   const streaming = isStreaming && isLastMessage && !message.streamingError
+  // Resposta gravada sem nada para mostrar (só tool ou mídia, que o histórico
+  // não traz): fica na lista, para a pergunta não parecer sem resposta, mas
+  // não vira bolha vazia (QA1-03 N5).
+  const nothingToShow =
+    !streaming &&
+    !message.streamingError &&
+    !message.content &&
+    !message.response_audio?.transcript &&
+    !message.metrics &&
+    !message.tool_calls?.length &&
+    !message.extra_data?.reasoning_steps?.length &&
+    !message.extra_data?.references?.length
+  if (nothingToShow) return null
   return (
     <div className="flex items-start gap-3">
       <EntityAvatar name={entity?.name ?? ''} id={entity?.id ?? ''} />
@@ -135,7 +157,7 @@ const AgentMessageWrapper = ({ message, isLastMessage, entity }: MessageWrapperP
             ))}
           </ul>
         )}
-        <AgentMessage message={message} streaming={streaming} />
+        <AgentMessage message={message} streaming={streaming} onResend={onResend} />
         {streaming ? (
           <p className="inline-flex items-center gap-2 font-mono text-xs font-medium text-signal">
             <span aria-hidden="true" className="live-dot size-2 shrink-0 rounded-full bg-current" />
@@ -306,7 +328,7 @@ const Reasonings: FC<ReasoningProps> = ({ reasoning }) => {
   )
 }
 
-const Messages = ({ messages, entity }: MessageListProps) => {
+const Messages = ({ messages, entity, onResend }: MessageListProps) => {
   if (messages.length === 0) {
     return <ChatBlankState />
   }
@@ -316,6 +338,8 @@ const Messages = ({ messages, entity }: MessageListProps) => {
       {messages.map((message, index) => {
         const key = `${message.role}-${message.created_at}-${index}`
         const isLastMessage = index === messages.length - 1
+        const previous = messages[index - 1]
+        const next = messages[index + 1]
 
         if (message.role === 'agent') {
           return (
@@ -324,10 +348,21 @@ const Messages = ({ messages, entity }: MessageListProps) => {
               message={message}
               isLastMessage={isLastMessage}
               entity={entity}
+              onResend={
+                message.streamingError && previous?.role === 'user' && onResend
+                  ? () => onResend(previous)
+                  : undefined
+              }
             />
           )
         }
-        return <UserMessage key={key} message={message} />
+        // Sem resposta (QA1-03): seguida de outra do usuário ou a última. Só
+        // o histórico reaberto chega assim; ao vivo a resposta (ou o erro dela)
+        // entra junto com a pergunta.
+        const unanswered = !next || next.role === 'user'
+        return (
+          <UserMessage key={key} message={message} onResend={unanswered ? onResend : undefined} />
+        )
       })}
     </>
   )

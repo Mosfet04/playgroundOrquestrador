@@ -30,6 +30,6 @@ test('chat: o stream de reasoning do agno 3 completa, mostra a resposta e não d
   ).toBeVisible()
   await expect(page.getByText('1,4 s · 812 tokens')).toBeVisible()
   await expect(page.getByRole('log')).not.toHaveAttribute('aria-busy')
-  await expect(page.getByText(/Algo deu errado/)).toHaveCount(0)
+  await expect(page.getByRole('group', { name: 'Erro na resposta' })).toHaveCount(0)
   await expect(composer).toBeEnabled()
 })

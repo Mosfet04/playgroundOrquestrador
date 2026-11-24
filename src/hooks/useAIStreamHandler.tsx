@@ -138,14 +138,17 @@ const processToolCall = useCallback(
     [processToolCall]
   )
 
+  // `resent`: a mensagem do usuário que o Reenviar manda de novo (QA1-03); sai
+  // do lugar e volta no fim, com a resposta, sem duplicar a pergunta.
   const handleStreamResponse = useCallback(
-    async (messageText: string) => {
+    async (messageText: string, resent?: PlaygroundChatMessage) => {
       setIsStreaming(true)
       // Abortado ao trocar de conversa ou sair da página (decisão 0020).
       const controller = new AbortController()
       setRunAbortController(controller)
 
       setMessages((prevMessages) => {
+        let kept = prevMessages
         if (prevMessages.length >= 2) {
           const lastMessage = prevMessages[prevMessages.length - 1]
           const secondLastMessage = prevMessages[prevMessages.length - 2]
@@ -154,10 +157,10 @@ const processToolCall = useCallback(
             lastMessage.streamingError &&
             secondLastMessage.role === 'user'
           ) {
-            return prevMessages.slice(0, -2)
+            kept = prevMessages.slice(0, -2)
           }
         }
-        return prevMessages
+        return resent ? kept.filter((message) => message !== resent) : kept
       })
 
       addMessage({
@@ -388,17 +391,13 @@ const processToolCall = useCallback(
               chunk.event === RunEvent.RunCancelled
             ) {
               finished = true
-              failRun({
-                kind:
-                  chunk.event === RunEvent.TeamRunCancelled ||
+              // O texto do RunError só vem saneado no `error` do BFF (QA1-03).
+              failRun(
+                chunk.event === RunEvent.TeamRunCancelled ||
                   chunk.event === RunEvent.RunCancelled
-                    ? 'cancelled'
-                    : 'runError',
-                detail:
-                  typeof chunk.content === 'string' && chunk.content
-                    ? chunk.content
-                    : undefined
-              })
+                  ? { kind: 'cancelled' }
+                  : (chunk.error ?? { kind: 'other' })
+              )
             } else if (
               chunk.event === RunEvent.UpdatingMemory ||
               chunk.event === RunEvent.TeamMemoryUpdateStarted ||

@@ -50,12 +50,12 @@ describe('useAIChatStreamHandler: QA do stream com deltas', () => {
   it('RunError depois de deltas mantém o texto parcial e marca o erro', async () => {
     const { last, streamingErrorMessage } = await run([
       ...deltas('RunContent', ['par', 'cial']),
-      { event: 'RunError', content: 'modelo caiu', created_at: 2 }
+      { event: 'RunError', error: { kind: 'other', detail: 'modelo caiu' }, created_at: 2 }
     ])
 
     expect(last.content).toBe('parcial')
     expect(last.streamingError).toBe(true)
-    expect(streamingErrorMessage).toEqual({ kind: 'runError', detail: 'modelo caiu' })
+    expect(streamingErrorMessage).toEqual({ kind: 'other', detail: 'modelo caiu' })
   })
 
   // BUG-P0-06-1 (corrigido no P0-06, decisão 0007 D-P0-06-2): o parser do

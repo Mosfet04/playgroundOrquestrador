@@ -57,7 +57,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | AG3-04 | concluído (painel de raciocínio com os passos do agno 3 — `ReasoningStep`, `ReasoningCompleted`, `RunCompleted` — por título + ordem, `<details>` por passo; chip de `think`/`analyze` some quando chega o passo dele; ajuda e aviso do raciocínio reescritos; decisão 0036) |
 | QA1-01 | concluído (só o `main` rola: `relative` no main + `overflow-clip` na casca do AppShell; header mobile opaco; `loading.tsx` por seção; foco no h1 pós-exclusão com `focusHeadingWhenReady`) |
 | QA1-02 | concluído (lista de sessões relida do servidor no fim do run, sem tirar a sessão no erro, chave estável por `session_id`; BFF da lista com `updated_at` (D-QA1-02-3); indicador fora do ar/degradado relê com backoff 5/15/30/60 s e no foco; mensagens ancoradas perto do composer; aba Agente/Team pelo `?agent=`/`?team=` gravado no clique) |
-| QA1-03 | pendente |
+| QA1-03 | concluído (BFF reescreve o RunError do stream em código próprio — overloaded/invalidParam/other — com `detail` saneado e teto de 8k; erro no chat com frase por código, "Detalhes técnicos" e Reenviar; pergunta sem resposta marcada ao reabrir, com o assistant só de tool call descartado no BFF; troca de sessão esvazia a conversa e o histórico atrasado não sobrescreve envio novo; markdown seguro na bolha do usuário; decisão 0037 D-QA1-03-0..6) |
 | QA1-04 | pendente |
 | QA1-05 | pendente |
 | QA1-06 | pendente |

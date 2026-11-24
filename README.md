@@ -10,7 +10,7 @@ Interface web para o [Orquestrador IA Python Agno](https://github.com/Mosfet04/o
 
 ## O que tem hoje
 
-- **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls (tempo e erro de cada uma), tempo e tokens de cada resposta, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo).
+- **Playground de chat** (`/playground`): conversa com agents e teams do orquestrador, com streaming, tool calls (tempo e erro de cada uma), tempo e tokens de cada resposta, histórico de sessões (formato `chat_history` do Agno 2.5 e o legado) e mídia (imagem, áudio, vídeo). A mensagem do usuário renderiza markdown com o mesmo renderer seguro do agente. Erro do modelo vira frase por tipo (sobrecarga/limite do provedor, parâmetro recusado, outro), com o texto do provedor saneado pelo BFF só em "Detalhes técnicos" e o botão Reenviar (mesma mensagem, mesma sessão); ao reabrir a sessão, a pergunta que ficou sem resposta aparece marcada, com Reenviar.
 - **Agentes** (`/agents`, `/agents/new`, `/agents/<id>`): criar, editar, desativar/reativar, excluir, buscar e filtrar; modelo, prompt, tools associadas e RAG.
 - **Teams** (`/teams`, `/teams/new`, `/teams/<id>`): criar, editar, desativar/reativar, excluir, buscar e filtrar; membros (agents), modo de coordenação, modelo do líder e execução.
 - **Tools HTTP** (`/tools`, `/tools/new`, `/tools/<id>`): criar, editar, desativar/reativar e excluir; método, rota com `{param}` ligada aos parâmetros, headers, parâmetros com valor padrão e o preview da requisição.
@@ -253,7 +253,7 @@ Web UI for the [Agno Python AI Orchestrator](https://github.com/Mosfet04/orquest
 
 ### What it does today
 
-- **Chat playground** (`/playground`): chat with the orchestrator's agents and teams, with streaming, tool calls (time and error of each), time and tokens of each response, session history (Agno 2.5 `chat_history` and the legacy format) and media.
+- **Chat playground** (`/playground`): chat with the orchestrator's agents and teams, with streaming, tool calls (time and error of each), time and tokens of each response, session history (Agno 2.5 `chat_history` and the legacy format) and media. User messages render markdown with the agent's safe renderer. A model error becomes a sentence per type (provider overload/limit, rejected parameter, other), with the provider text sanitized by the BFF only under "Technical details" and a Resend button (same message, same session); reopening the session marks the question left without a response, with Resend.
 - **Agents** (`/agents`, `/agents/new`, `/agents/<id>`), **teams** (`/teams`, …) and **HTTP tools** (`/tools`, …): create, edit, delete, search and filter. A team has members (agents), a coordination mode, a leader model and execution settings.
 - **Dashboard** (`/dashboard`) and **getting started** guide (`/`).
 - **Settings** (`/settings`): orchestrator health (checks, runtime revision, response time), config store (writable or read-only), chat and embedder providers, and "Reload runtime". The navigation footer shows the connection status (online, degraded or offline), linking to the page.

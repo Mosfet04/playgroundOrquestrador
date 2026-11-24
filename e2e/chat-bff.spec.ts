@@ -155,17 +155,16 @@ test.describe('desktop 1440', () => {
     )
     await send(page, 'segunda')
 
-    const bubble = page
-      .getByRole('log')
-      .getByText(
-        'Algo deu errado durante a resposta. O orquestrador não respondeu. Confira se ele está no ar e envie de novo.'
-      )
-    await expect(bubble).toBeVisible()
+    const bubble = page.getByRole('log').getByRole('alert')
+    await expect(bubble).toHaveText(
+      'O orquestrador não respondeu. Confira se ele está no ar e envie de novo.'
+    )
     await expect(bubble).toHaveClass(/text-destructive/)
     await expect(page.getByText('Agente Beta recebeu: primeira')).toBeVisible()
     await expect(composer(page)).toBeEnabled()
-    // a página não vira o estado offline
-    await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0)
+    // a página não vira o estado offline: o único alerta é o da bolha (QA1-03)
+    await expect(page.getByRole('main').getByRole('alert')).toHaveCount(1)
+    await expect(page.getByText('Não foi possível conectar ao orquestrador')).toHaveCount(0)
   })
 
   test('V-P2-03-7: stream cortado mantém o texto parcial e avisa a interrupção, sem cursor, "gerando" nem métricas', async ({
@@ -197,9 +196,7 @@ test.describe('desktop 1440', () => {
     const log = page.getByRole('log')
     await expect(log.getByText('Texto parcial da resposta')).toBeVisible()
     await expect(
-      log.getByText(
-        'Algo deu errado durante a resposta. A resposta foi interrompida antes do fim.'
-      )
+      log.getByText('A resposta foi interrompida antes do fim.')
     ).toBeVisible()
     await expect(page.locator('.stream-caret')).toHaveCount(0)
     await expect(page.getByText('gerando', { exact: true })).toHaveCount(0)

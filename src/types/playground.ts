@@ -156,8 +156,15 @@ export interface RunResponseContent {
   response_audio?: ResponseAudio
 }
 
+// Erro do run classificado pelo BFF (QA1-03): o código, o parâmetro recusado
+// e o texto do provedor saneado (src/server/orchestrator/runError.ts).
+export type RunFailure =
+  | { kind: 'invalidParam'; param: string; detail?: string }
+  | { kind: 'overloaded' | 'other'; detail?: string }
+
 export interface RunResponse {
   content?: string | object
+  error?: RunFailure
   content_type: string
   context?: MessageContext[]
   event: RunEvent

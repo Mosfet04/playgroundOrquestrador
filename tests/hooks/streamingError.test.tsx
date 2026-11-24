@@ -52,10 +52,29 @@ describe('erro do stream no store', () => {
     expect(error).toEqual({ kind: 'noEntity' })
   })
 
-  it('RunError sem content: tipo runError, sem detalhe', async () => {
-    runAgentWith(() => sse([{ event: 'RunError', created_at: 1 }]))
+  // QA1-03: o BFF classifica o RunError (`error`); o `content` cru não vale.
+  it.each([
+    { kind: 'overloaded', detail: '503 high demand' },
+    { kind: 'invalidParam', param: 'temperature', detail: '1 validation error' },
+    { kind: 'other', detail: 'falhou' },
+    { kind: 'other' }
+  ])('RunError com o erro do BFF %o: o tipo e o detalhe dele', async (error) => {
+    runAgentWith(() => sse([{ event: 'RunError', error, created_at: 1 }]))
 
-    expect((await send('?agent=agent-1')).error).toEqual({ kind: 'runError' })
+    expect((await send('?agent=agent-1')).error).toEqual(error)
+  })
+
+  it.each([
+    ['sem erro classificado', {}],
+    ['tipo desconhecido', { error: { kind: 'runError', detail: 'x' } }],
+    ['invalidParam sem parâmetro', { error: { kind: 'invalidParam', detail: 'x' } }],
+    ['erro em texto', { error: 'texto cru' }]
+  ])('RunError %s: tipo other, sem detalhe nem o content', async (_, extra) => {
+    runAgentWith(() =>
+      sse([{ event: 'RunError', content: 'texto cru do provedor', created_at: 1, ...extra }])
+    )
+
+    expect((await send('?agent=agent-1')).error).toEqual({ kind: 'other' })
   })
 
   // R4 (review P2-03): o agno 2.5 também encerra o run do agente com

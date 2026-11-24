@@ -78,3 +78,51 @@ Contexto: para a lista mostrar o horário novo de uma sessão existente, o BFF p
 Opções: **A) renomear o campo da resposta do BFF para `updated_at` (com fallback para o `created_at` do orquestrador) e o cliente ler esse nome**; B) manter `created_at` com o valor de `updated_at`.
 
 Escolha: **A** (2026-11-24). Contrato só browser↔BFF; nada muda no orquestrador.
+
+## D-QA1-03-0 — Designer em item de risco
+
+Contexto: na revisão dos modelos ao abrir o QA1-03, a tabela da D-QA1-0-5 subia o designer para `sonnet/high` em item de risco, mas o risco (stream, estado do chat, segurança) está no código, não no visual.
+
+Opções: **A) designer e design QA sempre `sonnet/medium`, reaproveitando mockups; o resto da tabela fica**; B) manter a tabela; C) perfil enxuto do roadmap (dev sonnet) no QA1-03.
+
+Escolha: **A** (2026-11-24). O QA1-03 roda como item de risco: dev opus/high, revisor opus/high, QA sonnet/high enxuto, revisão dos testes do QA sonnet/medium (ou o orquestrador, se o delta for pequeno), designer/DQA sonnet/medium.
+
+## D-QA1-03-2 — Quando o Reenviar aparece
+
+Contexto: o roadmap só pede o botão; quais erros o mostram é escolha de produto. Reenviar uma pergunta órfã de sessão reaberta grava a mensagem de novo no orquestrador.
+
+Opções: **A) todo erro com mensagem enviada, exceto cancelado pela pessoa, sem entidade e sessão de outro usuário; `aria-disabled` com motivo durante um stream; o Reenviar substitui a bolha de erro sem duplicar a pergunta**; B) todo erro, inclusive cancelado; C) só os transitórios (`overloaded`, `network`, `unavailable`, `interrupted`).
+
+Escolha: **A** (2026-11-24), aceitando a mensagem repetida no histórico do orquestrador ao reenviar uma pergunta órfã. Design do QA1-03 aprovado na 1ª rodada ([docs/design/QA1-03.md](../design/QA1-03.md)).
+
+## D-QA1-03-3 — Evento de erro do run no contrato BFF→browser
+
+Contexto: para o texto cru do provedor não chegar ao browser, o BFF reescreve o evento SSE `RunError`/`TeamRunError` no stream do run.
+
+Opções: **A) o evento vira só `{event, session_id, error: {kind: overloaded|invalidParam|other, param?, detail?}}`, com `detail` saneado; `content`, `error_type` e `additional_data` saem; os outros eventos passam byte a byte; classificação em `src/server/orchestrator/runError.ts`**; B) A mantendo também o `content` saneado.
+
+Escolha: **A** (2026-11-24). Contrato só browser↔BFF; nada muda no orquestrador. Também aceito o desvio: o Reenviar pela marca "sem resposta" leva a pergunta para o fim da conversa, onde a resposta chega (a ordem que o orquestrador grava).
+
+## D-QA1-03-4 — Corrida da troca de sessão e falso "sem resposta" (revisão do QA1-03)
+
+Contexto: corrida anterior ao item, que o Reenviar piora. Clicar outra sessão deixa as mensagens da anterior na tela até o GET do histórico voltar; um envio nessa janela vai para a sessão nova, e o histórico atrasado sobrescreve o stream ao vivo. À parte, o loader descarta resposta com `content` vazio (só mídia ou tool) e a marca "sem resposta" acusa um falso órfão.
+
+Opções: **A) corrigir no QA1-03: `getSession` não grava durante um stream e a troca de sessão esvazia a conversa ou mostra carregamento antes do GET; a marca considera a resposta gravada, não só a exibida**; B) registrar como limitação ou item novo.
+
+Escolha: **A** nos dois (2026-11-24).
+
+## D-QA1-03-5 — Resposta só de tool call no histórico
+
+Contexto: com a D-QA1-03-4, um assistant sem texto conta como resposta. O agno 3 grava a mensagem de tool call (`content` vazio) do run que falha depois de uma tool, e a pergunta desse run perdia a marca "sem resposta" ao reabrir (critério 3).
+
+Opções: **A) o BFF descarta o assistant sem texto que só tem `tool_calls`; com mídia ou sem nada continua contando; o formato da resposta do BFF não muda**; B) voltar ao filtro antigo (sem texto não conta); C) manter e aceitar a falta da marca.
+
+Escolha: **A** (2026-11-24).
+
+## D-QA1-03-6 — 4ª rodada para os bugs do QA (B1, B2)
+
+Contexto: o QA do QA1-03 deu PASS com dois MINOR em `it.fails`. B1: o histórico pedido antes de um envio que chega depois do fim do run apaga a rodada nova da tela. B2: `x-goog-api-key: AIza…` e `Authorization: Basic …` não são redigidos no `detail`. O ciclo estava no limite de 3 rodadas.
+
+Opções: **A) 4ª rodada para corrigir os dois**; B) corrigir só o B2 e registrar o B1; C) registrar os dois.
+
+Escolha: **A** (2026-11-24).

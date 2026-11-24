@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 import {
   type PlaygroundChatMessage,
+  type RunFailure,
   type SessionEntry
 } from '@/types/playground'
 
@@ -30,18 +31,21 @@ export interface Team {
 // Nulo: erro sem tipo conhecido. `unavailable`: o BFF respondeu 503/504;
 // `interrupted`: o stream acabou sem o fim do run; `network`: sem resposta do
 // servidor do playground (P2-03); `sessionNotOwned`: o BFF recusou o envio
-// numa conversa de outro usuário (AG3-02).
-export interface StreamingError {
-  kind:
-    | 'noEntity'
-    | 'cancelled'
-    | 'runError'
-    | 'network'
-    | 'unavailable'
-    | 'interrupted'
-    | 'sessionNotOwned'
-  detail?: string
-}
+// numa conversa de outro usuário (AG3-02). O RunError chega classificado pelo
+// BFF (`overloaded`, `invalidParam` com o parâmetro, `other`; QA1-03).
+export type StreamingError =
+  | RunFailure
+  | {
+      kind:
+        | 'noEntity'
+        | 'cancelled'
+        | 'runError'
+        | 'network'
+        | 'unavailable'
+        | 'interrupted'
+        | 'sessionNotOwned'
+      detail?: string
+    }
 
 interface PlaygroundStore {
   streamingErrorMessage: StreamingError | null

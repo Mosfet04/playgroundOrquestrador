@@ -829,7 +829,7 @@
     "toolRunning": "executando",
     "metricsTime": "{seconds} s",
     "metricsTokens": "{count, number} tokens",
-    "streamError": "Algo deu errado durante a resposta.",
+    "streamError": "Erro na resposta",
     "streamErrorHint": "Recarregue a página ou tente de novo mais tarde.",
     "streamErrorKind": {
       "noEntity": "Selecione um agente ou team antes de enviar.",
@@ -838,8 +838,16 @@
       "network": "Sem resposta do servidor.",
       "unavailable": "O orquestrador não respondeu. Confira se ele está no ar e envie de novo.",
       "interrupted": "A resposta foi interrompida antes do fim.",
-      "sessionNotOwned": "Esta conversa é de outro usuário. Comece uma nova."
+      "sessionNotOwned": "Esta conversa é de outro usuário. Comece uma nova.",
+      "overloaded": "O modelo está sobrecarregado. Tente de novo em instantes.",
+      "invalidParam": "O modelo recusou o parâmetro <mono>{param}</mono>. Ajuste-o na configuração do agente.",
+      "other": "O modelo não conseguiu responder. Veja os detalhes técnicos."
     },
+    "resend": "Reenviar",
+    "resendWait": "Aguarde a resposta terminar.",
+    "technicalDetails": "Detalhes técnicos",
+    "unanswered": "sem resposta",
+    "unansweredHint": "Esta mensagem não recebeu resposta.",
     "parseError": "Não foi possível ler a resposta.",
     "imageUnavailable": "Imagem indisponível",
     "imageAlt": "Imagem gerada pelo agente",
