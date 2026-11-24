@@ -62,3 +62,11 @@ Escolha: **desligada nos dois**.
 
 - Markdown na mensagem do usuário: **entra** (QA1-03), com o mesmo renderer seguro do agente.
 - Lembrar a aba Agente/Team no reload: **entra** (QA1-02), na URL pelo nuqs.
+
+## D-QA1-0-5 — Modelos dos subagentes por risco
+
+Contexto: a regra por tamanho ([0033](0033-p4-03-testar-agora.md)) punha item com vários módulos no perfil cheio (QA opus, revisor xhigh), mesmo sem risco, e item pequeno com corrida assíncrona no dev sonnet.
+
+Opções: **A) classificar por risco: estado assíncrono, auth/segurança, rota/BFF ou `src/server` novo ⇒ dev opus/high; senão dev sonnet/high. Revisor fixo em opus/high, QA em sonnet/high (QA enxuto), revisão dos testes do QA sonnet/medium; xhigh sai do revisor**; B) manter a regra por tamanho.
+
+Escolha: **A** (2026-11-23). Vale do QA1-02 em diante; tabela em `.claude/skills/dev-cycle/SKILL.md`. Frontmatter: revisor `effort: high`, QA `model: sonnet`.

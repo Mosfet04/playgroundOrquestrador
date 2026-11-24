@@ -2,7 +2,7 @@
 name: qa-engineer
 description: "Engenheiro de QA sênior do playground. Use depois que o revisor aprovar um item, para validá-lo contra os critérios de aceite: matriz critério→testes, testes que faltam (componente, BFF, segurança, E2E com o fake orchestrator), suíte completa e smoke com o app real. Só escreve em tests/, e2e/ e docs/qa/. Nunca corrige código de produção; reporta bug com repro."
 tools: Read, Edit, Write, Bash, Grep, Glob
-model: opus
+model: sonnet
 effort: high
 color: green
 hooks:
