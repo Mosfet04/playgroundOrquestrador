@@ -369,7 +369,7 @@ describe('composer', () => {
     renderComposer()
 
     const textbox = screen.getByRole('textbox', { name: 'Mensagem para Assistente' })
-    expect(textbox).toHaveAttribute('placeholder', 'Escreva uma mensagem para Assistente')
+    expect(textbox).toHaveAttribute('placeholder', 'Mensagem para Assistente')
     expect(screen.getByText('para').parentElement).toHaveTextContent('para agent-1')
     expect(screen.getByText('Enter envia · Shift+Enter quebra linha')).toBeInTheDocument()
     expect(
@@ -386,6 +386,19 @@ describe('composer', () => {
     expect(textbox).toBeEnabled()
   })
 
+  it('nome longo: o placeholder corta em 24 caracteres e o rótulo guarda o nome inteiro', () => {
+    const name = 'Assistente de relacionamento com o cliente'
+    usePlaygroundStore.setState({
+      isOrchestratorActive: true,
+      isOrchestratorLoading: false,
+      agents: [{ value: 'agent-1', label: name, model: { provider: 'OpenAI', model: 'gpt-4o' } }]
+    })
+    renderComposer()
+
+    const textbox = screen.getByRole('textbox', { name: `Mensagem para ${name}` })
+    expect(textbox).toHaveAttribute('placeholder', 'Mensagem para Assistente de relacionam…')
+  })
+
   it.each([
     [
       'offline',
@@ -396,7 +409,7 @@ describe('composer', () => {
     [
       'conectando',
       { isOrchestratorActive: false, isOrchestratorLoading: true },
-      'Escreva uma mensagem para agent-1',
+      'Mensagem para agent-1',
       'Enviar mensagem (orquestrador desconectado)'
     ]
   ])('%s: textarea desabilitado, sem o chip "para"', (_, state, placeholder, send) => {

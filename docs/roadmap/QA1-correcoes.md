@@ -86,6 +86,12 @@ Escopo:
 - #22: tabela de agentes com `table-layout: fixed` e nome truncado (com `title`); breadcrumb truncado; cards de membros do team com altura igual e título no tamanho dos demais; título do estado vazio do chat truncado.
 - #24: chip `{param}` do preview da tool com `whitespace-nowrap`.
 - #32: placeholder da Rota/URL que cabe no campo de meia largura.
+- Desvio (#32, texto do placeholder): `https://exemplo.com/api` (pt-BR) e `https://example.com/api` (EN), e não `https://api.exemplo.com/clima`/`https://api.example.com/weather` da spec. No celular o `input` usa 16 px (≈ 10 px por caractere em mono, e não os 8,4 px da conta da spec): o texto de 29 caracteres media 290 px e o campo dá 266 px úteis (V10 vermelho em 390 px).
+- Desvio (Radix 2.1.5): `SelectValue` e `ItemText` descartam o `className`; o `min-w-0`/`flex-1`/`overflow-hidden` da cadeia vai por seletor de filho (`[&>span]`, `[&>span:last-child]`) no trigger e no item, como o `SelectTrigger` do shadcn já faz.
+- Desvio (V11, fora dos 9 pontos): o `<code>` das mensagens do editor de tool (`richCode.tsx`) quebra em qualquer ponto e o botão "Criar parâmetro {nome}" passa a quebrar linha (`whitespace-normal`, altura mínima), porque um parâmetro de 40 caracteres na rota dava 7 px de rolagem horizontal em 390 px.
+- Desvio (fixture, teste): o e2e `e2e/long-names.spec.ts` entrega o nome longo por `page.route` no BFF e não por seed no fake, para não mudar as contagens e listas que dashboard, lists e CRUD leem do fake.
+- Desvio (R1, hover do `title`): o `SelectValue` do Radix fixa `pointer-events: none` e o `::after` do label do `OptionCard` cobre o nome; os spans do nome e do modelo do seletor levam `pointer-events-auto` e o nome do card `relative z-10`. O e2e mede o hit-test no centro do texto.
+- Desvio (R2, tabela de agents): `min-w-[860px]` na tabela, porque as colunas fixas somam 596 px e abaixo de ~1120 px a coluna Agent ficava sem espaço; abaixo disso a tabela rola dentro do próprio card (o `sr-only` do cabeçalho do chevron ganhou `relative` na célula, senão escapava do card e rolava o `main`).
 Fora de escopo: mudar o layout das páginas além do truncamento.
 Critérios de aceite: com um nome de 110 caracteres, em 1367 px e 390 px, nada sai do contêiner (bounding box do texto e do chevron dentro do card), o dropdown não passa da largura máxima, o nome completo fica no `title`/`aria`, e as colunas da tabela não mudam de largura.
 Testes exigidos: e2e com fixture de nome longo no fake medindo bounding boxes nos pontos acima.

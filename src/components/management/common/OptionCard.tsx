@@ -43,7 +43,7 @@ export function OptionCard({
   return (
     <div
       className={cn(
-        'relative flex min-w-0 items-start gap-3 rounded-lg border bg-card p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring max-md:min-h-11',
+        'relative flex h-full min-w-0 items-start gap-3 rounded-lg border bg-card p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring max-md:min-h-11',
         checked ? 'border-primary bg-primary-soft' : 'border-border hover:bg-muted',
         disabled && 'cursor-not-allowed opacity-60'
       )}

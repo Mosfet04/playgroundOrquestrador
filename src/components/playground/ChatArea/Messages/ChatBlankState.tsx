@@ -76,7 +76,7 @@ const ChatBlankState = () => {
       {entity && (
         <EntityAvatar name={entity.name} id={entity.id} className="size-10 rounded-md text-sm" />
       )}
-      <h2 className="text-lg font-semibold">
+      <h2 className="min-w-0 max-w-full truncate text-lg font-semibold" title={name}>
         {name ? t('chatEmptyTitle', { name }) : t('composerNoEntity')}
       </h2>
       {name && (

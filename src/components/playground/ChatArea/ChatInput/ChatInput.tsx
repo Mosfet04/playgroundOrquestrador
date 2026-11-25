@@ -11,6 +11,17 @@ import { useSelectedEntity } from '@/hooks/useSelectedEntity'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
+// O placeholder do `<textarea>` não trunca por CSS: o nome longo é cortado no
+// texto, para caber numa linha. O nome inteiro segue no rótulo e no chip.
+const PLACEHOLDER_NAME_MAX = 24
+// Por pontos de código (não parte emoji) e sem espaço antes das reticências.
+const shortName = (name: string) => {
+  const chars = Array.from(name)
+  return chars.length > PLACEHOLDER_NAME_MAX
+    ? `${chars.slice(0, PLACEHOLDER_NAME_MAX).join('').trimEnd()}…`
+    : name
+}
+
 // Composer (docs/design/P1-06.md, § 2): card com o foco no próprio card, chip
 // "para {id}", dica de teclado e Enviar com o motivo no aria-label quando
 // desabilitado.
@@ -32,7 +43,7 @@ const ChatInput = () => {
   const placeholder = offline
     ? t('composerOffline')
     : entity
-      ? t('composerPlaceholder', { name: entity.name })
+      ? t('composerPlaceholder', { name: shortName(entity.name) })
       : t('composerNoEntity')
   const sendLabel =
     offline || isOrchestratorLoading

@@ -11,7 +11,8 @@ const EQUALS = '='
 const OPEN = '{'
 const CLOSE = '}'
 const MASKED_TEXT = '••••••'
-const BOX = 'rounded-md border bg-muted p-3 font-mono text-xs whitespace-pre-wrap [overflow-wrap:anywhere]'
+const BOX =
+  'overflow-x-auto rounded-md border bg-muted p-3 font-mono text-xs whitespace-pre-wrap [overflow-wrap:anywhere]'
 const LABEL = 'mb-1 font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground'
 
 // Parte do preview: o valor padrão realçado; sem padrão, o placeholder
@@ -21,7 +22,7 @@ function PartView({ part }: { part: Part }) {
     return <span className="rounded-sm bg-primary-soft px-0.5">{part.text}</span>
   if (part.mark === 'placeholder')
     return (
-      <span className="rounded-sm border border-dashed border-input px-0.5 text-muted-foreground">
+      <span className="whitespace-nowrap rounded-sm border border-dashed border-input px-0.5 text-muted-foreground [overflow-wrap:normal]">
         {part.text}
       </span>
     )

@@ -222,6 +222,7 @@ export function AppHeader({
       </nav>
       <div className="min-w-0 flex-1 px-1 lg:hidden">
         <p
+          title={current}
           className={cn(
             'truncate text-base font-semibold',
             currentIsId && 'font-mono'

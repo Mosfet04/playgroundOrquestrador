@@ -133,7 +133,7 @@ export function HttpSection({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-10 w-full sm:h-8 sm:w-auto"
+                className="h-auto min-h-10 w-full max-w-full whitespace-normal py-1.5 sm:min-h-8 sm:w-auto"
                 onClick={() => onCreateParams([name])}
               >
                 <Plus aria-hidden="true" />

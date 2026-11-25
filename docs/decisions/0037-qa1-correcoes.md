@@ -126,3 +126,19 @@ Contexto: o QA do QA1-03 deu PASS com dois MINOR em `it.fails`. B1: o histórico
 Opções: **A) 4ª rodada para corrigir os dois**; B) corrigir só o B2 e registrar o B1; C) registrar os dois.
 
 Escolha: **A** (2026-11-24).
+
+## D-QA1-04-0 — Revisão dos modelos ao abrir o QA1-04
+
+Contexto: pedido de revisar custo × benefício dos subagentes. Nos itens simples anteriores (QA1-01, P4-04, P4-05) a revisão aprovou na 1ª rodada só com MINOR; o custo que sobra está em chamadas que não mudam o resultado.
+
+Opções: A) revisão dos testes do QA pelo orquestrador quando o delta for pequeno (≤ ~150 linhas), senão `sonnet/medium`; B) designer em item simples sem tela ou fluxo novo só com spec em texto e critérios mensuráveis, reaproveitando o artifact existente, sem mockup novo, e DQA só com as capturas dos critérios; C) revisor `opus/medium` em item simples; D) QA `sonnet/medium` em item simples.
+
+Escolha: **A e B** (2026-11-24). O revisor fica em `opus/high` e o QA em `sonnet/high` (C e D recusados: perderiam achado sutil). O QA1-04 roda como item simples: designer/DQA sonnet/medium só spec, dev sonnet/high, revisor opus/high, QA sonnet/high enxuto. Tabela em `.claude/skills/dev-cycle/SKILL.md`.
+
+## D-QA1-04-1 — Placeholder da Rota/URL (#32)
+
+Contexto: o texto da spec (`https://api.exemplo.com/clima`, 29 caracteres) não cabe em 390 px: o input mono usa 16 px no celular (~10 px/caractere), 290 px de texto para 266 px úteis.
+
+Opções: **A) `https://exemplo.com/api` / `https://example.com/api` (23 caracteres), cabe nas duas larguras**; B) outro texto curto; C) manter o da spec mudando fonte ou layout do campo.
+
+Escolha: **A** (2026-11-24).

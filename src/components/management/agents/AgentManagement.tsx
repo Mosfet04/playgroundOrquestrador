@@ -91,11 +91,11 @@ export function AgentManagement() {
   const head = (
     <TableRow>
       <TableHead>{t('columnAgent')}</TableHead>
-      <TableHead>{t('columnModel')}</TableHead>
+      <TableHead className="w-56">{t('columnModel')}</TableHead>
       <TableHead className="w-24 text-right">{t('columnTools')}</TableHead>
       <TableHead className="w-28">{tc('status')}</TableHead>
       <TableHead className="w-32">{tc('updated')}</TableHead>
-      <TableHead className="w-9">
+      <TableHead className="relative w-9">
         <span className="sr-only">{tc('open')}</span>
       </TableHead>
     </TableRow>
@@ -226,26 +226,32 @@ export function AgentManagement() {
       ) : (
         <div className="space-y-2">
           <div className="hidden md:block">
-            <Table>
+            <Table className="table-fixed min-w-[860px]">
               <thead>{head}</thead>
               <tbody>
                 {agents.map((agent) => (
                   <TableRow key={agent.id} className="group relative hover:bg-muted/50">
                     <TableCell>
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <ListAvatar name={agent.nome} active={agent.active} />
                         <div className="flex min-w-0 flex-col">
-                          <Link href={agentHref(agent)} className={rowLinkClass}>
+                          <Link
+                            href={agentHref(agent)}
+                            title={agent.nome}
+                            className={cn(rowLinkClass, 'block truncate')}
+                          >
                             {agent.nome}
                           </Link>
-                          <span className="font-mono text-xs text-muted-foreground">
+                          <span className="truncate font-mono text-xs text-muted-foreground">
                             {agent.id}
                           </span>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Chip>{modelOf(agent)}</Chip>
+                      <Chip className="max-w-full">
+                        <span className="truncate">{modelOf(agent)}</span>
+                      </Chip>
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
                       {agent.tools_ids.length}
@@ -278,7 +284,11 @@ export function AgentManagement() {
                 <ListAvatar name={agent.nome} active={agent.active} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <div className="flex min-w-0 items-center gap-2">
-                    <Link href={agentHref(agent)} className={cn(rowLinkClass, 'truncate')}>
+                    <Link
+                      href={agentHref(agent)}
+                      title={agent.nome}
+                      className={cn(rowLinkClass, 'truncate')}
+                    >
                       {agent.nome}
                     </Link>
                     <StatusBadge active={agent.active}>

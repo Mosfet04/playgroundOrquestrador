@@ -200,10 +200,12 @@ export function MembersSection({
                     description={agent.descricao || undefined}
                     label={
                       <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="flex flex-wrap items-center gap-2">
-                          {agent.nome}
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="relative z-10 min-w-0 truncate text-sm" title={agent.nome}>
+                            {agent.nome}
+                          </span>
                           {!agent.active && (
-                            <span className={badgeVariants({ variant: 'neutral' })}>
+                            <span className={badgeVariants({ variant: 'neutral', className: 'shrink-0' })}>
                               {tt('inactive')}
                             </span>
                           )}

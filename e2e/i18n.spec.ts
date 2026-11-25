@@ -213,7 +213,7 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
   await page.goto('/playground')
   await hydrated(page)
   const sidebar = page.locator('aside')
-  const composer = page.getByPlaceholder('Escreva uma mensagem para Agente Alfa')
+  const composer = page.getByPlaceholder('Mensagem para Agente Alfa')
   await expect(composer).toBeEnabled()
 
   await composer.fill('segure até liberar')
@@ -234,7 +234,7 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
 
   await expect(sidebar.getByText('New chat')).toBeVisible()
   await expect(sidebar.getByText('Sessions')).toBeVisible()
-  await expect(page.getByPlaceholder('Write a message to Agente Alfa')).toHaveValue('rascunho')
+  await expect(page.getByPlaceholder('Message to Agente Alfa')).toHaveValue('rascunho')
   // a mensagem do usuário e a sessão criada na lista do painel
   await expect(page.getByText('segure até liberar', { exact: true })).toHaveCount(2)
   await expect(page.getByText('Agente Alfa recebeu:')).toBeVisible()
@@ -248,7 +248,7 @@ test('playground: trocar o idioma no meio do stream mantém mensagens, stream, c
   expect((await request.post(`${FAKE_ORCHESTRATOR_URL}/hold/release?agent=agente-alfa`)).ok()).toBe(true)
   await expect(page.getByText('Agente Alfa recebeu: segure até liberar')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Send message', exact: true })).toBeEnabled()
-  await expect(page.getByPlaceholder('Write a message to Agente Alfa')).toHaveValue('rascunho')
+  await expect(page.getByPlaceholder('Message to Agente Alfa')).toHaveValue('rascunho')
   await expect(sidebar.getByRole('combobox').filter({ hasText: 'Agente Alfa' })).toBeVisible()
   expect(page.url()).toBe(url)
 })

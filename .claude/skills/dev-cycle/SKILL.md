@@ -50,17 +50,17 @@ Chame `frontend-dev-specialist` com: id e arquivo do item, spec aprovada, gates 
 
 Chame `ui-ux-designer` em modo **DESIGN_QA** com a spec e os critérios visuais. `FAIL` ⇒ volta ao dev com as divergências, depois revisão do delta e novo design QA. A mesma verificação de `git status` do estágio 2 vale aqui.
 
-## Modelos por estágio (decisões [0016](../../../docs/decisions/0016-p2-itens-modelos-crud-mongo.md) D-P2-2, [0031](../../../docs/decisions/0031-p4-itens-p4-01-e-modelos.md) D-P4-2 e [0037](../../../docs/decisions/0037-qa1-correcoes.md) D-QA1-0-5 e D-QA1-03-0)
+## Modelos por estágio (decisões [0016](../../../docs/decisions/0016-p2-itens-modelos-crud-mongo.md) D-P2-2, [0031](../../../docs/decisions/0031-p4-itens-p4-01-e-modelos.md) D-P4-2 e [0037](../../../docs/decisions/0037-qa1-correcoes.md) D-QA1-0-5, D-QA1-03-0 e D-QA1-04-0)
 
 A classificação é por **risco**, não por tamanho. **Item de risco**: estado assíncrono (stream, zustand × nuqs, timers, corridas), auth/sessão/segurança, rota ou BFF novo, ou módulo novo em `src/server`. O resto é **item simples**. Passe sempre `model` e `effort` no tool `Agent`:
 
 | Chamada | Item simples | Item de risco |
 |---|---|---|
-| `ui-ux-designer` (design) | `sonnet` / `medium`; reaproveitar mockups | idem (o risco é do código, não do visual) |
+| `ui-ux-designer` (design) | `sonnet` / `medium`; sem tela ou fluxo novo ⇒ só spec em texto com critérios mensuráveis, reaproveitando o artifact existente, sem mockup novo | `sonnet` / `medium`; reaproveitar mockups (o risco é do código, não do visual) |
 | `frontend-dev-specialist` | `sonnet` / `high` | `opus` / `high` |
 | `frontend-reviewer` (1ª revisão e deltas) | `opus` / `high` | `opus` / `high` |
 | `qa-engineer` | `sonnet` / `high`, QA enxuto | `sonnet` / `high`, QA enxuto |
-| `frontend-reviewer` (revisão curta dos testes do QA) | `sonnet` / `medium` | `sonnet` / `medium` |
+| revisão curta dos testes do QA | delta ≤ ~150 linhas: o orquestrador revisa direto; maior: `frontend-reviewer` `sonnet` / `medium` | idem |
 | `ui-ux-designer` (DESIGN_QA) | `sonnet` / `medium`; só as capturas dos critérios, quantizadas | idem |
 
 QA enxuto (0021), sempre no prompt do `qa-engineer`: não duplicar teste do dev; só critério descoberto; um caso por classe de payload; e2e só para o que componente/BFF não alcança.

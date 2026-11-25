@@ -107,7 +107,7 @@ describe('troca de idioma com a conversa aberta', () => {
     await waitFor(() => expect(countOf(`${BFF}/sessions`)).toBe(1))
     expect(screen.getByRole('button', { name: 'Nova conversa' })).toBeInTheDocument()
     expect(screen.getByText('Sessões')).toHaveClass('uppercase')
-    const composer = screen.getByPlaceholderText('Escreva uma mensagem para Assistente')
+    const composer = screen.getByPlaceholderText('Mensagem para Assistente')
     await user.type(composer, 'rascunho')
     act(() =>
       usePlaygroundStore.getState().setMessages((messages) => [
@@ -122,7 +122,7 @@ describe('troca de idioma com a conversa aberta', () => {
 
     expect(screen.getByText('New chat')).toBeInTheDocument()
     expect(screen.getByText('Sessions')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Write a message to Assistente')).toBe(composer)
+    expect(screen.getByPlaceholderText('Message to Assistente')).toBe(composer)
     expect(composer).toHaveValue('rascunho')
     expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument()
     expect(screen.getByText('Resposta parcial')).toBeInTheDocument()
