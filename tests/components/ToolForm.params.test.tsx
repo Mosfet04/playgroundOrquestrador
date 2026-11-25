@@ -307,7 +307,8 @@ describe('valor padrão por tipo', () => {
 
     const note = 'O orquestrador não envia o valor padrão sozinho: ele serve de exemplo no preview.'
     expect(screen.getAllByText(note)).toHaveLength(1)
-    for (const field of screen.getAllByLabelText('Valor padrão')) expect(field).toHaveAccessibleDescription(note)
+    for (const field of screen.getAllByLabelText('Valor padrão'))
+      expect(field).toHaveAccessibleDescription(/^O orquestrador não envia o valor padrão sozinho: ele serve de exemplo no preview\.\s*$/)
   })
 })
 

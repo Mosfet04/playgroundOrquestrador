@@ -232,10 +232,8 @@ export function LoginForm({
           autoCapitalize="none"
           spellCheck={false}
           readOnly={pending}
-          variant={errors.username ? 'destructive' : 'default'}
           aria-invalid={errors.username ? true : undefined}
           aria-describedby={errors.username ? usernameError : undefined}
-          className="md:h-9"
           {...register('username')}
         />
         {errors.username && (
@@ -249,10 +247,8 @@ export function LoginForm({
           type="password"
           autoComplete="current-password"
           readOnly={pending}
-          variant={errors.password ? 'destructive' : 'default'}
           aria-invalid={errors.password ? true : undefined}
           aria-describedby={errors.password ? passwordError : undefined}
-          className="md:h-9"
           {...register('password')}
         />
         {errors.password && (

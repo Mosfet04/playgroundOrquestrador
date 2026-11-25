@@ -12,7 +12,7 @@ import { Chip } from '@/components/ui/loading'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { paramKind } from '@/lib/modelParams'
 import type { ProviderOption } from '@/types/management'
-import { FieldError } from './FieldError'
+import { errorA11y, FieldError } from './FieldError'
 import { FieldWarning } from './FieldWarning'
 import { withCurrent } from './useConfigSchema'
 import type { ParamRow } from './modelFormValues'
@@ -124,7 +124,7 @@ export function ModelParams({
           type="button"
           variant="outline"
           size="sm"
-          className="h-10 w-full md:h-8 md:w-auto"
+          className="h-10 w-full md:h-9 md:w-auto"
           disabled={addDisabled}
           aria-describedby={`${group.id}-help`}
           onClick={() => {
@@ -163,7 +163,7 @@ export function ModelParams({
               const position = index + 1
               const kind = paramKind(row.value)
               const kindId = `param-kind-${field.id}`
-              const errorId = `param-error-${field.id}`
+              const fieldId = `param-${field.id}`
               const error = errors[fieldName]?.[index]?.value?.message
               const unnamed = row.name === ''
               return (
@@ -185,7 +185,7 @@ export function ModelParams({
                           nameRefs.current[index] = element
                         }}
                         aria-label={t('modelParamNameAria', { index: position })}
-                        className="col-start-1 row-start-1 h-10 font-mono md:col-auto md:row-auto md:h-9"
+                        className="col-start-1 row-start-1 font-mono md:col-auto md:row-auto"
                       >
                         <SelectValue placeholder={t('modelParamNamePlaceholder')} />
                       </SelectTrigger>
@@ -209,12 +209,10 @@ export function ModelParams({
                           ? t('modelParamValueUnnamedAria', { index: position })
                           : t('modelParamValueAria', { name: row.name })
                       }
-                      aria-describedby={error ? `${kindId} ${errorId}` : kindId}
-                      aria-invalid={error ? true : undefined}
-                      variant={error ? 'destructive' : undefined}
+                      {...errorA11y(fieldId, !!error, kindId)}
                       autoComplete="off"
                       spellCheck={false}
-                      className="col-start-1 row-start-2 font-mono md:col-auto md:row-auto md:h-9"
+                      className="col-start-1 row-start-2 font-mono md:col-auto md:row-auto"
                     />
                     <Chip
                       className={`col-start-2 row-start-2 justify-center md:col-auto md:row-auto ${
@@ -243,7 +241,7 @@ export function ModelParams({
                       <Trash2 aria-hidden="true" />
                     </Button>
                   </div>
-                  <FieldError id={errorId} message={error} />
+                  <FieldError id={`${fieldId}-error`} message={error} />
                   {schemaReady && row.name && !accepted.includes(row.name) && (
                     <FieldWarning>
                       {t.rich('modelParamNotAccepted', {

@@ -176,7 +176,7 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
     await addParam(user, 'temperature', '0.7')
 
     expect(screen.getByRole('textbox', { name: 'Valor de temperature' })).toHaveAccessibleDescription(
-      'número'
+      /^número\s*$/
     )
   })
 
@@ -748,9 +748,11 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
     ['user_memory_active', 'Memória do usuário'],
     ['summary_active', 'Resumo da sessão'],
     ['rag_active', 'Habilitar RAG']
-  ])('%s recusado (switch): erro no item e foco no switch', async (field, name) => {
+  ])('%s recusado (switch): erro no item, ligado ao switch, e foco nele', async (field, name) => {
     serveSave(rejectWith(field))
     const user = await ready()
+    // Válido: o slot do switch não existe (D-QA1-05-2) e nada o aponta.
+    expect(screen.getByRole('switch', { name })).not.toHaveAttribute('aria-describedby', expect.stringContaining('-error'))
 
     await touchName(user)
     await saveAndConfirm(user)
@@ -760,7 +762,36 @@ describe('AgentForm P3-02: recusa do orquestrador (422)', () => {
     const scope = li ? within(li) : screen
     expect(await scope.findByText('Valor recusado pelo orquestrador')).toBeVisible()
     if (li) expect(screen.getAllByText('Valor recusado pelo orquestrador')).toHaveLength(1)
-    await waitFor(() => expect(screen.getByRole('switch', { name })).toHaveFocus())
+    const control = screen.getByRole('switch', { name })
+    expect(control).toHaveAttribute('aria-invalid', 'true')
+    expect(control).toHaveAccessibleDescription(/ Valor recusado pelo orquestrador$/)
+    await waitFor(() => expect(control).toHaveFocus())
+  })
+
+  it('tools_ids recusado: o erro descreve o grupo das tools', async () => {
+    server.use(
+      http.get('*/api/tools', () =>
+        HttpResponse.json({
+          success: true,
+          data: {
+            data: [{ id: 'clima', name: 'Clima', description: 'Previsão do tempo' }],
+            total: 1,
+            page: 1,
+            limit: 100,
+            totalPages: 1
+          }
+        })
+      )
+    )
+    serveSave(rejectWith('tools_ids'))
+    const user = await ready()
+    const group = await screen.findByRole('group', { name: 'Tools disponíveis' })
+    expect(within(group).getByRole('checkbox', { name: /Clima/ })).toBeInTheDocument()
+
+    await touchName(user)
+    await saveAndConfirm(user)
+
+    await waitFor(() => expect(group).toHaveAccessibleDescription('Valor recusado pelo orquestrador'))
   })
 
   it('num_history_runs recusado com o histórico desligado: o foco vai ao switch do histórico', async () => {

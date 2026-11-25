@@ -201,7 +201,7 @@ describe('RagSection: campos (V-11..V-15)', () => {
     expect(baseUrl.closest('div')).toHaveClass('md:col-span-2')
     await user.click(save())
 
-    expect(await card().findByText('fake-embed exige URL base')).toHaveClass('text-destructive')
+    expect((await card().findByText('fake-embed exige URL base')).closest('p')).toHaveClass('text-destructive')
     expect(baseUrl).toBeInvalid()
     expect(sent).toEqual([])
   })

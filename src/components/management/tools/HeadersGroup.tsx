@@ -13,7 +13,7 @@ import { isReference, joinReference, splitReference } from '@/lib/secretRef'
 import { MASK, type HeaderMode, type HeaderProblem } from '@/lib/toolHeaders'
 import { routeOrigin } from '@/lib/toolRoute'
 import { cn } from '@/lib/utils'
-import { FieldError } from '../common/FieldError'
+import { errorA11y, FieldError } from '../common/FieldError'
 import { FieldWarning } from '../common/FieldWarning'
 import {
   AssembledRef,
@@ -177,7 +177,7 @@ export function HeadersGroup({
           type="button"
           variant="outline"
           size="sm"
-          className="h-10 w-full md:h-8 md:w-auto"
+          className="h-10 w-full md:h-9 md:w-auto"
           onClick={() => {
             append(NEW_ROW)
             setFocusTarget({ to: 'name', index: fields.length })
@@ -215,7 +215,8 @@ export function HeadersGroup({
               const label = unnamed ? t('headerUnnamed', { index: position }) : row.name
               const kind = kindOf(row, prefixes)
               const kindId = `header-kind-${field.id}`
-              const errorId = `header-error-${field.id}`
+              const fieldId = `header-${field.id}`
+              const errorId = `${fieldId}-error`
               const sensitiveId = `header-sensitive-${field.id}`
               const outId = `header-out-${field.id}`
               const warningId = `header-warning-${field.id}`
@@ -238,9 +239,9 @@ export function HeadersGroup({
               const describedBy = [
                 kindId,
                 secret ? outId : '',
-                error ? errorId : '',
                 sensitive ? sensitiveId : '',
-                warning ? warningId : ''
+                warning ? warningId : '',
+                errorId
               ]
                 .filter(Boolean)
                 .join(' ')
@@ -252,12 +253,10 @@ export function HeadersGroup({
                   <Input
                     {...register(`headers.${index}.name`)}
                     aria-label={t('headerNameAria', { index: position })}
-                    aria-describedby={problem?.name ? errorId : undefined}
-                    aria-invalid={problem?.name ? true : undefined}
-                    variant={problem?.name ? 'destructive' : undefined}
+                    {...errorA11y(fieldId, !!problem?.name)}
                     autoComplete="off"
                     spellCheck={false}
-                    className="col-start-1 row-start-1 font-mono md:h-9"
+                    className="col-start-1 row-start-1 font-mono"
                   />
                   <div className="col-span-2 md:col-span-1">
                     <Select
@@ -265,10 +264,7 @@ export function HeadersGroup({
                       disabled={locked || row.hidden}
                       onValueChange={(next) => changeMode(index, next === 'secret' ? 'secret' : 'text')}
                     >
-                      <SelectTrigger
-                        aria-label={t('headerModeAria', { name: label })}
-                        className="h-10 md:h-9"
-                      >
+                      <SelectTrigger aria-label={t('headerModeAria', { name: label })}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -318,14 +314,13 @@ export function HeadersGroup({
                             aria-label={valueLabel}
                             aria-describedby={describedBy}
                             aria-invalid={problem?.value ? true : undefined}
-                            variant={problem?.value ? 'destructive' : undefined}
                             placeholder={
                               replaced ? t('headerNewValuePlaceholder', { prefixes: joined }) : undefined
                             }
                             autoComplete="off"
                             spellCheck={false}
                             className={cn(
-                              'min-w-0 flex-1 font-mono md:h-9',
+                              'min-w-0 flex-1 font-mono',
                               row.hidden && 'bg-muted tracking-widest text-muted-foreground'
                             )}
                           />
@@ -376,7 +371,7 @@ export function HeadersGroup({
                     {kind === 'masked' && <Lock className="size-3" aria-hidden="true" />}
                     <span id={kindId}>{kind === 'empty' ? '—' : t(`headerKind.${kind}`)}</span>
                   </Chip>
-                  <div className="col-span-2 space-y-1 md:col-span-5 md:pl-80 empty:hidden">
+                  <div className="col-span-2 space-y-1 md:col-span-5 md:pl-80">
                     {secret && !row.hidden && <AssembledRef id={outId} value={referenceOf(row)} />}
                     <FieldError id={errorId} message={error} />
                     {sensitive && (

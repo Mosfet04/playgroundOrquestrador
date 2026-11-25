@@ -24,7 +24,7 @@ import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
 import { ExecutionSection } from '../common/ExecutionSection'
-import { FieldError } from '../common/FieldError'
+import { errorA11y, FieldError } from '../common/FieldError'
 import { ModelSection } from '../common/ModelSection'
 import { rejectedField } from '../common/rejectedField'
 import { SectionCard } from '../common/SectionCard'
@@ -336,10 +336,11 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                   <Input
                     id="id"
                     {...register('id', { required: tc('idRequired') })}
+                    {...errorA11y('id', !!errors.id)}
                     disabled={isEditing}
                     placeholder={tc('example', { value: 'team-1' })}
                   />
-                  <FieldError message={errors.id?.message} />
+                  <FieldError id="id-error" message={errors.id?.message} />
                 </div>
 
                 <div className="space-y-2">
@@ -347,9 +348,10 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                   <Input
                     id="nome"
                     {...register('nome', { required: tc('nameRequired') })}
+                    {...errorA11y('nome', !!errors.nome)}
                     placeholder={t('form.namePlaceholder')}
                   />
-                  <FieldError message={errors.nome?.message} />
+                  <FieldError id="nome-error" message={errors.nome?.message} />
                 </div>
               </div>
 
@@ -358,9 +360,10 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                 <TextArea
                   id="descricao"
                   {...register('descricao')}
+                  {...errorA11y('descricao', !!errors.descricao)}
                   placeholder={t('form.descriptionPlaceholder')}
                 />
-                <FieldError message={errors.descricao?.message} />
+                <FieldError id="descricao-error" message={errors.descricao?.message} />
               </div>
             </SectionCard>
           </fieldset>
@@ -421,10 +424,11 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                 <TextArea
                   id="prompt"
                   {...register('prompt')}
+                  {...errorA11y('prompt', !!errors.prompt)}
                   placeholder={t('form.systemPromptPlaceholder')}
                   className="min-h-44 max-h-96"
                 />
-                <FieldError message={errors.prompt?.message} />
+                <FieldError id="prompt-error" message={errors.prompt?.message} />
               </div>
             </SectionCard>
 

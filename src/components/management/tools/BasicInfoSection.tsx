@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TextArea } from '@/components/ui/textarea'
-import { FieldError } from '../common/FieldError'
+import { errorA11y, FieldError } from '../common/FieldError'
 import { SectionCard } from '../common/SectionCard'
 import type { ToolFormValues } from './toolFormValues'
 
@@ -36,10 +36,11 @@ export function BasicInfoSection({
           <Input
             id="id"
             {...register('id', { required: tc('idRequired') })}
+            {...errorA11y('id', !!errors.id)}
             disabled={isEditing}
             placeholder={tc('example', { value: 'weather-api' })}
           />
-          <FieldError message={errors.id?.message} />
+          <FieldError id="id-error" message={errors.id?.message} />
         </div>
 
         <div className="space-y-2">
@@ -47,9 +48,10 @@ export function BasicInfoSection({
           <Input
             id="name"
             {...register('name', { required: tc('nameRequired') })}
+            {...errorA11y('name', !!errors.name)}
             placeholder={tc('example', { value: 'Weather API' })}
           />
-          <FieldError message={errors.name?.message} />
+          <FieldError id="name-error" message={errors.name?.message} />
         </div>
       </div>
 
@@ -60,9 +62,10 @@ export function BasicInfoSection({
           {...register('description', {
             validate: (value) => value.trim() !== '' || tc('descriptionRequired')
           })}
+          {...errorA11y('description', !!errors.description)}
           placeholder={t('descriptionPlaceholder')}
         />
-        <FieldError message={errors.description?.message} />
+        <FieldError id="description-error" message={errors.description?.message} />
       </div>
 
       <div className="space-y-2">
@@ -70,9 +73,10 @@ export function BasicInfoSection({
         <TextArea
           id="instructions"
           {...register('instructions')}
+          {...errorA11y('instructions', !!errors.instructions)}
           placeholder={t('instructionsPlaceholder')}
         />
-        <FieldError message={errors.instructions?.message} />
+        <FieldError id="instructions-error" message={errors.instructions?.message} />
       </div>
     </SectionCard>
   )

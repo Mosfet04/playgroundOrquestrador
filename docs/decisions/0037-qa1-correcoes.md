@@ -142,3 +142,27 @@ Contexto: o texto da spec (`https://api.exemplo.com/clima`, 29 caracteres) não 
 Opções: **A) `https://exemplo.com/api` / `https://example.com/api` (23 caracteres), cabe nas duas larguras**; B) outro texto curto; C) manter o da spec mudando fonte ou layout do campo.
 
 Escolha: **A** (2026-11-24).
+
+## D-QA1-05-0 — Modelos do QA1-05
+
+Contexto: o roadmap marcava o QA1-05 como intermediário (dev opus) por mexer nos três formulários, marca anterior à regra por risco (D-QA1-0-5). Pela regra ele é simples: sem estado assíncrono, auth, BFF nem `src/server`; já existe um `FieldError` comum para consolidar.
+
+Opções: **A) item simples: designer/DQA sonnet/medium só spec em texto, dev sonnet/high, revisor opus/high, QA sonnet/high enxuto, revisão dos testes do QA pelo orquestrador se ≤ ~150 linhas; 2+ MAJOR de regressão na 1ª revisão ⇒ dev opus na correção**; B) intermediário (dev opus/high); C) A com revisor sonnet/high.
+
+Escolha: **A** (2026-11-25).
+
+## D-QA1-05-1 — Altura única dos controles (#18)
+
+Contexto: o Input tem 40 px, o Select 46 px (`p-3`) e as telas da tool forçam 36 px no desktop. O DS (regra 9, [0008](0008-design-system-direcao-visual.md)) pede 36 px a partir de `md` e 40 px abaixo; o Button padrão é `h-9`.
+
+Opções: **A) `h-10` em todas as larguras**; **B) `h-10 md:h-9` na base de Input e SelectTrigger, apagando os overrides locais**.
+
+Escolha: **B** (2026-11-25). O Input de agent e team passa de 40 para 36 px no desktop. Spec do QA1-05 aprovada na 1ª rodada ([docs/design/QA1-05.md](../design/QA1-05.md)).
+
+## D-QA1-05-2 — Espaço de erro nos switches (revisão do QA1-05)
+
+Contexto: a spec (§ 2) reserva o slot de erro (`min-h-5`) em todo campo que pode receber erro do servidor. Os 8 switches da Execução e o "Habilitar RAG" só recebem erro do 422 do orquestrador; o dev montou o slot deles só com erro.
+
+Opções: **A) aceitar: switches sem espaço reservado; o 422 num switch empurra o conteúdo uma vez, depois do Salvar**; B) slot sempre montado também nos switches (~28 px de vão por linha).
+
+Escolha: **A** (2026-11-25). Exceção registrada no critério do item.

@@ -44,7 +44,9 @@ export function OptionCard({
     <div
       className={cn(
         'relative flex h-full min-w-0 items-start gap-3 rounded-lg border bg-card p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring max-md:min-h-11',
-        checked ? 'border-primary bg-primary-soft' : 'border-border hover:bg-muted',
+        checked ? 'bg-primary-soft' : 'hover:bg-muted',
+        // Inválido vence marcado na borda: o erro tem de ser visível; o fundo segue o estado marcado.
+        invalid ? 'border-destructive' : checked ? 'border-primary' : 'border-border',
         disabled && 'cursor-not-allowed opacity-60'
       )}
     >

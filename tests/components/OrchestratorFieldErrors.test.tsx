@@ -205,7 +205,7 @@ describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {
 
     // O erro da linha descreve o nome do parâmetro (aria-describedby).
     await screen.findByText(REJECTED)
-    expect(screen.getByDisplayValue('cidade')).toHaveAccessibleDescription(REJECTED)
+    expect(screen.getByDisplayValue('cidade')).toHaveAccessibleDescription(new RegExp(`^${REJECTED}\\s*$`))
   })
 
   it.each([

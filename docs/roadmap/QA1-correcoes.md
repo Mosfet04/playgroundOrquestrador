@@ -10,7 +10,7 @@ Perfil de modelos ([0033](../decisions/0033-p4-03-testar-agora.md) D-P4-03-1 e [
 | QA1-02 | #4, #5, #7, aba lembrada | não | enxuto |
 | QA1-03 | #6, markdown do usuário | sim | enxuto |
 | QA1-04 | #2, #16, #22, #24, #32 | sim | enxuto |
-| QA1-05 | #8 (erro de campo), #9, #18, #19, #31 | sim | intermediário |
+| QA1-05 | #8 (erro de campo), #9, #18, #19, #31 | sim | simples (D-QA1-05-0) |
 | QA1-06 | #3, #14, #15, memória | sim | enxuto |
 | QA1-07 | #10 | sim | enxuto |
 | QA1-08 | #11, #12 | sim | enxuto |
@@ -98,7 +98,7 @@ Testes exigidos: e2e com fixture de nome longo no fake medindo bounding boxes no
 Riscos e dependências: `truncate` em flex precisa de `min-w-0` em toda a cadeia; o teste mede, não confia na classe.
 
 ## QA1-05 — Padrão único de campo e de erro nos formulários
-UI: sim            Depende (orq.): —            Perfil: intermediário
+UI: sim            Depende (orq.): —            Perfil: simples (D-QA1-05-0)
 Objetivo: todo campo de formulário tem a mesma altura, fundo e estado de erro, acessível (#8 parte do erro, #9, #18, #19, #31).
 Escopo:
 - Um padrão de erro para agent, team e tool: borda de erro + texto + ícone, `aria-invalid` e `aria-describedby` apontando a mensagem. Espaço da mensagem reservado (`min-h`), para o erro aparecer e sumir sem empurrar o conteúdo nem desviar o clique seguinte.
@@ -107,6 +107,11 @@ Escopo:
 - Switch desabilitado distinguível do ativo no tema escuro (#31, "Expor raciocínio").
 - Se o padrão pedir um token novo ou mudança de token, vira DECISAO (direção visual).
 Fora de escopo: regras de validação novas (QA1-06).
+- Desvio (switches e avisos de rota, D-QA1-05-2 = A): o slot de erro só existe quando há erro nos Switches de `ExecutionSection` e `rag_active` (só o orquestrador os recusa; reservar `min-h-5` em 8 linhas abriria um vazio por switch; o 422 num switch empurra o conteúdo uma vez, depois do Salvar) e nos avisos `route-spaced`/`route-missing` (dependem do que se digita, não de um envio). Com erro, o switch ganha `aria-invalid` e aponta `<campo>-error`; sem erro, não aponta nada. Os demais campos têm o slot sempre montado.
+- Desvio (`variant` do Input): `Input` perde `variant` e `inputVariants`; o `LoginForm`, que o usava, passa a depender de `aria-invalid` como os formulários (mesma borda de erro; em foco, como eles, sem o brilho primário).
+- Desvio (`aria-describedby`): o slot `<id>-error` é sempre o último id da lista, mesmo vazio; no jsdom a descrição acessível ganha um espaço final (testes existentes ajustados para `/^…\s*$/`). Exceção: a Rota inválida só por `route-missing`/`route-spaced` tem o aviso antes do slot `route-error` vazio (a mensagem está no aviso, que também é descrição); o grupo das tools do agent (`role="group"`) aponta `tools_ids-error` sem `aria-invalid`, que o ARIA 1.2 não aceita em `group`.
+- Desvio (variante do Tailwind): o estilo de erro usa `aria-[invalid=true]:` e não `aria-invalid:` da spec; o Tailwind 3.4 instalado só tem as variantes `aria-*` de `theme.aria` (sem `invalid`), e `aria-invalid:` não gerava CSS.
+- Desvio (`OptionCard`, QA1-05-B1): o cartão de checkbox/rádio com `invalid` ganha `border-destructive` (vence o `border-primary` do marcado; o fundo segue o marcado), para o membro inválido do team ter borda de erro como os outros campos.
 Critérios de aceite:
 - Todo campo inválido nos três formulários tem `aria-invalid="true"`, borda de erro, ícone e mensagem ligada por `aria-describedby`.
 - Mostrar e esconder o erro não muda a posição (y) do campo seguinte.

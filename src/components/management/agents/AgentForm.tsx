@@ -26,7 +26,7 @@ import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStat
 import { ConflictDialog } from '../common/ConflictDialog'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
-import { FieldError } from '../common/FieldError'
+import { errorA11y, FieldError } from '../common/FieldError'
 import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
@@ -433,10 +433,11 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               <Input
                 id="id"
                 {...register('id', { required: tc('idRequired') })}
+                {...errorA11y('id', !!errors.id)}
                 disabled={isEditing}
                 placeholder={tc('example', { value: 'agent-1' })}
               />
-              <FieldError message={errors.id?.message} />
+              <FieldError id="id-error" message={errors.id?.message} />
             </div>
 
             <div className="space-y-2">
@@ -444,9 +445,10 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               <Input
                 id="nome"
                 {...register('nome', { required: tc('nameRequired') })}
+                {...errorA11y('nome', !!errors.nome)}
                 placeholder={t('form.namePlaceholder')}
               />
-              <FieldError message={errors.nome?.message} />
+              <FieldError id="nome-error" message={errors.nome?.message} />
             </div>
           </div>
 
@@ -455,9 +457,10 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
             <TextArea
               id="descricao"
               {...register('descricao')}
+              {...errorA11y('descricao', !!errors.descricao)}
               placeholder={t('form.descriptionPlaceholder')}
             />
-            <FieldError message={errors.descricao?.message} />
+            <FieldError id="descricao-error" message={errors.descricao?.message} />
           </div>
         </SectionCard>
 
@@ -480,10 +483,11 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
             <TextArea
               id="prompt"
               {...register('prompt')}
+              {...errorA11y('prompt', !!errors.prompt)}
               placeholder={t('form.systemPromptPlaceholder')}
               className="min-h-44 max-h-96"
             />
-            <FieldError message={errors.prompt?.message} />
+            <FieldError id="prompt-error" message={errors.prompt?.message} />
           </div>
         </SectionCard>
 
@@ -512,7 +516,13 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               {t('form.noTools')}
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            // O erro (só do orquestrador) descreve o grupo: aria-invalid não vale em `group` (ARIA 1.2).
+            <div
+              role="group"
+              aria-labelledby="agent-tools"
+              aria-describedby="tools_ids-error"
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
               {availableTools.map((tool) => (
                 <div
                   key={tool.id}
@@ -543,7 +553,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               ))}
             </div>
           )}
-          <FieldError message={errors.tools_ids?.message} />
+          <FieldError id="tools_ids-error" message={errors.tools_ids?.message} />
         </SectionCard>
 
         {/* Status do último Salvar (P4-01) e botões de ação. */}

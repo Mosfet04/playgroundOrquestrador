@@ -79,7 +79,7 @@ describe('estados do valor', () => {
   it('o chip descreve o valor (aria-describedby)', async () => {
     await renderReady(stored)
 
-    expect(screen.getByLabelText('Valor de Accept')).toHaveAccessibleDescription('texto')
+    expect(screen.getByLabelText('Valor de Accept')).toHaveAccessibleDescription(/^texto\s*$/)
     expect(screen.getByLabelText('Variável de ambiente (X-Api-Key)')).toHaveAccessibleDescription(
       /^referência/
     )
@@ -197,7 +197,7 @@ describe('header sensível em texto (D-P3-03-3)', () => {
       expect(row.textContent).not.toContain(SECRET)
       expect(within(row).getAllByRole('textbox')[1]).toBeInvalid()
       expect(within(row).getAllByRole('textbox')[1]).toHaveFocus()
-      expect(screen.getByText(error, { selector: 'p' })).not.toHaveTextContent(SECRET)
+      expect(screen.getByText(error)).not.toHaveTextContent(SECRET)
       expect(bodies).toEqual([])
       expect(requests.filter((request) => request.startsWith('PUT') || request.startsWith('POST'))).toEqual([])
       server.events.removeAllListeners()
