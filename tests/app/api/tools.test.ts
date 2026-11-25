@@ -308,6 +308,20 @@ describe('POST /api/tools', () => {
     expect(text).not.toMatch(/VALOR-SECRETO|detalhe-interno/)
   })
 
+  // QA1-07 (#10): o cenário do relatório. A referência vai ao orquestrador como
+  // veio (válida pela regra dele); o 422 `headers` é dele, por host não confiável.
+  it('Authorization com env:QA_TOKEN_API_KEY vai como veio; o 422 `headers` volta no grupo', async () => {
+    serve('post', '/admin/config/tools', refusal(422, { detail: LEAK, field: 'headers' }))
+    const headers = { Authorization: 'env:QA_TOKEN_API_KEY' }
+
+    const response = await POST(
+      jsonRequest(API, 'POST', { ...formBody, route: 'https://api.exemplo.com/anything', headers })
+    )
+
+    expect((seen[0].body as { headers: unknown }).headers).toEqual(headers)
+    expect(await response.json()).toEqual({ success: false, error: 'invalid_config', field: 'headers' })
+  })
+
   it('422 em parameters sem posição ⇒ sem campo', async () => {
     serve('post', '/admin/config/tools', refusal(422, { detail: LEAK, field: 'parameters' }))
 

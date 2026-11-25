@@ -70,7 +70,7 @@ describe('SecretRefField', () => {
 
     expect(format()).toHaveTextContent('env:')
     expect(target()).toHaveValue('')
-    expect(target()).toHaveAttribute('placeholder', 'ex.: OPENAI_API_KEY')
+    expect(target()).toHaveAttribute('placeholder', 'OPENAI_API_KEY')
     expect(target()).toHaveAttribute('autocomplete', 'off')
     expect(target()).toHaveAttribute('type', 'text')
     expect(output()).toHaveTextContent(/Gravada como\s*—\s*vazio/)
@@ -112,7 +112,7 @@ describe('SecretRefField', () => {
 
     expect(format()).toHaveTextContent('file:')
     expect(target('Caminho do arquivo')).toHaveValue('OPENAI_API_KEY')
-    expect(target('Caminho do arquivo')).toHaveAttribute('placeholder', 'ex.: /run/secrets/openai_key')
+    expect(target('Caminho do arquivo')).toHaveAttribute('placeholder', '/secrets/key')
     expect(group()).toHaveTextContent('Caminho absoluto de um arquivo do servidor do orquestrador')
     expect(seen.at(-1)).toBe('file:OPENAI_API_KEY')
   })

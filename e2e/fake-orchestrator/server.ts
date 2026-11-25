@@ -284,6 +284,29 @@ const origin = (route: string) => {
   const parts = /^([a-z][a-z0-9+.-]*):\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]*)(?::(\d*))?(?:[/?#]|$)/i.exec(route)
   return parts ? [parts[1].toLowerCase(), parts[2].toLowerCase(), parts[3] || ''].join('|') : null
 }
+// Hosts do operador (a `TOOL_ROUTE_ALLOWLIST` do real, em tool_route_guard.py):
+// só eles recebem header por referência. Os da spec do QA1-07 e os dos e2e que
+// gravam referência; `api.terceiro.example` fica de fora (o host não confiável).
+const TOOL_ROUTE_ALLOWLIST = new Set([
+  'api.exemplo.com',
+  'api.example.com',
+  'api.loja.example',
+  'outro.example',
+  'clima.example.com'
+])
+const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/
+// Host da rota como o `normalize_host` do real (ssrf.py): minúsculo, sem
+// colchetes e sem o ponto final de nome (`10.0.0.5.` fica como está). Sem a
+// forma canônica de IPv6.
+const routeHost = (route: string) => {
+  const bare = (origin(route)?.split('|')[1] ?? '').replace(/^\[(.*)\]$/, '$1')
+  const name = bare.replace(/\.$/, '')
+  return IPV4.test(name) && name !== bare ? bare : name
+}
+// Loopback literal (`is_loopback_host`): o fake simula o modo não-dev, em que
+// o real recusa a rota (422 `route`) fora da allowlist.
+const isLoopback = (host: string) =>
+  host === 'localhost' || host === '::1' || (IPV4.test(host) && host.startsWith('127.'))
 
 const BOOLEAN_AGENT_KEYS = [
   'markdown',
@@ -412,6 +435,10 @@ function checkTool(body: Record<string, unknown>, current?: ConfigDoc): Checked<
   const headers = body.headers ?? {}
   if (!isRecord(headers) || Object.values(headers).some((value) => typeof value !== 'string'))
     return invalid('headers')
+  // O destino (`ToolRouteGuard`) vem antes da máscara e da regra de segredo.
+  const host = routeHost(String(body.route))
+  const trusted = TOOL_ROUTE_ALLOWLIST.has(host)
+  if (isLoopback(host) && !trusted) return invalid('route')
   // Nome sensível só por referência; a máscara mantém o gravado na mesma origem.
   const stored = isRecord(current?.headers) ? current.headers : {}
   const sameOrigin =
@@ -429,6 +456,9 @@ function checkTool(body: Record<string, unknown>, current?: ConfigDoc): Checked<
     if (sensitive && !isRef(value)) return invalid('headers')
     kept[name] = value
   }
+  // Referência, inclusive a mantida pela máscara, só para host do operador
+  // (`ToolConfigEditor._checked`): senão o segredo iria a um host de terceiro.
+  if (!trusted && Object.values(kept).some(isRef)) return invalid('headers')
   return accepted({
     id: String(body.id),
     name: body.name,

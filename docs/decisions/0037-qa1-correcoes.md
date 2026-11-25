@@ -204,3 +204,59 @@ Contexto: o design QA reprovou o V8. A mensagem `common.idInvalid` (62 caractere
 Opções: **A) 4ª rodada só de texto: "ID fora do padrão." / "ID doesn't match the format."**; B) slot do ID com 2 linhas reservadas na criação (`min-h-10`); C) aceitar o desvio e ajustar o V8.
 
 Escolha: **A** (2026-11-25).
+
+## D-QA1-07-0 — Modelos do QA1-07
+
+Contexto: o item mexe com referência de segredo em header e com a regra de host confiável do orquestrador, além do mapeamento do 422 no BFF e do fake. Nos itens simples, o dev sonnet trouxe 2 MAJOR (QA1-04) e 4 MAJOR (QA1-05) na 1ª revisão. O dev opus do QA1-06 passou na 1ª revisão só com MINOR.
+
+Opções: **A) item de risco: dev opus/high; revisor opus/high; QA sonnet/high enxuto; designer/DQA sonnet/medium só com spec em texto; delta só de MINOR com até ~80 linhas e testes do QA com até ~150 linhas conferidos pelo orquestrador**; B) simples com escalada (dev sonnet; 2+ MAJOR ⇒ opus); C) A com dev opus como padrão em todo item.
+
+Escolha: **A** (2026-11-25). A tabela do `SKILL.md` fica como está.
+
+## D-QA1-07-1 — Segredo em header só para host confiável (#10)
+
+Contexto: na leitura do orquestrador (`_check_tool` em `config_admin_use_case.py`), um header com referência `env:`/`file:` volta 422 `headers` quando o host da rota não está na `TOOL_ROUTE_ALLOWLIST`. Isso impede que o segredo vá para um host de terceiro. O fake não tem essa regra.
+
+Opções: **A) manter a regra: o fake ganha a mesma regra, com uma allowlist de teste; o playground explica no grupo de headers e no toast que o segredo só vale para host confiável do orquestrador; o cenário do relatório salva com o host na allowlist**; B) relaxar no orquestrador com um FA novo (segredo para qualquer host público); C) decidir depois do teste vermelho.
+
+Escolha: **A** (2026-11-25), com a causa confirmada antes por teste vermelho. Se a causa for outra, o dev devolve um DECISAO.
+
+## D-QA1-07-2 — Quando o modo passa sozinho para Segredo
+
+Contexto: digitar um nome sensível troca o modo da linha para Segredo, e a troca de modo limpa o valor. A pessoa pode estar editando o nome de uma linha que já tem valor em Texto.
+
+Opções: **A) trocar só com a linha em Texto, não oculta, sem valor, e uma vez por linha; a volta manual para Texto não é desfeita; nos outros casos fica o erro `headerSensitive` com "Usar segredo"**; B) trocar sempre que o nome vira sensível, limpando o valor.
+
+Escolha: **A** (2026-11-25). Spec de design do QA1-07 aprovada na 1ª rodada (só texto, V1–V11).
+
+## D-QA1-07-3 — Largura do alvo da referência na linha do header
+
+Contexto: medido pelo dev. Em 1367 px, com a Requisição ao lado, a coluna Valor deixa 92 px ao alvo, e o placeholder precisa de 176 a 192 px. Em 390 px, sobram 173 px para 214 a 234 px de texto. V2 e V3 da spec falham.
+
+Opções: **A) em Segredo, o par formato+alvo vai para uma 2ª linha, na largura toda, no desktop; no celular fica lado a lado, e os placeholders perdem o "ex.:" (`OPENAI_API_KEY`, `/secrets/key`, também em agent/team); V2 em 390 vira ≥ 170 px**; B) 2ª linha nas duas larguras (no celular, formato em cima e alvo embaixo); C) manter o layout.
+
+Escolha: **A** (2026-11-25).
+
+## D-QA1-07-4 — Salto de layout na troca de modo
+
+Contexto: a troca de modo mexe na altura do slot da linha. Sai a faixa "Usar segredo" e entra "Gravada como", e entra o aviso da troca automática. A linha seguinte se move de 48 a 68 px. A troca manual já faz isso desde o P3-05.
+
+Opções: **A) aceitar; V4 e V10 passam a medir só que nada se move enquanto o modo fica o mesmo (erro aparecendo ou sumindo)**; B) altura fixa reservada no slot.
+
+Escolha: **A** (2026-11-25).
+
+## D-QA1-07-5 — Troca automática no prefixo sensível
+
+Contexto: levantada pelo revisor. A troca dispara no prefixo sensível de um nome maior (`X-Api-Key-Id`, `X-Token-Type`). Quando o nome deixa de ser sensível, o aviso some, e a linha fica em Segredo, com o valor vazio.
+
+Opções: **A) manter (spec e D-QA1-07-2): a pessoa volta a Texto à mão**; B) linha trocada automaticamente, ainda vazia, volta a Texto quando o nome deixa de ser sensível.
+
+Escolha: **A** (2026-11-25). Rever se o uso real reclamar.
+
+## D-QA1-07-6 — Design QA do QA1-07: salto do 422 e título "Valor"
+
+Contexto: o design QA passou de V1 a V9 e no V11. O V10 falhou só no 422: o erro do grupo, com 2 a 3 linhas, empurra a 1ª linha de header 20 px em 1367 e 40 px em 390; ao editar, o erro some e a linha volta. Além disso, no desktop, o título de coluna "Valor" fica sobre a coluna vazia das linhas em Segredo, por causa da D-QA1-07-3.
+
+Opções: **A) aceitar: o erro do grupo pode crescer o slot, porque só aparece depois de Salvar e leva o foco e a rolagem até ele; o V10 é emendado; o título "Valor" fica**; B) reservar a altura do slot do erro do grupo (40 px em 1367, 60 px em 390) e esconder o título com tudo em Segredo.
+
+Escolha: **A** (2026-11-25). O design QA vira PASS com a emenda.

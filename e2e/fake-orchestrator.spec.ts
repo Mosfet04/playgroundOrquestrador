@@ -482,6 +482,50 @@ test('fake orchestrator: header mascarado só vale na mesma origem, porta explí
   await request.delete(`${url}/fake-origem?hard=true`, { headers: { ...headers, 'If-Match': '"2"' } })
 })
 
+// QA1-07 (D-QA1-07-1): header por referência só vai a host da allowlist do
+// operador (`ToolConfigEditor._checked` + `ToolRouteGuard` do real). Fora dela,
+// 422 `headers`; header em texto comum segue aceito em qualquer host.
+test('fake orchestrator: segredo em header só para host confiável', async ({ request }) => {
+  const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  const url = `${FAKE_ORCHESTRATOR_URL}/admin/config/tools`
+  const tool = {
+    id: 'fake-segredo-host',
+    name: 'Segredo',
+    description: 'Header por referência',
+    http_method: 'GET',
+    parameters: [],
+    headers: { Authorization: 'env:QA_TOKEN_API_KEY' }
+  }
+
+  const untrusted = await request.post(url, {
+    headers,
+    data: { ...tool, route: 'https://api.terceiro.example/anything' }
+  })
+  expect(untrusted.status()).toBe(422)
+  expect(await untrusted.json()).toMatchObject({ field: 'headers' })
+
+  const text = await request.post(url, {
+    headers,
+    data: { ...tool, route: 'https://api.terceiro.example/anything', headers: { 'X-Conta': 'texto' } }
+  })
+  expect(text.status()).toBe(201)
+  await request.delete(`${url}/fake-segredo-host?hard=true`, { headers: { ...headers, 'If-Match': '"1"' } })
+
+  // Host normalizado como no real: maiúscula e ponto final não mudam o host.
+  for (const route of ['https://API.Exemplo.com/anything', 'https://api.exemplo.com./anything']) {
+    const trusted = await request.post(url, { headers, data: { ...tool, route } })
+    expect(trusted.status(), route).toBe(201)
+    await request.delete(`${url}/fake-segredo-host?hard=true`, { headers: { ...headers, 'If-Match': '"1"' } })
+  }
+
+  // Loopback fora da allowlist (modo não-dev do real): 422 `route`, com ou sem header.
+  for (const route of ['http://localhost:8080/x', 'http://127.0.0.1/x', 'http://[::1]/x']) {
+    const refused = await request.post(url, { headers, data: { ...tool, route, headers: {} } })
+    expect(refused.status(), route).toBe(422)
+    expect(await refused.json()).toMatchObject({ field: 'route' })
+  }
+})
+
 // P3-03: placeholder só no caminho e na query; no host (ou na porta) o real
 // recusa com 422 `route`.
 test('fake orchestrator: placeholder no host da route ⇒ 422 route', async ({ request }) => {

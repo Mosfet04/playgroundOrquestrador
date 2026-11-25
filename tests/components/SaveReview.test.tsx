@@ -741,12 +741,12 @@ describe('Erro do orquestrador e a edição desfeita', () => {
     await user.type(screen.getByRole('textbox', { name: 'Valor de X-Conta' }), 'X')
 
     await saveAndConfirm(user)
-    expect(await screen.findByText(/O orquestrador recusou algum header/)).toBeInTheDocument()
+    expect(await screen.findByText(/O orquestrador recusou um header/)).toBeInTheDocument()
 
     await user.type(screen.getByRole('textbox', { name: 'Valor de X-Conta' }), '{Backspace}')
 
     expect(screen.getByText(HINT)).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByText(/O orquestrador recusou algum header/)).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText(/O orquestrador recusou um header/)).not.toBeInTheDocument())
   })
 
   it('agent: 422 no provedor (Select sem revalidação), valor revertido: o erro sai e a dica fica', async () => {

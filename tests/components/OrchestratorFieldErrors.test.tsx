@@ -191,8 +191,10 @@ describe('ToolForm: header mascarado, If-Match e 422 no campo', () => {
     await touchName(user)
     await saveAndConfirm(user)
 
-    expect(await screen.findByText(/recusou algum header e não diz qual/)).toBeInTheDocument()
-    expect(screen.getByText('Não foi possível salvar a tool (código 422)')).toBeInTheDocument()
+    expect(await screen.findByText(/recusou um header e não diz qual/)).toBeInTheDocument()
+    // QA1-07: o toast do 422 de headers leva o motivo na descrição, com o código.
+    expect(screen.getByText('Não foi possível salvar a tool')).toBeInTheDocument()
+    expect(screen.getByText(/Veja a seção Headers\. \(código 422\)$/)).toBeInTheDocument()
   })
 
   it('422 num parâmetro aparece na linha dele', async () => {

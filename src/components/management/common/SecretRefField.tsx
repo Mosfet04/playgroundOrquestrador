@@ -113,7 +113,8 @@ export function SecretRefPair({
   invalid,
   describedBy,
   nameSuffix,
-  focusRef
+  focusRef,
+  onBlur
 }: {
   id: string
   model: SecretModel
@@ -126,6 +127,8 @@ export function SecretRefPair({
   nameSuffix?: string
   // Foco do campo para o formulário (erro): no formato se o erro é dele.
   focusRef?: Ref<SecretFocus>
+  // Saída do alvo: os headers mostram o erro do valor depois de tocar (QA1-07).
+  onBlur?: () => void
 }) {
   const t = useTranslations('secretRef')
   const formatRef = useRef<HTMLButtonElement | null>(null)
@@ -187,8 +190,9 @@ export function SecretRefPair({
           aria-label={`${targetLabel}${suffix}`}
           aria-describedby={describedBy}
           aria-invalid={invalid || undefined}
-          className="rounded-l-none border-l-0 font-mono"
+          className="min-w-0 flex-1 rounded-l-none border-l-0 font-mono"
           onChange={(event) => model.changeTarget(event.target.value)}
+          onBlur={onBlur}
         />
       </div>
       <span role="status" className="sr-only">

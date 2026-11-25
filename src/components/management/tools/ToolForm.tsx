@@ -30,6 +30,7 @@ import { VersionHistory } from '../common/VersionHistory'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema } from '../common/useConfigSchema'
 import { BasicInfoSection } from './BasicInfoSection'
+import { HEADERS_ERROR_ID } from './HeadersGroup'
 import { HttpSection } from './HttpSection'
 import { type FocusRequest, ParametersSection } from './ParametersSection'
 import { RequestPreview } from './RequestPreview'
@@ -117,7 +118,8 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
   }
 
   // Erro do orquestrador no campo recusado, sem o valor. `headers` é um grupo
-  // (o orquestrador não diz qual): erro no grupo e foco no 1º valor;
+  // (o orquestrador não diz qual): erro no grupo, foco no 1º valor e o slot do
+  // erro (sempre montado) na área visível junto dele (QA1-07);
   // `parameters.<posição>` vai à linha, com foco no nome.
   const markRejected = (field: ToolFormField, data: ToolFormValues) => {
     const error = { type: 'server', message: tc('rejectedByOrchestrator') }
@@ -125,6 +127,7 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
       setError('root.headers', { type: 'server', message: t('form.headersRejected') })
       if (data.headers.length > 0) setFocus('headers.0.value')
       else addHeaderRef.current?.focus()
+      document.getElementById(HEADERS_ERROR_ID)?.scrollIntoView({ block: 'nearest' })
     } else if (isParameterField(field)) {
       setError(field, error)
       setFocus(`parameters.${Number(field.slice('parameters.'.length))}.name`)
@@ -216,8 +219,14 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
         dismiss?.()
         markRejected(field, data)
       }
+      // 422 de headers: o motivo provável (segredo fora de host confiável,
+      // D-QA1-07-1) vai na descrição, com o código.
+      if (field === 'headers')
+        toast.error(t('saveError'), {
+          description: tc('withCode', { message: tf('saveErrorHeaders'), status: response.status })
+        })
       // 404 no "salvar por cima": o diálogo diz que foi excluída.
-      if (!(base && response.status === 404))
+      else if (!(base && response.status === 404))
         // 409 só é "id já existe" na criação.
         toast.error(
           requestError(response.status, {

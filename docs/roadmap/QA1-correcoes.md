@@ -154,6 +154,10 @@ Escopo:
 - "Usar segredo" não mostra "Informe o alvo da referência" antes de a pessoa digitar (erro só depois de tocar ou salvar).
 - Modo Segredo: o input do alvo com largura útil (o select `env:`/`file:` estreito), placeholder inteiro.
 - Nome sensível (`Authorization`, `*-token`…): ao digitar o nome, o modo passa para Segredo sozinho, com aviso curto.
+- Desvio (causa, D-QA1-07-1): o corpo enviado estava certo; o 422 vem da regra do orquestrador (`ToolConfigEditor._checked`): referência `env:`/`file:` em header só para host da `TOOL_ROUTE_ALLOWLIST`. A regra fica; o fake a reproduz (allowlist de teste, host normalizado, loopback fora da lista ⇒ 422 `route`), o grupo e o toast explicam o host confiável, e o cenário do relatório salva com o host na lista.
+- Desvio (troca automática, D-QA1-07-2 e D-QA1-07-5): só com a linha em Texto, visível e vazia, uma vez por linha; a volta manual a Texto fica; o prefixo sensível de um nome maior (`X-Api-Key-Id`) também troca.
+- Desvio (largura do alvo, D-QA1-07-3): no md+ o par formato+alvo do Segredo vai para a 2ª linha da linha do header (alvo ≈ 560 px em 1367); no celular fica lado a lado, com os placeholders `OPENAI_API_KEY` e `/secrets/key` (também em agent e team).
+- Desvio (salto de layout, D-QA1-07-4 e D-QA1-07-6): a troca de modo e o erro do grupo depois do 422 podem mudar a altura do slot; com o modo parado, o erro do alvo não move nada.
 Critérios de aceite: o cenário do relatório salva contra o fake com a regra do orquestrador; o 422 de header cai visível no grupo; nenhum erro antes da interação; o placeholder do alvo aparece inteiro em 1367 px e 390 px; digitar `Authorization` troca o modo.
 Testes exigidos: BFF/unit do corpo enviado (vermelho antes); componente do header; e2e do salvar com segredo.
 Riscos e dependências: o fake precisa da mesma regra de header do orquestrador real; conferir no código do orquestrador antes de mudar o fake.

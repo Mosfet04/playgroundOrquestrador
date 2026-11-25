@@ -80,8 +80,9 @@ test('header sensível em texto não sai do browser: erro na linha, nenhum reque
   await page.getByLabel(/^Descrição/).fill('Header sensível em texto')
   await page.getByLabel(/^Rota/).fill('https://clima.example.com/v1/previsao')
   await page.getByRole('button', { name: 'Adicionar header' }).click()
+  // O valor antes do nome: linha com texto não passa sozinha a Segredo (D-QA1-07-2).
+  await page.getByLabel('Valor do header 1').fill('Bearer texto-recusado')
   await page.getByLabel('Nome do header 1').fill('Authorization')
-  await page.getByLabel('Valor de Authorization', { exact: true }).fill('Bearer texto-recusado')
 
   await page.getByRole('button', { name: 'Salvar' }).click()
 
