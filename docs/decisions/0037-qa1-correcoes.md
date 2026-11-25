@@ -166,3 +166,41 @@ Contexto: a spec (§ 2) reserva o slot de erro (`min-h-5`) em todo campo que pod
 Opções: **A) aceitar: switches sem espaço reservado; o 422 num switch empurra o conteúdo uma vez, depois do Salvar**; B) slot sempre montado também nos switches (~28 px de vão por linha).
 
 Escolha: **A** (2026-11-25). Exceção registrada no critério do item.
+
+## D-QA1-06-0 — Modelos do QA1-06
+
+Contexto: validação, ID e memória são simples; o #15 (guardar a navegação com rascunho: Voltar do browser, links do shell, `beforeunload`) mexe com `popstate` e corrida de navegação no App Router, sem bloqueio nativo, e não pode quebrar o "Testar agora" (P4-03). Nos itens simples anteriores o dev sonnet trouxe 2 (QA1-04) e 4 (QA1-05) MAJOR na 1ª revisão.
+
+Opções: **A) item de risco: dev opus/high; revisor opus/high; QA sonnet/high enxuto; designer/DQA sonnet/medium só spec em texto, reaproveitando os Dialogs existentes; revisão dos testes do QA pelo orquestrador se ≤ ~150 linhas**; B) simples com escalada (dev sonnet; 2+ MAJOR ⇒ opus); C) dois devs (sonnet para validação, opus para o #15).
+
+Escolha: **A** (2026-11-25). Também adotado para os próximos itens: delta de correção só de MINOR/NIT e ≤ ~80 linhas é conferido pelo orquestrador, sem chamar o revisor; com BLOCKER/MAJOR, o revisor é retomado por `SendMessage` (mantém o contexto e o modelo). Tabela em `.claude/skills/dev-cycle/SKILL.md`.
+
+## D-QA1-06-4 — O que conta como rascunho não salvo (#15)
+
+Contexto: o aviso de rascunho precisa de um critério de "sujo". Hoje só a edição tem baseline (`hasChanges` em `useSaveReview`); a criação não tem.
+
+Opções: **A) sujo = valores diferentes dos iniciais (entidade lida na edição; padrões na criação), comparação por valor; digitar e apagar volta a limpo; `/new` intocado não avisa**; B) `isDirty` do RHF (listas do `useFieldArray` podem ficar sujas depois de desfazer); C) qualquer digitação, sem voltar a limpo.
+
+Escolha: **A** (2026-11-25). Spec do QA1-06 aprovada na 1ª rodada ([docs/design/QA1-06.md](../design/QA1-06.md)), só texto, sem artifact novo.
+
+## D-QA1-06-5 — "Sair" com rascunho e node_modules defasado (revisão do QA1-06)
+
+Contexto: (R1) o "Sair" fazia o POST de logout antes do `beforeunload`; ficar na página deixava a pessoa sem sessão, com o botão preso em "Saindo…". (R3) o `node_modules` tinha next 15.2.3, e o lockfile fixa 15.2.8; o guard do Voltar depende do interno do Next.
+
+Escolhas (2026-11-25): **R1: o "Sair" passa pelo aviso de rascunho antes do POST** (alternativa recusada: aceitar como limitação). **R3: `pnpm install --frozen-lockfile`** (sem dependência nova, lockfile inalterado) e gates/e2e do guard de novo contra 15.2.8.
+
+## D-QA1-06-6 — Bugs do QA do QA1-06
+
+Contexto: QA PASS com dois MINOR em `test.fail`. QA-1: logout que falha depois de "Descartar e sair" deixa o guard desarmado (`leaving` fica `true`), e o rascunho se perde no próximo link. QA-2: dois `history.back()` na mesma tarefa JS (só com tempo sintético) deixam a URL em `/agents` com o formulário na tela.
+
+Opções: **A) corrigir o QA-1 na 3ª rodada (rearmar o guard quando a saída não descarrega a página) e aceitar o QA-2 como limitação**; B) corrigir os dois; C) registrar os dois.
+
+Escolha: **A** (2026-11-25).
+
+## D-QA1-06-7 — Mensagem de ID inválido (design QA do QA1-06, 4ª rodada)
+
+Contexto: o design QA reprovou o V8. A mensagem `common.idInvalid` (62 caracteres) quebra em 2 linhas na coluna do ID em 1367 e 390 px, e o campo seguinte desce 20 px. A regra já está na ajuda (`common.idHelp`), que também entra no `aria-describedby`. O ciclo estava no limite de 3 rodadas.
+
+Opções: **A) 4ª rodada só de texto: "ID fora do padrão." / "ID doesn't match the format."**; B) slot do ID com 2 linhas reservadas na criação (`min-h-10`); C) aceitar o desvio e ajustar o V8.
+
+Escolha: **A** (2026-11-25).

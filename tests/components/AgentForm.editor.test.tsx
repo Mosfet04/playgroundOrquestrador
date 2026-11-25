@@ -150,26 +150,99 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
     const sent = serveSave()
     const user = await ready()
     await addParam(user, 'temperature', '0.7')
-    await addParam(user, 'top_p', 'true')
-    await addParam(user, 'stop', 'FIM')
+    await addParam(user, 'stop', 'true')
 
-    const [temperature, topP, stop] = rows()
+    const [temperature, stop] = rows()
     expect(within(temperature).getByText('número')).toBeVisible()
-    expect(within(topP).getByText('booleano')).toBeVisible()
+    expect(within(stop).getByText('booleano')).toBeVisible()
+    const stopValue = within(stop).getByRole('textbox', { name: 'Valor de stop' })
+    await user.clear(stopValue)
+    await user.type(stopValue, 'FIM')
     expect(within(stop).getByText('texto')).toBeVisible()
     const value = within(temperature).getByRole('textbox', { name: 'Valor de temperature' })
     await user.clear(value)
     expect(within(temperature).getByText('—')).toBeVisible()
-    await user.type(value, '0,7')
-    expect(within(temperature).getByText('texto')).toBeVisible()
-    await user.clear(value)
     await user.type(value, '0.2')
     await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
-    expect(sent[0].body.model_params).toStrictEqual({ temperature: 0.2, top_p: true, stop: 'FIM' })
+    expect(sent[0].body.model_params).toStrictEqual({ temperature: 0.2, stop: 'FIM' })
     expect(agentBodySchema.safeParse({ ...sent[0].body, id: 'a' }).success).toBe(true)
   }, LONG)
+
+  // QA1-06 (#3, D-QA1-06-1): vírgula decimal é número; o campo mantém o que foi digitado.
+  it('temperature = 0,7: o chip mostra número e o PUT leva 0.7', async () => {
+    const sent = serveSave()
+    const user = await ready()
+    await addParam(user, 'temperature', '0,7')
+
+    const [temperature] = rows()
+    expect(within(temperature).getByText('número')).toBeVisible()
+    expect(within(temperature).getByRole('textbox', { name: 'Valor de temperature' })).toHaveValue('0,7')
+    await saveAndConfirm(user)
+
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0].body.model_params).toStrictEqual({ temperature: 0.7 })
+  })
+
+  it('temperature = abc: erro na linha, Salvar sem request; corrigir para 0,7 limpa o erro', async () => {
+    const sent = serveSave()
+    const user = await ready()
+    await addParam(user, 'temperature', 'abc')
+    const value = screen.getByRole('textbox', { name: 'Valor de temperature' })
+    expect(within(rows()[0]).getByText('texto')).toBeVisible()
+
+    await user.click(saveButton())
+
+    const message = 'temperature precisa ser um número (ex.: 0,7 ou 0.7).'
+    expect(await screen.findByText(message)).toBeVisible()
+    expect(value).toHaveAttribute('aria-invalid', 'true')
+    expect(value).toHaveAccessibleDescription(`texto ${message}`)
+    expect(value).toHaveFocus()
+    expect(sent).toEqual([])
+
+    await user.clear(value)
+    await user.type(value, '0,7')
+    await waitFor(() => expect(screen.queryByText(message)).not.toBeInTheDocument())
+    expect(value).not.toHaveAttribute('aria-invalid')
+    expect(within(rows()[0]).getByText('número')).toBeVisible()
+  })
+
+  it.each(['true', '1,2,3'])('nome numérico (max_*) com %j também bloqueia o Salvar', async (text) => {
+    const sent = serveSave()
+    const user = await ready()
+    await chooseProvider(user, 'openai')
+    await addParam(user, 'max_tokens', text)
+
+    await user.click(saveButton())
+
+    expect(await screen.findByText('max_tokens precisa ser um número (ex.: 0,7 ou 0.7).')).toBeVisible()
+    expect(sent).toEqual([])
+  })
+
+  it('nome que não é numérico aceita texto: stop = abc vai como texto', async () => {
+    const sent = serveSave()
+    const user = await ready()
+    await addParam(user, 'stop', 'abc')
+    await saveAndConfirm(user)
+
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0].body.model_params).toStrictEqual({ stop: 'abc' })
+  })
+
+  it('trocar o nome da linha com erro revalida: de temperature para stop o erro some', async () => {
+    serveSave()
+    const user = await ready()
+    await addParam(user, 'temperature', 'abc')
+    await user.click(saveButton())
+    const message = 'temperature precisa ser um número (ex.: 0,7 ou 0.7).'
+    expect(await screen.findByText(message)).toBeVisible()
+
+    await user.click(screen.getByRole('combobox', { name: 'Nome do parâmetro 1' }))
+    await user.click(screen.getByRole('option', { name: 'stop' }))
+
+    await waitFor(() => expect(screen.queryByText(message)).not.toBeInTheDocument())
+  })
 
   it('o chip entra na descrição do valor', async () => {
     const user = await ready()
@@ -199,17 +272,17 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
     const sent = serveSave()
     const user = await ready(
       <AgentForm
-        agent={{ ...agent, model_params: { temperature: 0.2, top_p: false, stop: 'FIM' } }}
+        agent={{ ...agent, model_params: { temperature: 0.2, top_p: 0.9, stop: false } }}
         onSuccess={() => {}}
       />
     )
-    expect(screen.getByRole('textbox', { name: 'Valor de top_p' })).toHaveValue('false')
+    expect(screen.getByRole('textbox', { name: 'Valor de stop' })).toHaveValue('false')
 
     await touchName(user)
     await saveAndConfirm(user)
 
     await waitFor(() => expect(sent).toHaveLength(1))
-    expect(sent[0].body.model_params).toStrictEqual({ temperature: 0.2, top_p: false, stop: 'FIM' })
+    expect(sent[0].body.model_params).toStrictEqual({ temperature: 0.2, top_p: 0.9, stop: false })
   })
 
   it('V-7: parâmetro gravado que o provedor não aceita fica selecionado, com aviso, e é enviado', async () => {

@@ -17,12 +17,14 @@ import { Tool, ToolFormField, isToolFormField } from '@/types/management'
 import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
 import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
+import { DraftGuard } from '../common/DraftGuard'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
 import { rejectedField } from '../common/rejectedField'
 import { useRequestError } from '../common/useRequestError'
 import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useDraftBaseline } from '../common/useDraftBaseline'
 import { useSaveReview } from '../common/useSaveReview'
 import { VersionHistory } from '../common/VersionHistory'
 import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
@@ -83,7 +85,8 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
   const applyStatus = useApplyStatus(form, saveRef)
   const applyRevision = useApplyRevision()
   const appliedText = useAppliedText()
-  const { handleSubmit, setValue, getValues, setError, setFocus, clearErrors, control, watch } = form
+  const { setDefault, changed: draftChanged } = useDraftBaseline(form)
+  const { handleSubmit, getValues, setError, setFocus, clearErrors, control, watch } = form
   const parameters = useFieldArray({ control, name: 'parameters' })
   const problems = toolProblems(watch(), prefixes)
 
@@ -92,8 +95,8 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
   useEffect(() => {
     if (!schema || isEditing) return
     if (!schema.httpMethods.includes(getValues('http_method')))
-      setValue('http_method', schema.httpMethods[0] ?? '')
-  }, [schema, isEditing, getValues, setValue])
+      setDefault('http_method', schema.httpMethods[0] ?? '')
+  }, [schema, isEditing, getValues, setDefault])
 
   // Foco no campo que só existe depois do render (parâmetro criado, removido).
   useEffect(() => {
@@ -281,6 +284,10 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
     else await submit(data)
   }
 
+  // Rascunho (D-QA1-06-4): na edição, o que o Salvar mudaria; na criação, o que
+  // difere do formulário aberto sem tocar.
+  const hasDraft = () => (tool ? review.hasChanges : draftChanged())
+
   return (
     <div>
       <div className="mx-auto max-w-4xl space-y-6 p-6 xl:max-w-6xl">
@@ -451,6 +458,8 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
           />
         )}
         {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
+        {/* Com o diálogo do 412 aberto a saída é dele (não empilha com o aviso). */}
+        <DraftGuard hasDraft={hasDraft} paused={conflict.dialog.state.status !== 'closed'} />
       </div>
     </div>
   )

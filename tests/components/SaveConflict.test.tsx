@@ -380,6 +380,39 @@ describe('412 ao salvar (agent)', () => {
     expect(within(dialog).getByRole('button', { name: 'Voltar ao formulário' })).toBeInTheDocument()
   })
 
+  // QA1-06 (spec § 7): o 412 tem precedência sobre o aviso de rascunho (não
+  // empilha), mas o formulário segue sujo: fechar/recarregar ainda pergunta.
+  it('412 aberto: "Ir para a lista" sai sem o aviso de rascunho; o beforeunload segue armado', async () => {
+    server.use(noTools)
+    serve([agent, status(404, 'not_found')], [conflict412()])
+    const followed: string[] = []
+    const follow = (event: MouseEvent) => {
+      const link = event.target instanceof Element ? event.target.closest('a') : null
+      if (!link) return
+      if (!event.defaultPrevented) followed.push(link.getAttribute('href') ?? '')
+      event.preventDefault()
+    }
+    window.addEventListener('click', follow)
+    try {
+      const user = userEvent.setup()
+      renderAgent()
+      await user.type(await screen.findByLabelText('Nome *'), ' x')
+      await waitFor(() => expect(save()).toBeEnabled())
+      await saveAndConfirm(user)
+      const dialog = await screen.findByRole('dialog', { name: 'O agente foi excluído' })
+
+      const unload = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(unload)
+      expect(unload.defaultPrevented).toBe(true)
+
+      await user.click(within(dialog).getByRole('link', { name: 'Ir para a lista' }))
+      expect(followed).toEqual(['/agents'])
+      expect(screen.queryByRole('dialog', { name: 'Descartar alterações?' })).not.toBeInTheDocument()
+    } finally {
+      window.removeEventListener('click', follow)
+    }
+  })
+
   it('falha ao rereler (503): alerta com o código, só Voltar e Tentar de novo; tentar de novo mostra a comparação', async () => {
     server.use(noTools)
     serve([agent, status(503, 'unreachable'), newer], [conflict412()])

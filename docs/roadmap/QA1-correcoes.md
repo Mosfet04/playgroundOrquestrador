@@ -127,6 +127,15 @@ Escopo:
 - #14 (D-QA1-06-2): ID de agent, team e tool na criação com `^[a-z0-9_-]+$` e erro inline; o placeholder segue o padrão. Id existente fora do padrão continua editável.
 - #15: alteração não salva ⇒ confirmação ao clicar em Voltar, em links da navegação e no `beforeunload`. Salvar ou descartar libera.
 - Memória do usuário desligada por padrão na criação de agent e team (D-QA1-06-3); hoje o team começa ligado em [teamFormValues.ts](../../src/components/management/teams/teamFormValues.ts).
+- Desvio (memória do team gravado): só a criação começa desligada; o team lido sem `user_memory_active` abre ligado (default do orquestrador, `team_config.py`), para salvar sem tocar não mudar o runtime. O rótulo "Padrão" da memória passa a "desligado" nos dois (era "ligado" no team).
+- Desvio (rascunho na edição): o "sujo" da edição é o `hasChanges` da revisão (P4-02), que compara o que o Salvar enviaria: espaço nas pontas que o BFF apara não conta (igual à dica "Nada para salvar"). Na criação a comparação é exata, sobre os valores do formulário (`useDraftBaseline`).
+- Desvio (gancho do Voltar do browser): no Chromium a captura na `window` não passa na frente do listener de `popstate` do App Router, registrado antes; o `PopStateGate` (componente cliente sem UI no layout raiz) registra o dele antes do router e o `DraftGuard` o usa. Sem a Navigation API (índice da entrada) não há direção: o guard não segura o Voltar/Avançar do browser e o router navega (limite aceito na revisão, R2).
+- Desvio (412 e salvamento): com o `ConflictDialog` aberto, links e Voltar do browser passam sem o aviso (a saída é do diálogo do conflito, sem empilhar); o `beforeunload` segue armado, como a spec § 7 pede. Salvando, o guard segue armado (`beforeunload` até o sucesso).
+- Desvio ("Sair", D-QA1-06-5): o botão "Sair" do shell (`data-leaves-page`) passa pelo mesmo aviso antes do POST de logout: "Continuar editando" não faz nada; "Descartar e sair" faz o logout.
+- Desvio (saída que não descarrega, D-QA1-06-6): depois de "Descartar e sair", se a página não descarrega (logout que falha), a próxima interação (`pointerdown`/`keydown`) rearma o guard; até ela o `beforeunload` fica desarmado.
+- Limitação (dois Voltar na mesma tarefa, BUG-QA1-06-QA-2, D-QA1-06-6): com dois `history.back()` na mesma tarefa JS (só com tempo sintético) o 2º traversal já está na fila e o `history.go` do guard é descartado: a URL fica na lista com o formulário e o aviso na tela. Aceita, registrada em `test.fail` (`e2e/draft-guard.qa.spec.ts`).
+- Desvio (foco no popstate): ao fechar o aviso aberto pelo Voltar do browser, o foco volta ao elemento que o tinha (o campo em edição, padrão do Radix), não ao 1º campo; no link, volta ao link.
+- Desvio (ordem dos botões no celular): o `DialogFooter` do aviso usa `flex-col` (Continuar editando em cima, como a spec § 5.4 pede); o `ConflictDialog` empilha ao contrário (`flex-col-reverse`).
 Fora de escopo: validar o id no orquestrador.
 Critérios de aceite:
 - `temperature` = `0,7` ⇒ PUT com `0.7` (número); `temperature` = `abc` ⇒ erro inline, sem request.

@@ -150,7 +150,7 @@ describe('TeamForm: seções', () => {
     expect(screen.queryByRole('button', { name: 'Excluir team' })).not.toBeInTheDocument()
     expect(mode('route')).toBeChecked()
     expect(within(mode('route').closest('div') as HTMLElement).getByText('Padrão')).toBeInTheDocument()
-    // V-14: 4 switches; markdown, histórico e memória ligados; resumo desligado.
+    // V-14: 4 switches; markdown e histórico ligados; memória (D-QA1-06-3) e resumo desligados.
     const switches = within(execution()).getAllByRole('switch')
     expect(switches.map((item) => item.id)).toEqual([
       'markdown',
@@ -158,10 +158,10 @@ describe('TeamForm: seções', () => {
       'user_memory_active',
       'summary_active'
     ])
-    expect(switches.map((item) => item.getAttribute('aria-checked'))).toEqual(['true', 'true', 'true', 'false'])
+    expect(switches.map((item) => item.getAttribute('aria-checked'))).toEqual(['true', 'true', 'false', 'false'])
     expect(within(execution()).queryByRole('spinbutton')).not.toBeInTheDocument()
     expect(within(execution()).queryByText('Raciocínio passo a passo')).not.toBeInTheDocument()
-    expect(within(execution()).getByText('Memória do usuário').closest('li')).toHaveTextContent('Padrão: ligado')
+    expect(within(execution()).getByText('Memória do usuário').closest('li')).toHaveTextContent('Padrão: desligado')
   })
 
   it('V-13: o modelo do líder tem os campos do agent, com os textos do team', async () => {
@@ -498,7 +498,8 @@ describe('TeamForm: salvar', () => {
       api_key_ref: '',
       markdown: true,
       add_history_to_context: true,
-      user_memory_active: true,
+      // Sem tocar na memória (D-QA1-06-3).
+      user_memory_active: false,
       summary_active: true
     })
     expect(teamBodySchema.safeParse(sent[0].body).success).toBe(true)

@@ -24,7 +24,9 @@ export const toFormValues = (team?: TeamConfig | null): TeamFormValues => ({
   api_key_ref: team?.api_key_ref ?? '',
   markdown: team?.markdown,
   add_history_to_context: team?.add_history_to_context,
-  user_memory_active: team?.user_memory_active ?? true,
+  // Team novo começa sem memória (D-QA1-06-3); o gravado sem o campo vale o
+  // default do orquestrador (ligado).
+  user_memory_active: team ? (team.user_memory_active ?? true) : false,
   summary_active: team?.summary_active ?? false
 })
 

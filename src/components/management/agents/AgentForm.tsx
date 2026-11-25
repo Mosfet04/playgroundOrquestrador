@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { ArrowLeft, Save } from 'lucide-react'
+import { ENTITY_ID } from '@/lib/entityId'
 import { boolRow } from '@/lib/formDiff'
 import { referencePrefixes } from '@/lib/secretRef'
 import { useApplyRevision } from '@/components/layout/RuntimeRevision'
@@ -24,6 +25,7 @@ import {
 import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
 import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
+import { DraftGuard } from '../common/DraftGuard'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
 import { errorA11y, FieldError } from '../common/FieldError'
@@ -33,6 +35,7 @@ import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { useConfigSchema } from '../common/useConfigSchema'
 import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useDraftBaseline } from '../common/useDraftBaseline'
 import { useSaveReview } from '../common/useSaveReview'
 import { VersionHistory } from '../common/VersionHistory'
 import { diffAgent } from './agentDiff'
@@ -89,10 +92,10 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
 
   const form = useForm<AgentFormValues>({ defaultValues: toFormValues(agent) })
   const applyStatus = useApplyStatus(form, saveRef)
+  const { setDefault, changed: draftChanged } = useDraftBaseline(form)
   const {
     register,
     handleSubmit,
-    setValue,
     getValues,
     setError,
     setFocus,
@@ -117,12 +120,12 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
   useEffect(() => {
     if (!schema) return
     if (!isEditing && !schema.chatProviders.some(({ name }) => name === getValues('factoryIaModel')))
-      setValue('factoryIaModel', schema.chatProviders[0]?.name ?? '')
-    if (!storedEmbedder) setValue('rag_factoryIaModel', offeredEmbedder(getValues('rag_factoryIaModel'), schema))
+      setDefault('factoryIaModel', schema.chatProviders[0]?.name ?? '')
+    if (!storedEmbedder) setDefault('rag_factoryIaModel', offeredEmbedder(getValues('rag_factoryIaModel'), schema))
     // RAG novo (ou sem estratégia gravada): a 1ª do schema, que é o padrão do
     // orquestrador.
-    if (!getValues('rag_search_strategy')) setValue('rag_search_strategy', schema.ragSearchStrategies[0] ?? '')
-  }, [schema, isEditing, storedEmbedder, getValues, setValue])
+    if (!getValues('rag_search_strategy')) setDefault('rag_search_strategy', schema.ragSearchStrategies[0] ?? '')
+  }, [schema, isEditing, storedEmbedder, getValues, setDefault])
 
   // Campo de execução ausente (agent novo ou sem o campo) vale o default do
   // schema (P3-02). O número vazio vem como NaN: o input o lê assim ao montar.
@@ -136,11 +139,11 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
       ['reasoning', defaults.reasoning],
       ['expose_reasoning', defaults.exposeReasoning]
     ] as const
-    for (const [field, value] of flags) if (getValues(field) === undefined) setValue(field, value)
+    for (const [field, value] of flags) if (getValues(field) === undefined) setDefault(field, value)
     const runs = getValues('num_history_runs')
     if (runs === undefined || Number.isNaN(runs))
-      setValue('num_history_runs', defaults.numHistoryRuns.default)
-  }, [schema, getValues, setValue])
+      setDefault('num_history_runs', defaults.numHistoryRuns.default)
+  }, [schema, getValues, setDefault])
 
   // Buscar todas as tools disponíveis (a API é paginada)
   useEffect(() => {
@@ -353,6 +356,10 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
     else await submit(data)
   }
 
+  // Rascunho (D-QA1-06-4): na edição, o que o Salvar mudaria; na criação, o que
+  // difere do formulário aberto sem tocar (as tools ficam fora do formulário).
+  const hasDraft = () => (agent ? review.hasChanges : draftChanged() || selectedToolIds.length > 0)
+
   return (
     <div>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -432,11 +439,20 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
               <Label htmlFor="id">{t('form.id')}</Label>
               <Input
                 id="id"
-                {...register('id', { required: tc('idRequired') })}
-                {...errorA11y('id', !!errors.id)}
+                {...register('id', {
+                  required: tc('idRequired'),
+                  // Só na criação (D-QA1-06-2): o id gravado fora do padrão segue salvável.
+                  pattern: isEditing ? undefined : { value: ENTITY_ID, message: tc('idInvalid') }
+                })}
+                {...errorA11y('id', !!errors.id, !isEditing && 'id-help')}
                 disabled={isEditing}
                 placeholder={tc('example', { value: 'agent-1' })}
               />
+              {!isEditing && (
+                <p id="id-help" className="text-xs text-muted-foreground">
+                  {tc('idHelp')}
+                </p>
+              )}
               <FieldError id="id-error" message={errors.id?.message} />
             </div>
 
@@ -627,6 +643,8 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
         />
       )}
       {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
+      {/* Com o diálogo do 412 aberto a saída é dele (não empilha com o aviso). */}
+      <DraftGuard hasDraft={hasDraft} paused={conflict.dialog.state.status !== 'closed'} />
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { paramKind } from '@/lib/modelParams'
+import { isNumberText } from '@/lib/modelParams'
 
 // `default_value` do parâmetro da tool (D-P3-03-1): o formulário guarda texto e
 // o valor sai convertido pelo tipo declarado. O orquestrador só o grava (a
@@ -32,7 +32,7 @@ export function parseDefault(type: string, text: string): ParsedDefault {
     }
     case 'float':
       if (trimmed === '') return { ok: true, value: undefined }
-      return paramKind(trimmed) === 'number'
+      return isNumberText(trimmed)
         ? { ok: true, value: Number(trimmed) }
         : { ok: false, type }
     case 'boolean':

@@ -44,7 +44,8 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
     mode: 'coordinate',
     markdown: true,
     add_history_to_context: true,
-    user_memory_active: true,
+    // Sem tocar na memória (D-QA1-06-3).
+    user_memory_active: false,
     summary_active: true,
     version: 1
   })

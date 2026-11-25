@@ -39,9 +39,9 @@ const ITEM_CLASS = 'space-y-2 border-t border-border py-3 first:border-t-0 first
 
 // Seção Execução (P3-02, reusada pelo team na P3-04): o que a entidade recebe
 // de contexto e como responde. Os defaults e a faixa são os do schema (`agent`
-// ou `team`); a memória do agent desliga por padrão e a do team liga (defaults
-// das entidades). O team só tem 4 das 7 opções. Sem o schema não há default a
-// mostrar: skeleton (carregando) ou aviso (falha).
+// ou `team`); a memória do usuário desliga por padrão nos dois (D-QA1-06-3). O
+// team só tem 4 das 7 opções. Sem o schema não há default a mostrar: skeleton
+// (carregando) ou aviso (falha).
 export function ExecutionSection<T extends ExecutionFormValues>({
   entity,
   form: entityForm,
@@ -223,7 +223,7 @@ export function ExecutionSection<T extends ExecutionFormValues>({
               </p>
             )
           })}
-        {item('user_memory_active', t('userMemory'), t('userMemoryHelp'), !isAgent)}
+        {item('user_memory_active', t('userMemory'), t('userMemoryHelp'), false)}
         {item('summary_active', t('summary'), t('summaryHelp'), false)}
       </ul>
     </SectionCard>

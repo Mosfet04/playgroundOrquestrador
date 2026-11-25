@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { SignOutButton } from '@/components/layout/SignOutButton'
+import { DraftGuard } from '@/components/management/common/DraftGuard'
 
 import { server } from '../msw/server'
 import { renderWithIntl } from '../helpers/intl'
@@ -109,5 +110,39 @@ describe('SignOutButton', () => {
       'true'
     )
     expect(assign).not.toHaveBeenCalled()
+  })
+})
+
+// D-QA1-06-5: com rascunho num formulário, o aviso vem antes do POST de logout.
+describe('SignOutButton com rascunho', () => {
+  it('"Continuar editando": nenhum POST e o botão não fica em "Saindo…"; "Descartar e sair": logout', async () => {
+    const onLogout = vi.fn()
+    server.use(
+      http.post(LOGOUT, () => {
+        onLogout()
+        return HttpResponse.json({ success: true })
+      })
+    )
+    vi.stubGlobal('location', { ...window.location, assign })
+    renderWithIntl(
+      <>
+        <SignOutButton />
+        <DraftGuard hasDraft={() => true} />
+      </>
+    )
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'Sair' }))
+    await user.click(screen.getByRole('button', { name: 'Continuar editando' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Sair' })).not.toHaveAttribute('aria-busy')
+    expect(onLogout).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Sair' }))
+    await user.click(screen.getByRole('button', { name: 'Descartar e sair' }))
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/login'))
+    expect(onLogout).toHaveBeenCalledTimes(1)
   })
 })

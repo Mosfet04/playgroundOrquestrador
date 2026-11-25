@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TextArea } from '@/components/ui/textarea'
+import { ENTITY_ID } from '@/lib/entityId'
 import { errorA11y, FieldError } from '../common/FieldError'
 import { SectionCard } from '../common/SectionCard'
 import type { ToolFormValues } from './toolFormValues'
@@ -35,11 +36,20 @@ export function BasicInfoSection({
           <Label htmlFor="id">{t('id')}</Label>
           <Input
             id="id"
-            {...register('id', { required: tc('idRequired') })}
-            {...errorA11y('id', !!errors.id)}
+            {...register('id', {
+              required: tc('idRequired'),
+              // Só na criação (D-QA1-06-2): o id gravado fora do padrão segue salvável.
+              pattern: isEditing ? undefined : { value: ENTITY_ID, message: tc('idInvalid') }
+            })}
+            {...errorA11y('id', !!errors.id, !isEditing && 'id-help')}
             disabled={isEditing}
             placeholder={tc('example', { value: 'weather-api' })}
           />
+          {!isEditing && (
+            <p id="id-help" className="text-xs text-muted-foreground">
+              {tc('idHelp')}
+            </p>
+          )}
           <FieldError id="id-error" message={errors.id?.message} />
         </div>
 

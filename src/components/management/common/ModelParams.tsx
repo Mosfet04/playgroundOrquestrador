@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Chip } from '@/components/ui/loading'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { paramKind } from '@/lib/modelParams'
+import { isNumericParam, paramKind } from '@/lib/modelParams'
 import type { ProviderOption } from '@/types/management'
 import { errorA11y, FieldError } from './FieldError'
 import { FieldWarning } from './FieldWarning'
@@ -84,16 +84,15 @@ export function ModelParams({
         : 'modelParamsHelp'
   const addDisabled = locked || free.length === 0
 
+  // Nome numérico conhecido com valor que não é número quebra a chamada ao
+  // modelo (D-QA1-06-1): o erro explica; o chip segue o tipo inferido.
+  const valueError = ({ name, value }: ParamRow) => {
+    if (!value.trim()) return t('modelParamValueRequired')
+    return isNumericParam(name) && paramKind(value) !== 'number' ? t('modelParamNotNumber', { name }) : ''
+  }
   const rowError = (index: number) => {
     const row = getValues(`${fieldName}.${index}`)
-    return (
-      [
-        row.name ? '' : t('modelParamNameRequired'),
-        row.value.trim() ? '' : t('modelParamValueRequired')
-      ]
-        .filter(Boolean)
-        .join(' · ') || true
-    )
+    return [row.name ? '' : t('modelParamNameRequired'), valueError(row)].filter(Boolean).join(' · ') || true
   }
 
   const groupError = errors.root?.[fieldName]?.message

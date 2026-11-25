@@ -10,6 +10,7 @@ import { ArrowLeft, Save } from 'lucide-react'
 import { useApplyRevision } from '@/components/layout/RuntimeRevision'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ENTITY_ID } from '@/lib/entityId'
 import { boolRow } from '@/lib/formDiff'
 import { referencePrefixes } from '@/lib/secretRef'
 import { Input } from '@/components/ui/input'
@@ -21,6 +22,7 @@ import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
 import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
+import { DraftGuard } from '../common/DraftGuard'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
 import { ExecutionSection } from '../common/ExecutionSection'
@@ -32,6 +34,7 @@ import { useConfigSchema } from '../common/useConfigSchema'
 import { useRequestError } from '../common/useRequestError'
 import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useDraftBaseline } from '../common/useDraftBaseline'
 import { useSaveReview } from '../common/useSaveReview'
 import { VersionHistory } from '../common/VersionHistory'
 import { MembersSection } from './MembersSection'
@@ -67,9 +70,10 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
 
   const form = useForm<TeamFormValues>({ defaultValues: toFormValues(team) })
   const applyStatus = useApplyStatus(form, saveRef)
+  const { setDefault, changed: draftChanged } = useDraftBaseline(form)
   const applyRevision = useApplyRevision()
   const appliedText = useAppliedText()
-  const { register, handleSubmit, setValue, getValues, setError, setFocus, clearErrors, control } = form
+  const { register, handleSubmit, getValues, setError, setFocus, clearErrors, control } = form
   const { errors } = form.formState
 
   // Opções do orquestrador (P3-01): sem schema os selects ficam desabilitados;
@@ -85,10 +89,10 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
   useEffect(() => {
     if (!schema || isEditing) return
     if (!schema.chatProviders.some(({ name }) => name === getValues('factoryIaModel')))
-      setValue('factoryIaModel', schema.chatProviders[0]?.name ?? '')
+      setDefault('factoryIaModel', schema.chatProviders[0]?.name ?? '')
     if (!schema.team.modes.includes(getValues('mode')))
-      setValue('mode', schema.team.modes[0] ?? '')
-  }, [schema, isEditing, getValues, setValue])
+      setDefault('mode', schema.team.modes[0] ?? '')
+  }, [schema, isEditing, getValues, setDefault])
 
   // Campo de execução ausente (team novo ou sem o campo) vale o default do
   // schema (`team`).
@@ -98,8 +102,8 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
       ['markdown', schema.team.markdown],
       ['add_history_to_context', schema.team.addHistoryToContext]
     ] as const
-    for (const [field, value] of flags) if (getValues(field) === undefined) setValue(field, value)
-  }, [schema, getValues, setValue])
+    for (const [field, value] of flags) if (getValues(field) === undefined) setDefault(field, value)
+  }, [schema, getValues, setDefault])
 
   // Erro do orquestrador no campo recusado, sem o valor. `member_ids` e `mode`
   // levam o foco ao 1º membro marcado e ao cartão marcado; `model_params` é um
@@ -254,6 +258,10 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     else await submit(data)
   }
 
+  // Rascunho (D-QA1-06-4): na edição, o que o Salvar mudaria; na criação, o que
+  // difere do formulário aberto sem tocar.
+  const hasDraft = () => (team ? review.hasChanges : draftChanged())
+
   return (
     <div>
       <div className="mx-auto max-w-4xl space-y-6 p-6">
@@ -335,11 +343,20 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
                   <Label htmlFor="id">{t('form.id')}</Label>
                   <Input
                     id="id"
-                    {...register('id', { required: tc('idRequired') })}
-                    {...errorA11y('id', !!errors.id)}
+                    {...register('id', {
+                      required: tc('idRequired'),
+                      // Só na criação (D-QA1-06-2): o id gravado fora do padrão segue salvável.
+                      pattern: isEditing ? undefined : { value: ENTITY_ID, message: tc('idInvalid') }
+                    })}
+                    {...errorA11y('id', !!errors.id, !isEditing && 'id-help')}
                     disabled={isEditing}
                     placeholder={tc('example', { value: 'team-1' })}
                   />
+                  {!isEditing && (
+                    <p id="id-help" className="text-xs text-muted-foreground">
+                      {tc('idHelp')}
+                    </p>
+                  )}
                   <FieldError id="id-error" message={errors.id?.message} />
                 </div>
 
@@ -511,6 +528,8 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
           />
         )}
         {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
+        {/* Com o diálogo do 412 aberto a saída é dele (não empilha com o aviso). */}
+        <DraftGuard hasDraft={hasDraft} paused={conflict.dialog.state.status !== 'closed'} />
       </div>
     </div>
   )

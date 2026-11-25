@@ -32,6 +32,8 @@ export function SignOutButton() {
   return (
     <button
       type="button"
+      // Sai da página: com rascunho num formulário, o DraftGuard avisa antes do POST (D-QA1-06-5).
+      data-leaves-page
       onClick={signOut}
       aria-busy={pending || undefined}
       aria-disabled={pending || undefined}
