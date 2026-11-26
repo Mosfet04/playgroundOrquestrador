@@ -39,7 +39,7 @@ function renderModeSelector(searchParams = '') {
 }
 
 // P1-06: segmentado Agente | Team (aria-pressed); o lado sem entidades fica
-// desabilitado.
+// desabilitado (aria-disabled, QA1-11 #28: segue focável para explicar o motivo).
 const segment = (name: 'Agente' | 'Team') =>
   within(screen.getByRole('group', { name: 'Conversar com' })).getByRole('button', { name })
 
@@ -58,8 +58,8 @@ describe('ModeSelector', () => {
   it('sem agentes nem times: os dois lados desabilitados', () => {
     renderModeSelector()
 
-    expect(segment('Agente')).toBeDisabled()
-    expect(segment('Team')).toBeDisabled()
+    expect(segment('Agente')).toHaveAttribute('aria-disabled', 'true')
+    expect(segment('Team')).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('só agentes: Agente pressionado e Team desabilitado', () => {
@@ -67,9 +67,9 @@ describe('ModeSelector', () => {
     renderModeSelector()
 
     expect(segment('Agente')).toHaveAttribute('aria-pressed', 'true')
-    expect(segment('Agente')).toBeEnabled()
+    expect(segment('Agente')).not.toHaveAttribute('aria-disabled')
     expect(segment('Team')).toHaveAttribute('aria-pressed', 'false')
-    expect(segment('Team')).toBeDisabled()
+    expect(segment('Team')).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('troca sozinho para Team quando só há times', async () => {
@@ -77,7 +77,7 @@ describe('ModeSelector', () => {
     renderModeSelector()
 
     await waitFor(() => expect(segment('Team')).toHaveAttribute('aria-pressed', 'true'))
-    expect(segment('Agente')).toBeDisabled()
+    expect(segment('Agente')).toHaveAttribute('aria-disabled', 'true')
     expect(usePlaygroundStore.getState().mode).toBe('team')
   })
 
@@ -96,7 +96,7 @@ describe('ModeSelector', () => {
     )
 
     expect(segment('Agente')).toHaveAttribute('aria-pressed', 'true')
-    expect(segment('Team')).toBeEnabled()
+    expect(segment('Team')).not.toHaveAttribute('aria-disabled')
 
     await user.click(segment('Team'))
 
@@ -134,5 +134,68 @@ describe('ModeSelector', () => {
       expect(onUrlUpdate.mock.lastCall?.[0].queryString).toBe('?agent=agent-1')
     )
     expect(usePlaygroundStore.getState().hasStorage).toBe(false)
+  })
+  // QA1-11 (#28, V13-V16): a aba desligada continua focável e explica o motivo,
+  // por hover e por teclado; clicar ou Enter não faz nada.
+  describe('aba desabilitada', () => {
+    it('Team sem teams: aria-disabled, focável por Tab e com o motivo no hover', async () => {
+      const user = userEvent.setup()
+      usePlaygroundStore.setState({ agents: [agent] })
+      renderModeSelector()
+
+      expect(segment('Team')).not.toBeDisabled()
+      await user.hover(segment('Team'))
+
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Crie um team primeiro')
+    })
+
+    it('o tooltip abre no foco por teclado e o Esc o fecha', async () => {
+      const user = userEvent.setup()
+      usePlaygroundStore.setState({ agents: [agent] })
+      renderModeSelector()
+
+      await user.tab()
+      await user.tab()
+      expect(segment('Team')).toHaveFocus()
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Crie um team primeiro')
+
+      await user.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull())
+    })
+
+    it('o motivo também vai por aria-describedby, sem abrir o tooltip', () => {
+      usePlaygroundStore.setState({ agents: [agent] })
+      renderModeSelector()
+
+      const described = segment('Team').getAttribute('aria-describedby')
+      expect(described).toBeTruthy()
+      expect(document.getElementById(described ?? '')).toHaveTextContent('Crie um team primeiro')
+      expect(segment('Agente')).not.toHaveAttribute('aria-describedby')
+    })
+
+    it('clique e Enter na aba desabilitada não mudam o modo nem a URL', async () => {
+      const user = userEvent.setup()
+      usePlaygroundStore.setState({ agents: [agent], mode: 'agent' })
+      const { onUrlUpdate } = renderModeSelector('?agent=agent-1')
+
+      await user.click(segment('Team'))
+      segment('Team').focus()
+      await user.keyboard('{Enter}')
+      await user.keyboard(' ')
+
+      expect(usePlaygroundStore.getState().mode).toBe('agent')
+      expect(segment('Agente')).toHaveAttribute('aria-pressed', 'true')
+      expect(onUrlUpdate).not.toHaveBeenCalled()
+    })
+
+    it('Agente sem agentes recebe o mesmo tratamento', async () => {
+      const user = userEvent.setup()
+      usePlaygroundStore.setState({ teams: [team] })
+      renderModeSelector()
+
+      await user.hover(segment('Agente'))
+
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Crie um agente primeiro')
+    })
   })
 })

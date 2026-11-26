@@ -273,10 +273,10 @@ test('teclado: um alvo de Tab por linha e Enter abre o editor', async ({ page })
   const rows = page.getByRole('table').getByRole('row')
   await expect(rows).toHaveCount(4)
 
-  // QA1-10: a ordem é busca, "Apenas ativos" e a lista.
+  // QA1-10: a ordem é busca, "Apenas ativas" e a lista.
   await page.getByLabel('Buscar').focus()
   await page.keyboard.press('Tab')
-  await expect(page.getByRole('switch', { name: 'Apenas ativos' })).toBeFocused()
+  await expect(page.getByRole('switch', { name: 'Apenas ativas' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('table').getByRole('link', { name: 'Tool 1' })).toBeFocused()
   await page.keyboard.press('Tab')

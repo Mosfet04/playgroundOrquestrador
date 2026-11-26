@@ -70,7 +70,7 @@ describe('TeamManagement', () => {
         .map((header) => header.textContent)
     ).toEqual(['Team', 'Modelo', 'Modo', 'Membros', 'Status', 'Atualizado', 'Abrir'])
     const row = within(table).getByRole('link', { name: 'Suporte Vendas' }).closest('tr') as HTMLElement
-    expect(within(row).getByText('openai/gpt-4o')).toBeInTheDocument()
+    expect(row).toHaveTextContent('OpenAI · gpt-4o')
     expect(within(row).getByText('coordinate')).toBeInTheDocument()
     expect(within(row).getByText('3')).toBeInTheDocument()
     expect(within(row).getByText('Ativo')).toBeInTheDocument()

@@ -63,9 +63,9 @@ describe('painel', () => {
     expect(collapse).toHaveAttribute('aria-expanded', 'true')
     const group = screen.getByRole('group', { name: 'Conversar com' })
     expect(within(group).getByRole('button', { name: 'Agente' })).toHaveAttribute('aria-pressed', 'true')
-    expect(within(group).getByRole('button', { name: 'Team' })).toBeDisabled()
+    expect(within(group).getByRole('button', { name: 'Team' })).toHaveAttribute('aria-disabled', 'true')
     const card = screen.getByRole('combobox', { name: 'Agente: Suporte N1' })
-    expect(card).toHaveTextContent('SNSuporte N1Anthropic/claude-sonnet-4')
+    expect(card).toHaveTextContent('SNSuporte N1Anthropic · claude-sonnet-4')
     const newChat = screen.getByRole('button', { name: 'Nova conversa' })
     const sessions = screen.getByText('Sessões')
 

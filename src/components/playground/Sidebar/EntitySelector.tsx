@@ -15,10 +15,11 @@ import { useTranslations } from 'next-intl'
 import { useEffect } from 'react'
 import useChatActions from '@/hooks/useChatActions'
 import { EntityAvatar } from '@/components/playground/EntityAvatar'
+import { ProviderModel } from '@/components/management/common/ProviderModel'
 import { cn, focusRing } from '@/lib/utils'
 
 // Cartão da entidade (docs/design/P1-06.md): o trigger do Select com avatar,
-// nome e provider/modelo; o trigger do Radix direto, porque o do shadcn
+// nome e provedor · modelo; o trigger do Radix direto, porque o do shadcn
 // fixa o ícone de seta para baixo e não as setas do cartão.
 export function EntitySelector() {
   const {
@@ -81,9 +82,7 @@ export function EntitySelector() {
   const isEmpty = currentEntities.length === 0
   const selected = currentEntities.find((item) => item.value === currentValue)
   const name = selected ? selected.label || selected.value : ''
-  const providerModel = selected
-    ? [selected.model.provider, selected.model.model].filter(Boolean).join('/')
-    : ''
+  const hasProviderModel = !!(selected?.model.provider || selected?.model.model)
   const emptyText = mode === 'team' ? t('noTeams') : t('noAgents')
 
   return (
@@ -117,13 +116,12 @@ export function EntitySelector() {
                 <span className="pointer-events-auto truncate font-medium" title={name}>
                   {name}
                 </span>
-                {providerModel && (
-                  <span
-                    className="pointer-events-auto truncate font-mono text-xs text-muted-foreground"
-                    title={providerModel}
-                  >
-                    {providerModel}
-                  </span>
+                {hasProviderModel && (
+                  <ProviderModel
+                    provider={selected.model.provider}
+                    model={selected.model.model}
+                    className="pointer-events-auto text-xs text-muted-foreground"
+                  />
                 )}
               </span>
             </span>

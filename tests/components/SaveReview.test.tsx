@@ -754,13 +754,13 @@ describe('Erro do orquestrador e a edição desfeita', () => {
     const user = await open('agents')
     const provider = screen.getByRole('combobox', { name: /^Provedor \*/ })
     await user.click(provider)
-    await user.click(screen.getByRole('option', { name: 'ollama' }))
+    await user.click(screen.getByRole('option', { name: 'Ollama ollama' }))
 
     await saveAndConfirm(user)
     expect(await screen.findByText(REJECTED)).toBeInTheDocument()
 
     await user.click(provider)
-    await user.click(screen.getByRole('option', { name: 'openai' }))
+    await user.click(screen.getByRole('option', { name: 'OpenAI openai' }))
 
     expect(screen.getByText(HINT)).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText(REJECTED)).not.toBeInTheDocument())
@@ -896,7 +896,7 @@ describe('Espaço nas pontas (B1)', () => {
     serve('agents')
     const user = await open('agents')
 
-    await user.type(screen.getByLabelText('Prompt do sistema'), ' ')
+    await user.type(screen.getByLabelText('Instruções do sistema'), ' ')
 
     expect(save()).not.toHaveAttribute('aria-disabled')
   })
@@ -911,7 +911,7 @@ describe('Texto longo (D-P4-02-3)', () => {
     const edited = [...lines]
     edited[7] = 'linha editada'
 
-    fireEvent.change(screen.getByLabelText('Prompt do sistema'), { target: { value: edited.join('\n') } })
+    fireEvent.change(screen.getByLabelText('Instruções do sistema'), { target: { value: edited.join('\n') } })
     await user.click(save())
     const dialog = await reviewDialog()
 
@@ -936,7 +936,7 @@ describe('Texto longo (D-P4-02-3)', () => {
     serve('agents', [], { ...agent, prompt: seed })
     const user = await open('agents')
 
-    fireEvent.change(screen.getByLabelText('Prompt do sistema'), {
+    fireEvent.change(screen.getByLabelText('Instruções do sistema'), {
       target: { value: seed.replace('frameworks.', 'EDITADO.') }
     })
     await user.click(save())
@@ -988,7 +988,7 @@ describe.each(['agents', 'teams'] as const)('Desempenho (V-21, %s)', (kind) => {
       </Profiler>
     )
     await waitFor(() => expect(save()).toBeEnabled())
-    const prompt = screen.getByRole('textbox', { name: /prompt/i }) as HTMLTextAreaElement
+    const prompt = screen.getByRole('textbox', { name: /^Instruções do / }) as HTMLTextAreaElement
     prompt.focus()
     // A 1ª tecla vira o booleano: um render. As seguintes, nenhum.
     await user.keyboard('a')

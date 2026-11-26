@@ -197,7 +197,7 @@ test.describe('Bugs corrigidos e abertos', () => {
     await openEditor(page, 'agents', 'qa-p402-b3')
     await expect(saveButton(page)).toHaveAttribute('aria-disabled', 'true')
 
-    await page.getByLabel('Prompt do sistema').click()
+    await page.getByLabel('Instruções do sistema').click()
     await page.keyboard.press('Tab')
     await name(page).pressSequentially('x')
     await name(page).press('Backspace')

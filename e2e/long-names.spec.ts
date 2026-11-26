@@ -136,7 +136,7 @@ for (const { name, size } of VIEWPORTS) {
         const trigger = entityTrigger(page, LONG)
         const triggerBox = await box(trigger)
         const nameText = trigger.getByText(LONG, { exact: true })
-        const modelText = trigger.getByText(`ollama/${LONG_MODEL}`, { exact: true })
+        const modelText = trigger.locator(`span[title="Ollama · ${LONG_MODEL}"]`)
         const chevronBox = await box(trigger.locator('svg'))
         const nameBox = await box(nameText)
         expect(nameBox.x).toBeGreaterThanOrEqual(triggerBox.x + 12)
@@ -145,7 +145,7 @@ for (const { name, size } of VIEWPORTS) {
         expect(chevronBox.width).toBeGreaterThanOrEqual(16)
         expect(await isClipped(nameText)).toBe(true)
         expect(await hoverTitle(nameText)).toBe(LONG)
-        expect(await hoverTitle(modelText)).toBe(`ollama/${LONG_MODEL}`)
+        expect(await hoverTitle(modelText)).toBe(`Ollama · ${LONG_MODEL}`)
         expect(await isClipped(modelText)).toBe(true)
         expect((await box(modelText)).right).toBeLessThanOrEqual(chevronBox.x)
 
@@ -194,7 +194,7 @@ for (const { name, size } of VIEWPORTS) {
           after.forEach((width, index) => expect(Math.abs(width - before[index])).toBeLessThanOrEqual(1))
           // O chip do modelo fica na coluna Modelo.
           const modelHead = await box(page.getByRole('columnheader', { name: 'Modelo' }))
-          const chip = page.getByText(`ollama/${LONG_MODEL}`, { exact: true })
+          const chip = page.getByRole('table').locator(`span[title="Ollama · ${LONG_MODEL}"]`)
           expect((await box(chip)).right).toBeLessThanOrEqual(modelHead.right)
         } else {
           const itemBox = await box(link.locator('xpath=ancestor::li'))
@@ -240,7 +240,7 @@ for (const { name, size } of VIEWPORTS) {
         )
         await page.goto('/teams/time-longo')
         await hydrated(page)
-        await expect(page.getByRole('group', { name: 'Agents do team' })).toBeVisible()
+        await expect(page.getByRole('group', { name: 'Agentes do team' })).toBeVisible()
 
         // V6: o último item da trilha (ou o título do cabeçalho no celular) fica dentro do cabeçalho de 56 px.
         const header = page.getByRole('banner')
@@ -258,7 +258,7 @@ for (const { name, size } of VIEWPORTS) {
         }
 
         // V7: cards da mesma linha com a mesma altura, nome em 14 px, badge dentro do card.
-        const cards = page.getByRole('group', { name: 'Agents do team' }).locator('li > div')
+        const cards = page.getByRole('group', { name: 'Agentes do team' }).locator('li > div')
         const rects = await Promise.all(
           (await cards.all()).map(async (card) => box(card))
         )

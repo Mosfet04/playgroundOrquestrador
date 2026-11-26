@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LiveStatus } from '@/components/ui/loading'
+import { ProviderSelectItem } from '@/components/management/common/ProviderModel'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { referencePrefixes } from '@/lib/secretRef'
@@ -255,9 +256,7 @@ export function RagSection({
                         schema?.embedderProviders.map(({ name }) => name) ?? [],
                         field.value
                       ).map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
+                        <ProviderSelectItem key={name} name={name} />
                       ))}
                     </SelectContent>
                   </Select>

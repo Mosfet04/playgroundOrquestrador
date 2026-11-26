@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LiveStatus, LoadErrorState } from '@/components/ui/loading'
+import { useProviderLabel } from '@/components/management/common/ProviderModel'
 import { 
   XAxis, 
   YAxis, 
@@ -112,6 +113,7 @@ export function Dashboard() {
   const [pending, setPending] = useState(true)
   const [statsError, setStatsError] = useState<LoadError | null>(null)
   const t = useTranslations('dashboard')
+  const providerLabel = useProviderLabel()
   const format = useFormatter()
   const formatDay = (time: string) => format.dateTime(new Date(time), DAY_FORMAT)
   const formatNumber = (value: number) => format.number(value)
@@ -332,7 +334,7 @@ export function Dashboard() {
                       <div className="w-3 h-3 rounded-full bg-primary" />
                       <div>
                         <p className="font-medium">{model.name}</p>
-                        <p className="text-sm text-muted-foreground">{model.provider}</p>
+                        <p className="text-sm text-muted-foreground">{providerLabel(model.provider)}</p>
                       </div>
                     </div>
                     <Badge variant="secondary">{t('uses', { count: model.count })}</Badge>
@@ -363,7 +365,7 @@ export function Dashboard() {
                       <div className="w-3 h-3 rounded-full bg-primary" />
                       <div>
                         <p className="font-medium">{model.name}</p>
-                        <p className="text-sm text-muted-foreground">{model.provider}</p>
+                        <p className="text-sm text-muted-foreground">{providerLabel(model.provider)}</p>
                       </div>
                     </div>
                     <Badge variant="secondary">{t('uses', { count: model.count })}</Badge>

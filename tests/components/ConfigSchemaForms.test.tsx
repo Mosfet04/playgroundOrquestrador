@@ -102,7 +102,7 @@ describe('AgentForm: opções do schema', () => {
     const provider = screen.getByRole('combobox', { name: /^Provedor \*/ })
     await waitFor(() => expect(provider).toBeEnabled())
     await user.click(provider)
-    expect(optionNames()).toEqual(['ollama', 'fake-llm'])
+    expect(optionNames()).toEqual(['Ollama ollama', 'fake-llm'])
     await user.keyboard('{Escape}')
 
     await user.click(screen.getByRole('switch', { name: 'Habilitar RAG' }))

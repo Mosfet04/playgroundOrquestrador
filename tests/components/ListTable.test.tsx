@@ -99,7 +99,7 @@ describe('lista de agentes', () => {
     if (!row) throw new Error('linha da tabela')
     const cells = within(row).getAllByRole('cell')
     expect(cells[0]).toHaveTextContent('agente-1')
-    expect(cells[1]).toHaveTextContent('ollama/llama3.2')
+    expect(cells[1]).toHaveTextContent('Ollama · llama3.2')
     expect(cells[2]).toHaveTextContent('2')
     expect(cells[3]).toHaveTextContent('Ativo')
     expect(within(table()).getByRole('link', { name: 'Agente 1' })).toHaveAttribute(
@@ -133,7 +133,7 @@ describe('lista de agentes', () => {
     }
   })
 
-  it('V-P1-05b-3: linhas do celular com nome, status e "id · provider/modelo", um link por linha', async () => {
+  it('V-P1-05b-3: linhas do celular com nome, status e "id · provedor · modelo", um link por linha', async () => {
     server.use(http.get('*/api/agents', () => page(agents)))
     renderWithIntl(<AgentManagement />)
 
@@ -143,7 +143,7 @@ describe('lista de agentes', () => {
     expect(items).toHaveLength(3)
     expect(items[2]).toHaveTextContent('Agente 3')
     expect(items[2]).toHaveTextContent('Inativo')
-    expect(items[2]).toHaveTextContent('agente-3 · ollama/llama3.2')
+    expect(items[2]).toHaveTextContent('agente-3 · Ollama · llama3.2')
     expect(within(items[2]).getByRole('link')).toHaveAttribute('href', '/agents/agente-3')
   })
 

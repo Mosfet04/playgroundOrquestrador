@@ -8,7 +8,7 @@ import { ToolManagement } from '@/components/management/tools/ToolManagement'
 import { renderWithIntl } from '../helpers/intl'
 import { server } from '../msw/server'
 
-// QA1-10 (#21): "Apenas ativos" em Tools, igual ao de Agents e Teams.
+// QA1-10 (#21): "Apenas ativas" em Tools, igual ao de Agents e Teams.
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -52,7 +52,7 @@ it('o switch manda active=true ao BFF, mostra só o total e o vazio "Nenhuma too
   expect(screen.getByText('Mostrar apenas tools ativas')).toBeVisible()
 
   serveTools([])
-  await user.click(screen.getByRole('switch', { name: 'Apenas ativos' }))
+  await user.click(screen.getByRole('switch', { name: 'Apenas ativas' }))
 
   expect(await screen.findByRole('heading', { name: 'Nenhuma tool ativa' })).toBeInTheDocument()
   expect(queries.at(-1)).toBe('?limit=100&active=true')
@@ -61,7 +61,7 @@ it('o switch manda active=true ao BFF, mostra só o total e o vazio "Nenhuma too
 
   serveTools([tool])
   await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
-  expect(screen.getByRole('switch', { name: 'Apenas ativos' })).not.toBeChecked()
+  expect(screen.getByRole('switch', { name: 'Apenas ativas' })).not.toBeChecked()
   await waitFor(() => expect(queries.at(-1)).toBe('?limit=100'))
   expect(await screen.findAllByRole('link', { name: 'Clima' })).not.toHaveLength(0)
 })

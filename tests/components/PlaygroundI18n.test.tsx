@@ -271,13 +271,13 @@ describe('sessões', () => {
 
   // V-P2-03-4: no modo Team a caixa não fala em "agente".
   it.each([
-    ['pt-BR', 'Conecte um storage ao team para ver as sessões.'],
-    ['en', 'Connect storage to your team to see sessions.']
-  ] as const)('%s: team sem storage', (locale, text) => {
+    ['pt-BR', 'Conecte um armazenamento ao team para ver as sessões.', 'armazenamento'],
+    ['en', 'Connect storage to your team to see sessions.', 'storage']
+  ] as const)('%s: team sem storage', (locale, text, linkName) => {
     usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false, mode: 'team' })
     blank('?team=team-1', locale)
 
-    const link = screen.getByRole('link', { name: 'storage' })
+    const link = screen.getByRole('link', { name: linkName })
     expect(link.parentElement).toHaveTextContent(text)
     expect(link.parentElement).not.toHaveTextContent(/agente|agent\b/i)
   })
@@ -300,9 +300,9 @@ describe('sessões', () => {
     usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false })
     blank('?agent=agent-1')
 
-    const link = screen.getByRole('link', { name: 'storage' })
+    const link = screen.getByRole('link', { name: 'armazenamento' })
     expect(link.parentElement).toHaveTextContent(
-      'Conecte um storage ao agente para ver as sessões.'
+      'Conecte um armazenamento ao agente para ver as sessões.'
     )
   })
 

@@ -134,7 +134,7 @@ test.describe('desktop 1440', () => {
     await open(noStorage, '/playground?team=time-suporte')
     const box = noStorage.locator('aside').getByText(/Conecte um/)
     await expect(box).toHaveText(
-      'Conecte um storage ao team para ver as sessões.'
+      'Conecte um armazenamento ao team para ver as sessões.'
     )
     await expect(box).not.toContainText('agente')
   })

@@ -84,7 +84,7 @@ describe('QA AG3-01: histórico de versões', () => {
 
     await user.click(within(row(7)).getByRole('button', { name: 'Ver alterações' }))
     const legacyDiff = within(row(7)).getByRole('region', { name: 'Campos alterados na v7' })
-    expect(within(legacyDiff).getByText('Prompt do sistema')).toBeVisible()
+    expect(within(legacyDiff).getByText('Instruções do sistema')).toBeVisible()
     expect(within(legacyDiff).queryByText('Expor raciocínio')).not.toBeInTheDocument()
   })
 })

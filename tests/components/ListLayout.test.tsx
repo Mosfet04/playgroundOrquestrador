@@ -59,15 +59,15 @@ describe('listas', () => {
   })
 
   it.each([
-    ['agents', <AgentManagement key="a" />],
-    ['teams', <TeamManagement key="t" />],
-    ['tools', <ToolManagement key="o" />]
-  ])('%s: a busca e "Apenas ativos" na mesma grade de 3 colunas (QA1-10)', async (path, ui) => {
+    ['agents', 'Apenas ativos', <AgentManagement key="a" />],
+    ['teams', 'Apenas ativos', <TeamManagement key="t" />],
+    ['tools', 'Apenas ativas', <ToolManagement key="o" />]
+  ])('%s: a busca e "%s" na mesma grade de 3 colunas (QA1-10)', async (path, activeOnly, ui) => {
     server.use(http.get(`*/api/${path}`, () => page([])))
     renderWithIntl(ui)
 
     const search = await screen.findByLabelText('Buscar')
-    expect(screen.getByRole('switch', { name: 'Apenas ativos' })).toBeVisible()
+    expect(screen.getByRole('switch', { name: activeOnly })).toBeVisible()
     expect(search.closest('.grid')).toHaveClass('grid-cols-1', 'md:grid-cols-3')
   })
 })
@@ -107,7 +107,7 @@ describe('Instruções', () => {
     )
     renderWithIntl(<AgentEditor id="a" />)
 
-    const prompt = await screen.findByLabelText('Prompt do sistema')
+    const prompt = await screen.findByLabelText('Instruções do sistema')
     expect(prompt).toHaveClass('min-h-44', 'max-h-96')
     expect(prompt).not.toHaveAttribute('rows')
     expect(screen.getByLabelText('Descrição')).not.toHaveClass('min-h-44')
@@ -126,7 +126,7 @@ describe('Instruções', () => {
     )
     renderWithIntl(<TeamEditor id="t" />)
 
-    const prompt = await screen.findByLabelText('Prompt do líder')
+    const prompt = await screen.findByLabelText('Instruções do líder')
     expect(prompt).toHaveClass('min-h-44', 'max-h-96')
     expect(within(document.body).getByLabelText('Descrição')).not.toHaveAttribute('rows')
   })

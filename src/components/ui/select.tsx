@@ -113,24 +113,39 @@ SelectLabel.displayName = SelectPrimitive.Label.displayName
 
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
-  <SelectPrimitive.Item
-    ref={ref}
-    className={cn(
-      'relative flex h-8 w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-primary-soft focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-      className
-    )}
-    {...props}
-  >
-    <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-      <SelectPrimitive.ItemIndicator>
-        <Icon type="check" size="xs" className="text-primary" />
-      </SelectPrimitive.ItemIndicator>
-    </span>
-    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-  </SelectPrimitive.Item>
-))
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
+    /** Linha de apoio sob o texto, só na lista aberta (QA1-11). */
+    description?: React.ReactNode
+  }
+>(({ className, children, description, ...props }, ref) => {
+  const descriptionId = React.useId()
+
+  return (
+    <SelectPrimitive.Item
+      ref={ref}
+      className={cn(
+        'relative flex h-8 w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-primary-soft focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        description && 'h-auto flex-col items-start',
+        className
+      )}
+      aria-describedby={description ? descriptionId : undefined}
+      {...props}
+    >
+      <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <Icon type="check" size="xs" className="text-primary" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      {/* Fora do ItemText: o trigger fechado mostra só o texto do item. */}
+      {description && (
+        <span id={descriptionId} className="text-xs text-muted-foreground">
+          {description}
+        </span>
+      )}
+    </SelectPrimitive.Item>
+  )
+})
 SelectItem.displayName = SelectPrimitive.Item.displayName
 
 const SelectSeparator = React.forwardRef<

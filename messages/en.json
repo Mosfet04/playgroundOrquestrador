@@ -732,6 +732,17 @@
     "reloadUnreachable": "Couldn't reach the orchestrator. The reload was not confirmed and nothing changed.",
     "reloadFailed": "Couldn't reload the runtime (code {status})."
   },
+  "providers": {
+    "ollama": { "label": "Ollama" },
+    "openai": { "label": "OpenAI" },
+    "anthropic": { "label": "Anthropic" },
+    "groq": { "label": "Groq" },
+    "gemini": { "label": "Google Gemini", "description": "Main id for Google Gemini." },
+    "google": { "label": "Google Gemini", "description": "Alias of gemini: the same provider." },
+    "azure": { "label": "Azure OpenAI", "description": "Main id for Azure OpenAI." },
+    "azureopenai": { "label": "Azure OpenAI", "description": "Alias of azure: the same provider." },
+    "openai_compatible": { "label": "OpenAI-compatible", "description": "Your own server with an OpenAI-format API." }
+  },
   "home": {
     "title": "Welcome to the orchestrator playground!",
     "subtitle": "Configure your first AI agents in a few steps",
@@ -740,6 +751,9 @@
     "step": "Step {number}",
     "stepDone": "✅ Done!",
     "markDone": "Mark as done",
+    "undo": "Undo",
+    "stepAnnounceDone": "Step {number}: done",
+    "stepAnnouncePending": "Step {number}: pending",
     "steps": {
       "createAgent": {
         "title": "Create your first agent",
@@ -783,6 +797,8 @@
     "collapsePanel": "Collapse sessions panel",
     "modeAgent": "Agent",
     "modeTeam": "Team",
+    "modeTooltipNoTeams": "Create a team first",
+    "modeTooltipNoAgents": "Create an agent first",
     "selectAgent": "Select an agent",
     "selectTeam": "Select a team",
     "noAgents": "No agents available",

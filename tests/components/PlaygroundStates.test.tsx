@@ -294,7 +294,7 @@ describe('/playground: painel de sessões', () => {
     usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false, agents: agentsFixture })
     blank('?agent=agent-1')
 
-    const link = screen.getByRole('link', { name: 'storage' })
+    const link = screen.getByRole('link', { name: 'armazenamento' })
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })

@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ProviderSelectItem } from '@/components/management/common/ProviderModel'
+import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { referencePrefixes } from '@/lib/secretRef'
 import type { ConfigSchema } from '@/types/management'
 import { BaseUrlField, type BaseUrlForm } from './BaseUrlField'
@@ -73,11 +74,7 @@ export function ModelSection<T extends ModelFormValues>({
             </SelectTrigger>
             <SelectContent>
               {withCurrent(schema?.chatProviders.map(({ name }) => name) ?? [], factoryIaModel).map(
-                (name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                )
+                (name) => <ProviderSelectItem key={name} name={name} />
               )}
             </SelectContent>
           </Select>

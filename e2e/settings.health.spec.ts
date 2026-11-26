@@ -30,7 +30,7 @@ test('degradado: o indicador e a /settings mostram os checks do 503; a casca seg
   const checks = orchestrator.getByRole('list', { name: 'Checks de saúde' }).getByRole('listitem')
   await expect(checks.nth(0)).toContainText(/Erro\s*Não respondeu\./)
   await expect(checks.nth(2)).toContainText('Não configurada')
-  await expect(page.getByRole('region', { name: 'Config store' })).toContainText('Gravável')
+  await expect(page.getByRole('region', { name: 'Armazenamento da configuração' })).toContainText('Gravável')
 
   // A casca não quebra: navegar pelo menu segue, e o indicador continua com a
   // leitura desta carga (navegação client-side não relê).
@@ -58,7 +58,7 @@ test('fora do ar: seções em erro com "Tentar de novo", indicador "fora do ar";
   const orchestrator = page.getByRole('region', { name: 'Orquestrador' })
   // Sem resposta do orquestrador, o código do BFF (spec §4).
   await expect(orchestrator.getByRole('alert')).toContainText('unreachable')
-  await expect(page.getByRole('region', { name: 'Config store e provedores' }).getByRole('alert')).toContainText(
+  await expect(page.getByRole('region', { name: 'Armazenamento da configuração e provedores' }).getByRole('alert')).toContainText(
     'SCHEMA_UNAVAILABLE'
   )
   await expect(

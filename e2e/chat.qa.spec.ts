@@ -78,9 +78,9 @@ test.describe('desktop 1440', () => {
 
     await expect(aside.getByText('Agent UI')).toHaveCount(0)
     await expect(aside.getByText('Modo', { exact: true })).toHaveCount(0)
-    // provider/modelo no cartão
+    // provedor · modelo no cartão
     await expect(aside.getByRole('combobox', { name: 'Agente: Agente Alfa' })).toContainText(
-      'Fake/fake-model'
+      'Fake · fake-model'
     )
     // sem alvo "Nova conversa" habilitado antes de haver mensagens
     await expect(aside.getByRole('button', { name: 'Nova conversa' })).toBeDisabled()
@@ -289,7 +289,7 @@ test.describe('desktop 1440', () => {
       'false'
     )
     await expect(aside.getByRole('combobox', { name: 'Team: Time Suporte' })).toContainText(
-      'Fake/fake-model'
+      'Fake · fake-model'
     )
     await expect(
       page.getByRole('textbox', { name: 'Mensagem para Time Suporte' })

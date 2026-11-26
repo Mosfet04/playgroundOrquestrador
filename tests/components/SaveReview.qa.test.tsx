@@ -340,8 +340,8 @@ describe('Resposta do 200: a próxima comparação não acusa mudança falsa', (
 
 describe('Prompt com \\r\\n', () => {
   it.each([
-    ['agents', agentDoc({ prompt: 'a\r\nb\r\nc' }), 'Prompt do sistema'],
-    ['teams', teamDoc({ prompt: 'a\r\nb\r\nc' }), 'Prompt do líder']
+    ['agents', agentDoc({ prompt: 'a\r\nb\r\nc' }), 'Instruções do sistema'],
+    ['teams', teamDoc({ prompt: 'a\r\nb\r\nc' }), 'Instruções do líder']
   ] as const)('P4-02-B3 corrigido (%s): passar pelo campo sem digitar não vira alteração', async (kind, doc, label) => {
     const { user } = await open(kind, doc)
     const prompt = screen.getByLabelText(label)
@@ -394,9 +394,9 @@ describe('Ida e volta: voltar ao valor lido apaga o Salvar', () => {
   it('agent: select, switch e texto com espaço: apaga', async () => {
     const { user } = await open('agents', agentDoc({ descricao: 'Texto' }))
 
-    await pick(user, screen.getByRole('combobox', { name: /^Provedor \*/ }), 'ollama')
+    await pick(user, screen.getByRole('combobox', { name: /^Provedor \*/ }), 'Ollama ollama')
     changed()
-    await pick(user, screen.getByRole('combobox', { name: /^Provedor \*/ }), 'openai')
+    await pick(user, screen.getByRole('combobox', { name: /^Provedor \*/ }), 'OpenAI openai')
     unchanged()
 
     const markdown = screen.getByRole('switch', { name: /markdown/i })
@@ -418,7 +418,7 @@ describe('Ida e volta: voltar ao valor lido apaga o Salvar', () => {
 
     await user.click(rag)
     changed()
-    await pick(user, screen.getByRole('combobox', { name: /^Provedor de embedding/ }), 'ollama')
+    await pick(user, screen.getByRole('combobox', { name: /^Provedor de embedding/ }), 'Ollama ollama')
     await user.click(rag)
     unchanged()
   })
@@ -566,7 +566,7 @@ describe('Corridas', () => {
     const { user } = await open('agents', agentDoc({ model_params: { temperature: 0.1 } }))
     await user.type(nameField(), 'z')
     await user.type(screen.getByLabelText('Descrição'), 'd')
-    await user.type(screen.getByLabelText('Prompt do sistema'), 'p')
+    await user.type(screen.getByLabelText('Instruções do sistema'), 'p')
     await user.type(screen.getByRole('textbox', { name: 'Valor de temperature' }), '5')
     await user.click(await screen.findByRole('checkbox', { name: /Busca/ }))
     await user.click(screen.getByRole('switch', { name: /markdown/i }))
@@ -581,7 +581,7 @@ describe('Corridas', () => {
     }
     const first = await labels()
 
-    expect(first).toEqual(['Nome', 'Descrição', expect.stringContaining('temperature'), 'Prompt do sistema', expect.stringMatching(/markdown/i), 'Tools disponíveis'])
+    expect(first).toEqual(['Nome', 'Descrição', expect.stringContaining('temperature'), 'Instruções do sistema', expect.stringMatching(/markdown/i), 'Tools disponíveis'])
     expect(await labels()).toEqual(first)
   })
 

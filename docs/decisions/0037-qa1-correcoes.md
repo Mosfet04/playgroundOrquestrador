@@ -342,3 +342,35 @@ Contexto: o drawer do Histórico não tem diff próprio; o de altura fixa (`max-
 Opções: **A) só o diff do `RestoreDialog` ocupa a altura disponível; `SaveReviewDialog` sem mudança**; B) os dois diálogos.
 
 Escolha: **A** (2026-11-26).
+
+## D-QA1-11-0 — Modelos do QA1-11
+
+Contexto: o QA1-11 é de textos e rótulos (provedor com rótulo único, glossário pt-BR no i18n, botões do Início, tooltip da aba Team), sem estado assíncrono, auth, BFF nem `src/server`: simples pela regra de risco. Na revisão dos modelos pedida pelo usuário: QA1-08, QA1-09 e QA1-10 com dev sonnet passaram na 1ª revisão só com MINOR; o revisor opus pegou MAJORs reais em todos os itens; QA e design QA sonnet acharam bugs reais.
+
+Opções: **A) tabela atual: designer/DQA sonnet/medium só com spec em texto; dev sonnet/high; revisor opus/high; QA sonnet/high enxuto; 2+ MAJOR na 1ª revisão ⇒ correção num dev opus novo; deltas pequenos conferidos pelo orquestrador**; B) revisor sonnet/high; C) dev opus/high desde o começo.
+
+Escolha: **A** (2026-11-26). Tabela do `/dev-cycle` sem mudança.
+
+## D-QA1-11-1 — Glossário pt-BR (#26)
+
+Contexto: "agent" aparece em inglês em 14 textos (teams e meta) e "agente" em ~90; "team" e "tool" nunca são traduzidos no menu nem nas listas.
+
+Opções: **A) "agente" traduzido; team (masc.) e tool (fem.) mantidos como nomes próprios, plurais "teams"/"tools"; troca os 14 textos e corrige "Apenas ativas" em Tools**; B) traduzir tudo (agente, equipe, ferramenta); C) os três em inglês.
+
+Escolha: **A** (2026-11-26).
+
+## D-QA1-11-2 — Rótulo do provedor (#23)
+
+Contexto: o provedor chega como id gravado, alias ou nome de classe do agno, e aparece cru; o `/admin/schema` só traz `name`, sem rótulo no contrato.
+
+Opções: **A) mapa estático no playground (`providerLabel` puro em `src/lib`), mesmo rótulo para id e alias, formato `Rótulo · modelo`, valor desconhecido exibido como veio; sem mudança de contrato**; B) campo `label` no `/admin/schema` e no runtime (item FA); C) A com o formato `provider/model` em mono.
+
+Escolha: **A** (2026-11-26). Limite aceito: plugin novo aparece com o valor cru até ganhar entrada no mapa.
+
+## D-QA1-11-3 — Outros termos em inglês (#26)
+
+Contexto: além de "agent", as telas pt-BR mostram "Config store", "storage", "Embedder", "Base URL", "Setup", "mobile" e "Prompt do líder".
+
+Opções: **A) traduzir todos (armazenamento da configuração, armazenamento, modelo de embedding, URL base, configuração, celular, Instruções do líder); ficam Playground, Dashboard, runtime e siglas (RAG, OTLP, HTTP, ID, API, YAML)**; B) só "Config store" e "agent"; C) "Config store" como nome próprio, o resto traduzido.
+
+Escolha: **A** (2026-11-26).

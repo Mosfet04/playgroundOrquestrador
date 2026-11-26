@@ -21,6 +21,7 @@ import {
   LoadErrorState
 } from '@/components/ui/loading'
 import { cn } from '@/lib/utils'
+import { ProviderModel } from '@/components/management/common/ProviderModel'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 const SEPARATOR = ' · '
@@ -87,7 +88,6 @@ export function AgentManagement() {
 
   const ready = !loading && !loadError
   const agentHref = (agent: AgentConfig) => `/agents/${encodeURIComponent(agent.id)}`
-  const modelOf = (agent: AgentConfig) => `${agent.factoryIaModel}/${agent.model}`
   const head = (
     <TableRow>
       <TableHead>{t('columnAgent')}</TableHead>
@@ -251,7 +251,7 @@ export function AgentManagement() {
                     </TableCell>
                     <TableCell>
                       <Chip className="max-w-full">
-                        <span className="truncate">{modelOf(agent)}</span>
+                        <ProviderModel provider={agent.factoryIaModel} model={agent.model} />
                       </Chip>
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
@@ -297,7 +297,8 @@ export function AgentManagement() {
                     </StatusBadge>
                   </div>
                   <span className="truncate font-mono text-xs text-muted-foreground">
-                    {agent.id + SEPARATOR + modelOf(agent)}
+                    {agent.id + SEPARATOR}
+                    <ProviderModel provider={agent.factoryIaModel} model={agent.model} />
                   </span>
                 </div>
                 <ChevronRight

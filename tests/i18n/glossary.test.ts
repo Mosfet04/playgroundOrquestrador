@@ -60,6 +60,42 @@ describe('glossário (docs/design/P1-04.md)', () => {
     expect(titleCased).toEqual([])
   })
 
+  // QA1-11 (#26, D-QA1-11-1/3): a UI em pt-BR não mistura inglês. Ficam como
+  // nomes próprios team, tool, Playground, Dashboard, runtime e as siglas (RAG,
+  // OTLP, HTTP, ID, API, YAML, URL), por isso não estão na lista abaixo.
+  const FORBIDDEN = /\b(agents?|config store|storage|embedder|base url|setup|mobile|prompt)\b/i
+  // Só sai o que não aparece na tela: tags (`<link>`), argumentos (`{name}`), a
+  // cabeça `{count, plural,` e os seletores (`one {`) de plural e select. O
+  // texto dos ramos fica.
+  const visibleText = (message: string) =>
+    message
+      .replace(/<\/?\w+>/g, '')
+      .replace(/\{\s*\w+\s*,\s*(plural|select|selectordinal)\s*,/g, '')
+      .replace(/\{\w+(\s*,[^{}]*)?\}/g, '')
+      .replace(/(=\d+|\w+)\s*\{/g, '')
+      .replace(/\}/g, '')
+
+  it('pt-BR: sem os termos em inglês do glossário (agent, config store, storage, embedder, base URL, setup, mobile, prompt)', () => {
+    const offenders = pt.filter(([, value]) => FORBIDDEN.test(visibleText(value)))
+    expect(offenders).toEqual([])
+  })
+
+  it('o teste acusa o inglês dentro dos ramos de plural e select, e ignora argumentos e tags', () => {
+    const flagged = (message: string) => FORBIDDEN.test(visibleText(message))
+    expect(flagged('{count, plural, one {# agent} other {# agents}}')).toBe(true)
+    expect(flagged('{kind, select, a {Config store} other {x}}')).toBe(true)
+    expect(flagged('Conecte um <link>storage</link> ao agente')).toBe(true)
+    expect(flagged('{agents, plural, =0 {# agentes} one {# agente} other {# agentes}} · {name}')).toBe(false)
+    expect(flagged('{agents} e {prompt, number}')).toBe(false)
+  })
+
+  it('pt-BR: "Apenas ativas" nas tools (feminino) e "Apenas ativos" em agentes e teams', () => {
+    const value = new Map(pt)
+    expect(value.get('tools.activeOnly')).toBe('Apenas ativas')
+    expect(value.get('agents.activeOnly')).toBe('Apenas ativos')
+    expect(value.get('teams.activeOnly')).toBe('Apenas ativos')
+  })
+
   it('reticências com o caractere … e não três pontos, nos dois idiomas', () => {
     const offenders = [...pt, ...english].filter(([, value]) => value.includes('...'))
     expect(offenders).toEqual([])

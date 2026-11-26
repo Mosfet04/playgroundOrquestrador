@@ -79,7 +79,7 @@ test('agent do seed com prompt em lista: abre unido por linha e salvar grava tex
   await page.goto('/agents')
   await page.getByRole('link', { name: 'Agente Beta' }).first().click()
   await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeVisible()
-  await expect(page.getByLabel('Prompt do sistema')).toHaveValue('Você é o Beta.\nResponda curto.')
+  await expect(page.getByLabel('Instruções do sistema')).toHaveValue('Você é o Beta.\nResponda curto.')
   await hydrated(page)
   // Reexecução local com o fake reaproveitado: a versão lida antes vale a base.
   const before = (await (await storedAgent('agente-beta')).json()).version as number

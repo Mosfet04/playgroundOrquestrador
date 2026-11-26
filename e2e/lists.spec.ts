@@ -124,7 +124,7 @@ test.describe('390 px', () => {
     await page.goto('/agents')
 
     const row = page.getByRole('listitem').filter({ hasText: 'Agente Alfa' })
-    await expect(row).toContainText('alfa · ollama/llama3.2')
+    await expect(row).toContainText('alfa · Ollama · llama3.2')
     expect((await row.boundingBox())?.height).toBe(64)
     await expect(page.getByRole('table')).toBeHidden()
     const main = page.getByRole('main')

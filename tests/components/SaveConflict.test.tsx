@@ -148,9 +148,9 @@ describe('412 ao salvar (agent)', () => {
       'Uma versão mais nova (v5) foi salva enquanto você editava a v3. 3 campos do formulário diferem da versão atual.'
     )
     const rows = within(list).getAllByRole('listitem')
-    expect(rows.map((row) => within(row).getAllByText(/^(Nome|Prompt do sistema|Tools disponíveis)$/)[0].textContent)).toEqual([
+    expect(rows.map((row) => within(row).getAllByText(/^(Nome|Instruções do sistema|Tools disponíveis)$/)[0].textContent)).toEqual([
       'Nome',
-      'Prompt do sistema',
+      'Instruções do sistema',
       'Tools disponíveis'
     ])
     expect(within(rows[0]).getByText('O seu valor').nextElementSibling).toHaveTextContent('Meu nome')
@@ -197,7 +197,7 @@ describe('412 ao salvar (agent)', () => {
     expect(await screen.findByText('Versão atual carregada')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Nome *')).toHaveValue('Assistente v5')
-    expect(screen.getByLabelText('Prompt do sistema')).toHaveValue('Seja breve.')
+    expect(screen.getByLabelText('Instruções do sistema')).toHaveValue('Seja breve.')
     await waitFor(() =>
       expect(screen.getByRole('heading', { level: 1, name: 'Editar agente' })).toHaveFocus()
     )

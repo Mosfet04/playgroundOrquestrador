@@ -121,9 +121,9 @@ describe('AgentForm P3-02: seções', () => {
       'Configuração RAG',
       'Tools disponíveis'
     ])
-    const prompt = screen.getByRole('textbox', { name: 'Prompt do sistema' })
+    const prompt = screen.getByRole('textbox', { name: 'Instruções do sistema' })
     expect(within(screen.getByRole('region', { name: 'Instruções' })).getByRole('textbox')).toBe(prompt)
-    expect(within(screen.getByRole('region', { name: 'Modelo' })).queryByRole('textbox', { name: 'Prompt do sistema' })).toBeNull()
+    expect(within(screen.getByRole('region', { name: 'Modelo' })).queryByRole('textbox', { name: 'Instruções do sistema' })).toBeNull()
   })
 })
 
@@ -140,7 +140,7 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
     expect(optionNames()).toEqual(['top_p', 'stop'])
     await user.keyboard('{Escape}')
 
-    await chooseProvider(user, 'openai')
+    await chooseProvider(user, 'OpenAI openai')
 
     expect(rows()).toHaveLength(2)
     expect(screen.getByRole('combobox', { name: 'Nome do parâmetro 1' })).toHaveTextContent('temperature')
@@ -211,7 +211,7 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
   it.each(['true', '1,2,3'])('nome numérico (max_*) com %j também bloqueia o Salvar', async (text) => {
     const sent = serveSave()
     const user = await ready()
-    await chooseProvider(user, 'openai')
+    await chooseProvider(user, 'OpenAI openai')
     await addParam(user, 'max_tokens', text)
 
     await user.click(saveButton())
@@ -307,7 +307,7 @@ describe('AgentForm P3-02: parâmetros do modelo', () => {
     expect(screen.getByText('fake-llm não aceita parâmetros.')).toBeVisible()
     expect(addButton()).toBeDisabled()
 
-    await chooseProvider(user, 'anthropic')
+    await chooseProvider(user, 'Anthropic anthropic')
     await user.click(addButton())
     await user.click(screen.getByRole('combobox', { name: 'Nome do parâmetro 1' }))
     await user.click(screen.getByRole('option', { name: 'temperature' }))
@@ -444,9 +444,9 @@ describe('AgentForm P3-02: URL base e referência da chave', () => {
     expect(sent[0].body.base_url ?? '').toBe('')
 
     // Trocar de provedor é que recolhe o campo vazio.
-    await chooseProvider(user, 'openai')
+    await chooseProvider(user, 'OpenAI openai')
     expect(screen.queryByLabelText(/^URL base/)).toBeNull()
-    await chooseProvider(user, 'ollama')
+    await chooseProvider(user, 'Ollama ollama')
     expect(screen.queryByLabelText(/^URL base/)).toBeNull()
   })
 

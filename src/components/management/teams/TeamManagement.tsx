@@ -21,6 +21,7 @@ import {
   LoadErrorState
 } from '@/components/ui/loading'
 import { cn } from '@/lib/utils'
+import { ProviderModel } from '@/components/management/common/ProviderModel'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 const SEPARATOR = ' · '
@@ -84,7 +85,6 @@ export function TeamManagement() {
 
   const ready = !loading && !loadError
   const teamHref = (team: TeamConfig) => `/teams/${encodeURIComponent(team.id)}`
-  const modelOf = (team: TeamConfig) => `${team.factoryIaModel}/${team.model}`
   const head = (
     <TableRow>
       <TableHead>{t('columnTeam')}</TableHead>
@@ -244,7 +244,9 @@ export function TeamManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Chip>{modelOf(team)}</Chip>
+                      <Chip>
+                        <ProviderModel provider={team.factoryIaModel} model={team.model} />
+                      </Chip>
                     </TableCell>
                     <TableCell>
                       <Chip>{team.mode}</Chip>

@@ -48,11 +48,11 @@ test('o indicador leva à /settings, que mostra os dados do fake com uma leitura
     /Telemetria \(OTLP\)\s*Configurada/
   ])
   await expect(orchestrator).not.toContainText('TracerProvider')
-  await expect(page.getByRole('region', { name: 'Config store' })).toContainText('Gravável')
+  await expect(page.getByRole('region', { name: 'Armazenamento da configuração' })).toContainText('Gravável')
   const chat = page.getByRole('region', { name: 'Provedores de chat' })
   await expect(chat.getByRole('row')).toHaveCount(4)
-  await expect(chat.getByRole('row', { name: /fake-llm/ })).toContainText('Exige base URL')
-  await expect(page.getByRole('region', { name: 'Provedores de embedder' }).getByRole('row')).toHaveCount(4)
+  await expect(chat.getByRole('row', { name: /fake-llm/ })).toContainText('Exige URL base')
+  await expect(page.getByRole('region', { name: 'Provedores de embedding' }).getByRole('row')).toHaveCount(4)
   expect(reads).toHaveLength(1)
 
   const body = await page.content()
