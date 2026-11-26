@@ -300,3 +300,13 @@ Contexto: a V2 diz que, com 0 sessões de team, o texto "team" não aparece no c
 Opções: **A) texto neutro na chave existente: "Distribuição das sessões por tipo" / "Session distribution by type"**; B) manter, lendo a V2 só como dado de série.
 
 Escolha: **A** (2026-11-25).
+
+## D-QA1-09-0 — Pré-voo do QA1-09 e revisão dos modelos
+
+Contexto: o QA1-09 depende do FA-08 (`updated_at` na lista e no GET de `/admin/config/*`), que ainda não existe no roadmap do orquestrador (FA-01..07 concluídos). Na abertura do item, a revisão dos modelos pedida pelo usuário mostrou: revisor opus/high pegou MAJORs reais em itens simples e de risco; dev sonnet trouxe 2 e 4 MAJOR na 1ª revisão (QA1-04, QA1-05) e só MINOR com a regra de escalada (QA1-08); dev opus nos itens de risco passou só com MINOR (QA1-06, QA1-07); QA e design QA sonnet acharam bugs reais.
+
+Opções (dependência): **A) parar; o FA-08 é criado e roda no `/dev-cycle` do orquestrador, e o QA1-09 roda inteiro depois**; B) só a parte provisória agora (a coluna sai) e um item novo a devolve; C) pular para o QA1-10.
+
+Opções (modelos): **A) manter a tabela e escrever nela a escalada da D-QA1-05-0/D-QA1-08-0 (item simples com 2+ MAJOR na 1ª revisão ⇒ correção no dev opus); `effort` do frontmatter do designer alinhado em `medium`**; B) manter sem mudança; C) revisor sonnet/high nos itens simples.
+
+Escolha: **A** e **A** (2026-11-26). O QA1-09, quando rodar, é item simples (UI: não; muda schema existente, sem rota nem módulo novo): dev sonnet/high, revisor opus/high, QA sonnet/high enxuto.

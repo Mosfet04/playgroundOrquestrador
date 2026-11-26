@@ -63,7 +63,7 @@ O playground deixa de escrever no Mongo e passa a usar a **API Admin** do orques
 | QA1-06 | concluído (`0,7` vira 0.7 e nome numérico conhecido com texto dá erro inline; ID `^[a-z0-9_-]+$` só na criação; memória desligada na criação de agent e team; `DraftGuard` com aviso de rascunho em links do shell, Voltar/Cancelar, "Sair", Voltar/Avançar do browser (`PopStateGate` no root layout, com Navigation API) e `beforeunload`; sujo por valor contra a base; limitação: dois Voltar na mesma tarefa (BUG-QA1-06-QA-2); decisão 0037 D-QA1-06-0..7) |
 | QA1-07 | concluído (causa do 422: referência de segredo em header só vale para host da `TOOL_ROUTE_ALLOWLIST` do orquestrador, regra mantida e reproduzida no fake com normalização do host e loopback ⇒ 422 `route`; 422 `headers` no grupo com foco, rolagem e toast com o motivo; erro de valor só depois de tocar ou salvar; troca automática para Segredo ao digitar nome sensível em linha vazia, com aviso; no md+ o par formato+alvo do Segredo vai para a 2ª linha, placeholders `OPENAI_API_KEY` e `/secrets/key`; decisão 0037 D-QA1-07-0..6) |
 | QA1-08 | concluído (donut com legenda HTML abaixo e só fatias com valor, anel cheio com 1 fatia; linha sem série zerada, agente embaixo e team em cima, ponto r=4 na cor cheia da série com 1 ponto; eixo Y com largura medida, sem tick cortado com 6+ dígitos; esqueleto com os 8 blocos na altura final, medida com o fake; bloco do donut com altura fixa nos três estados; descrição neutra do donut; "Lido em" do `/settings` no fuso do navegador; decisão 0037 D-QA1-08-0..4) |
-| QA1-09 | pendente (espera o FA-08 no orquestrador) |
+| QA1-09 | pendente (espera o FA-08, ainda a criar no roadmap do orquestrador; D-QA1-09-0) |
 | QA1-10 | pendente |
 | QA1-11 | pendente |
 
