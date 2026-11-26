@@ -52,6 +52,9 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
   const row = page.getByRole('row', { name: /Team do e2e/ })
   await expect(row).toContainText('coordinate')
   await expect(row).toContainText('ollama/fake-model')
+  // QA1-09 (QA): o team recém-criado mostra a data do save na lista.
+  const saved = await row.locator('time').getAttribute('datetime')
+  expect(Math.abs(Date.now() - Date.parse(saved ?? ''))).toBeLessThan(60_000)
 
   // Reabre com os mesmos valores.
   await page.getByRole('link', { name: 'Team do e2e' }).first().click()

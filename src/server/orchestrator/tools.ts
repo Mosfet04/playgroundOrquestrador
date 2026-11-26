@@ -18,6 +18,7 @@ import {
   pageOf,
   replaceConfig,
   restoreConfig,
+  updatedAtSchema,
   withFormField
 } from './adminConfig'
 import type { OrchestratorResult } from './client'
@@ -47,7 +48,8 @@ const toolSchema = z.object({
   instructions: z.string().nullish(),
   headers: z.record(z.string(), z.string()).nullish(),
   active: z.boolean(),
-  version: z.number().int().nonnegative()
+  version: z.number().int().nonnegative(),
+  updated_at: updatedAtSchema
 })
 type ToolDocument = z.infer<typeof toolSchema>
 

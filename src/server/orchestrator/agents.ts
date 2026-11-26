@@ -16,6 +16,7 @@ import {
   pageOf,
   replaceConfig,
   restoreConfig,
+  updatedAtSchema,
   withFormField
 } from './adminConfig'
 import type { OrchestratorResult } from './client'
@@ -70,7 +71,8 @@ const agentSchema = z.looseObject({
   expose_reasoning: optional(z.boolean()),
   user_memory_active: optional(z.boolean()),
   summary_active: optional(z.boolean()),
-  version: z.number().int().nonnegative()
+  version: z.number().int().nonnegative(),
+  updated_at: updatedAtSchema
 })
 type AgentDocument = z.infer<typeof agentSchema>
 
@@ -145,7 +147,8 @@ const toAgent = (doc: AgentDocument): AgentConfig => ({
   expose_reasoning: doc.expose_reasoning,
   user_memory_active: doc.user_memory_active,
   summary_active: doc.summary_active,
-  version: doc.version
+  version: doc.version,
+  updated_at: doc.updated_at
 })
 
 // Os campos do formulário no documento. O RAG é o documento inteiro (P3-05):
@@ -288,8 +291,8 @@ export async function replaceAgent(
 ) {
   const current = await getConfig('agents', id, agentSchema)
   if (!current.ok) return current
-  const { version: _read, ...document } = current.data
-  void _read
+  const { version: _read, updated_at: _updatedAt, ...document } = current.data
+  void [_read, _updatedAt]
   return mapped(
     await replaceConfig(
       'agents',

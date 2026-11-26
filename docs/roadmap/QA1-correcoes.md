@@ -176,12 +176,14 @@ Critérios de aceite: nenhum rótulo cortado em 1367 px e 390 px; 0 sessões de 
 Testes exigidos: componente dos gráficos com dados de uma série zerada; unit/componente do horário com fuso fixo; screenshot no design QA.
 
 ## QA1-09 — Coluna "Atualizado" nas listas
-UI: não            Depende (orq.): FA-08 (a criar: `updated_at` no corpo da lista e do GET de `/admin/config/*`)
+UI: não            Depende (orq.): FA-08 (concluído: `updated_at` nas respostas de `/admin/config/*`)
 Objetivo: a coluna mostra quando o item mudou (#13, D-QA1-09-1).
 Escopo:
-- Hoje o orquestrador devolve só o documento + `version` (`_body` em `admin_config.py`); o `updated_at` existe no Mongo e não sai na resposta.
-- Até o FA-08: a coluna "Atualizado" sai das listas de agents, teams e tools.
-- Depois do FA-08: zod aceita `updated_at`, a coluna volta com a data no fuso do navegador; snapshot OpenAPI atualizado.
+- Antes do FA-08, o orquestrador devolvia só o documento + `version` (`_body` em `admin_config.py`); o `updated_at` existia no Mongo e não saía na resposta.
+- FA-08 concluído no orquestrador (`73e1146`): todo documento de `/admin/config/{agents,teams,tools}` (lista, GET, POST, PUT, DELETE lógico, restauração) traz `updated_at` em ISO 8601 UTC com `Z`, ou `null` sem o campo (store YAML, legado do seed). A coluna "Atualizado", que já existia, nunca recebia o valor: os schemas zod de `src/server/orchestrator/{agents,teams,tools}.ts` não declaravam o campo e o mapeamento do BFF não o copiava (`looseObject` o deixava passar sem uso; o `z.object` da tool o descartava).
+- Resultado: `updatedAtSchema` (`adminConfig.ts`) aceita `string` ISO com `Z` | `null` | ausente nos três tipos e o BFF o devolve como `updated_at`; a UI mostra a data no fuso do navegador, e "—" sem valor. Snapshot OpenAPI e `openapi.d.ts` regenerados com o schema do FA-08 (`pnpm contract:update` contra o orquestrador local com store YAML). Fake orchestrator: `updated_at` em todas as respostas (`agente-beta` com data, o resto `null`; POST/PUT/DELETE lógico/restore gravam a hora do servidor; o do corpo é descartado; fora do diário).
+- Desvio (valor que não é data): o schema usa `.catch`, então um `updated_at` fora do formato (texto livre, número, sem `Z`) vira "sem data" e o documento segue na lista, em vez de ser isolado ou derrubar a coluna; é só exibição.
+- Desvio (escrita): o PUT de agent e de team parte do documento lido e agora tira o `updated_at` junto com a `version` antes de enviar (o orquestrador o descartaria; o BFF não depende disso). O de tool monta o documento só com os campos do formulário.
 Critérios de aceite: item recém-criado mostra a data do save; documento sem `updated_at` (store YAML) mostra "–".
 Testes exigidos: unit do mapeamento; componente da coluna; fake com `updated_at`.
 

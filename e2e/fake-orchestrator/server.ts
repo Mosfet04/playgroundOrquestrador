@@ -483,6 +483,18 @@ const shown = (kind: ConfigKind, doc: ConfigDoc): ConfigDoc =>
       }
     : doc
 
+// `updated_at` (FA-08): hora da última gravação pela API, em ISO 8601 UTC com
+// `Z` e em segundos. Fora do documento, como no real (metadado: não entra no
+// diário nem no diff, e o do corpo é descartado). Sem entrada, `null` (store
+// YAML, legado do seed): só `agente-beta` nasce com data.
+const updatedAt = new Map<string, string>([['agents/agente-beta', '2026-11-20T09:30:00Z']])
+const stamp = (kind: ConfigKind, id: string) =>
+  updatedAt.set(`${kind}/${id}`, new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'))
+const withUpdatedAt = (kind: ConfigKind, doc: ConfigDoc): ConfigDoc => ({
+  ...shown(kind, doc),
+  updated_at: updatedAt.get(`${kind}/${doc.id}`) ?? null
+})
+
 const usedBy = (kind: ConfigKind, id: string): Record<string, string[]> | null => {
   if (kind === 'agents') {
     const teamsUsing = configs.teams
@@ -515,7 +527,7 @@ const sendConfig = (
   headers: Record<string, string> = {}
 ) => {
   res.writeHead(status, { 'Content-Type': 'application/json', ETag: `"${doc.version}"`, ...headers })
-  res.end(JSON.stringify(shown(kind, doc)))
+  res.end(JSON.stringify(withUpdatedAt(kind, doc)))
 }
 
 // Troca a quente (FA-04): a revisão do runtime sobe a cada escrita aceita e
@@ -649,7 +661,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     const offset = Number(url.searchParams.get('offset') ?? 0)
     const limit = Number(url.searchParams.get('limit') ?? 50)
     sendJson(res, 200, {
-      items: store.slice(offset, offset + limit).map((doc) => shown(kind, doc)),
+      items: store.slice(offset, offset + limit).map((doc) => withUpdatedAt(kind, doc)),
       total: store.length,
       offset,
       limit
@@ -658,12 +670,13 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
   }
   const check = (doc: Record<string, unknown>, current?: ConfigDoc) =>
     kind === 'agents' ? checkAgent(doc) : kind === 'teams' ? checkTeam(doc) : checkTool(doc, current)
-  // Corpo como objeto JSON, sem operador `$`; a `version` do corpo é descartada.
+  // Corpo como objeto JSON, sem operador `$`; a `version` e o `updated_at` do
+  // corpo são descartados (o ciclo GET → PUT os devolve).
   const body = async (): Promise<Checked<Record<string, unknown>>> => {
     const raw = await readJson(req)
     if (!isRecord(raw) || hasOperator(raw)) return invalid()
-    const { version: _ignored, ...rest } = raw
-    void _ignored
+    const { version: _version, updated_at: _updatedAt, ...rest } = raw
+    void [_version, _updatedAt]
     return accepted(rest)
   }
 
@@ -680,6 +693,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
         created,
         () => {
           store.push(created)
+          stamp(kind, created.id)
           record(kind, null, created)
         },
         (headers) => sendConfig(res, 201, kind, created, headers)
@@ -731,6 +745,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
         restored,
         () => {
           store[index] = restored
+          stamp(kind, id)
           record(kind, current, restored)
         },
         (headers) => sendConfig(res, 200, kind, restored, headers)
@@ -751,6 +766,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
         replaced,
         () => {
           store[index] = replaced
+          stamp(kind, id)
           record(kind, current, replaced)
         },
         (headers) => sendConfig(res, 200, kind, replaced, headers)
@@ -770,6 +786,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
       current,
       () => {
         store.splice(index, 1)
+        updatedAt.delete(`${kind}/${id}`)
         record(kind, current, null)
       },
       (headers) => res.writeHead(204, headers).end()
@@ -782,6 +799,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     current,
     () => {
       store[index] = deactivated
+      stamp(kind, id)
       record(kind, current, deactivated)
     },
     (headers) => sendConfig(res, 200, kind, deactivated, headers)
