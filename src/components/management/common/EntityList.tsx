@@ -4,6 +4,7 @@ import { type ReactNode } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 
 import { Chip } from '@/components/ui/loading'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Peças comuns das listas de agents e tools (P1-05b, docs/design/P1-05b.md).
 
@@ -24,18 +25,28 @@ export function listCounts(
   return { total, active, inactive: items.length - active }
 }
 
-/** Chips de contagem; a região fica sempre montada para o leitor anunciar a troca. */
+const SKELETON_CHIPS = [0, 1, 2]
+
+/**
+ * Chips de contagem; a região fica sempre montada, com a altura de uma linha de
+ * chips, para o leitor anunciar a troca e o "Novo …" não mudar de y. Carregando
+ * (e a cada busca) mostra 3 esqueletos no lugar dos chips.
+ */
 export function CountChips({
   namespace,
-  counts
+  counts,
+  loading = false
 }: {
   namespace: 'agents' | 'teams' | 'tools'
   counts?: Counts
+  loading?: boolean
 }) {
   const t = useTranslations(namespace)
   const n = (chunks: ReactNode) => <span className="font-semibold">{chunks}</span>
   return (
-    <div aria-live="polite" aria-atomic="true" className="mt-3 flex flex-wrap gap-2 empty:mt-0">
+    <div aria-live="polite" aria-atomic="true" className="mt-3 flex min-h-6 flex-wrap gap-2">
+      {loading &&
+        SKELETON_CHIPS.map((key) => <Skeleton key={key} aria-hidden="true" className="h-6 w-24" />)}
       {counts && (
         <Chip className="text-muted-foreground">
           {t.rich('countTotal', {

@@ -14,15 +14,20 @@ const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().optional(),
-  method: z.string().optional()
+  method: z.string().optional(),
+  active: z.enum(['true', 'false']).optional()
 })
 
 // P2-06: lista de tools pela API Admin do orquestrador (chave admin).
 export async function GET(request: NextRequest) {
   const query = querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams))
   if (!query.success) return badRequest()
-  const { page, limit, search, method } = query.data
-  const result = await listTools({ search, method }, page, limit)
+  const { page, limit, search, method, active } = query.data
+  const result = await listTools(
+    { search, method, active: active === undefined ? undefined : active === 'true' },
+    page,
+    limit
+  )
   return result.ok ? ok(result.data) : orchestratorError(result.error)
 }
 

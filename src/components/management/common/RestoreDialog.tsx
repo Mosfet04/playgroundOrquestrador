@@ -79,59 +79,68 @@ export function RestoreDialog({
         onEscapeKeyDown={(event) => saving && event.preventDefault()}
         onInteractOutside={(event) => saving && event.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle>{tc('restoreTitle', { version })}</DialogTitle>
-          <DialogDescription>
-            {tc.rich('restoreDescription', {
-              version,
-              next: current + 1,
-              date,
-              b: (chunks) => <b className="font-semibold text-foreground">{chunks}</b>
-            })}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="mt-4 space-y-3">
-          {dirty && (
-            <p className="flex items-start gap-2 text-sm text-warning">
-              <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              {tc('restoreDirty')}
-            </p>
-          )}
-          {same ? (
-            <p className="text-sm text-muted-foreground">{tc('restoreSame')}</p>
-          ) : (
-            <>
-              <DiffList rows={rows} variant="review" label={tc('restoreList')} />
-              <p className="text-xs text-muted-foreground">{tc('restoreNote', { current })}</p>
-            </>
-          )}
-          {rejected && (
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-md border border-destructive/50 p-3 text-sm text-destructive"
-            >
-              <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              <div className="min-w-0 space-y-1">
-                <p>{tc('restoreNotApplied', { version })}</p>
-                {rejected.detail && (
-                  <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    {tc('technicalDetail')}
-                    <ErrorTypeCode>{rejected.detail}</ErrorTypeCode>
-                  </p>
-                )}
+        {/* A altura do diálogo é 100dvh - 2rem (dialog.tsx), menos o padding (3rem) e a borda (2px):
+            o cabeçalho e o rodapé ficam à vista e o diff ocupa o que sobra. */}
+        <div className="flex max-h-[calc(100dvh-5rem-2px)] flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>{tc('restoreTitle', { version })}</DialogTitle>
+            <DialogDescription>
+              {tc.rich('restoreDescription', {
+                version,
+                next: current + 1,
+                date,
+                b: (chunks) => <b className="font-semibold text-foreground">{chunks}</b>
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3">
+            {dirty && (
+              <p className="flex shrink-0 items-start gap-2 text-sm text-warning">
+                <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                {tc('restoreDirty')}
+              </p>
+            )}
+            {same ? (
+              <p className="text-sm text-muted-foreground">{tc('restoreSame')}</p>
+            ) : (
+              <>
+                <DiffList
+                  rows={rows}
+                  variant="review"
+                  label={tc('restoreList')}
+                  className="max-h-none min-h-0 flex-1 sm:max-h-none"
+                />
+                <p className="shrink-0 text-xs text-muted-foreground">{tc('restoreNote', { current })}</p>
+              </>
+            )}
+            {rejected && (
+              <div
+                role="alert"
+                className="flex shrink-0 items-start gap-2 rounded-md border border-destructive/50 p-3 text-sm text-destructive"
+              >
+                <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                <div className="min-w-0 space-y-1">
+                  <p>{tc('restoreNotApplied', { version })}</p>
+                  {rejected.detail && (
+                    <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {tc('technicalDetail')}
+                      <ErrorTypeCode>{rejected.detail}</ErrorTypeCode>
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          <DialogFooter className="mt-4 shrink-0">
+            <Button ref={cancelRef} variant="outline" className={BUTTON} disabled={saving} onClick={onClose}>
+              {tc('cancel')}
+            </Button>
+            <Button className={BUTTON} disabled={saving || same} onClick={onConfirm}>
+              {saving ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Undo2 aria-hidden="true" />}
+              {saving ? tc('restoring') : tc('restoreVersion', { version })}
+            </Button>
+          </DialogFooter>
         </div>
-        <DialogFooter className="mt-4">
-          <Button ref={cancelRef} variant="outline" className={BUTTON} disabled={saving} onClick={onClose}>
-            {tc('cancel')}
-          </Button>
-          <Button className={BUTTON} disabled={saving || same} onClick={onConfirm}>
-            {saving ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Undo2 aria-hidden="true" />}
-            {saving ? tc('restoring') : tc('restoreVersion', { version })}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

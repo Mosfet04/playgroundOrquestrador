@@ -127,7 +127,7 @@ test.describe('estados no layout novo', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
   for (const kind of ['agents', 'tools'] as const) {
-    test(`/${kind} em 390 px: carregando = 3 linhas de 64 px sem tabela e sem chips; depois o conteúdo com chips`, async ({
+    test(`/${kind} em 390 px: carregando = 3 linhas de 64 px sem tabela e com 3 esqueletos no lugar dos chips; depois o conteúdo com chips`, async ({
       page
     }) => {
       let release: () => void = () => undefined
@@ -141,7 +141,8 @@ test.describe('estados no layout novo', () => {
       const busy = page.locator('[aria-busy="true"]')
       await expect(busy.getByRole('status')).toContainText('Carregando')
       await expect(page.getByRole('table')).toBeHidden()
-      await expect(chips(page)).toHaveCount(0)
+      await expect(chips(page)).toHaveCount(3)
+      await expect(chips(page)).toHaveText(['', '', ''])
       // O esqueleto é decorativo (sem papéis): as linhas só se acham pela estrutura.
       const lines = busy.locator('div.md\\:hidden > div')
       await expect(lines).toHaveCount(3)
@@ -272,7 +273,10 @@ test('teclado: um alvo de Tab por linha e Enter abre o editor', async ({ page })
   const rows = page.getByRole('table').getByRole('row')
   await expect(rows).toHaveCount(4)
 
+  // QA1-10: a ordem é busca, "Apenas ativos" e a lista.
   await page.getByLabel('Buscar').focus()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('switch', { name: 'Apenas ativos' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('table').getByRole('link', { name: 'Tool 1' })).toBeFocused()
   await page.keyboard.press('Tab')

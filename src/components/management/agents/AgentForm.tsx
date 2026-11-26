@@ -5,7 +5,7 @@ import { useForm, type FieldErrors, type Path } from 'react-hook-form'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Plus, Save, Wrench } from 'lucide-react'
 import { ENTITY_ID } from '@/lib/entityId'
 import { boolRow } from '@/lib/formDiff'
 import { referencePrefixes } from '@/lib/secretRef'
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import { TextArea } from '@/components/ui/textarea'
 import { StatusBadge } from '@/components/ui/status-badge'
 import {
@@ -78,6 +79,7 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
   // Desativar, Reativar ou Excluir em andamento (P3-06): Salvar e Cancelar esperam.
   const [acting, setActing] = useState(false)
   const [availableTools, setAvailableTools] = useState<Tool[]>([])
+  const [toolsLoading, setToolsLoading] = useState(true)
   const [selectedToolIds, setSelectedToolIds] = useState<string[]>(agent?.tools_ids ?? [])
   const t = useTranslations('agents')
   const tf = useTranslations('agents.form')
@@ -160,6 +162,8 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
         setAvailableTools(tools)
       } catch (error) {
         console.error('Error fetching tools:', error)
+      } finally {
+        setToolsLoading(false)
       }
     }
     fetchTools()
@@ -362,9 +366,9 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
 
   return (
     <div>
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
         {/* Header */}
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-start gap-4 md:items-center">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/agents">
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
@@ -413,226 +417,252 @@ export function AgentForm({ agent, controls, onSuccess }: AgentFormProps) {
           )}
         </div>
 
-      <ConfigSchemaNotice
-        status={schemaState.status}
-        writable={writable}
-        retrying={retrying}
-        onRetry={reloadSchema}
-      />
-
-      {/* O erro do servidor num campo sem regra (Select, Switch, tools) não
-          sai na validação: limpo antes, ele não trava o próximo envio. */}
-      {/* noValidate: faixa e passo do número são validados pelo formulário, com
-          a mensagem do catálogo (não a bolha do navegador). */}
-      <form
-        noValidate
-        onSubmit={(event) => {
-          if (unchanged) return event.preventDefault()
-          clearErrors()
-          return handleSubmit(onSubmit, onInvalid)(event)
-        }}
-      >
-        <fieldset disabled={!writable} className="min-w-0 space-y-6">
-        <SectionCard id="agent-identity" title={t('form.basicInfo')} description={t('form.basicInfoDescription')}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="id">{t('form.id')}</Label>
-              <Input
-                id="id"
-                {...register('id', {
-                  required: tc('idRequired'),
-                  // Só na criação (D-QA1-06-2): o id gravado fora do padrão segue salvável.
-                  pattern: isEditing ? undefined : { value: ENTITY_ID, message: tc('idInvalid') }
-                })}
-                {...errorA11y('id', !!errors.id, !isEditing && 'id-help')}
-                disabled={isEditing}
-                placeholder={tc('example', { value: 'agent-1' })}
-              />
-              {!isEditing && (
-                <p id="id-help" className="text-xs text-muted-foreground">
-                  {tc('idHelp')}
-                </p>
-              )}
-              <FieldError id="id-error" message={errors.id?.message} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="nome">{t('form.name')}</Label>
-              <Input
-                id="nome"
-                {...register('nome', { required: tc('nameRequired') })}
-                {...errorA11y('nome', !!errors.nome)}
-                placeholder={t('form.namePlaceholder')}
-              />
-              <FieldError id="nome-error" message={errors.nome?.message} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="descricao">{t('form.description')}</Label>
-            <TextArea
-              id="descricao"
-              {...register('descricao')}
-              {...errorA11y('descricao', !!errors.descricao)}
-              placeholder={t('form.descriptionPlaceholder')}
-            />
-            <FieldError id="descricao-error" message={errors.descricao?.message} />
-          </div>
-        </SectionCard>
-
-        <ModelSection
-          entity="agent"
-          form={form}
-          schema={schema}
-          status={schemaState.status}
-          storedApiKeyRef={agent?.api_key_ref ?? ''}
-          locked={selectsDisabled}
-        />
-
-        <SectionCard
-          id="agent-instructions"
-          title={t('form.instructions')}
-          description={t('form.instructionsDescription')}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="prompt">{t('form.systemPrompt')}</Label>
-            <TextArea
-              id="prompt"
-              {...register('prompt')}
-              {...errorA11y('prompt', !!errors.prompt)}
-              placeholder={t('form.systemPromptPlaceholder')}
-              className="min-h-44 max-h-96"
-            />
-            <FieldError id="prompt-error" message={errors.prompt?.message} />
-          </div>
-        </SectionCard>
-
-        <ExecutionSection
-          entity="agent"
-          form={form}
-          schema={schema}
-          status={schemaState.status}
-          locked={selectsDisabled}
-        />
-
-        <RagSection
-          form={form}
-          schema={schema}
+      <div className="w-full max-w-4xl space-y-6">
+        <ConfigSchemaNotice
           status={schemaState.status}
           writable={writable}
-          locked={selectsDisabled}
-          storedApiKeyRef={agent?.rag_config?.api_key_ref ?? ''}
-          reopened={ragReopened}
-          onSettled={() => setRagReopened(false)}
+          retrying={retrying}
+          onRetry={reloadSchema}
         />
 
-        <SectionCard id="agent-tools" title={t('form.tools')} description={t('form.toolsDescription')}>
-          {availableTools.length === 0 ? (
-            <p className="text-muted-foreground">
-              {t('form.noTools')}
-            </p>
-          ) : (
-            // O erro (só do orquestrador) descreve o grupo: aria-invalid não vale em `group` (ARIA 1.2).
-            <div
-              role="group"
-              aria-labelledby="agent-tools"
-              aria-describedby="tools_ids-error"
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
-            >
-              {availableTools.map((tool) => (
-                <div
-                  key={tool.id}
-                  className="flex items-center space-x-2 p-3 border rounded-lg"
-                >
-                  <input
-                    type="checkbox"
-                    id={`tool-${tool.id}`}
-                    checked={selectedToolIds.includes(tool.id)}
-                    onChange={(e) => {
-                      // As tools ficam fora do formulário: marcar também é edição.
-                      applyStatus.clear()
-                      if (e.target.checked) {
-                        setSelectedToolIds([...selectedToolIds, tool.id])
-                      } else {
-                        setSelectedToolIds(selectedToolIds.filter(id => id !== tool.id))
-                      }
-                    }}
-                    className="w-4 h-4 accent-primary"
-                  />
-                  <Label htmlFor={`tool-${tool.id}`} className="flex-1">
-                    <div className="font-medium">{tool.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {tool.description}
-                    </div>
-                  </Label>
-                </div>
-              ))}
-            </div>
-          )}
-          <FieldError id="tools_ids-error" message={errors.tools_ids?.message} />
-        </SectionCard>
-
-        {/* Status do último Salvar (P4-01) e botões de ação. */}
-        <div>
-          <ApplyStatus
-            kind="agents"
-            result={applyStatus.result}
-            onReload={controls?.reload}
-            isDirty={review.hasChanges}
-            testNowId={agent?.active ? agent.id : undefined}
-          />
-          {unchanged && (
-            <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
-          )}
-          {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-            {agent && controls && (
-              <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-                <EntityActions
-                  kind="agents"
-                  id={agent.id}
-                  name={agent.nome}
-                  version={agent.version}
-                  active={agent.active}
-                  isDirty={review.hasChanges}
-                  disabled={loading}
-                  reactivateBody={() =>
-                    JSON.stringify(toPayload({ ...toFormValues(agent), active: true }, agent.tools_ids))
-                  }
-                  onStart={applyStatus.clear}
-                  onDeleted={onSuccess}
-                  onChanged={controls.update}
-                  onReload={controls.reload}
-                  onBusyChange={setActing}
+        {/* O erro do servidor num campo sem regra (Select, Switch, tools) não
+            sai na validação: limpo antes, ele não trava o próximo envio. */}
+        {/* noValidate: faixa e passo do número são validados pelo formulário, com
+            a mensagem do catálogo (não a bolha do navegador). */}
+        <form
+          noValidate
+          onSubmit={(event) => {
+            if (unchanged) return event.preventDefault()
+            clearErrors()
+            return handleSubmit(onSubmit, onInvalid)(event)
+          }}
+        >
+          <fieldset disabled={!writable} className="min-w-0 space-y-6">
+          <SectionCard id="agent-identity" title={t('form.basicInfo')} description={t('form.basicInfoDescription')}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="id">{t('form.id')}</Label>
+                <Input
+                  id="id"
+                  {...register('id', {
+                    required: tc('idRequired'),
+                    // Só na criação (D-QA1-06-2): o id gravado fora do padrão segue salvável.
+                    pattern: isEditing ? undefined : { value: ENTITY_ID, message: tc('idInvalid') }
+                  })}
+                  {...errorA11y('id', !!errors.id, !isEditing && 'id-help')}
+                  disabled={isEditing}
+                  placeholder={tc('example', { value: 'agent-1' })}
                 />
+                {!isEditing && (
+                  <p id="id-help" className="text-xs text-muted-foreground">
+                    {tc('idHelp')}
+                  </p>
+                )}
+                <FieldError id="id-error" message={errors.id?.message} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nome">{t('form.name')}</Label>
+                <Input
+                  id="nome"
+                  {...register('nome', { required: tc('nameRequired') })}
+                  {...errorA11y('nome', !!errors.nome)}
+                  placeholder={t('form.namePlaceholder')}
+                />
+                <FieldError id="nome-error" message={errors.nome?.message} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="descricao">{t('form.description')}</Label>
+              <TextArea
+                id="descricao"
+                {...register('descricao')}
+                {...errorA11y('descricao', !!errors.descricao)}
+                placeholder={t('form.descriptionPlaceholder')}
+              />
+              <FieldError id="descricao-error" message={errors.descricao?.message} />
+            </div>
+          </SectionCard>
+
+          <ModelSection
+            entity="agent"
+            form={form}
+            schema={schema}
+            status={schemaState.status}
+            storedApiKeyRef={agent?.api_key_ref ?? ''}
+            locked={selectsDisabled}
+          />
+
+          <SectionCard
+            id="agent-instructions"
+            title={t('form.instructions')}
+            description={t('form.instructionsDescription')}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="prompt">{t('form.systemPrompt')}</Label>
+              <TextArea
+                id="prompt"
+                {...register('prompt')}
+                {...errorA11y('prompt', !!errors.prompt)}
+                placeholder={t('form.systemPromptPlaceholder')}
+                className="min-h-44 max-h-96"
+              />
+              <FieldError id="prompt-error" message={errors.prompt?.message} />
+            </div>
+          </SectionCard>
+
+          <ExecutionSection
+            entity="agent"
+            form={form}
+            schema={schema}
+            status={schemaState.status}
+            locked={selectsDisabled}
+          />
+
+          <RagSection
+            form={form}
+            schema={schema}
+            status={schemaState.status}
+            writable={writable}
+            locked={selectsDisabled}
+            storedApiKeyRef={agent?.rag_config?.api_key_ref ?? ''}
+            reopened={ragReopened}
+            onSettled={() => setRagReopened(false)}
+          />
+
+          <SectionCard id="agent-tools" title={t('form.tools')} description={t('form.toolsDescription')}>
+            {toolsLoading || availableTools.length === 0 ? (
+              // O esqueleto tem a mesma estrutura do vazio (mesmos gaps, linhas e botão): a
+              // altura do card não muda quando as tools chegam.
+              <div
+                aria-hidden={toolsLoading || undefined}
+                className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border p-4 text-center"
+              >
+                {toolsLoading ? (
+                  <>
+                    <Skeleton className="size-5" />
+                    <Skeleton className="h-5 w-44" />
+                    <Skeleton className="h-5 w-64 max-w-full" />
+                    <Skeleton className="h-10 w-32 md:h-9" />
+                  </>
+                ) : (
+                  <>
+                    <Wrench aria-hidden="true" className="size-5 text-muted-foreground" />
+                    <p className="text-sm font-medium">{t('form.noTools')}</p>
+                    <p className="text-sm text-muted-foreground">{t('form.noToolsHint')}</p>
+                    <Button asChild variant="outline" className="h-10 md:h-9">
+                      <Link href="/tools/new">
+                        <Plus aria-hidden="true" />
+                        {t('form.createTool')}
+                      </Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : (
+              // O erro (só do orquestrador) descreve o grupo: aria-invalid não vale em `group` (ARIA 1.2).
+              <div
+                role="group"
+                aria-labelledby="agent-tools"
+                aria-describedby="tools_ids-error"
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                {availableTools.map((tool) => (
+                  <div
+                    key={tool.id}
+                    className="flex items-center space-x-2 p-3 border rounded-lg"
+                  >
+                    <input
+                      type="checkbox"
+                      id={`tool-${tool.id}`}
+                      checked={selectedToolIds.includes(tool.id)}
+                      onChange={(e) => {
+                        // As tools ficam fora do formulário: marcar também é edição.
+                        applyStatus.clear()
+                        if (e.target.checked) {
+                          setSelectedToolIds([...selectedToolIds, tool.id])
+                        } else {
+                          setSelectedToolIds(selectedToolIds.filter(id => id !== tool.id))
+                        }
+                      }}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    <Label htmlFor={`tool-${tool.id}`} className="flex-1">
+                      <div className="font-medium">{tool.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {tool.description}
+                      </div>
+                    </Label>
+                  </div>
+                ))}
               </div>
             )}
-            <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-              <Button
-                variant="outline"
-                asChild
-                className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-              >
-                <Link href="/agents" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
-                  {tc('cancel')}
-                </Link>
-              </Button>
-              <Button
-                ref={saveRef}
-                type="submit"
-                disabled={saveDisabled}
-                aria-disabled={unchanged || undefined}
-                aria-describedby={unchanged ? review.hintId : undefined}
-                className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-              >
-                <Save className="w-4 h-4" />
-                {loading ? tc('saving') : tc('save')}
-              </Button>
+            <FieldError id="tools_ids-error" message={errors.tools_ids?.message} />
+          </SectionCard>
+
+          {/* Status do último Salvar (P4-01) e botões de ação. */}
+          <div>
+            <ApplyStatus
+              kind="agents"
+              result={applyStatus.result}
+              onReload={controls?.reload}
+              isDirty={review.hasChanges}
+              testNowId={agent?.active ? agent.id : undefined}
+            />
+            {unchanged && (
+              <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
+            )}
+            {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+            <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+              {agent && controls && (
+                <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+                  <EntityActions
+                    kind="agents"
+                    id={agent.id}
+                    name={agent.nome}
+                    version={agent.version}
+                    active={agent.active}
+                    isDirty={review.hasChanges}
+                    disabled={loading}
+                    reactivateBody={() =>
+                      JSON.stringify(toPayload({ ...toFormValues(agent), active: true }, agent.tools_ids))
+                    }
+                    onStart={applyStatus.clear}
+                    onDeleted={onSuccess}
+                    onChanged={controls.update}
+                    onReload={controls.reload}
+                    onBusyChange={setActing}
+                  />
+                </div>
+              )}
+              <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+                <Button
+                  variant="outline"
+                  asChild
+                  className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                >
+                  <Link href="/agents" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                    {tc('cancel')}
+                  </Link>
+                </Button>
+                <Button
+                  ref={saveRef}
+                  type="submit"
+                  disabled={saveDisabled}
+                  aria-disabled={unchanged || undefined}
+                  aria-describedby={unchanged ? review.hintId : undefined}
+                  className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                >
+                  <Save className="w-4 h-4" />
+                  {loading ? tc('saving') : tc('save')}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-        </fieldset>
-      </form>
+          </fieldset>
+        </form>
+      </div>
       {agent && controls && (
         <ConflictDialog
           {...conflict.dialog}

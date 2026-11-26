@@ -310,3 +310,35 @@ Opções (dependência): **A) parar; o FA-08 é criado e roda no `/dev-cycle` do
 Opções (modelos): **A) manter a tabela e escrever nela a escalada da D-QA1-05-0/D-QA1-08-0 (item simples com 2+ MAJOR na 1ª revisão ⇒ correção no dev opus); `effort` do frontmatter do designer alinhado em `medium`**; B) manter sem mudança; C) revisor sonnet/high nos itens simples.
 
 Escolha: **A** e **A** (2026-11-26). O QA1-09, quando rodar, é item simples (UI: não; muda schema existente, sem rota nem módulo novo): dev sonnet/high, revisor opus/high, QA sonnet/high enxuto.
+
+## D-QA1-10-0 — Modelos do QA1-10
+
+Contexto: o QA1-10 é de layout (chips com skeleton nas três listas, mesma largura nos três formulários, diff do Histórico, card de tools vazio), sem BFF, auth nem `src/server`: simples pela regra de risco. Na revisão dos modelos pedida pelo usuário: dev sonnet com 2 e 4 MAJOR de CSS/layout na 1ª revisão (QA1-04, QA1-05) e só MINOR com a escalada (QA1-08, QA1-09); dev opus só MINOR (QA1-06, QA1-07); revisor opus pegou MAJORs reais em todos; QA e design QA sonnet acharam bugs reais (QA1-05, QA1-08).
+
+Opções: **A) simples com escalada (tabela atual): designer/DQA sonnet/medium só com spec em texto, reaproveitando o artifact; dev sonnet/high; revisor opus/high; QA sonnet/high enxuto; 2+ MAJOR na 1ª revisão ⇒ correção num dev opus novo**; B) A com dev opus/high desde o começo (layout amplo nos três formulários, como o QA1-05); C) revisor sonnet/high nos itens simples.
+
+Escolha: **A** (2026-11-26). Tabela do `/dev-cycle` sem mudança.
+
+## D-QA1-10-1 — Largura única dos formulários (#20)
+
+Contexto: Agent e Team usam `max-w-4xl`; a Tool usa `max-w-6xl` em `xl` por causa da coluna "Requisição" (21 rem), e o "Voltar" dela cai em outro x a partir de 1280 px.
+
+Opções: **A) os três em `max-w-6xl`; corpo de Agent e Team numa coluna `max-w-4xl` alinhada à esquerda (campos com a largura de hoje); Tool inalterada**; B) os três em `max-w-4xl`, com a Requisição da Tool abaixo do formulário (perde o preview lateral); C) os três em `max-w-6xl` com o corpo esticado a 1152 px (campos 29 % mais longos).
+
+Escolha: **A** (2026-11-26).
+
+## D-QA1-10-2 — "Apenas ativos" em Tools (#21)
+
+Contexto: o filtro precisa de `active` na querystring de `GET /api/tools` (hoje só `search` e `method`), mudança no contrato do BFF.
+
+Opções: **A) `active=true|false` opcional no zod da rota e em `ToolFilters`, filtrado em `src/server` como em `/api/agents`; sem mudança no orquestrador**; B) filtrar só no cliente a página carregada (inconsistente com a paginação e com Agents).
+
+Escolha: **A** (2026-11-26).
+
+## D-QA1-10-3 — Diff do Histórico (#17)
+
+Contexto: o drawer do Histórico não tem diff próprio; o de altura fixa (`max-h-[40dvh] sm:max-h-80`) é o `DiffList` do `RestoreDialog`, aberto do drawer, e o mesmo `DiffList` serve o `SaveReviewDialog`.
+
+Opções: **A) só o diff do `RestoreDialog` ocupa a altura disponível; `SaveReviewDialog` sem mudança**; B) os dois diálogos.
+
+Escolha: **A** (2026-11-26).

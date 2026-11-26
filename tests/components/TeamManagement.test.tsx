@@ -108,6 +108,19 @@ describe('TeamManagement', () => {
     await waitFor(() => expect(queries.at(-1)).toBe('?limit=100'))
   })
 
+  it('QA1-10: lista vazia mostra os 3 chips em zero, como agents e tools', async () => {
+    serveTeams([])
+    renderWithIntl(<TeamManagement />)
+
+    await screen.findByRole('heading', { name: 'O orquestrador ainda não tem teams' })
+    const region = document.querySelector('[aria-live="polite"][aria-atomic="true"]')
+    expect(Array.from(region?.children ?? []).map((chip) => chip.textContent)).toEqual([
+      '0 teams',
+      '0 ativos',
+      '0 inativos'
+    ])
+  })
+
   it('carregando mostra o status; falha mostra o erro com "Tentar de novo"', async () => {
     server.use(http.get('*/api/teams', () => HttpResponse.json({ success: false }, { status: 502 })))
     renderWithIntl(<TeamManagement />)

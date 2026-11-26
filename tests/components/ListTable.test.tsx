@@ -73,11 +73,12 @@ const page = <T,>(data: T[], total = data.length) =>
   })
 
 /** Chips de contagem: a região aria-live fica sempre montada. */
-const countChips = () => {
+const countChipElements = () => {
   const region = document.querySelector('[aria-live="polite"][aria-atomic="true"]')
   if (!region) throw new Error('região dos chips não montada')
-  return Array.from(region.children).map((chip) => chip.textContent)
+  return Array.from(region.children)
 }
+const countChips = () => countChipElements().map((chip) => chip.textContent)
 const table = () => screen.getByRole('table')
 
 describe('lista de agentes', () => {
@@ -214,7 +215,7 @@ describe('lista de agentes', () => {
     await waitFor(() => expect(countChips()).toEqual(['2 agentes']))
   })
 
-  it('V-P1-05b-5: carregando, erro, vazio e vazio do filtro sem chips', async () => {
+  it('V-P1-05b-5 (QA1-10): carregando = 3 esqueletos sem texto; erro, sem chips; vazio e vazio do filtro, 0/0/0', async () => {
     server.use(
       http.get('*/api/agents', async () => {
         await delay('infinite')
@@ -223,7 +224,8 @@ describe('lista de agentes', () => {
     )
     const { unmount } = renderWithIntl(<AgentManagement />)
     expect(await screen.findByRole('status')).toHaveTextContent('Carregando agentes…')
-    expect(countChips()).toEqual([])
+    expect(countChips()).toEqual(['', '', ''])
+    for (const skeleton of countChipElements()) expect(skeleton).toHaveAttribute('aria-hidden', 'true')
     unmount()
 
     server.use(http.get('*/api/agents', () => HttpResponse.error()))
@@ -236,10 +238,10 @@ describe('lista de agentes', () => {
     const user = userEvent.setup()
     renderWithIntl(<AgentManagement />)
     await screen.findByRole('heading', { name: 'O orquestrador ainda não tem agentes' })
-    expect(countChips()).toEqual([])
+    expect(countChips()).toEqual(['0 agentes', '0 ativos', '0 inativos'])
     await user.type(screen.getByLabelText('Buscar'), 'x')
     await screen.findByRole('heading', { name: /Nenhum agente encontrado/ })
-    expect(countChips()).toEqual([])
+    expect(countChips()).toEqual(['0 agentes', '0 ativos', '0 inativos'])
   })
 
   it('V-P1-05b-6: carregando com o cabeçalho real da tabela e 3 linhas de skeleton', async () => {

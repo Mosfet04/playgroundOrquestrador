@@ -196,6 +196,9 @@ Escopo:
 - #20: Agente, Team e Tool com a mesma largura de formulário e o "Voltar" na mesma posição (a coluna de preview da tool cabe no mesmo contêiner).
 - #17: diff do Histórico ocupa a altura disponível do drawer.
 - #25: card "Tools disponíveis" com título e estado vazio no tamanho dos outros cards e link "Criar tool".
+- Desvio (cabeçalho do formulário): a linha do "Voltar" passa de `items-center` a `items-start md:items-center` nos três formulários. Em 390 px o subtítulo de cada um quebra de um jeito e, centralizado, o "Voltar" caía em y diferente (80 contra 90 px); com `items-start` o y é o mesmo, e de `md` em diante segue centralizado como antes.
+- Desvio (pt-BR): o total dos chips ganha `=0` (`0 agentes`, `0 teams`, `0 tools`); o plural `one` do pt-BR inclui o zero e mostrava "0 agente" agora que a lista vazia também tem chips.
+- Desvio (#25): o card de tools do agente mostra um esqueleto enquanto carrega (`toolsLoading`), com a mesma estrutura do vazio (ícone, duas linhas e botão), para a altura do card não mudar quando as tools chegam; antes o vazio piscava até a resposta chegar.
 Critérios de aceite: o y de "Novo …" é o mesmo nas três listas e durante a busca; o x do "Voltar" é o mesmo nos três formulários; o diff ocupa o drawer sem scroll interno quando cabe; o estado vazio de tools tem o link.
 Testes exigidos: e2e medindo as posições; componente do estado vazio.
 

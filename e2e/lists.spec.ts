@@ -110,7 +110,7 @@ test('V-P1-05b-7: excluir tool no editor; /tools/new não tem "Excluir tool"', a
   await expect(page).toHaveURL('/tools')
   await expect(page.locator('[data-sonner-toast]').getByText('Tool excluída')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'O orquestrador ainda não tem tools' })).toBeVisible()
-  await expect(countChips(page)).toHaveCount(0)
+  await expect(countChips(page)).toHaveText(['0 tools', '0 ativas', '0 inativas'])
 })
 
 test.describe('390 px', () => {

@@ -307,6 +307,7 @@ export interface AgentFilters {
 }
 
 export interface ToolFilters {
+  active?: boolean
   method?: string
   search?: string
 }

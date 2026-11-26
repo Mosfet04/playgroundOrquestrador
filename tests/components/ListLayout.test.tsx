@@ -58,15 +58,17 @@ describe('listas', () => {
     expect(screen.queryByRole('button', { name: /filtros/i })).not.toBeInTheDocument()
   })
 
-  it('agents e teams mostram "Apenas ativos" logo abaixo da busca; tools só a busca', async () => {
-    server.use(http.get('*/api/tools', () => page([])), http.get('*/api/agents', () => page([])))
-    const { unmount } = renderWithIntl(<ToolManagement />)
-    await screen.findByLabelText('Buscar')
-    expect(screen.queryByRole('switch', { name: 'Apenas ativos' })).not.toBeInTheDocument()
-    unmount()
+  it.each([
+    ['agents', <AgentManagement key="a" />],
+    ['teams', <TeamManagement key="t" />],
+    ['tools', <ToolManagement key="o" />]
+  ])('%s: a busca e "Apenas ativos" na mesma grade de 3 colunas (QA1-10)', async (path, ui) => {
+    server.use(http.get(`*/api/${path}`, () => page([])))
+    renderWithIntl(ui)
 
-    renderWithIntl(<AgentManagement />)
-    expect(await screen.findByRole('switch', { name: 'Apenas ativos' })).toBeVisible()
+    const search = await screen.findByLabelText('Buscar')
+    expect(screen.getByRole('switch', { name: 'Apenas ativos' })).toBeVisible()
+    expect(search.closest('.grid')).toHaveClass('grid-cols-1', 'md:grid-cols-3')
   })
 })
 

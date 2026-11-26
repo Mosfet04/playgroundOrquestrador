@@ -85,7 +85,7 @@ export function AgentManagement() {
     searchRef.current?.focus()
   }
 
-  const hasContent = !loading && !loadError && agents.length > 0
+  const ready = !loading && !loadError
   const agentHref = (agent: AgentConfig) => `/agents/${encodeURIComponent(agent.id)}`
   const modelOf = (agent: AgentConfig) => `${agent.factoryIaModel}/${agent.model}`
   const head = (
@@ -117,12 +117,13 @@ export function AgentManagement() {
             <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
               {t('title')}
             </h1>
-            <p className="text-sm text-muted-foreground lg:text-base">
+            <p className="min-h-10 text-sm text-muted-foreground lg:min-h-0 lg:text-base">
               {t('subtitle')}
             </p>
             <CountChips
               namespace="agents"
-              counts={hasContent ? listCounts(agents, total, filters.active) : undefined}
+              counts={ready ? listCounts(agents, total, filters.active) : undefined}
+              loading={loading}
             />
           </div>
           <Button asChild className="w-full gap-2 lg:w-auto">

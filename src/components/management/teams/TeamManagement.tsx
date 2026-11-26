@@ -82,7 +82,7 @@ export function TeamManagement() {
     searchRef.current?.focus()
   }
 
-  const hasContent = !loading && !loadError && teams.length > 0
+  const ready = !loading && !loadError
   const teamHref = (team: TeamConfig) => `/teams/${encodeURIComponent(team.id)}`
   const modelOf = (team: TeamConfig) => `${team.factoryIaModel}/${team.model}`
   const head = (
@@ -115,12 +115,13 @@ export function TeamManagement() {
             <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
               {t('title')}
             </h1>
-            <p className="text-sm text-muted-foreground lg:text-base">
+            <p className="min-h-10 text-sm text-muted-foreground lg:min-h-0 lg:text-base">
               {t('subtitle')}
             </p>
             <CountChips
               namespace="teams"
-              counts={hasContent ? listCounts(teams, total, filters.active) : undefined}
+              counts={ready ? listCounts(teams, total, filters.active) : undefined}
+              loading={loading}
             />
           </div>
           <Button asChild className="w-full gap-2 lg:w-auto">

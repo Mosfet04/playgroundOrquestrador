@@ -150,3 +150,22 @@ test.describe('temperature com vírgula decimal (agent existente)', () => {
     expect(puts).toEqual([])
   })
 })
+
+test('QA1-10: "Criar tool" no card de tools vazio passa pelo aviso de rascunho e leva a /tools/new', async ({ page }) => {
+  await page.route(/\/api\/tools(\?.*)?$/, (route) =>
+    route.fulfill({ json: { success: true, data: { data: [], total: 0, page: 1, limit: 100, totalPages: 1 } } })
+  )
+  await openNewAgent(page)
+  const create = page.getByRole('link', { name: 'Criar tool' })
+  await expect(create).toHaveAttribute('href', '/tools/new')
+  await nameField(page).fill('Rascunho')
+
+  await create.click()
+  await expect(draftDialog(page)).toBeVisible()
+  await keep(page).click()
+  await expect(page).toHaveURL('/agents/new')
+
+  await create.click()
+  await discard(page).click()
+  await expect(page).toHaveURL('/tools/new')
+})

@@ -299,9 +299,9 @@ export function ToolForm({ tool, controls, onSuccess }: ToolFormProps) {
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl space-y-6 p-6 xl:max-w-6xl">
+      <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
         {/* Header */}
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-start gap-4 md:items-center">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/tools">
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />

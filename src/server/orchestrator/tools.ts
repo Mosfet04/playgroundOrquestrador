@@ -75,7 +75,7 @@ export type ToolInput = {
   active?: boolean
 }
 
-export type ToolFilters = { search?: string; method?: string }
+export type ToolFilters = { search?: string; method?: string; active?: boolean }
 
 const toTool = ({ instructions, headers, ...doc }: ToolDocument): Tool => ({
   ...doc,
@@ -129,6 +129,7 @@ export async function listTools(filters: ToolFilters, page: number, limit: numbe
     .filter(
       (tool) =>
         (!method || tool.http_method.toUpperCase() === method) &&
+        (filters.active === undefined || tool.active === filters.active) &&
         matchesSearch(filters.search, [tool.name, tool.description, tool.id])
     )
     .map(toTool)
