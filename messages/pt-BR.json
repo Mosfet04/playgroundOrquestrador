@@ -670,7 +670,7 @@
     "activity": "Atividade por tempo",
     "activityDescription": "Distribuição de sessões ao longo do tempo",
     "sessionsByType": "Sessões por tipo",
-    "sessionsByTypeDescription": "Distribuição de sessões entre agentes e teams",
+    "sessionsByTypeDescription": "Distribuição das sessões por tipo",
     "agentSessions": "Sessões de agente",
     "teamSessions": "Sessões de team"
   },

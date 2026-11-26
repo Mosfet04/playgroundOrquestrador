@@ -670,7 +670,7 @@
     "activity": "Activity over time",
     "activityDescription": "Session distribution over time",
     "sessionsByType": "Sessions by type",
-    "sessionsByTypeDescription": "Session distribution between agents and teams",
+    "sessionsByTypeDescription": "Session distribution by type",
     "agentSessions": "Agent sessions",
     "teamSessions": "Team sessions"
   },

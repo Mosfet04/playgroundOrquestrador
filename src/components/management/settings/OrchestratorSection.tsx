@@ -114,6 +114,7 @@ function HealthFacts({ runtime }: { runtime: Extract<RuntimeState, { status: 're
   const tc = useTranslations('common')
   const format = useFormatter()
   const { responseTimeMs } = runtime.health
+  const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const facts = [
     [t('revision'), runtime.revision],
     [
@@ -122,7 +123,8 @@ function HealthFacts({ runtime }: { runtime: Extract<RuntimeState, { status: 're
         ? tc('notAvailable')
         : t('responseTimeValue', { value: format.number(responseTimeMs, { maximumFractionDigits: 1 }) })
     ],
-    [t('readAt'), format.dateTime(runtime.readAt, { timeStyle: 'medium' })]
+    // Relógio do navegador (como o Histórico e as listas), não o fuso do servidor.
+    [t('readAt'), format.dateTime(runtime.readAt, { timeStyle: 'medium', timeZone: browserTimeZone })]
   ] as const
 
   return (

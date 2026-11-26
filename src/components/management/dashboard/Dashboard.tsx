@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -30,6 +30,7 @@ import {
   Database,
   Clock
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { DASHBOARD_PERIODS, DashboardStats } from '@/types/dashboard'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomTooltip = ({ active, payload, label, labelFormatter }: any) => {
@@ -73,15 +74,32 @@ const DAY_FORMAT = { day: 'numeric', month: 'short', timeZone: 'UTC' } as const
 type LoadError = { status?: number }
 
 // Gráfico sem pontos: texto na mesma altura, sem eixos vazios (V-P1-05-9).
-function ChartEmpty({ height }: { height: number }) {
+function ChartEmpty({ className }: { className: string }) {
   const t = useTranslations('dashboard')
   return (
-    <div
-      style={{ height }}
-      className="flex flex-col items-center justify-center gap-1 text-center"
-    >
+    <div className={cn('flex flex-col items-center justify-center gap-1 text-center', className)}>
       <p className="text-base font-semibold">{t('noData')}</p>
       <p className="max-w-[40ch] text-sm text-muted-foreground">{t('noDataHint')}</p>
+    </div>
+  )
+}
+
+// Corpo do gráfico na altura final. O ResponsiveContainer mede 0 px no 1º frame:
+// até a primeira medida, um skeleton da mesma altura cobre o corpo (nunca em branco).
+function ChartFrame({ height, children }: { height: number; children: ReactElement }) {
+  const [measured, setMeasured] = useState(false)
+  return (
+    <div className="relative" style={{ height }}>
+      {!measured && <Skeleton className="absolute inset-0" />}
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        onResize={(width) => {
+          if (width > 0) setMeasured(true)
+        }}
+      >
+        {children}
+      </ResponsiveContainer>
     </div>
   )
 }
@@ -140,30 +158,54 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl p-6">
-        <div aria-busy="true" className="space-y-4">
-          <LiveStatus>
-            <span className="sr-only">{t('loading')}</span>
-          </LiveStatus>
-          <Skeleton className="h-8 w-1/4" />
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            {[0, 1, 2, 3].map((key) => (
-              <Skeleton key={key} className="h-32" />
-            ))}
+      <div className="relative mx-auto max-w-7xl p-6">
+        <div aria-busy="true">
+          {/* Fora do fluxo (no padding): o indicador não empurra o esqueleto. */}
+          <div className="absolute left-6 top-2">
+            <LiveStatus>
+              <span className="sr-only">{t('loading')}</span>
+            </LiveStatus>
           </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Skeleton className="h-[300px]" />
-            <Skeleton className="h-[300px]" />
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="mb-1 h-7 w-40" />
+                <Skeleton className="h-6 w-72 max-w-full max-sm:h-12" />
+              </div>
+              <Skeleton className="h-10 w-48" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((key) => (
+                <Skeleton key={key} className="h-[130px]" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {[0, 1].map((key) => (
+                <Skeleton key={key} className="h-[164px]" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Skeleton className="h-[370px]" />
+              <Skeleton className="h-[370px] max-sm:h-[394px]" />
+            </div>
           </div>
         </div>
       </div>
     )
   }
 
+  // Só as séries com valor no período: a zerada não vira fatia, ponto nem legenda.
   const sessionsByType = [
-    { name: t('agentSessions'), value: stats?.totalAgentSessions ?? 0, fill: CHART.series1 },
-    { name: t('teamSessions'), value: stats?.totalTeamSessions ?? 0, fill: CHART.series2 }
+    { key: 'agent', name: t('agentSessions'), value: stats?.totalAgentSessions ?? 0, fill: CHART.series1 },
+    { key: 'team', name: t('teamSessions'), value: stats?.totalTeamSessions ?? 0, fill: CHART.series2 }
+  ].filter((slice) => slice.value > 0)
+  const activity = stats?.activityOverTime ?? []
+  const activityCandidates: { key: 'agentSessions' | 'teamSessions'; name: string; color: string }[] = [
+    { key: 'agentSessions', name: t('agentSessions'), color: CHART.series1 },
+    { key: 'teamSessions', name: t('teamSessions'), color: CHART.series2 }
   ]
+  const activitySeries = activityCandidates.filter(({ key }) => activity.some((point) => (point[key] ?? 0) > 0))
+  const singlePoint = activity.length === 1
 
   return (
     <div>
@@ -345,28 +387,37 @@ export function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {stats.activityOverTime.length === 0 ? (
-                <ChartEmpty height={250} />
+              {activitySeries.length === 0 ? (
+                <ChartEmpty className="h-[250px]" />
               ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={stats.activityOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="time" tickFormatter={formatDay} {...AXIS_PROPS} />
-                  <YAxis
-                    allowDecimals={false}
-                    tickFormatter={formatNumber}
-                    {...AXIS_PROPS}
-                  />
-                  <Tooltip
-                    content={<CustomTooltip />}
-                    cursor={{ stroke: CHART.grid }}
-                    labelFormatter={(time) => formatDay(String(time))}
-                  />
-                  <Legend />
-                  <Area type="monotone" dataKey="agentSessions" stackId="1" stroke={CHART.series1} fill={CHART.series1} fillOpacity={0.6} name={t('agentSessions')} />
-                  <Area type="monotone" dataKey="teamSessions" stackId="1" stroke={CHART.series2} fill={CHART.series2} fillOpacity={0.6} name={t('teamSessions')} />
-                </AreaChart>
-              </ResponsiveContainer>
+                <ChartFrame height={250}>
+                  <AreaChart data={activity}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                    <XAxis dataKey="time" tickFormatter={formatDay} {...AXIS_PROPS} />
+                    <YAxis width="auto" allowDecimals={false} tickFormatter={formatNumber} {...AXIS_PROPS} />
+                    <Tooltip
+                      content={<CustomTooltip />}
+                      cursor={{ stroke: CHART.grid }}
+                      labelFormatter={(time) => formatDay(String(time))}
+                    />
+                    <Legend />
+                    {activitySeries.map(({ key, name, color }) => (
+                      <Area
+                        key={key}
+                        type="monotone"
+                        dataKey={key}
+                        stackId="1"
+                        stroke={color}
+                        fill={color}
+                        fillOpacity={0.6}
+                        name={name}
+                        // Com 1 ponto a área não tem segmento: o ponto na cor da série é o que se vê.
+                        dot={singlePoint ? { r: 4, fill: color, fillOpacity: 1, stroke: CHART.surface, strokeWidth: 2 } : false}
+                        activeDot={{ r: 4 }}
+                      />
+                    ))}
+                  </AreaChart>
+                </ChartFrame>
               )}
             </CardContent>
           </Card>
@@ -382,30 +433,49 @@ export function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {stats.totalAgentSessions + stats.totalTeamSessions === 0 ? (
-                <ChartEmpty height={250} />
+              {sessionsByType.length === 0 ? (
+                <ChartEmpty className="h-[250px] max-sm:h-[274px]" />
               ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={sessionsByType}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    stroke={CHART.surface}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${format.number(Number(value))}`}
+                <>
+                  {/* Bloco de 250 px (274 no celular, onde a legenda de 2 itens quebra em 2
+                      linhas): a mesma altura do estado vazio e do esqueleto (V12). */}
+                  <ChartFrame height={220}>
+                    <PieChart>
+                      <Pie
+                        data={sessionsByType}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={90}
+                        paddingAngle={sessionsByType.length > 1 ? 2 : 0}
+                        stroke={CHART.surface}
+                        dataKey="value"
+                      >
+                        {sessionsByType.map((slice) => (
+                          <Cell key={slice.key} fill={slice.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ChartFrame>
+                  <ul
+                    aria-label={t('sessionsByType')}
+                    className="mt-2.5 flex min-h-[44px] flex-wrap content-start justify-center gap-x-4 gap-y-1 text-sm sm:min-h-0"
                   >
-                    {sessionsByType.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    {sessionsByType.map((slice) => (
+                      <li key={slice.key} className="flex items-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          className="h-3 w-3 shrink-0 rounded-full"
+                          style={{ background: slice.fill }}
+                        />
+                        <span>
+                          {slice.name}: <span className="font-mono tabular-nums">{format.number(slice.value)}</span>
+                        </span>
+                      </li>
                     ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+                  </ul>
+                </>
               )}
             </CardContent>
           </Card>

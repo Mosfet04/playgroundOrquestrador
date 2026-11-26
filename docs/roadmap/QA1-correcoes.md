@@ -169,6 +169,9 @@ Escopo:
 - Donut "Sessões por tipo": legenda no lugar dos rótulos externos; fatias com 0 escondidas; sem card vazio na primeira pintura.
 - Linha "Atividade por tempo": a série com valor desenhada por cima; cores pelos tokens de gráfico ([0009](../decisions/0009-tokens-tema-graficos-e-tamanho.md)).
 - `/settings` "Lido em" no fuso do navegador, como o Histórico.
+- Desvio (esqueleto, alturas): fixadas pelo estado carregado do fake (1 modelo e 1 embedder por card: 130 / 164 / 370 px; no celular o 2º gráfico e o subtítulo têm a própria altura). Não renderizamos os `Card` reais no carregamento (título e descrição i18n + `Skeleton` só nos dados): exigiria um placeholder por dado em 8 cards ou extrair componentes de card, mais código que 8 linhas de `Skeleton`. A altura do card de modelos cresce com o número de modelos reais, então o salto some só quando coincide com o fake. O indicador "Carregando" saiu do fluxo (absoluto no padding) para não empurrar o esqueleto.
+- Desvio (V12, donut): o bloco do donut tem 250 px (274 no celular, com a legenda reservada para 2 linhas) com dados, com 1 item e vazio; `sessionsByTypeDescription` ficou "Distribuição das sessões por tipo" (D-QA1-08-4 = A), sem "team" no card.
+- Desvio (linha sem valor): pontos só com 0 nas duas séries mostram "Sem dados no período", como a lista vazia (antes: eixos sem traço).
 Critérios de aceite: nenhum rótulo cortado em 1367 px e 390 px; 0 sessões de team ⇒ sem fatia e sem rótulo de team; 1 sessão de agente e 0 de team ⇒ o ponto visível tem a cor da série agente; "Lido em" bate com o relógio local (teste com `TZ=America/Sao_Paulo`).
 Testes exigidos: componente dos gráficos com dados de uma série zerada; unit/componente do horário com fuso fixo; screenshot no design QA.
 

@@ -260,3 +260,43 @@ Contexto: o design QA passou de V1 a V9 e no V11. O V10 falhou só no 422: o err
 Opções: **A) aceitar: o erro do grupo pode crescer o slot, porque só aparece depois de Salvar e leva o foco e a rolagem até ele; o V10 é emendado; o título "Valor" fica**; B) reservar a altura do slot do erro do grupo (40 px em 1367, 60 px em 390) e esconder o título com tudo em Segredo.
 
 Escolha: **A** (2026-11-25). O design QA vira PASS com a emenda.
+
+## D-QA1-08-0 — Modelos do QA1-08
+
+Contexto: o item é simples pela regra de risco (dashboard e horário do `/settings`; sem estado assíncrono, auth, BFF nem `src/server`). Com o dev sonnet, a 1ª revisão trouxe 2 MAJOR (QA1-04) e 4 MAJOR (QA1-05), todos de CSS ou layout, pegos pelo revisor opus. Com o dev opus, QA1-06 e QA1-07 passaram só com MINOR.
+
+Opções: **A) simples com escalada: designer/DQA sonnet/medium só com spec em texto, reaproveitando o artifact existente; dev sonnet/high; revisor opus/high; QA sonnet/high enxuto; 2+ MAJOR na 1ª revisão ⇒ dev opus na correção**; B) A com dev opus/high desde o começo; C) a tabela atual, sem escalada.
+
+Escolha: **A** (2026-11-25). Item pequeno e localizado: o revisor opus segura a qualidade, e uma rodada extra de delta custa menos que um dev opus do começo ao fim.
+
+## D-QA1-08-1 — Legenda do donut "Sessões por tipo" (#11)
+
+Contexto: os rótulos externos do donut ficam cortados em 1367 px e 390 px e saem do gráfico.
+
+Opções: **A) legenda HTML própria abaixo do donut, centralizada, igual em desktop e mobile**; B) à direita em lg+ e abaixo no mobile; C) `<Legend/>` nativa do recharts.
+
+Escolha: **A** (2026-11-25).
+
+## D-QA1-08-2 — Série zerada na "Atividade por tempo" (#11)
+
+Contexto: a série de team, com valor 0, é desenhada por último e cobre o traço do agente, e a cor parece trocada.
+
+Opções: **A) série sem valor no período não é desenhada nem entra na legenda, como no donut**; B) desenhar por baixo e manter na legenda.
+
+Escolha: **A** (2026-11-25).
+
+## D-QA1-08-3 — Formato do "Lido em" (#12)
+
+Contexto: o "Lido em" do `/settings` herda o fuso do servidor; o Histórico usa o do navegador.
+
+Opções: **A) só trocar para o fuso do navegador, mantendo a hora com segundos (`timeStyle: 'medium'`)**; B) igual ao Histórico (data média + hora curta); C) data curta + hora com segundos.
+
+Escolha: **A** (2026-11-25).
+
+## D-QA1-08-4 — Descrição do card "Sessões por tipo" (revisão do QA1-08)
+
+Contexto: a V2 diz que, com 0 sessões de team, o texto "team" não aparece no card; a descrição estática é "Distribuição de sessões entre agentes e teams".
+
+Opções: **A) texto neutro na chave existente: "Distribuição das sessões por tipo" / "Session distribution by type"**; B) manter, lendo a V2 só como dado de série.
+
+Escolha: **A** (2026-11-25).
