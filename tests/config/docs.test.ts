@@ -9,7 +9,9 @@ import { describe, expect, it } from 'vitest'
 const root = process.cwd()
 const read = (file: string) => readFileSync(resolve(root, file), 'utf8')
 
-const readme = read('README.md')
+// O README.md é a porta de entrada; o guia completo fica em README.pt-br.md e README.en.md.
+const READMES = ['README.md', 'README.pt-br.md', 'README.en.md']
+const readme = READMES.map(read).join('\n')
 const contributing = read('CONTRIBUTING.md')
 const pkg = JSON.parse(read('package.json')) as { dependencies: Record<string, string> }
 const catalogs = [read('messages/pt-BR.json'), read('messages/en.json')]
@@ -21,7 +23,7 @@ describe('os três docs apagados (D-P1-05-3)', () => {
     expect(existsSync(resolve(root, file))).toBe(false)
   })
 
-  it.each(['README.md', 'CONTRIBUTING.md', 'CLAUDE.md'])('%s não aponta para eles', (file) => {
+  it.each([...READMES, 'CONTRIBUTING.md', 'CLAUDE.md'])('%s não aponta para eles', (file) => {
     const text = read(file)
     for (const name of DELETED) expect(text, `${file} cita ${name}`).not.toContain(name)
   })
@@ -83,14 +85,17 @@ describe('README e textos de UI sem as promessas falsas', () => {
   })
 })
 
-describe('links relativos do README e do CONTRIBUTING', () => {
+describe('links relativos dos READMEs e do CONTRIBUTING', () => {
   const links = (file: string, text: string) =>
     [...text.matchAll(/\]\((?!https?:|#|mailto:)([^)\s]+)\)/g)].map((m) => ({
       file,
       target: m[1].split('#')[0]
     }))
 
-  const all = [...links('README.md', readme), ...links('CONTRIBUTING.md', contributing)]
+  const all = [
+    ...READMES.flatMap((file) => links(file, read(file))),
+    ...links('CONTRIBUTING.md', contributing)
+  ]
 
   it('há links para conferir', () => {
     expect(all.length).toBeGreaterThan(3)
