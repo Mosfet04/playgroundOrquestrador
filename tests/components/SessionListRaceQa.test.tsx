@@ -47,8 +47,8 @@ describe('lista de sessões: dois cliques com o GET do primeiro lento', () => {
         HttpResponse.json({
           success: true,
           data: [
-            { session_id: 'session-a1', title: 'Conversa A', created_at: 1 },
-            { session_id: 'session-b2', title: 'Conversa B', created_at: 2 }
+            { session_id: 'session-a1', title: 'Conversa A', updated_at: 1 },
+            { session_id: 'session-b2', title: 'Conversa B', updated_at: 2 }
           ]
         })
       ),

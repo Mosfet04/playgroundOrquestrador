@@ -50,7 +50,7 @@ const renderPlayground = (url: string) => {
 }
 
 describe('painel de sessões, pela página', () => {
-  it('agente sem storage (agent-2): link "storage" em nova aba, sem erro, sem toast e sem pedir /sessions', async () => {
+  it('agente sem storage (agent-2): link "armazenamento" em nova aba, sem erro, sem toast e sem pedir /sessions', async () => {
     const sessionCalls: string[] = []
     server.use(
       http.get(`${BFF}/sessions`, ({ request }) => {
@@ -60,11 +60,11 @@ describe('painel de sessões, pela página', () => {
     )
     renderPlayground('/playground?agent=agent-2')
 
-    const link = await screen.findByRole('link', { name: 'storage' })
+    const link = await screen.findByRole('link', { name: 'armazenamento' })
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
     expect(link.closest('p')).toHaveTextContent(
-      'Conecte um storage ao agente para ver as sessões.'
+      'Conecte um armazenamento ao agente para ver as sessões.'
     )
     expect(screen.queryByText('Não foi possível carregar as sessões')).not.toBeInTheDocument()
     expect(screen.queryByText('Nenhuma sessão ainda', { exact: false })).not.toBeInTheDocument()
@@ -84,7 +84,7 @@ describe('painel de sessões, pela página', () => {
     renderPlayground('/playground?agent=agent-1')
 
     expect(await screen.findByText(/Nenhuma sessão ainda/)).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'storage' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'armazenamento' })).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -93,7 +93,7 @@ describe('painel de sessões, pela página', () => {
 
     expect(await screen.findByText('Primeira conversa')).toBeInTheDocument()
     expect(screen.queryByText(/Nenhuma sessão ainda/)).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'storage' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'armazenamento' })).not.toBeInTheDocument()
   })
 
   // P2-03: a URL manda no modo. O modo Team que ficou em memória não esconde

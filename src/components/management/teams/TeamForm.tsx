@@ -10,6 +10,7 @@ import { ArrowLeft, Save } from 'lucide-react'
 import { useApplyRevision } from '@/components/layout/RuntimeRevision'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ENTITY_ID } from '@/lib/entityId'
 import { boolRow } from '@/lib/formDiff'
 import { referencePrefixes } from '@/lib/secretRef'
 import { Input } from '@/components/ui/input'
@@ -21,10 +22,11 @@ import { ConfigSchemaNotice } from '../common/ConfigSchemaNotice'
 import { applyFailure, errorBody, type ApplyResult } from '../common/applyResult'
 import { ApplyStatus, useApplyStatus, useAppliedText } from '../common/ApplyStatus'
 import { ConflictDialog } from '../common/ConflictDialog'
+import { DraftGuard } from '../common/DraftGuard'
 import { EntityActions } from '../common/EntityActions'
 import type { EntityControls } from '../common/EntityLoader'
 import { ExecutionSection } from '../common/ExecutionSection'
-import { FieldError } from '../common/FieldError'
+import { errorA11y, FieldError } from '../common/FieldError'
 import { ModelSection } from '../common/ModelSection'
 import { rejectedField } from '../common/rejectedField'
 import { SectionCard } from '../common/SectionCard'
@@ -32,6 +34,7 @@ import { useConfigSchema } from '../common/useConfigSchema'
 import { useRequestError } from '../common/useRequestError'
 import { NoChangesHint, SaveReviewDialog } from '../common/SaveReviewDialog'
 import { useSaveConflict, type OverwriteOutcome } from '../common/useSaveConflict'
+import { useDraftBaseline } from '../common/useDraftBaseline'
 import { useSaveReview } from '../common/useSaveReview'
 import { VersionHistory } from '../common/VersionHistory'
 import { MembersSection } from './MembersSection'
@@ -67,9 +70,10 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
 
   const form = useForm<TeamFormValues>({ defaultValues: toFormValues(team) })
   const applyStatus = useApplyStatus(form, saveRef)
+  const { setDefault, changed: draftChanged } = useDraftBaseline(form)
   const applyRevision = useApplyRevision()
   const appliedText = useAppliedText()
-  const { register, handleSubmit, setValue, getValues, setError, setFocus, clearErrors, control } = form
+  const { register, handleSubmit, getValues, setError, setFocus, clearErrors, control } = form
   const { errors } = form.formState
 
   // Opções do orquestrador (P3-01): sem schema os selects ficam desabilitados;
@@ -85,10 +89,10 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
   useEffect(() => {
     if (!schema || isEditing) return
     if (!schema.chatProviders.some(({ name }) => name === getValues('factoryIaModel')))
-      setValue('factoryIaModel', schema.chatProviders[0]?.name ?? '')
+      setDefault('factoryIaModel', schema.chatProviders[0]?.name ?? '')
     if (!schema.team.modes.includes(getValues('mode')))
-      setValue('mode', schema.team.modes[0] ?? '')
-  }, [schema, isEditing, getValues, setValue])
+      setDefault('mode', schema.team.modes[0] ?? '')
+  }, [schema, isEditing, getValues, setDefault])
 
   // Campo de execução ausente (team novo ou sem o campo) vale o default do
   // schema (`team`).
@@ -98,8 +102,8 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
       ['markdown', schema.team.markdown],
       ['add_history_to_context', schema.team.addHistoryToContext]
     ] as const
-    for (const [field, value] of flags) if (getValues(field) === undefined) setValue(field, value)
-  }, [schema, getValues, setValue])
+    for (const [field, value] of flags) if (getValues(field) === undefined) setDefault(field, value)
+  }, [schema, getValues, setDefault])
 
   // Erro do orquestrador no campo recusado, sem o valor. `member_ids` e `mode`
   // levam o foco ao 1º membro marcado e ao cartão marcado; `model_params` é um
@@ -254,10 +258,14 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
     else await submit(data)
   }
 
+  // Rascunho (D-QA1-06-4): na edição, o que o Salvar mudaria; na criação, o que
+  // difere do formulário aberto sem tocar.
+  const hasDraft = () => (team ? review.hasChanges : draftChanged())
+
   return (
     <div>
-      <div className="mx-auto max-w-4xl space-y-6 p-6">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
+        <div className="flex flex-wrap items-start gap-4 md:items-center">
           <Button variant="ghost" asChild className="gap-2">
             <Link href="/teams">
               <ArrowLeft className="size-4" aria-hidden="true" />
@@ -306,197 +314,212 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
           )}
         </div>
 
-        <ConfigSchemaNotice
-          status={schemaState.status}
-          writable={writable}
-          retrying={retrying}
-          onRetry={reloadSchema}
-        />
-
-        {/* O erro do servidor num campo sem regra (Select, Switch) não sai na
-            validação: limpo antes, ele não trava o próximo envio. */}
-        <form
-          noValidate
-          className="space-y-6"
-          onSubmit={(event) => {
-            if (unchanged) return event.preventDefault()
-            clearErrors()
-            return handleSubmit(onSubmit)(event)
-          }}
-        >
-          <fieldset disabled={!writable} className="min-w-0">
-            <SectionCard
-              id="team-identity"
-              title={t('form.basicInfo')}
-              description={t('form.basicInfoDescription')}
-            >
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="id">{t('form.id')}</Label>
-                  <Input
-                    id="id"
-                    {...register('id', { required: tc('idRequired') })}
-                    disabled={isEditing}
-                    placeholder={tc('example', { value: 'team-1' })}
-                  />
-                  <FieldError message={errors.id?.message} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="nome">{t('form.name')}</Label>
-                  <Input
-                    id="nome"
-                    {...register('nome', { required: tc('nameRequired') })}
-                    placeholder={t('form.namePlaceholder')}
-                  />
-                  <FieldError message={errors.nome?.message} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="descricao">{t('form.description')}</Label>
-                <TextArea
-                  id="descricao"
-                  {...register('descricao')}
-                  placeholder={t('form.descriptionPlaceholder')}
-                />
-                <FieldError message={errors.descricao?.message} />
-              </div>
-            </SectionCard>
-          </fieldset>
-
-          {/* Fora do fieldset: a busca de membros segue utilizável com a config
-              só leitura (não é campo do documento); marcar fica desabilitado. */}
-          <Controller
-            control={control}
-            name="member_ids"
-            rules={{ validate: (ids) => ids.length > 0 || t('form.membersRequired') }}
-            render={({ field }) => (
-              <MembersSection
-                agents={members.state}
-                selected={field.value}
-                onChange={field.onChange}
-                error={errors.member_ids?.message}
-                locked={!writable}
-                firstRef={field.ref}
-                groupRef={membersRef}
-                onRetry={members.reload}
-              />
-            )}
+        <div className="w-full max-w-4xl space-y-6">
+          <ConfigSchemaNotice
+            status={schemaState.status}
+            writable={writable}
+            retrying={retrying}
+            onRetry={reloadSchema}
           />
 
-          <fieldset disabled={!writable} className="min-w-0 space-y-6">
+          {/* O erro do servidor num campo sem regra (Select, Switch) não sai na
+              validação: limpo antes, ele não trava o próximo envio. */}
+          <form
+            noValidate
+            className="space-y-6"
+            onSubmit={(event) => {
+              if (unchanged) return event.preventDefault()
+              clearErrors()
+              return handleSubmit(onSubmit)(event)
+            }}
+          >
+            <fieldset disabled={!writable} className="min-w-0">
+              <SectionCard
+                id="team-identity"
+                title={t('form.basicInfo')}
+                description={t('form.basicInfoDescription')}
+              >
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="id">{t('form.id')}</Label>
+                    <Input
+                      id="id"
+                      {...register('id', {
+                        required: tc('idRequired'),
+                        // Só na criação (D-QA1-06-2): o id gravado fora do padrão segue salvável.
+                        pattern: isEditing ? undefined : { value: ENTITY_ID, message: tc('idInvalid') }
+                      })}
+                      {...errorA11y('id', !!errors.id, !isEditing && 'id-help')}
+                      disabled={isEditing}
+                      placeholder={tc('example', { value: 'team-1' })}
+                    />
+                    {!isEditing && (
+                      <p id="id-help" className="text-xs text-muted-foreground">
+                        {tc('idHelp')}
+                      </p>
+                    )}
+                    <FieldError id="id-error" message={errors.id?.message} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nome">{t('form.name')}</Label>
+                    <Input
+                      id="nome"
+                      {...register('nome', { required: tc('nameRequired') })}
+                      {...errorA11y('nome', !!errors.nome)}
+                      placeholder={t('form.namePlaceholder')}
+                    />
+                    <FieldError id="nome-error" message={errors.nome?.message} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="descricao">{t('form.description')}</Label>
+                  <TextArea
+                    id="descricao"
+                    {...register('descricao')}
+                    {...errorA11y('descricao', !!errors.descricao)}
+                    placeholder={t('form.descriptionPlaceholder')}
+                  />
+                  <FieldError id="descricao-error" message={errors.descricao?.message} />
+                </div>
+              </SectionCard>
+            </fieldset>
+
+            {/* Fora do fieldset: a busca de membros segue utilizável com a config
+                só leitura (não é campo do documento); marcar fica desabilitado. */}
             <Controller
               control={control}
-              name="mode"
+              name="member_ids"
+              rules={{ validate: (ids) => ids.length > 0 || t('form.membersRequired') }}
               render={({ field }) => (
-                <ModeSection
-                  modes={schema?.team.modes}
-                  status={schemaState.status}
-                  value={field.value}
+                <MembersSection
+                  agents={members.state}
+                  selected={field.value}
                   onChange={field.onChange}
-                  error={errors.mode?.message}
-                  locked={selectsDisabled}
-                  groupRef={modeRef}
+                  error={errors.member_ids?.message}
+                  locked={!writable}
+                  firstRef={field.ref}
+                  groupRef={membersRef}
+                  onRetry={members.reload}
                 />
               )}
             />
 
-            <ModelSection
-              entity="team"
-              form={form}
-              schema={schema}
-              status={schemaState.status}
-              storedApiKeyRef={team?.api_key_ref ?? ''}
-              locked={selectsDisabled}
-            />
-
-            <SectionCard
-              id="team-instructions"
-              title={t('form.instructions')}
-              description={t('form.instructionsDescription')}
-            >
-              <div className="space-y-2">
-                <Label htmlFor="prompt">{t('form.systemPrompt')}</Label>
-                <TextArea
-                  id="prompt"
-                  {...register('prompt')}
-                  placeholder={t('form.systemPromptPlaceholder')}
-                  className="min-h-44 max-h-96"
-                />
-                <FieldError message={errors.prompt?.message} />
-              </div>
-            </SectionCard>
-
-            <ExecutionSection
-              entity="team"
-              form={form}
-              schema={schema}
-              status={schemaState.status}
-              locked={selectsDisabled}
-            />
-
-            {/* Status do último Salvar (P4-01) e botões de ação. */}
-            <div>
-              <ApplyStatus
-                kind="teams"
-                result={applyStatus.result}
-                onReload={controls?.reload}
-                isDirty={review.hasChanges}
-                testNowId={team?.active ? team.id : undefined}
-              />
-              {unchanged && (
-                <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
-              )}
-              {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
-              <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-                {team && controls && (
-                  <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
-                    <EntityActions
-                      kind="teams"
-                      id={team.id}
-                      name={team.nome}
-                      version={team.version}
-                      active={team.active}
-                      isDirty={review.hasChanges}
-                      disabled={loading}
-                      reactivateBody={() =>
-                        JSON.stringify(toPayload({ ...toFormValues(team), active: true }))
-                      }
-                      onStart={applyStatus.clear}
-                      onDeleted={onSuccess}
-                      onChanged={controls.update}
-                      onReload={controls.reload}
-                      onBusyChange={setActing}
-                    />
-                  </div>
+            <fieldset disabled={!writable} className="min-w-0 space-y-6">
+              <Controller
+                control={control}
+                name="mode"
+                render={({ field }) => (
+                  <ModeSection
+                    modes={schema?.team.modes}
+                    status={schemaState.status}
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.mode?.message}
+                    locked={selectsDisabled}
+                    groupRef={modeRef}
+                  />
                 )}
-                <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
-                  <Button
-                    variant="outline"
-                    asChild
-                    className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-                  >
-                    <Link href="/teams" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
-                      {tc('cancel')}
-                    </Link>
-                  </Button>
-                  <Button
-                    ref={saveRef}
-                    type="submit"
-                    disabled={saveDisabled}
-                    aria-disabled={unchanged || undefined}
-                    aria-describedby={unchanged ? review.hintId : undefined}
-                    className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
-                  >
-                    <Save className="size-4" aria-hidden="true" />
-                    {loading ? tc('saving') : tc('save')}
-                  </Button>
+              />
+
+              <ModelSection
+                entity="team"
+                form={form}
+                schema={schema}
+                status={schemaState.status}
+                storedApiKeyRef={team?.api_key_ref ?? ''}
+                locked={selectsDisabled}
+              />
+
+              <SectionCard
+                id="team-instructions"
+                title={t('form.instructions')}
+                description={t('form.instructionsDescription')}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="prompt">{t('form.systemPrompt')}</Label>
+                  <TextArea
+                    id="prompt"
+                    {...register('prompt')}
+                    {...errorA11y('prompt', !!errors.prompt)}
+                    placeholder={t('form.systemPromptPlaceholder')}
+                    className="min-h-44 max-h-96"
+                  />
+                  <FieldError id="prompt-error" message={errors.prompt?.message} />
+                </div>
+              </SectionCard>
+
+              <ExecutionSection
+                entity="team"
+                form={form}
+                schema={schema}
+                status={schemaState.status}
+                locked={selectsDisabled}
+              />
+
+              {/* Status do último Salvar (P4-01) e botões de ação. */}
+              <div>
+                <ApplyStatus
+                  kind="teams"
+                  result={applyStatus.result}
+                  onReload={controls?.reload}
+                  isDirty={review.hasChanges}
+                  testNowId={team?.active ? team.id : undefined}
+                />
+                {unchanged && (
+                  <NoChangesHint id={review.hintId} quiet={applyStatus.result?.status === 'applied'} />
+                )}
+                {/* Abaixo de sm: Salvar, Cancelar e, depois de uma divisória, Excluir. */}
+                <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  {team && controls && (
+                    <div className="border-t border-border pt-4 sm:border-0 sm:pt-0">
+                      <EntityActions
+                        kind="teams"
+                        id={team.id}
+                        name={team.nome}
+                        version={team.version}
+                        active={team.active}
+                        isDirty={review.hasChanges}
+                        disabled={loading}
+                        reactivateBody={() =>
+                          JSON.stringify(toPayload({ ...toFormValues(team), active: true }))
+                        }
+                        onStart={applyStatus.clear}
+                        onDeleted={onSuccess}
+                        onChanged={controls.update}
+                        onReload={controls.reload}
+                        onBusyChange={setActing}
+                      />
+                    </div>
+                  )}
+                  <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:gap-4">
+                    <Button
+                      variant="outline"
+                      asChild
+                      className="h-10 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                    >
+                      <Link href="/teams" aria-disabled={acting} tabIndex={acting ? -1 : undefined}>
+                        {tc('cancel')}
+                      </Link>
+                    </Button>
+                    <Button
+                      ref={saveRef}
+                      type="submit"
+                      disabled={saveDisabled}
+                      aria-disabled={unchanged || undefined}
+                      aria-describedby={unchanged ? review.hintId : undefined}
+                      className="h-10 gap-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-9"
+                    >
+                      <Save className="size-4" aria-hidden="true" />
+                      {loading ? tc('saving') : tc('save')}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </fieldset>
-        </form>
+            </fieldset>
+          </form>
+        </div>
         {team && controls && (
           <ConflictDialog
             {...conflict.dialog}
@@ -507,6 +530,8 @@ export function TeamForm({ team, controls, onSuccess }: TeamFormProps) {
           />
         )}
         {review.dialog && <SaveReviewDialog {...review.dialog} saving={loading} saveRef={saveRef} />}
+        {/* Com o diálogo do 412 aberto a saída é dele (não empilha com o aviso). */}
+        <DraftGuard hasDraft={hasDraft} paused={conflict.dialog.state.status !== 'closed'} />
       </div>
     </div>
   )

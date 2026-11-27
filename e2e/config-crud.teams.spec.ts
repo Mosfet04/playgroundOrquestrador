@@ -27,7 +27,7 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
   // O total muda com os agents que o CRUD de agents cria em paralelo.
   await expect(page.getByText(/^2 de \d+ selecionados$/)).toBeVisible()
   await page.getByRole('radio', { name: 'coordinate' }).check()
-  await page.getByLabel('Prompt do líder').fill('Coordene os membros.')
+  await page.getByLabel('Instruções do líder').fill('Coordene os membros.')
   await page.getByRole('switch', { name: 'Resumo da sessão' }).click()
   await page.getByRole('button', { name: 'Salvar' }).click()
 
@@ -44,13 +44,17 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
     mode: 'coordinate',
     markdown: true,
     add_history_to_context: true,
-    user_memory_active: true,
+    // Sem tocar na memória (D-QA1-06-3).
+    user_memory_active: false,
     summary_active: true,
     version: 1
   })
   const row = page.getByRole('row', { name: /Team do e2e/ })
   await expect(row).toContainText('coordinate')
-  await expect(row).toContainText('ollama/fake-model')
+  await expect(row).toContainText('Ollama · fake-model')
+  // QA1-09 (QA): o team recém-criado mostra a data do save na lista.
+  const saved = await row.locator('time').getAttribute('datetime')
+  expect(Math.abs(Date.now() - Date.parse(saved ?? ''))).toBeLessThan(60_000)
 
   // Reabre com os mesmos valores.
   await page.getByRole('link', { name: 'Team do e2e' }).first().click()
@@ -61,7 +65,7 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
   await expect(page.getByRole('checkbox', { name: /Agente Beta/ })).toBeChecked()
   await expect(page.getByRole('checkbox', { name: /Agente Gama/ })).not.toBeChecked()
   await expect(page.getByRole('radio', { name: 'coordinate' })).toBeChecked()
-  await expect(page.getByLabel('Prompt do líder')).toHaveValue('Coordene os membros.')
+  await expect(page.getByLabel('Instruções do líder')).toHaveValue('Coordene os membros.')
   await expect(page.getByRole('switch', { name: 'Resumo da sessão' })).toBeChecked()
 
   // Edita: tira um membro, troca o modo e o nome.
@@ -94,7 +98,7 @@ test('cria, reabre, edita e exclui um team pelo fake', async ({ page }) => {
   await expect(page.getByText(`Orquestrador online, revisão ${runtimeRevision}`, { exact: true })).toBeAttached()
   await expect(page).toHaveURL(`/teams/${id}`)
   await page.getByRole('button', { name: 'Excluir team' }).click()
-  await expect(page.getByRole('dialog')).toContainText('Os agents membros não são excluídos.')
+  await expect(page.getByRole('dialog')).toContainText('Os agentes membros não são excluídos.')
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click()
 
   await expect(page.getByText('Team excluído')).toBeVisible()
@@ -123,7 +127,7 @@ test('sem membro o form não envia; o orquestrador recusa um membro inexistente 
   })
   await page.goto('/teams/time-config')
   await hydrated(page)
-  await expect(page.getByText(/Este agent não existe mais/)).toBeVisible()
+  await expect(page.getByText(/Este agente não existe mais/)).toBeVisible()
 
   // Sem nenhum membro o form não envia nada.
   await page.getByRole('checkbox', { name: /Agente Gama/ }).uncheck()
@@ -136,7 +140,7 @@ test('sem membro o form não envia; o orquestrador recusa um membro inexistente 
   // Recarregado, o id inexistente volta: o PUT segue e o orquestrador o recusa.
   await page.reload()
   await hydrated(page)
-  await expect(page.getByText(/Este agent não existe mais/)).toBeVisible()
+  await expect(page.getByText(/Este agente não existe mais/)).toBeVisible()
   await page.getByLabel('Descrição', { exact: true }).fill('Recusada pelo membro inexistente')
   await saveAndConfirm(page)
 

@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { routePlaceholders } from '@/lib/toolRoute'
 import type { DefaultKind } from '@/lib/toolDefault'
 import type { ConfigSchema } from '@/types/management'
-import { FieldError } from '../common/FieldError'
+import { errorA11y, FieldError } from '../common/FieldError'
 import { SectionCard } from '../common/SectionCard'
 import { withCurrent } from '../common/useConfigSchema'
 import { InfoNote } from './InfoNote'
@@ -68,7 +68,7 @@ export function ParametersSection({
           type="button"
           variant="outline"
           size="sm"
-          className="h-10 w-full md:h-8 md:w-auto"
+          className="h-10 w-full md:h-9 md:w-auto"
           onClick={() => {
             append({
               name: '',
@@ -118,16 +118,10 @@ export function ParametersSection({
                     </div>
                     <Input
                       id={id('name')}
-                      className="font-mono md:h-9"
+                      className="font-mono"
                       autoComplete="off"
                       spellCheck={false}
-                      aria-invalid={nameError || rejected ? true : undefined}
-                      aria-describedby={
-                        [rejected ? id('rejected') : '', nameError ? id('name-error') : '']
-                          .filter(Boolean)
-                          .join(' ') || undefined
-                      }
-                      variant={nameError ? 'destructive' : undefined}
+                      {...errorA11y(id('name'), !!(nameError || rejected), rejected && id('rejected'))}
                       {...register(`parameters.${index}.name`, { required: tc('nameRequired') })}
                       placeholder={t('parameterNamePlaceholder')}
                     />
@@ -143,7 +137,7 @@ export function ParametersSection({
                       disabled={locked}
                       onValueChange={(value) => setValue(`parameters.${index}.type`, value)}
                     >
-                      <SelectTrigger id={id('type')} className="h-10 font-mono md:h-9">
+                      <SelectTrigger id={id('type')} className="font-mono">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -185,10 +179,7 @@ export function ParametersSection({
                     <Label htmlFor={id('description')}>{t('parameterDescription')}</Label>
                     <Input
                       id={id('description')}
-                      className="md:h-9"
-                      aria-invalid={descriptionError ? true : undefined}
-                      aria-describedby={descriptionError ? id('description-error') : undefined}
-                      variant={descriptionError ? 'destructive' : undefined}
+                      {...errorA11y(id('description'), !!descriptionError)}
                       {...register(`parameters.${index}.description`, {
                         required: tc('descriptionRequired')
                       })}
@@ -210,7 +201,7 @@ export function ParametersSection({
                         <SelectTrigger
                           id={id('default')}
                           aria-describedby="default-note"
-                          className="h-10 font-mono md:h-9"
+                          className="font-mono"
                         >
                           <SelectValue />
                         </SelectTrigger>
@@ -226,12 +217,10 @@ export function ParametersSection({
                     ) : (
                       <Input
                         id={id('default')}
-                        className="font-mono md:h-9"
+                        className="font-mono"
                         autoComplete="off"
                         spellCheck={false}
-                        aria-invalid={defaultError ? true : undefined}
-                        aria-describedby={`default-note${defaultError ? ` ${id('default-error')}` : ''}`}
-                        variant={defaultError ? 'destructive' : undefined}
+                        {...errorA11y(id('default'), !!defaultError, 'default-note')}
                         {...register(`parameters.${index}.default_text`)}
                         placeholder={t(`defaultPlaceholder.${exampleKey(row.type)}`)}
                       />
@@ -242,6 +231,9 @@ export function ParametersSection({
                     />
                   </div>
 
+                  {/* Na linha do Input do nome, não no fim da célula (o slot de erro fica
+                      abaixo dele): rótulo (`min-h-6`) + `space-y-2` = 32 px; no celular o
+                      botão (44 px) sobe 4 px para fechar embaixo com o Input (40 px). */}
                   <Button
                     type="button"
                     variant="ghost"
@@ -250,7 +242,7 @@ export function ParametersSection({
                         ? t('removeParameterUnnamed', { index: position })
                         : t('removeParameter', { name: row.name })
                     }
-                    className="col-start-2 row-start-1 size-11 self-end p-0 text-muted-foreground md:col-start-4 md:row-start-1 md:size-9 md:self-end"
+                    className="col-start-2 row-start-1 mt-7 size-11 self-start p-0 text-muted-foreground md:col-start-4 md:row-start-1 md:mt-8 md:size-9"
                     onClick={() => {
                       remove(index)
                       requestFocus(

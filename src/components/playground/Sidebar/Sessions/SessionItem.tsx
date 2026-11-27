@@ -14,12 +14,12 @@ import { cn, focusRing } from '@/lib/utils'
 
 // Horário da sessão: hoje HH:mm, ontem "ontem", antes dd/MM no idioma. No fuso
 // do navegador: a lista só renderiza no cliente (sem risco de hidratação).
-// Data inválida (created_at ausente ou fora de faixa): sem horário.
-function useSessionTime(createdAt: number) {
+// Data inválida (updated_at ausente ou fora de faixa): sem horário.
+function useSessionTime(updatedAt: number) {
   const format = useFormatter()
   const t = useTranslations('playground')
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const date = new Date(createdAt * 1000)
+  const date = new Date(updatedAt * 1000)
   if (Number.isNaN(date.getTime())) return ''
   const day = (value: Date) =>
     format.dateTime(value, { year: 'numeric', month: '2-digit', day: '2-digit', timeZone })
@@ -38,7 +38,7 @@ type SessionItemProps = SessionEntry & {
 const SessionItem = ({
   title,
   session_id,
-  created_at,
+  updated_at,
   isSelected,
   currentSessionId,
   onSessionClick
@@ -46,14 +46,14 @@ const SessionItem = ({
   const [agentId] = useQueryState('agent')
   const [teamId] = useQueryState('team')
   const [, setSessionId] = useQueryState('session')
-  const { getSession } = useSessionLoader()
-  const { setSessionsData, mode } = usePlaygroundStore()
+  const { getSession, removeSession } = useSessionLoader()
+  const { mode } = usePlaygroundStore()
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const { clearChat } = useChatActions()
   const t = useTranslations('playground')
   const tc = useTranslations('common')
-  const time = useSessionTime(created_at)
+  const time = useSessionTime(updated_at)
 
   const handleGetSession = async () => {
     if (!(agentId || teamId)) return
@@ -82,9 +82,7 @@ const SessionItem = ({
     setIsDeleting(true)
     try {
       await deletePlaygroundSessionAPI(session_id)
-      setSessionsData(
-        (prev) => prev?.filter((s) => s.session_id !== session_id) ?? null
-      )
+      removeSession(session_id)
       // If the deleted session was the active one, clear the chat
       if (currentSessionId === session_id) {
         setSessionId(null)

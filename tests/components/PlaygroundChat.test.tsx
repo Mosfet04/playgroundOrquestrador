@@ -150,7 +150,8 @@ describe('resposta do agente', () => {
     expect(text).toHaveClass('text-base', 'leading-6')
     expect(text.className).not.toMatch(/tracking-|text-\[0\.875rem\]/)
     expect(screen.getByText('1,4 s · 812 tokens')).toHaveClass('font-mono', 'text-muted-foreground')
-    expect(screen.getByText('Qual o prazo?')).toHaveClass('bg-primary-soft')
+    // QA1-03: a bolha do usuário leva o markdown dentro.
+    expect(screen.getByText('Qual o prazo?').closest('.bg-primary-soft')).not.toBeNull()
   })
 
   it('markdown: lista em 16/24; negrito, ênfase e link herdam o tamanho do bloco', () => {
@@ -230,9 +231,8 @@ describe('indicador de stream', () => {
       agentMessage({ content: '', streamingError: true, metrics: { duration: 1 } })
     ])
 
-    expect(
-      screen.getByText('Algo deu errado durante a resposta. Sem resposta do servidor.')
-    ).toHaveClass('text-destructive')
+    expect(screen.getByRole('alert')).toHaveTextContent('Sem resposta do servidor.')
+    expect(screen.getByRole('alert')).toHaveClass('text-destructive')
     expect(container.querySelector('.stream-caret')).toBeNull()
     expect(screen.queryByText('gerando')).not.toBeInTheDocument()
     expect(screen.queryByText('1,0 s')).not.toBeInTheDocument()
@@ -246,9 +246,7 @@ describe('indicador de stream', () => {
     ])
 
     const partial = screen.getByText('Texto parcial')
-    const error = screen.getByText(
-      'Algo deu errado durante a resposta. A resposta foi interrompida antes do fim.'
-    )
+    const error = screen.getByText('A resposta foi interrompida antes do fim.')
     expect(partial.compareDocumentPosition(error) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(container.querySelector('.stream-caret')).toBeNull()
     expect(screen.queryByText('1,0 s')).not.toBeInTheDocument()
@@ -371,7 +369,7 @@ describe('composer', () => {
     renderComposer()
 
     const textbox = screen.getByRole('textbox', { name: 'Mensagem para Assistente' })
-    expect(textbox).toHaveAttribute('placeholder', 'Escreva uma mensagem para Assistente')
+    expect(textbox).toHaveAttribute('placeholder', 'Mensagem para Assistente')
     expect(screen.getByText('para').parentElement).toHaveTextContent('para agent-1')
     expect(screen.getByText('Enter envia · Shift+Enter quebra linha')).toBeInTheDocument()
     expect(
@@ -388,6 +386,19 @@ describe('composer', () => {
     expect(textbox).toBeEnabled()
   })
 
+  it('nome longo: o placeholder corta em 24 caracteres e o rótulo guarda o nome inteiro', () => {
+    const name = 'Assistente de relacionamento com o cliente'
+    usePlaygroundStore.setState({
+      isOrchestratorActive: true,
+      isOrchestratorLoading: false,
+      agents: [{ value: 'agent-1', label: name, model: { provider: 'OpenAI', model: 'gpt-4o' } }]
+    })
+    renderComposer()
+
+    const textbox = screen.getByRole('textbox', { name: `Mensagem para ${name}` })
+    expect(textbox).toHaveAttribute('placeholder', 'Mensagem para Assistente de relacionam…')
+  })
+
   it.each([
     [
       'offline',
@@ -398,7 +409,7 @@ describe('composer', () => {
     [
       'conectando',
       { isOrchestratorActive: false, isOrchestratorLoading: true },
-      'Escreva uma mensagem para agent-1',
+      'Mensagem para agent-1',
       'Enviar mensagem (orquestrador desconectado)'
     ]
   ])('%s: textarea desabilitado, sem o chip "para"', (_, state, placeholder, send) => {

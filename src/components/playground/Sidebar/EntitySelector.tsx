@@ -15,10 +15,11 @@ import { useTranslations } from 'next-intl'
 import { useEffect } from 'react'
 import useChatActions from '@/hooks/useChatActions'
 import { EntityAvatar } from '@/components/playground/EntityAvatar'
+import { ProviderModel } from '@/components/management/common/ProviderModel'
 import { cn, focusRing } from '@/lib/utils'
 
 // Cartão da entidade (docs/design/P1-06.md): o trigger do Select com avatar,
-// nome e provider/modelo; o trigger do Radix direto, porque o do shadcn
+// nome e provedor · modelo; o trigger do Radix direto, porque o do shadcn
 // fixa o ícone de seta para baixo e não as setas do cartão.
 export function EntitySelector() {
   const {
@@ -81,9 +82,7 @@ export function EntitySelector() {
   const isEmpty = currentEntities.length === 0
   const selected = currentEntities.find((item) => item.value === currentValue)
   const name = selected ? selected.label || selected.value : ''
-  const providerModel = selected
-    ? [selected.model.provider, selected.model.model].filter(Boolean).join('/')
-    : ''
+  const hasProviderModel = !!(selected?.model.provider || selected?.model.model)
   const emptyText = mode === 'team' ? t('noTeams') : t('noAgents')
 
   return (
@@ -100,8 +99,12 @@ export function EntitySelector() {
               : t('entityAgent', { name })
             : undefined
         }
+        // O SelectValue (Radix 2.1.5) não repassa `className` ao span: o
+        // `min-w-0` da cadeia, sem o qual o `truncate` não corta, vai por
+        // seletor de filho, como no SelectTrigger do shadcn. Ele também fixa
+        // `pointer-events: none`: os textos com `title` o desfazem para o hover.
         className={cn(
-          'flex min-h-14 w-full items-center gap-3 rounded-lg border border-border bg-background p-3 text-left text-sm text-foreground data-[placeholder]:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
+          'flex min-h-14 w-full min-w-0 items-center gap-3 [&>span]:min-w-0 [&>span]:flex-1 [&>span]:overflow-hidden rounded-lg border border-border bg-background p-3 text-left text-sm text-foreground data-[placeholder]:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
           focusRing
         )}
       >
@@ -110,11 +113,15 @@ export function EntitySelector() {
             <span className="flex min-w-0 items-center gap-3">
               <EntityAvatar name={selected.label} id={selected.value} />
               <span className="flex min-w-0 flex-col">
-                <span className="truncate font-medium">{name}</span>
-                {providerModel && (
-                  <span className="truncate font-mono text-xs text-muted-foreground">
-                    {providerModel}
-                  </span>
+                <span className="pointer-events-auto truncate font-medium" title={name}>
+                  {name}
+                </span>
+                {hasProviderModel && (
+                  <ProviderModel
+                    provider={selected.model.provider}
+                    model={selected.model.model}
+                    className="pointer-events-auto text-xs text-muted-foreground"
+                  />
                 )}
               </span>
             </span>
@@ -124,17 +131,23 @@ export function EntitySelector() {
           <ChevronsUpDown aria-hidden="true" className="ml-auto size-4 shrink-0 text-muted-foreground" />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
-      <SelectContent>
+      <SelectContent className="max-w-[min(var(--radix-select-trigger-width),calc(100vw-2rem))]">
         {currentEntities.map((entity, index) => (
           <SelectItem
-            className="cursor-pointer"
+            // O ItemText do Radix não repassa `className`: o `min-w-0` que deixa o
+            // nome encolher e cortar vai por seletor de filho.
+            className="cursor-pointer [&>span:last-child]:min-w-0"
             key={`${entity.value}-${index}`}
             value={entity.value}
           >
-            <span className="flex items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2">
               <EntityAvatar name={entity.label} id={entity.value} className="size-5" />
-              <span>{entity.label}</span>
-              <span className="font-mono text-xs text-muted-foreground">{entity.value}</span>
+              <span className="truncate" title={entity.label}>
+                {entity.label}
+              </span>
+              <span className="max-w-[40%] truncate font-mono text-xs text-muted-foreground">
+                {entity.value}
+              </span>
             </span>
           </SelectItem>
         ))}

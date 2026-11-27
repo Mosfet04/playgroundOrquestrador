@@ -204,7 +204,7 @@ describe('/playground: área da conversa', () => {
       )
     ).toBeInTheDocument()
     await waitFor(() =>
-      expect(screen.getByPlaceholderText('Escreva uma mensagem para Assistente')).toBeEnabled()
+      expect(screen.getByPlaceholderText('Mensagem para Assistente')).toBeEnabled()
     )
   })
 
@@ -254,7 +254,7 @@ describe('/playground: painel de sessões', () => {
     // O EntitySelector foca o composer (setTimeout + rAF): espera esse foco
     // chegar antes do clique, senão ele rouba o foco do botão sob carga (R8).
     await waitFor(() =>
-      expect(screen.getByPlaceholderText('Escreva uma mensagem para Assistente')).toHaveFocus()
+      expect(screen.getByPlaceholderText('Mensagem para Assistente')).toHaveFocus()
     )
     let release: () => void = () => undefined
     server.use(
@@ -294,7 +294,7 @@ describe('/playground: painel de sessões', () => {
     usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false, agents: agentsFixture })
     blank('?agent=agent-1')
 
-    const link = screen.getByRole('link', { name: 'storage' })
+    const link = screen.getByRole('link', { name: 'armazenamento' })
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })

@@ -12,8 +12,19 @@ const optionalNumber = z.number().optional().catch(undefined)
 const toolSchema = z.looseObject({
   metrics: z.object({ duration: optionalNumber }).optional().catch(undefined)
 })
+// Erro do run já classificado e saneado pelo BFF (QA1-03); fora disso, o
+// handler o trata como `other`, sem detalhe.
+const runFailureSchema = z.union([
+  z.object({
+    kind: z.literal('invalidParam'),
+    param: z.string().min(1),
+    detail: z.string().optional()
+  }),
+  z.object({ kind: z.enum(['overloaded', 'other']), detail: z.string().optional() })
+])
 const runEventSchema = z.looseObject({
   event: z.string(),
+  error: runFailureSchema.optional().catch(undefined),
   session_id: z.string().optional().catch(undefined),
   created_at: optionalNumber,
   tool: toolSchema.optional().catch(undefined),
@@ -117,7 +128,9 @@ function parseBuffer(
 // usuário (AG3-02); o corpo só tem o código, nunca o detalhe do orquestrador.
 const sessionNotOwnedSchema = z.object({ error: z.literal('session_not_owned') })
 
-async function failureKind(response: Response): Promise<StreamingError['kind']> {
+async function failureKind(
+  response: Response
+): Promise<'unavailable' | 'sessionNotOwned' | 'runError'> {
   if ([503, 504].includes(response.status)) return 'unavailable'
   const notOwned =
     response.status === 404 &&

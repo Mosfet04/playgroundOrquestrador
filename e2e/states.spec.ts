@@ -137,7 +137,7 @@ test('/playground com o orquestrador fora (V-P2-03-2): erro sem endereço, compo
   fakeUp = true
   await alert.getByRole('button', { name: 'Tentar de novo' }).click()
   await expect(page.getByRole('heading', { name: /^Converse com / })).toBeVisible()
-  await expect(page.getByPlaceholder('Escreva uma mensagem para Agente Alfa')).toBeEnabled()
+  await expect(page.getByPlaceholder('Mensagem para Agente Alfa')).toBeEnabled()
 })
 
 test('/playground com a lista do BFF em 502 (V-P2-03-3): chip "código 502"', async ({ page }) => {

@@ -212,7 +212,7 @@ describe('Sheet do histórico', () => {
     expect(time).toHaveAttribute('title', '2026-11-14T17:32:00.000Z (UTC)')
     expect(within(v7Row.getByRole('group', { name: 'Campos alterados' })).getAllByText(/.+/).map((chip) => chip.textContent)).toEqual([
       'Modelo',
-      'Prompt do sistema'
+      'Instruções do sistema'
     ])
     expect(v7Row.getByRole('button', { name: 'Restaurar a v7' })).toBeVisible()
 
@@ -429,7 +429,7 @@ describe('restaurar: confirmação', () => {
       'Nome',
       'Descrição',
       'Modelo',
-      'Prompt do sistema',
+      'Instruções do sistema',
       'Ativo'
     ])
     const active = list.getByText('Ativo').closest('li')!

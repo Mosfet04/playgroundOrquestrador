@@ -85,7 +85,7 @@ describe('Settings: leitura', () => {
     renderSettings()
 
     expect(screen.getByRole('heading', { level: 1, name: 'Configurações' })).toBeInTheDocument()
-    for (const name of ['Orquestrador', 'Config store', 'Provedores de chat', 'Provedores de embedder'])
+    for (const name of ['Orquestrador', 'Armazenamento da configuração', 'Provedores de chat', 'Provedores de embedding'])
       expect(section(name)).toHaveAttribute('aria-busy', 'true')
     expect(liveRegion()).toBeEmptyDOMElement()
 
@@ -116,7 +116,7 @@ describe('Settings: leitura', () => {
     ])
     expect(within(orchestrator).queryByRole('status')).not.toBeInTheDocument()
 
-    const store = await findSection('Config store')
+    const store = await findSection('Armazenamento da configuração')
     expect(within(store).getByText('Gravável')).toBeInTheDocument()
     expect(store).toHaveTextContent('Agentes, teams e tools são salvos pela API Admin e aplicados a quente.')
 
@@ -127,8 +127,8 @@ describe('Settings: leitura', () => {
     expect(within(rows[0]).getByText('ollama')).toHaveClass('font-mono')
     expect(within(rows[0]).getAllByText(/^(temperature|top_p|stop)$/)).toHaveLength(3)
     expect(within(rows[0]).getByText('Padrão do provedor')).toBeInTheDocument()
-    expect(within(rows[3]).getByText('Exige base URL')).toBeInTheDocument()
-    expect(within(section('Provedores de embedder')).getAllByRole('row')).toHaveLength(4)
+    expect(within(rows[3]).getByText('Exige URL base')).toBeInTheDocument()
+    expect(within(section('Provedores de embedding')).getAllByRole('row')).toHaveLength(4)
 
     expect(indicator()).toHaveAccessibleName('Orquestrador online, revisão 7')
     expect(calls).toEqual({ health: 1, schema: 1, reload: 0 })
@@ -171,7 +171,7 @@ describe('Settings: leitura', () => {
     expect(telemetry).toHaveTextContent('Opcional. Nenhum provedor de telemetria definido.')
     expect(indicator()).toHaveAccessibleName('Orquestrador degradado, revisão 28')
 
-    const store = await findSection('Config store')
+    const store = await findSection('Armazenamento da configuração')
     expect(within(store).getByText('Somente leitura')).toHaveClass('text-warning')
     expect(store).toHaveTextContent(
       'A configuração vem de arquivo YAML. Salvar e restaurar pela interface não estão disponíveis. Depois de editar o arquivo, use Recarregar runtime para aplicar.'
@@ -219,8 +219,8 @@ describe('Settings: leitura', () => {
     expect(within(chat).getByText('0')).toBeInTheDocument()
     expect(within(chat).queryByRole('table')).not.toBeInTheDocument()
     expect(
-      within(section('Provedores de embedder')).getByText(
-        'Nenhum provedor de embedder disponível neste orquestrador.'
+      within(section('Provedores de embedding')).getByText(
+        'Nenhum provedor de embedding disponível neste orquestrador.'
       )
     ).toBeInTheDocument()
   })
@@ -240,7 +240,7 @@ describe('Settings: leitura', () => {
     )
     expect(alert).toHaveTextContent('unreachable')
     expect(within(orchestrator).queryByRole('button', { name: 'Recarregar runtime' })).not.toBeInTheDocument()
-    expect(await findSection('Config store')).toHaveTextContent('Gravável')
+    expect(await findSection('Armazenamento da configuração')).toHaveTextContent('Gravável')
     expect(indicator()).toHaveAccessibleName('Orquestrador fora do ar')
 
     up = true
@@ -260,9 +260,9 @@ describe('Settings: leitura', () => {
     const user = userEvent.setup()
     renderSettings()
 
-    const schema = await findSection('Config store e provedores')
+    const schema = await findSection('Armazenamento da configuração e provedores')
     const alert = within(schema).getByRole('alert')
-    expect(alert).toHaveTextContent('Não foi possível ler os provedores e o config store.')
+    expect(alert).toHaveTextContent('Não foi possível ler os provedores e o armazenamento da configuração.')
     expect(alert).toHaveTextContent('SCHEMA_UNAVAILABLE')
     expect(screen.queryByRole('region', { name: 'Provedores de chat' })).not.toBeInTheDocument()
     expect(await within(header(section('Orquestrador'))).findByText('Saudável')).toBeInTheDocument()
@@ -298,7 +298,7 @@ describe('Settings: leitura', () => {
 
     await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(2))
     expect(section('Orquestrador')).toHaveTextContent('unreachable')
-    expect(section('Config store e provedores')).toHaveTextContent('SCHEMA_UNAVAILABLE')
+    expect(section('Armazenamento da configuração e provedores')).toHaveTextContent('SCHEMA_UNAVAILABLE')
     expect(indicator()).toHaveAccessibleName('Orquestrador fora do ar')
     expect(screen.getByRole('heading', { level: 1, name: 'Configurações' })).toBeInTheDocument()
   })
@@ -354,7 +354,7 @@ describe('Settings: recarregar runtime', () => {
     const { user, dialog } = await openDialog()
 
     expect(dialog).toHaveAccessibleDescription(
-      'Relê a configuração do store e troca o runtime em execução. Use depois de editar o arquivo YAML. Se a nova configuração não montar, nada é alterado.'
+      'Relê a configuração do armazenamento e troca o runtime em execução. Use depois de editar o arquivo YAML. Se a nova configuração não montar, nada é alterado.'
     )
     expect(dialog).toHaveTextContent('Revisão em vigor: 7')
     expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus()

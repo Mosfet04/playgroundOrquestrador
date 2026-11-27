@@ -152,6 +152,41 @@ describe('GET /api/tools', () => {
     expect(literal.data.data.map((t: { id: string }) => t.id)).toEqual(['literal'])
     expect(post.data.data.map((t: { id: string }) => t.id)).toEqual(['cep'])
   })
+
+  it('filtra por status com active=true|false e o total é o do filtro (QA1-10)', async () => {
+    serveList([...list, doc({ id: 'velha', name: 'Velha', active: false, version: 1 })])
+
+    const active = await (await GET(new NextRequest(`${API}?active=true`))).json()
+    const inactive = await (await GET(new NextRequest(`${API}?active=false`))).json()
+    const all = await (await GET(new NextRequest(API))).json()
+
+    expect(active.data.data.map((t: { id: string }) => t.id)).toEqual(['clima', 'cep', 'literal'])
+    expect(active.data.total).toBe(3)
+    expect(inactive.data.data.map((t: { id: string }) => t.id)).toEqual(['velha'])
+    expect(inactive.data.total).toBe(1)
+    expect(all.data.total).toBe(4)
+  })
+
+  it('operador na query string não vira filtro de status (a inativa segue na lista)', async () => {
+    // Com uma inativa na massa, ignorar a chave ($ne) e filtrá-la dão totais diferentes.
+    serveList([...list, doc({ id: 'velha', name: 'Velha', active: false, version: 1 })])
+
+    const response = await GET(new NextRequest(`${API}?active[$ne]=true`))
+
+    const body = await response.json()
+    expect(response.status).toBe(200)
+    expect(body.data.total).toBe(4)
+    expect(body.data.data.map((t: { id: string }) => t.id)).toContain('velha')
+  })
+
+  it('active inválido ⇒ 400 sem chamar o orquestrador', async () => {
+    serveList(list)
+
+    const response = await GET(new NextRequest(`${API}?active=talvez`))
+
+    expect(response.status).toBe(400)
+    expect(seen).toEqual([])
+  })
 })
 
 describe('GET /api/tools/[id]', () => {
@@ -306,6 +341,20 @@ describe('POST /api/tools', () => {
     const text = await response.text()
     expect(JSON.parse(text)).toEqual({ success: false, error: 'invalid_config', field: formField })
     expect(text).not.toMatch(/VALOR-SECRETO|detalhe-interno/)
+  })
+
+  // QA1-07 (#10): o cenário do relatório. A referência vai ao orquestrador como
+  // veio (válida pela regra dele); o 422 `headers` é dele, por host não confiável.
+  it('Authorization com env:QA_TOKEN_API_KEY vai como veio; o 422 `headers` volta no grupo', async () => {
+    serve('post', '/admin/config/tools', refusal(422, { detail: LEAK, field: 'headers' }))
+    const headers = { Authorization: 'env:QA_TOKEN_API_KEY' }
+
+    const response = await POST(
+      jsonRequest(API, 'POST', { ...formBody, route: 'https://api.exemplo.com/anything', headers })
+    )
+
+    expect((seen[0].body as { headers: unknown }).headers).toEqual(headers)
+    expect(await response.json()).toEqual({ success: false, error: 'invalid_config', field: 'headers' })
   })
 
   it('422 em parameters sem posição ⇒ sem campo', async () => {

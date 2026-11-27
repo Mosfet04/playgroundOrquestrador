@@ -67,7 +67,7 @@ describe('toasts de mídia e de exclusão', () => {
     server.use(http.delete(`${BFF}/sessions/:id`, () => HttpResponse.error()))
     usePlaygroundStore.setState({
       mode: 'agent',
-      sessionsData: [{ session_id: 's1', title: 'Minha sessão', created_at: 1 }]
+      sessionsData: [{ session_id: 's1', title: 'Minha sessão', updated_at: 1 }]
     })
     const user = userEvent.setup()
     renderWithIntl(
@@ -75,7 +75,7 @@ describe('toasts de mídia e de exclusão', () => {
         <SessionItem
           session_id="s1"
           title="Minha sessão"
-          created_at={1}
+          updated_at={1}
           isSelected={false}
           currentSessionId={null}
           onSessionClick={() => undefined}

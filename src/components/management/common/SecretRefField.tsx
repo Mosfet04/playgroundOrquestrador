@@ -2,7 +2,6 @@
 
 import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react'
 import { useTranslations } from 'next-intl'
-import { CircleAlert } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,6 +17,7 @@ import {
   type SecretParts
 } from '@/lib/secretRef'
 import { cn } from '@/lib/utils'
+import { FieldError } from './FieldError'
 import { FieldWarning } from './FieldWarning'
 import { withCurrent } from './useConfigSchema'
 
@@ -113,7 +113,8 @@ export function SecretRefPair({
   invalid,
   describedBy,
   nameSuffix,
-  focusRef
+  focusRef,
+  onBlur
 }: {
   id: string
   model: SecretModel
@@ -126,6 +127,8 @@ export function SecretRefPair({
   nameSuffix?: string
   // Foco do campo para o formulário (erro): no formato se o erro é dele.
   focusRef?: Ref<SecretFocus>
+  // Saída do alvo: os headers mostram o erro do valor depois de tocar (QA1-07).
+  onBlur?: () => void
 }) {
   const t = useTranslations('secretRef')
   const formatRef = useRef<HTMLButtonElement | null>(null)
@@ -161,10 +164,7 @@ export function SecretRefPair({
             id={`${id}-format`}
             aria-label={`${t('format')}${suffix}`}
             aria-invalid={invalid || undefined}
-            className={cn(
-              'h-10 w-[92px] shrink-0 rounded-r-none bg-muted font-mono',
-              invalid && 'border-destructive'
-            )}
+            className="w-[92px] shrink-0 rounded-r-none bg-muted font-mono"
           >
             <SelectValue placeholder={t('format')} />
           </SelectTrigger>
@@ -190,9 +190,9 @@ export function SecretRefPair({
           aria-label={`${targetLabel}${suffix}`}
           aria-describedby={describedBy}
           aria-invalid={invalid || undefined}
-          variant={invalid ? 'destructive' : undefined}
-          className="rounded-l-none border-l-0 font-mono"
+          className="min-w-0 flex-1 rounded-l-none border-l-0 font-mono"
           onChange={(event) => model.changeTarget(event.target.value)}
+          onBlur={onBlur}
         />
       </div>
       <span role="status" className="sr-only">
@@ -292,9 +292,7 @@ export function SecretRefField({
         prefixes={prefixes}
         disabled={locked}
         invalid={!!error}
-        describedBy={[outId, helpId, error ? errorId : '', warning ? warningId : '']
-          .filter(Boolean)
-          .join(' ')}
+        describedBy={[outId, helpId, warning ? warningId : '', errorId].filter(Boolean).join(' ')}
         focusRef={focusRef}
       />
       <AssembledRef id={outId} value={value} />
@@ -302,12 +300,7 @@ export function SecretRefField({
         {t('helpLead')} {formatHelp} {emptyHelp}
       </p>
       {status === 'loading' && <LiveStatus>{t('loading')}</LiveStatus>}
-      {error && (
-        <p id={errorId} className="flex items-start gap-1 text-sm text-destructive">
-          <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          <span>{error}</span>
-        </p>
-      )}
+      <FieldError id={errorId} message={error} />
       {warning && <FieldWarning id={warningId}>{warning}</FieldWarning>}
     </div>
   )

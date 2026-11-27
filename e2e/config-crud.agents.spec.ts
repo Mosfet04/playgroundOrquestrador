@@ -33,6 +33,9 @@ test('cria, edita e exclui um agent pelo fake', async ({ page }) => {
     factory_ia_model: 'ollama',
     version: 1
   })
+  // QA1-09: o item recém-criado mostra a data do save na coluna "Atualizado".
+  const saved = await page.getByRole('row', { name: /Agente do e2e/ }).locator('time').getAttribute('datetime')
+  expect(Math.abs(Date.now() - Date.parse(saved ?? ''))).toBeLessThan(60_000)
 
   await page.getByRole('link', { name: 'Agente do e2e' }).first().click()
   await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeVisible()
@@ -76,7 +79,7 @@ test('agent do seed com prompt em lista: abre unido por linha e salvar grava tex
   await page.goto('/agents')
   await page.getByRole('link', { name: 'Agente Beta' }).first().click()
   await expect(page.getByRole('heading', { level: 1, name: 'Editar agente' })).toBeVisible()
-  await expect(page.getByLabel('Prompt do sistema')).toHaveValue('Você é o Beta.\nResponda curto.')
+  await expect(page.getByLabel('Instruções do sistema')).toHaveValue('Você é o Beta.\nResponda curto.')
   await hydrated(page)
   // Reexecução local com o fake reaproveitado: a versão lida antes vale a base.
   const before = (await (await storedAgent('agente-beta')).json()).version as number

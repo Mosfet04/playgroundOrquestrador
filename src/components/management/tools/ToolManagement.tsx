@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
 import { Table, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { Tool, ToolFilters } from '@/types/management'
 import { CountChips, listCounts, rowLinkClass, ShowingOf, UpdatedAt } from '../common/EntityList'
@@ -42,8 +43,7 @@ export function ToolManagement() {
   const [loading, setLoading] = useState(true)
   // Falha da carga: status HTTP, ou sem status quando não houve resposta.
   const [loadError, setLoadError] = useState<{ status?: number } | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [filters, _setFilters] = useState<ToolFilters>({})
+  const [filters, setFilters] = useState<ToolFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
   const t = useTranslations('tools')
   const tc = useTranslations('common')
@@ -60,6 +60,9 @@ export function ToolManagement() {
     try {
       const params = new URLSearchParams({ limit: '100' })
 
+      if (filters.active !== undefined) {
+        params.append('active', filters.active.toString())
+      }
       if (filters.method) {
         params.append('method', filters.method)
       }
@@ -89,10 +92,11 @@ export function ToolManagement() {
 
   const clearFilters = () => {
     setSearchTerm('')
+    setFilters({})
     searchRef.current?.focus()
   }
 
-  const hasContent = !loading && !loadError && tools.length > 0
+  const ready = !loading && !loadError
   const toolHref = (tool: Tool) => `/tools/${encodeURIComponent(tool.id)}`
   const head = (
     <TableRow>
@@ -123,12 +127,13 @@ export function ToolManagement() {
             <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
               {t('title')}
             </h1>
-            <p className="text-sm text-muted-foreground lg:text-base">
+            <p className="min-h-10 text-sm text-muted-foreground lg:min-h-0 lg:text-base">
               {t('subtitle')}
             </p>
             <CountChips
               namespace="tools"
-              counts={hasContent ? listCounts(tools, total) : undefined}
+              counts={ready ? listCounts(tools, total, filters.active) : undefined}
+              loading={loading}
             />
           </div>
           <Button asChild className="w-full gap-2 lg:w-auto">
@@ -145,7 +150,7 @@ export function ToolManagement() {
           <CardTitle>{tc('filters')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-4 pt-0 lg:p-6 lg:pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="search">{tc('search')}</Label>
               <div className="relative">
@@ -158,6 +163,20 @@ export function ToolManagement() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="active-only">{t('activeOnly')}</Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="active-only"
+                  checked={filters.active === true}
+                  onCheckedChange={(checked) =>
+                    setFilters((prev) => ({ ...prev, active: checked ? true : undefined }))
+                  }
+                />
+                <span className="text-sm text-muted-foreground">{t('activeOnlyHint')}</span>
               </div>
             </div>
           </div>
@@ -173,12 +192,16 @@ export function ToolManagement() {
           status={loadError.status}
           onRetry={fetchTools}
         />
-      ) : tools.length === 0 && searchTerm ? (
+      ) : tools.length === 0 && (searchTerm || filters.active) ? (
         <FilterEmptyState
-          title={t.rich('searchEmptyTitle', {
-            query: searchTerm,
-            term: (chunks) => <span className="font-mono">{chunks}</span>
-          })}
+          title={
+            searchTerm
+              ? t.rich('searchEmptyTitle', {
+                  query: searchTerm,
+                  term: (chunks) => <span className="font-mono">{chunks}</span>
+                })
+              : t('activeEmptyTitle')
+          }
           hint={tc('filterEmptyHint')}
           action={
             <Button variant="outline" onClick={clearFilters}>

@@ -50,25 +50,18 @@ Chame `frontend-dev-specialist` com: id e arquivo do item, spec aprovada, gates 
 
 Chame `ui-ux-designer` em modo **DESIGN_QA** com a spec e os critérios visuais. `FAIL` ⇒ volta ao dev com as divergências, depois revisão do delta e novo design QA. A mesma verificação de `git status` do estágio 2 vale aqui.
 
-## Modelos por estágio (decisões [0016](../../../docs/decisions/0016-p2-itens-modelos-crud-mongo.md) D-P2-2 e [0031](../../../docs/decisions/0031-p4-itens-p4-01-e-modelos.md) D-P4-2)
+## Modelos por estágio (decisões [0016](../../../docs/decisions/0016-p2-itens-modelos-crud-mongo.md) D-P2-2, [0031](../../../docs/decisions/0031-p4-itens-p4-01-e-modelos.md) D-P4-2 e [0037](../../../docs/decisions/0037-qa1-correcoes.md) D-QA1-0-5, D-QA1-03-0, D-QA1-04-0, D-QA1-06-0, D-QA1-08-0 e D-QA1-09-0)
 
-O frontmatter dos agentes vale para desenhar, implementar, a 1ª revisão do item e o QA. Nas chamadas abaixo, passe os parâmetros do tool `Agent`:
+A classificação é por **risco**, não por tamanho. **Item de risco**: estado assíncrono (stream, zustand × nuqs, timers, corridas), auth/sessão/segurança, rota ou BFF novo, ou módulo novo em `src/server`. O resto é **item simples**. Passe sempre `model` e `effort` no tool `Agent`:
 
-| Chamada | Parâmetros |
-|---|---|
-| `frontend-reviewer` na revisão curta dos testes do QA | `model: "sonnet"` |
-| `frontend-reviewer` em revisão de delta (rodada 2+) | `effort: "high"` |
-| `frontend-dev-specialist` em item pequeno com `UI: não` (sem rotas novas nem vários módulos de `src/server`) | `model: "sonnet"` ([0021](../../../docs/decisions/0021-modelos-dev-sonnet-qa-enxuto.md)) |
-
-**Item pequeno** (sem rota nem BFF novo, 1–2 componentes de produto; [0033](../../../docs/decisions/0033-p4-03-testar-agora.md) D-P4-03-1), com ou sem UI, usa o perfil enxuto em todas as chamadas. Item grande segue o frontmatter e a tabela acima (0031).
-
-| Agente (item pequeno) | Parâmetros |
-|---|---|
-| `ui-ux-designer` (design) | `model: "sonnet"`, `effort: "medium"`; reaproveitar mockups existentes |
-| `frontend-dev-specialist` | `model: "sonnet"`, `effort: "high"` |
-| `frontend-reviewer` (1ª revisão e deltas) | `model: "opus"`, `effort: "high"` |
-| `qa-engineer` | `model: "sonnet"`, `effort: "high"`, QA enxuto |
-| `ui-ux-designer` (DESIGN_QA) | `model: "sonnet"`, `effort: "medium"`; só as capturas dos critérios, quantizadas |
+| Chamada | Item simples | Item de risco |
+|---|---|---|
+| `ui-ux-designer` (design) | `sonnet` / `medium`; sem tela ou fluxo novo ⇒ só spec em texto com critérios mensuráveis, reaproveitando o artifact existente, sem mockup novo | `sonnet` / `medium`; reaproveitar mockups (o risco é do código, não do visual) |
+| `frontend-dev-specialist` | `sonnet` / `high`; 2+ MAJOR na 1ª revisão ⇒ a correção vai para um dev novo `opus` / `high` (não retome o sonnet) | `opus` / `high` |
+| `frontend-reviewer` (1ª revisão e deltas) | `opus` / `high`; delta de correção só de MINOR/NIT e ≤ ~80 linhas: o orquestrador confere direto; com BLOCKER/MAJOR, retome o revisor por `SendMessage` | idem |
+| `qa-engineer` | `sonnet` / `high`, QA enxuto | `sonnet` / `high`, QA enxuto |
+| revisão curta dos testes do QA | delta ≤ ~150 linhas: o orquestrador revisa direto; maior: `frontend-reviewer` `sonnet` / `medium` | idem |
+| `ui-ux-designer` (DESIGN_QA) | `sonnet` / `medium`; só as capturas dos critérios, quantizadas | idem |
 
 QA enxuto (0021), sempre no prompt do `qa-engineer`: não duplicar teste do dev; só critério descoberto; um caso por classe de payload; e2e só para o que componente/BFF não alcança.
 

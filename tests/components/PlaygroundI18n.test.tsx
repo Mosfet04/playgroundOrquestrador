@@ -107,7 +107,7 @@ describe('troca de idioma com a conversa aberta', () => {
     await waitFor(() => expect(countOf(`${BFF}/sessions`)).toBe(1))
     expect(screen.getByRole('button', { name: 'Nova conversa' })).toBeInTheDocument()
     expect(screen.getByText('Sessões')).toHaveClass('uppercase')
-    const composer = screen.getByPlaceholderText('Escreva uma mensagem para Assistente')
+    const composer = screen.getByPlaceholderText('Mensagem para Assistente')
     await user.type(composer, 'rascunho')
     act(() =>
       usePlaygroundStore.getState().setMessages((messages) => [
@@ -122,7 +122,7 @@ describe('troca de idioma com a conversa aberta', () => {
 
     expect(screen.getByText('New chat')).toBeInTheDocument()
     expect(screen.getByText('Sessions')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Write a message to Assistente')).toBe(composer)
+    expect(screen.getByPlaceholderText('Message to Assistente')).toBe(composer)
     expect(composer).toHaveValue('rascunho')
     expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument()
     expect(screen.getByText('Resposta parcial')).toBeInTheDocument()
@@ -143,21 +143,27 @@ describe('bolha de erro do stream', () => {
     </IntlProvider>
   )
 
+  // QA1-03: a frase pelo tipo, sem o prefixo antigo; o detalhe do provedor,
+  // sem tradução, só no colapsável "Detalhes técnicos".
   it('traduz o tipo ao renderizar e mostra o detalhe do orquestrador sem tradução', () => {
     usePlaygroundStore.setState({
-      streamingErrorMessage: { kind: 'runError', detail: 'modelo caiu' }
+      streamingErrorMessage: { kind: 'overloaded', detail: 'modelo caiu' }
     })
     const { rerender } = render(bubble('pt-BR'))
 
-    expect(
-      screen.getByText('Algo deu errado durante a resposta. Erro durante a execução. modelo caiu')
-    ).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'O modelo está sobrecarregado. Tente de novo em instantes.'
+    )
+    expect(screen.getByRole('button', { name: 'Detalhes técnicos' })).toBeInTheDocument()
+    expect(screen.getByText('modelo caiu')).not.toBeVisible()
 
     rerender(bubble('en'))
 
-    expect(
-      screen.getByText('Something went wrong during the response. Error during the run. modelo caiu')
-    ).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'The model is overloaded. Try again in a moment.'
+    )
+    expect(screen.getByRole('button', { name: 'Technical details' })).toBeInTheDocument()
+    expect(screen.getByText('modelo caiu')).not.toBeVisible()
   })
 
   it.each([
@@ -171,13 +177,11 @@ describe('bolha de erro do stream', () => {
     [{ kind: 'interrupted' as const }, 'A resposta foi interrompida antes do fim.'],
     [{ kind: 'sessionNotOwned' as const }, 'Esta conversa é de outro usuário. Comece uma nova.'],
     [null, 'Recarregue a página ou tente de novo mais tarde.']
-  ])('%o: frase do meio', (error, phrase) => {
+  ])('%o: a frase do tipo', (error, phrase) => {
     usePlaygroundStore.setState({ streamingErrorMessage: error })
     render(bubble('pt-BR'))
 
-    expect(
-      screen.getByText(`Algo deu errado durante a resposta. ${phrase}`)
-    ).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(phrase)
   })
 })
 
@@ -186,11 +190,9 @@ describe('sessão de outro usuário (AG3-02)', () => {
     usePlaygroundStore.setState({ streamingErrorMessage: { kind: 'sessionNotOwned' } })
     renderWithIntl(<Messages messages={[errorBubble]} />, { locale: 'en' })
 
-    expect(
-      screen.getByText(
-        'Something went wrong during the response. This conversation belongs to another user. Start a new one.'
-      )
-    ).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'This conversation belongs to another user. Start a new one.'
+    )
   })
 })
 
@@ -269,13 +271,13 @@ describe('sessões', () => {
 
   // V-P2-03-4: no modo Team a caixa não fala em "agente".
   it.each([
-    ['pt-BR', 'Conecte um storage ao team para ver as sessões.'],
-    ['en', 'Connect storage to your team to see sessions.']
-  ] as const)('%s: team sem storage', (locale, text) => {
+    ['pt-BR', 'Conecte um armazenamento ao team para ver as sessões.', 'armazenamento'],
+    ['en', 'Connect storage to your team to see sessions.', 'storage']
+  ] as const)('%s: team sem storage', (locale, text, linkName) => {
     usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false, mode: 'team' })
     blank('?team=team-1', locale)
 
-    const link = screen.getByRole('link', { name: 'storage' })
+    const link = screen.getByRole('link', { name: linkName })
     expect(link.parentElement).toHaveTextContent(text)
     expect(link.parentElement).not.toHaveTextContent(/agente|agent\b/i)
   })
@@ -298,9 +300,9 @@ describe('sessões', () => {
     usePlaygroundStore.setState({ isOrchestratorActive: true, hasStorage: false })
     blank('?agent=agent-1')
 
-    const link = screen.getByRole('link', { name: 'storage' })
+    const link = screen.getByRole('link', { name: 'armazenamento' })
     expect(link.parentElement).toHaveTextContent(
-      'Conecte um storage ao agente para ver as sessões.'
+      'Conecte um armazenamento ao agente para ver as sessões.'
     )
   })
 
@@ -325,7 +327,7 @@ describe('sessões', () => {
           <SessionItem
             session_id="session-a1"
             title="Minha sessão"
-            created_at={1}
+            updated_at={1}
             isSelected={false}
             currentSessionId={null}
             onSessionClick={() => undefined}
@@ -337,7 +339,7 @@ describe('sessões', () => {
     beforeEach(() => {
       usePlaygroundStore.setState({
         mode: 'agent',
-        sessionsData: [{ session_id: 'session-a1', title: 'Minha sessão', created_at: 1 }]
+        sessionsData: [{ session_id: 'session-a1', title: 'Minha sessão', updated_at: 1 }]
       })
     })
 

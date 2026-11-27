@@ -1,0 +1,40 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QA1-03 mockup</title>
+<style>
+:root{--background:225 28.6% 97.3%;--foreground:216.9 30.2% 8.4%;--card:0 0% 100%;--primary:224.8 69.6% 51%;--primary-soft:222.9 72.4% 94.3%;--muted:220 25% 95.3%;--muted-foreground:216.9 13.1% 38.8%;--destructive:357.3 66.1% 46.3%;--border:216.9 23.6% 89.2%;--input:218.4 11.4% 57.1%}
+.dark{--background:222.9 33.3% 4.1%;--foreground:220 33.3% 92.9%;--card:222 27.8% 7.1%;--primary:224.6 100% 72.5%;--primary-soft:224.1 45.9% 14.5%;--muted:220 26.1% 9%;--muted-foreground:218.7 17.1% 64.5%;--destructive:3.8 100% 72.4%;--border:221.1 23.5% 15.9%;--input:219.3 13.6% 41.8%}
+body{margin:0;font:16px/24px system-ui;background:hsl(var(--background));color:hsl(var(--foreground))}
+.wrap{display:flex;flex-wrap:wrap;gap:24px;padding:16px}
+.theme{background:hsl(var(--background));color:hsl(var(--foreground));padding:16px;border:1px solid hsl(var(--border));border-radius:8px;width:520px;max-width:100%;box-sizing:border-box}
+.col{display:flex;flex-direction:column;gap:12px}
+.u{align-self:flex-end;max-width:80%;background:hsl(var(--primary-soft));padding:10px 16px;border-radius:8px 8px 2px 8px}
+.u p{margin:0 0 8px}.u p:last-child{margin:0}
+code{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:4px;padding:1px 4px;font:13px ui-monospace,monospace}
+pre{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:6px;padding:8px;margin:0 0 8px;overflow:auto;font:13px ui-monospace,monospace}
+a{color:hsl(var(--primary))}
+.err{color:hsl(var(--destructive));font-size:14px;display:flex;gap:8px;align-items:center}
+.act{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;margin-top:8px}
+button{font:inherit;cursor:pointer}
+.out{border:1px solid hsl(var(--input));background:transparent;color:hsl(var(--foreground));border-radius:6px;padding:4px 12px;font-size:14px}
+.out[aria-disabled=true]{opacity:.5;cursor:not-allowed}
+.lnk{border:0;background:none;color:hsl(var(--primary));font-size:12px;padding:0}
+button:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
+.det{margin-top:8px;background:hsl(var(--muted));border:1px solid hsl(var(--border));border-radius:6px;padding:12px;font:12px/18px ui-monospace,monospace;max-height:192px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.det[hidden]{display:none}
+.mark{align-self:flex-end;display:flex;gap:8px;align-items:center;font-size:12px;color:hsl(var(--muted-foreground))}
+h3{margin:0 0 8px;font-size:12px;color:hsl(var(--muted-foreground))}
+</style>
+<div class="wrap">
+<script>
+for (const dark of [false,true]) document.write(`
+<section class="theme ${dark?'dark':''}"><h3>${dark?'Escuro':'Claro'}</h3><div class="col">
+ <div class="u"><p>Liste com <code>code</code> e:</p><pre>SELECT 1;</pre><p>- item um<br>- item dois</p><p>&lt;b&gt;oi&lt;/b&gt; [x](javascript:alert(1))</p></div>
+ <div><div class="err" role="alert"><span aria-hidden="true">⚠</span>O modelo está sobrecarregado. Tente de novo em instantes.</div>
+  <div class="act"><button class="out">↻ Reenviar</button><button class="lnk" aria-expanded="false" onclick="const p=this.parentNode.nextElementSibling;const o=this.getAttribute('aria-expanded')!=='true';this.setAttribute('aria-expanded',o);p.hidden=!o">› Detalhes técnicos</button></div>
+  <pre class="det" hidden role="region" aria-label="Detalhes técnicos">503 UNAVAILABLE: This model is currently experiencing high demand.</pre></div>
+ <div class="u">Pergunta antiga sem resposta</div>
+ <div class="mark"><span>⊘ sem resposta</span><button class="out">↻ Reenviar</button></div>
+ <div><div class="err"><span aria-hidden="true">⚠</span>O modelo recusou o parâmetro <code>temperature</code>. Ajuste-o na configuração do agente.</div>
+  <div class="act"><button class="out" aria-disabled="true" title="Aguarde a resposta terminar.">↻ Reenviar</button><button class="lnk" aria-expanded="false">› Detalhes técnicos</button></div></div>
+</div></section>`)
+</script></div></html>

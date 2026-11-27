@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LiveStatus } from '@/components/ui/loading'
+import { ProviderSelectItem } from '@/components/management/common/ProviderModel'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { referencePrefixes } from '@/lib/secretRef'
 import type { ConfigSchema } from '@/types/management'
 import { BaseUrlField, type BaseUrlForm } from '../common/BaseUrlField'
-import { FieldError } from '../common/FieldError'
+import { errorA11y, FieldError } from '../common/FieldError'
 import { ModelParams, type ParamsForm } from '../common/ModelParams'
 import { SecretRefField, useSecretRefValidate, type SchemaStatus } from '../common/SecretRefField'
 import { SectionCard } from '../common/SectionCard'
@@ -116,7 +117,8 @@ export function RagSection({
                 id="rag_active"
                 ref={field.ref}
                 checked={field.value}
-                aria-describedby="rag-enable-help"
+                aria-invalid={errors.rag_active ? true : undefined}
+                aria-describedby={errors.rag_active ? 'rag-enable-help rag_active-error' : 'rag-enable-help'}
                 disabled={!writable}
                 onCheckedChange={(checked) => {
                   field.onChange(checked)
@@ -133,7 +135,8 @@ export function RagSection({
             </p>
           </div>
         </div>
-        <FieldError message={errors.rag_active?.message} />
+        {/* Só o orquestrador recusa o switch: sem espaço reservado, o erro abre o slot (D-QA1-05-2). */}
+        {errors.rag_active && <FieldError id="rag_active-error" message={errors.rag_active.message} />}
       </div>
 
       <p role="status" className="sr-only">
@@ -160,7 +163,7 @@ export function RagSection({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-10 w-full md:h-8 md:w-auto"
+              className="h-10 w-full md:h-9 md:w-auto"
               onClick={discard}
             >
               {t('ragDiscard')}
@@ -187,12 +190,11 @@ export function RagSection({
               className="font-mono"
               autoComplete="off"
               spellCheck={false}
-              aria-invalid={errors.rag_doc_name ? true : undefined}
-              variant={errors.rag_doc_name ? 'destructive' : undefined}
+              {...errorA11y('rag_doc_name', !!errors.rag_doc_name)}
               {...register('rag_doc_name', { validate: required(t('ragDocNameRequired')) })}
               placeholder={tc('example', { value: 'knowledge_base' })}
             />
-            <FieldError message={errors.rag_doc_name?.message} />
+            <FieldError id="rag_doc_name-error" message={errors.rag_doc_name?.message} />
           </div>
 
           <div className="space-y-2">
@@ -206,8 +208,8 @@ export function RagSection({
                   <SelectTrigger
                     ref={field.ref}
                     id="rag_search_strategy"
-                    aria-invalid={errors.rag_search_strategy ? true : undefined}
-                    className={errors.rag_search_strategy ? 'border-destructive font-mono' : 'font-mono'}
+                    {...errorA11y('rag_search_strategy', !!errors.rag_search_strategy)}
+                    className="font-mono"
                   >
                     <SelectValue placeholder={t('ragStrategyPlaceholder')} />
                   </SelectTrigger>
@@ -221,7 +223,7 @@ export function RagSection({
                 </Select>
               )}
             />
-            <FieldError message={errors.rag_search_strategy?.message} />
+            <FieldError id="rag_search_strategy-error" message={errors.rag_search_strategy?.message} />
           </div>
         </div>
 
@@ -245,8 +247,7 @@ export function RagSection({
                     <SelectTrigger
                       ref={field.ref}
                       id="rag_factoryIaModel"
-                      aria-invalid={errors.rag_factoryIaModel ? true : undefined}
-                      className={errors.rag_factoryIaModel ? 'border-destructive' : undefined}
+                      {...errorA11y('rag_factoryIaModel', !!errors.rag_factoryIaModel)}
                     >
                       <SelectValue placeholder={t('providerPlaceholder')} />
                     </SelectTrigger>
@@ -255,15 +256,13 @@ export function RagSection({
                         schema?.embedderProviders.map(({ name }) => name) ?? [],
                         field.value
                       ).map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
+                        <ProviderSelectItem key={name} name={name} />
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               />
-              <FieldError message={errors.rag_factoryIaModel?.message} />
+              <FieldError id="rag_factoryIaModel-error" message={errors.rag_factoryIaModel?.message} />
             </div>
 
             <div className="space-y-2">
@@ -273,12 +272,11 @@ export function RagSection({
                 className="font-mono"
                 autoComplete="off"
                 spellCheck={false}
-                aria-invalid={errors.rag_model ? true : undefined}
-                variant={errors.rag_model ? 'destructive' : undefined}
+                {...errorA11y('rag_model', !!errors.rag_model)}
                 {...register('rag_model', { validate: required(t('ragModelRequired')) })}
                 placeholder={tc('example', { value: 'text-embedding-3-small' })}
               />
-              <FieldError message={errors.rag_model?.message} />
+              <FieldError id="rag_model-error" message={errors.rag_model?.message} />
             </div>
 
             <BaseUrlField

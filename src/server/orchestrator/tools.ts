@@ -18,6 +18,7 @@ import {
   pageOf,
   replaceConfig,
   restoreConfig,
+  updatedAtSchema,
   withFormField
 } from './adminConfig'
 import type { OrchestratorResult } from './client'
@@ -47,7 +48,8 @@ const toolSchema = z.object({
   instructions: z.string().nullish(),
   headers: z.record(z.string(), z.string()).nullish(),
   active: z.boolean(),
-  version: z.number().int().nonnegative()
+  version: z.number().int().nonnegative(),
+  updated_at: updatedAtSchema
 })
 type ToolDocument = z.infer<typeof toolSchema>
 
@@ -73,7 +75,7 @@ export type ToolInput = {
   active?: boolean
 }
 
-export type ToolFilters = { search?: string; method?: string }
+export type ToolFilters = { search?: string; method?: string; active?: boolean }
 
 const toTool = ({ instructions, headers, ...doc }: ToolDocument): Tool => ({
   ...doc,
@@ -127,6 +129,7 @@ export async function listTools(filters: ToolFilters, page: number, limit: numbe
     .filter(
       (tool) =>
         (!method || tool.http_method.toUpperCase() === method) &&
+        (filters.active === undefined || tool.active === filters.active) &&
         matchesSearch(filters.search, [tool.name, tool.description, tool.id])
     )
     .map(toTool)

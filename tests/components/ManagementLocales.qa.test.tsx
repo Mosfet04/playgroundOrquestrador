@@ -236,7 +236,7 @@ describe('AgentForm / AgentEditor / AgentManagement: casos extras', () => {
   it('EN: o form de agente não tem português nos rótulos e placeholders', async () => {
     server.use(noTools)
     renderWithIntl(<AgentForm onSuccess={() => {}} />, { locale: 'en' })
-    await screen.findByText('No tools available. Create tools first.')
+    await screen.findByText('No tools available.')
 
     expect(body()).not.toMatch(PT_WORDS)
     const attrs = [...document.querySelectorAll('[placeholder],[aria-label],[title]')].flatMap(
@@ -248,7 +248,7 @@ describe('AgentForm / AgentEditor / AgentManagement: casos extras', () => {
   it('pt-BR: o form de agente não tem inglês nem "Provider"', async () => {
     server.use(noTools)
     renderWithIntl(<AgentForm onSuccess={() => {}} />)
-    await screen.findByText('Nenhuma tool disponível. Crie tools primeiro.')
+    await screen.findByText('Nenhuma tool disponível.')
 
     expect(body()).not.toMatch(EN_WORDS)
     expect(body()).not.toMatch(/Provider\b/)

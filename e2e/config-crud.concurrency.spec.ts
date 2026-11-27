@@ -66,7 +66,7 @@ test('412 ao salvar: mostra o que difere e "Salvar as minhas por cima" grava com
   await page.goto(`/agents/${id}`)
   await hydrated(page)
   await expect(page.getByLabel(/^Nome \*/)).toHaveValue('Meu nome')
-  await expect(page.getByLabel('Prompt do sistema')).toHaveValue('Original')
+  await expect(page.getByLabel('Instruções do sistema')).toHaveValue('Original')
 })
 
 test('412 ao salvar: "Recarregar a atual" abre o formulário na versão atual, com o foco no título', async ({ page }) => {

@@ -148,9 +148,9 @@ describe('412 ao salvar (agent)', () => {
       'Uma versão mais nova (v5) foi salva enquanto você editava a v3. 3 campos do formulário diferem da versão atual.'
     )
     const rows = within(list).getAllByRole('listitem')
-    expect(rows.map((row) => within(row).getAllByText(/^(Nome|Prompt do sistema|Tools disponíveis)$/)[0].textContent)).toEqual([
+    expect(rows.map((row) => within(row).getAllByText(/^(Nome|Instruções do sistema|Tools disponíveis)$/)[0].textContent)).toEqual([
       'Nome',
-      'Prompt do sistema',
+      'Instruções do sistema',
       'Tools disponíveis'
     ])
     expect(within(rows[0]).getByText('O seu valor').nextElementSibling).toHaveTextContent('Meu nome')
@@ -197,7 +197,7 @@ describe('412 ao salvar (agent)', () => {
     expect(await screen.findByText('Versão atual carregada')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Nome *')).toHaveValue('Assistente v5')
-    expect(screen.getByLabelText('Prompt do sistema')).toHaveValue('Seja breve.')
+    expect(screen.getByLabelText('Instruções do sistema')).toHaveValue('Seja breve.')
     await waitFor(() =>
       expect(screen.getByRole('heading', { level: 1, name: 'Editar agente' })).toHaveFocus()
     )
@@ -378,6 +378,39 @@ describe('412 ao salvar (agent)', () => {
     expect(within(dialog).getByRole('link', { name: 'Ir para a lista' })).toHaveAttribute('href', '/agents')
     expect(within(dialog).queryByRole('button', { name: 'Salvar as minhas por cima' })).not.toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: 'Voltar ao formulário' })).toBeInTheDocument()
+  })
+
+  // QA1-06 (spec § 7): o 412 tem precedência sobre o aviso de rascunho (não
+  // empilha), mas o formulário segue sujo: fechar/recarregar ainda pergunta.
+  it('412 aberto: "Ir para a lista" sai sem o aviso de rascunho; o beforeunload segue armado', async () => {
+    server.use(noTools)
+    serve([agent, status(404, 'not_found')], [conflict412()])
+    const followed: string[] = []
+    const follow = (event: MouseEvent) => {
+      const link = event.target instanceof Element ? event.target.closest('a') : null
+      if (!link) return
+      if (!event.defaultPrevented) followed.push(link.getAttribute('href') ?? '')
+      event.preventDefault()
+    }
+    window.addEventListener('click', follow)
+    try {
+      const user = userEvent.setup()
+      renderAgent()
+      await user.type(await screen.findByLabelText('Nome *'), ' x')
+      await waitFor(() => expect(save()).toBeEnabled())
+      await saveAndConfirm(user)
+      const dialog = await screen.findByRole('dialog', { name: 'O agente foi excluído' })
+
+      const unload = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(unload)
+      expect(unload.defaultPrevented).toBe(true)
+
+      await user.click(within(dialog).getByRole('link', { name: 'Ir para a lista' }))
+      expect(followed).toEqual(['/agents'])
+      expect(screen.queryByRole('dialog', { name: 'Descartar alterações?' })).not.toBeInTheDocument()
+    } finally {
+      window.removeEventListener('click', follow)
+    }
   })
 
   it('falha ao rereler (503): alerta com o código, só Voltar e Tentar de novo; tentar de novo mostra a comparação', async () => {

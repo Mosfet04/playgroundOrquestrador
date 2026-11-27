@@ -25,6 +25,13 @@ const toText = (content: unknown): string => {
   return getJsonMarkdown(content as object)
 }
 
+// Pedido de lista mais recente, entre todas as instâncias do hook: a resposta
+// de um pedido anterior (outra entidade, a releitura do fim do run) chega
+// atrasada e não escreve por cima. `latestIsQuiet`: esse pedido é a releitura
+// do fim do run.
+let latestSessionsRequest = 0
+let latestIsQuiet = false
+
 const useSessionLoader = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
   const setLoadedSessionId = usePlaygroundStore(
@@ -36,47 +43,86 @@ const useSessionLoader = () => {
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
   const setSessionsError = usePlaygroundStore((state) => state.setSessionsError)
 
+  // `quiet`: a releitura do fim do run, com a lista na tela; sem o
+  // carregamento (que a troca pelo skeleton) e, na falha, a lista fica.
   const getSessions = useCallback(
-    async ({ entityType, agentId, teamId }: LoaderArgs) => {
+    async ({ entityType, agentId, teamId }: LoaderArgs, { quiet = false } = {}) => {
       const kind = entityType === 'team' ? 'team' : 'agent'
       const componentId = kind === 'team' ? teamId : agentId
       if (!componentId) return
+      const request = ++latestSessionsRequest
+      latestIsQuiet = quiet
+      const isLatest = () => request === latestSessionsRequest
       try {
         // A falha anterior só sai com sucesso: no "Tentar de novo" a caixa de
         // erro fica no lugar, com o botão em "Tentando…" (P1-05).
-        setIsSessionsLoading(true)
-        setSessionsData(await getPlaygroundSessionsAPI(kind, componentId))
+        if (!quiet) setIsSessionsLoading(true)
+        const sessions = await getPlaygroundSessionsAPI(kind, componentId)
+        if (!isLatest()) return
+        setSessionsData(sessions)
         setSessionsError(false)
       } catch (error) {
         // A falha aparece na caixa de sessões, com "Tentar de novo" (P1-05).
         console.error('Error loading sessions:', error)
+        if (!isLatest() || quiet) return
         setSessionsError(true)
         setSessionsData([])
       } finally {
-        setIsSessionsLoading(false)
+        if (isLatest()) setIsSessionsLoading(false)
       }
     },
     [setSessionsData, setIsSessionsLoading, setSessionsError]
   )
 
-  // Histórico da sessão: o BFF já devolve só user/assistant.
+  // Sessão excluída sai da lista. A releitura do fim do run a caminho foi lida
+  // antes do DELETE e a traria de volta: deixa de valer (e o carregamento que
+  // ela encerraria acaba aqui). A carga de outra entidade segue valendo.
+  const removeSession = useCallback(
+    (sessionId: string) => {
+      if (latestIsQuiet) {
+        latestSessionsRequest++
+        setIsSessionsLoading(false)
+      }
+      setSessionsData(
+        (prev) => prev?.filter((session) => session.session_id !== sessionId) ?? null
+      )
+    },
+    [setSessionsData, setIsSessionsLoading]
+  )
+
+  // Histórico da sessão: o BFF já devolve só user/assistant. A conversa de
+  // antes sai já: durante o GET nada dela (Reenviar, envio) vai para esta
+  // sessão (QA1-03, review R4).
   const getSession = useCallback(
     async ({ entityType }: LoaderArgs, sessionId: string) => {
       if (!sessionId) return
       setLoadedSessionId(sessionId)
+      setMessages([])
+      // A conversa vazia desta carga: se ela mudou quando o GET responde, um
+      // envio começou depois do pedido (em curso ou já terminado), e a
+      // conversa de agora vale mais que o histórico pedido antes (QA1-03-B1).
+      const emptied = usePlaygroundStore.getState().messages
       try {
         const { chat_history } = await getPlaygroundSessionAPI(
           entityType === 'team' ? 'team' : 'agent',
           sessionId
         )
         // A URL pode ter deixado esta sessão (outra, nenhuma, página fechada)
-        // durante o GET: a resposta atrasada não escreve na conversa de agora.
-        if (usePlaygroundStore.getState().loadedSessionId !== sessionId) return
+        // ou a conversa mudou durante o GET: a resposta atrasada não escreve
+        // na conversa de agora.
+        const { loadedSessionId, messages: current } = usePlaygroundStore.getState()
+        if (loadedSessionId !== sessionId || current !== emptied) return
+        // A resposta sem texto (com mídia ou sem nada; a que só tem tool o BFF
+        // já tira) fica: a pergunta antes dela foi respondida (a marca "sem
+        // resposta" é pela posição, QA1-03 N5).
         const messages: PlaygroundChatMessage[] = chat_history
-          .filter((entry) => entry.content != null && entry.content !== '')
+          .filter(
+            (entry) =>
+              entry.role === 'assistant' || (entry.content != null && entry.content !== '')
+          )
           .map((entry) => ({
             role: entry.role === 'user' ? 'user' : 'agent',
-            content: toText(entry.content),
+            content: entry.content == null ? '' : toText(entry.content),
             created_at: entry.created_at ?? Math.floor(Date.now() / 1000)
           }))
         if (messages.length > 0) {
@@ -93,7 +139,7 @@ const useSessionLoader = () => {
     [setMessages, setLoadedSessionId]
   )
 
-  return { getSession, getSessions }
+  return { getSession, getSessions, removeSession }
 }
 
 export default useSessionLoader

@@ -21,6 +21,7 @@ import {
   LoadErrorState
 } from '@/components/ui/loading'
 import { cn } from '@/lib/utils'
+import { ProviderModel } from '@/components/management/common/ProviderModel'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 const SEPARATOR = ' · '
@@ -85,17 +86,16 @@ export function AgentManagement() {
     searchRef.current?.focus()
   }
 
-  const hasContent = !loading && !loadError && agents.length > 0
+  const ready = !loading && !loadError
   const agentHref = (agent: AgentConfig) => `/agents/${encodeURIComponent(agent.id)}`
-  const modelOf = (agent: AgentConfig) => `${agent.factoryIaModel}/${agent.model}`
   const head = (
     <TableRow>
       <TableHead>{t('columnAgent')}</TableHead>
-      <TableHead>{t('columnModel')}</TableHead>
+      <TableHead className="w-56">{t('columnModel')}</TableHead>
       <TableHead className="w-24 text-right">{t('columnTools')}</TableHead>
       <TableHead className="w-28">{tc('status')}</TableHead>
       <TableHead className="w-32">{tc('updated')}</TableHead>
-      <TableHead className="w-9">
+      <TableHead className="relative w-9">
         <span className="sr-only">{tc('open')}</span>
       </TableHead>
     </TableRow>
@@ -117,12 +117,13 @@ export function AgentManagement() {
             <h1 tabIndex={-1} className="text-2xl font-semibold tracking-tight focus:outline-none">
               {t('title')}
             </h1>
-            <p className="text-sm text-muted-foreground lg:text-base">
+            <p className="min-h-10 text-sm text-muted-foreground lg:min-h-0 lg:text-base">
               {t('subtitle')}
             </p>
             <CountChips
               namespace="agents"
-              counts={hasContent ? listCounts(agents, total, filters.active) : undefined}
+              counts={ready ? listCounts(agents, total, filters.active) : undefined}
+              loading={loading}
             />
           </div>
           <Button asChild className="w-full gap-2 lg:w-auto">
@@ -226,26 +227,32 @@ export function AgentManagement() {
       ) : (
         <div className="space-y-2">
           <div className="hidden md:block">
-            <Table>
+            <Table className="table-fixed min-w-[860px]">
               <thead>{head}</thead>
               <tbody>
                 {agents.map((agent) => (
                   <TableRow key={agent.id} className="group relative hover:bg-muted/50">
                     <TableCell>
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <ListAvatar name={agent.nome} active={agent.active} />
                         <div className="flex min-w-0 flex-col">
-                          <Link href={agentHref(agent)} className={rowLinkClass}>
+                          <Link
+                            href={agentHref(agent)}
+                            title={agent.nome}
+                            className={cn(rowLinkClass, 'block truncate')}
+                          >
                             {agent.nome}
                           </Link>
-                          <span className="font-mono text-xs text-muted-foreground">
+                          <span className="truncate font-mono text-xs text-muted-foreground">
                             {agent.id}
                           </span>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Chip>{modelOf(agent)}</Chip>
+                      <Chip className="max-w-full">
+                        <ProviderModel provider={agent.factoryIaModel} model={agent.model} />
+                      </Chip>
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
                       {agent.tools_ids.length}
@@ -278,7 +285,11 @@ export function AgentManagement() {
                 <ListAvatar name={agent.nome} active={agent.active} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <div className="flex min-w-0 items-center gap-2">
-                    <Link href={agentHref(agent)} className={cn(rowLinkClass, 'truncate')}>
+                    <Link
+                      href={agentHref(agent)}
+                      title={agent.nome}
+                      className={cn(rowLinkClass, 'truncate')}
+                    >
                       {agent.nome}
                     </Link>
                     <StatusBadge active={agent.active}>
@@ -286,7 +297,8 @@ export function AgentManagement() {
                     </StatusBadge>
                   </div>
                   <span className="truncate font-mono text-xs text-muted-foreground">
-                    {agent.id + SEPARATOR + modelOf(agent)}
+                    {agent.id + SEPARATOR}
+                    <ProviderModel provider={agent.factoryIaModel} model={agent.model} />
                   </span>
                 </div>
                 <ChevronRight

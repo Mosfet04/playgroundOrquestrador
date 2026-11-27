@@ -30,6 +30,9 @@ test('cria, edita (header mascarado mantido) e exclui uma tool pelo fake', async
 
   await expect(page.getByText('Tool salva').last()).toBeVisible()
   await expect(page).toHaveURL('/tools')
+  // QA1-09 (QA): a tool recém-criada mostra a data do save na lista.
+  const saved = await page.getByRole('row', { name: /Tool do e2e/ }).locator('time').getAttribute('datetime')
+  expect(Math.abs(Date.now() - Date.parse(saved ?? ''))).toBeLessThan(60_000)
   await page.getByRole('link', { name: 'Tool do e2e' }).first().click()
 
   // Editar: o header volta mascarado e o valor não chega ao browser.
@@ -80,8 +83,9 @@ test('header sensível em texto não sai do browser: erro na linha, nenhum reque
   await page.getByLabel(/^Descrição/).fill('Header sensível em texto')
   await page.getByLabel(/^Rota/).fill('https://clima.example.com/v1/previsao')
   await page.getByRole('button', { name: 'Adicionar header' }).click()
+  // O valor antes do nome: linha com texto não passa sozinha a Segredo (D-QA1-07-2).
+  await page.getByLabel('Valor do header 1').fill('Bearer texto-recusado')
   await page.getByLabel('Nome do header 1').fill('Authorization')
-  await page.getByLabel('Valor de Authorization', { exact: true }).fill('Bearer texto-recusado')
 
   await page.getByRole('button', { name: 'Salvar' }).click()
 

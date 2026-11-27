@@ -14,6 +14,15 @@ import { callOrchestrator, type OrchestratorResult } from './client'
 
 export type ConfigKind = 'agents' | 'teams' | 'tools'
 
+// `updated_at` do documento (FA-08): ISO 8601 UTC com `Z`, ou `null` sem o
+// campo (store YAML, legado do seed). Só exibição: valor que não é data vira
+// sem data em vez de derrubar o documento da lista.
+export const updatedAtSchema = z.iso
+  .datetime()
+  .nullish()
+  .catch(undefined)
+  .transform((value) => value ?? undefined)
+
 // GET /admin/config/{kind} é paginado por offset/limit (teto de 200 por
 // página no orquestrador) e traz os inativos.
 const PAGE_SIZE = 200

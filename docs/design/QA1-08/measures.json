@@ -1,0 +1,2406 @@
+{
+ "a-d-light": {
+  "donut": {
+   "h": 370,
+   "w": 519.5,
+   "left": 823.5,
+   "right": 1343,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 12 | Sessões de team: 5",
+   "hasTeam": true,
+   "legend": [
+    {
+     "t": "Sessões de agente: 12",
+     "left": 923.75,
+     "right": 1084.75,
+     "top": 827,
+     "marker": "rgb(43, 87, 217)"
+    },
+    {
+     "t": "Sessões de team: 5",
+     "left": 1100.75,
+     "right": 1242.75,
+     "top": 827,
+     "marker": "rgb(86, 96, 112)"
+    }
+   ],
+   "ul": {
+    "top": 827,
+    "left": 848.5,
+    "right": 1318,
+    "justify": "center",
+    "scrollW": 470,
+    "clientW": 470
+   },
+   "svg": {
+    "top": 597,
+    "bottom": 817,
+    "left": 848.5,
+    "right": 1318.5,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 325,110\n    A 90,90,0,\n    1,0,\n    18"
+    },
+    {
+     "fill": "hsl(var(--muted-foreground))",
+     "d": "M 191.0409,188.5341\n    A 90,90,0,\n    0"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 519.5,
+   "left": 280,
+   "right": 799.5,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agenteSessões de team | 11 de out. | 12 de out. | 13 de out. | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": true,
+   "legend": [],
+   "svg": {
+    "top": 824.875,
+    "bottom": 838.875,
+    "left": 382,
+    "right": 396,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--primary))",
+     "fill": "hsl(var(--primary))",
+     "dots": []
+    },
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--muted-foreground))",
+     "fill": "hsl(var(--muted-foreground))",
+     "dots": []
+    }
+   ],
+   "dots": [],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "11 de out.",
+     "l": 379.4000244140625,
+     "r": 453.4000244140625
+    },
+    {
+     "t": "12 de out.",
+     "l": 467.8000183105469,
+     "r": 541.800048828125
+    },
+    {
+     "t": "13 de out.",
+     "l": 556.2000122070312,
+     "r": 630.2000122070312
+    },
+    {
+     "t": "15 de out.",
+     "l": 701,
+     "r": 775
+    },
+    {
+     "t": "0",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "1",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "2",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "3",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "4",
+     "l": 310,
+     "r": 320
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente",
+    "Sessões de team"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 840
+ },
+ "b-d-light": {
+  "donut": {
+   "h": 370,
+   "w": 519.5,
+   "left": 823.5,
+   "right": 1343,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 12",
+   "hasTeam": false,
+   "legend": [
+    {
+     "t": "Sessões de agente: 12",
+     "left": 1002.75,
+     "right": 1163.75,
+     "top": 827,
+     "marker": "rgb(43, 87, 217)"
+    }
+   ],
+   "ul": {
+    "top": 827,
+    "left": 848.5,
+    "right": 1318,
+    "justify": "center",
+    "scrollW": 470,
+    "clientW": 470
+   },
+   "svg": {
+    "top": 597,
+    "bottom": 817,
+    "left": 848.5,
+    "right": 1318.5,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 325,110\n    A 90,90,0,\n    1,0,\n    32"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 519.5,
+   "left": 280,
+   "right": 799.5,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agente | 11 de out. | 12 de out. | 13 de out. | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": false,
+   "legend": [],
+   "svg": {
+    "top": 824.875,
+    "bottom": 838.875,
+    "left": 458,
+    "right": 472,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--primary))",
+     "fill": "hsl(var(--primary))",
+     "dots": []
+    }
+   ],
+   "dots": [],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "11 de out.",
+     "l": 379.4000244140625,
+     "r": 453.4000244140625
+    },
+    {
+     "t": "12 de out.",
+     "l": 467.8000183105469,
+     "r": 541.800048828125
+    },
+    {
+     "t": "13 de out.",
+     "l": 556.2000122070312,
+     "r": 630.2000122070312
+    },
+    {
+     "t": "15 de out.",
+     "l": 701,
+     "r": 775
+    },
+    {
+     "t": "0",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "1",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "2",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "3",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "4",
+     "l": 310,
+     "r": 320
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 840
+ },
+ "c-d-light": {
+  "donut": {
+   "h": 370,
+   "w": 519.5,
+   "left": 823.5,
+   "right": 1343,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 1",
+   "hasTeam": false,
+   "legend": [
+    {
+     "t": "Sessões de agente: 1",
+     "left": 1006.75,
+     "right": 1159.75,
+     "top": 827,
+     "marker": "rgb(43, 87, 217)"
+    }
+   ],
+   "ul": {
+    "top": 827,
+    "left": 848.5,
+    "right": 1318,
+    "justify": "center",
+    "scrollW": 470,
+    "clientW": 470
+   },
+   "svg": {
+    "top": 597,
+    "bottom": 817,
+    "left": 848.5,
+    "right": 1318.5,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 325,110\n    A 90,90,0,\n    1,0,\n    32"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 519.5,
+   "left": 280,
+   "right": 799.5,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agente | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": false,
+   "legend": [],
+   "svg": {
+    "top": 824.875,
+    "bottom": 838.875,
+    "left": 458,
+    "right": 472,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "dots": []
+    }
+   ],
+   "dots": [
+    {
+     "r": "4",
+     "fill": "hsl(var(--primary))",
+     "stroke": "hsl(var(--card))",
+     "cx": "244"
+    }
+   ],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "15 de out.",
+     "l": 512,
+     "r": 586
+    },
+    {
+     "t": "0",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "1",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "2",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "3",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "4",
+     "l": 310,
+     "r": 320
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 840
+ },
+ "d-d-light": {
+  "donut": {
+   "h": 370,
+   "w": 519.5,
+   "left": 823.5,
+   "right": 1343,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sem dados no período | Converse com um agente no playground para gerar métricas.",
+   "hasTeam": false,
+   "legend": [],
+   "sectors": [],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 519.5,
+   "left": 280,
+   "right": 799.5,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sem dados no período | Converse com um agente no playground para gerar métricas.",
+   "hasTeam": false,
+   "legend": [],
+   "sectors": [],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "docH": 840
+ },
+ "a-d-dark": {
+  "donut": {
+   "h": 370,
+   "w": 519.5,
+   "left": 823.5,
+   "right": 1343,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 12 | Sessões de team: 5",
+   "hasTeam": true,
+   "legend": [
+    {
+     "t": "Sessões de agente: 12",
+     "left": 923.75,
+     "right": 1084.75,
+     "top": 827,
+     "marker": "rgb(115, 151, 255)"
+    },
+    {
+     "t": "Sessões de team: 5",
+     "left": 1100.75,
+     "right": 1242.75,
+     "top": 827,
+     "marker": "rgb(149, 160, 180)"
+    }
+   ],
+   "ul": {
+    "top": 827,
+    "left": 848.5,
+    "right": 1318,
+    "justify": "center",
+    "scrollW": 470,
+    "clientW": 470
+   },
+   "svg": {
+    "top": 597,
+    "bottom": 817,
+    "left": 848.5,
+    "right": 1318.5,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 325,110\n    A 90,90,0,\n    1,0,\n    18"
+    },
+    {
+     "fill": "hsl(var(--muted-foreground))",
+     "d": "M 191.0318,188.5289\n    A 90,90,0,\n    0"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 519.5,
+   "left": 280,
+   "right": 799.5,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agenteSessões de team | 11 de out. | 12 de out. | 13 de out. | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": true,
+   "legend": [],
+   "svg": {
+    "top": 824.875,
+    "bottom": 838.875,
+    "left": 382,
+    "right": 396,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--primary))",
+     "fill": "hsl(var(--primary))",
+     "dots": []
+    },
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--muted-foreground))",
+     "fill": "hsl(var(--muted-foreground))",
+     "dots": []
+    }
+   ],
+   "dots": [],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "11 de out.",
+     "l": 379.4000244140625,
+     "r": 453.4000244140625
+    },
+    {
+     "t": "12 de out.",
+     "l": 467.8000183105469,
+     "r": 541.800048828125
+    },
+    {
+     "t": "13 de out.",
+     "l": 556.2000122070312,
+     "r": 630.2000122070312
+    },
+    {
+     "t": "15 de out.",
+     "l": 701,
+     "r": 775
+    },
+    {
+     "t": "0",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "1",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "2",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "3",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "4",
+     "l": 310,
+     "r": 320
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente",
+    "Sessões de team"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 840
+ },
+ "b-d-dark": {
+  "donut": {
+   "h": 370,
+   "w": 519.5,
+   "left": 823.5,
+   "right": 1343,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 12",
+   "hasTeam": false,
+   "legend": [
+    {
+     "t": "Sessões de agente: 12",
+     "left": 1002.75,
+     "right": 1163.75,
+     "top": 827,
+     "marker": "rgb(115, 151, 255)"
+    }
+   ],
+   "ul": {
+    "top": 827,
+    "left": 848.5,
+    "right": 1318,
+    "justify": "center",
+    "scrollW": 470,
+    "clientW": 470
+   },
+   "svg": {
+    "top": 597,
+    "bottom": 817,
+    "left": 848.5,
+    "right": 1318.5,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 325,110\n    A 90,90,0,\n    1,0,\n    31"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 519.5,
+   "left": 280,
+   "right": 799.5,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agente | 11 de out. | 12 de out. | 13 de out. | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": false,
+   "legend": [],
+   "svg": {
+    "top": 824.875,
+    "bottom": 838.875,
+    "left": 458,
+    "right": 472,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--primary))",
+     "fill": "hsl(var(--primary))",
+     "dots": []
+    }
+   ],
+   "dots": [],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "11 de out.",
+     "l": 379.4000244140625,
+     "r": 453.4000244140625
+    },
+    {
+     "t": "12 de out.",
+     "l": 467.8000183105469,
+     "r": 541.800048828125
+    },
+    {
+     "t": "13 de out.",
+     "l": 556.2000122070312,
+     "r": 630.2000122070312
+    },
+    {
+     "t": "15 de out.",
+     "l": 701,
+     "r": 775
+    },
+    {
+     "t": "0",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "1",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "2",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "3",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "4",
+     "l": 310,
+     "r": 320
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 840
+ },
+ "c-d-dark": {
+  "donut": {
+   "h": 370,
+   "w": 519.5,
+   "left": 823.5,
+   "right": 1343,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 1",
+   "hasTeam": false,
+   "legend": [
+    {
+     "t": "Sessões de agente: 1",
+     "left": 1006.75,
+     "right": 1159.75,
+     "top": 827,
+     "marker": "rgb(115, 151, 255)"
+    }
+   ],
+   "ul": {
+    "top": 827,
+    "left": 848.5,
+    "right": 1318,
+    "justify": "center",
+    "scrollW": 470,
+    "clientW": 470
+   },
+   "svg": {
+    "top": 597,
+    "bottom": 817,
+    "left": 848.5,
+    "right": 1318.5,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 325,110\n    A 90,90,0,\n    1,0,\n    31"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 519.5,
+   "left": 280,
+   "right": 799.5,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agente | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": false,
+   "legend": [],
+   "svg": {
+    "top": 824.875,
+    "bottom": 838.875,
+    "left": 458,
+    "right": 472,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "dots": []
+    }
+   ],
+   "dots": [
+    {
+     "r": "4",
+     "fill": "hsl(var(--primary))",
+     "stroke": "hsl(var(--card))",
+     "cx": "244"
+    }
+   ],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "15 de out.",
+     "l": 512,
+     "r": 586
+    },
+    {
+     "t": "0",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "1",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "2",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "3",
+     "l": 310,
+     "r": 320
+    },
+    {
+     "t": "4",
+     "l": 310,
+     "r": 320
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 840
+ },
+ "d-d-dark": {
+  "donut": {
+   "h": 370,
+   "w": 519.5,
+   "left": 823.5,
+   "right": 1343,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sem dados no período | Converse com um agente no playground para gerar métricas.",
+   "hasTeam": false,
+   "legend": [],
+   "sectors": [],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 519.5,
+   "left": 280,
+   "right": 799.5,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sem dados no período | Converse com um agente no playground para gerar métricas.",
+   "hasTeam": false,
+   "legend": [],
+   "sectors": [],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "docH": 840
+ },
+ "a-m-light": {
+  "donut": {
+   "h": 394,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 12 | Sessões de team: 5",
+   "hasTeam": true,
+   "legend": [
+    {
+     "t": "Sessões de agente: 12",
+     "left": 114.5,
+     "right": 275.5,
+     "top": 1871,
+     "marker": "rgb(43, 87, 217)"
+    },
+    {
+     "t": "Sessões de team: 5",
+     "left": 124,
+     "right": 266,
+     "top": 1895,
+     "marker": "rgb(86, 96, 112)"
+    }
+   ],
+   "ul": {
+    "top": 1871,
+    "left": 49,
+    "right": 341,
+    "justify": "center",
+    "scrollW": 292,
+    "clientW": 292
+   },
+   "svg": {
+    "top": 1641,
+    "bottom": 1861,
+    "left": 49,
+    "right": 341,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 236,110\n    A 90,90,0,\n    1,0,\n    97"
+    },
+    {
+     "fill": "hsl(var(--muted-foreground))",
+     "d": "M 100.4697,187.6337\n    A 90,90,0,\n    0"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agenteSessões de team | 12 de out. | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": true,
+   "legend": [],
+   "svg": {
+    "top": 1450.875,
+    "bottom": 1464.875,
+    "left": 113,
+    "right": 127,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--primary))",
+     "fill": "hsl(var(--primary))",
+     "dots": []
+    },
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--muted-foreground))",
+     "fill": "hsl(var(--muted-foreground))",
+     "dots": []
+    }
+   ],
+   "dots": [],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "12 de out.",
+     "l": 140.60000610351562,
+     "r": 214.60000610351562
+    },
+    {
+     "t": "15 de out.",
+     "l": 267,
+     "r": 341
+    },
+    {
+     "t": "0",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "1",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "2",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "3",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "4",
+     "l": 54,
+     "r": 64
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente",
+    "Sessões de team"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 1908
+ },
+ "b-m-light": {
+  "donut": {
+   "h": 394,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 12",
+   "hasTeam": false,
+   "legend": [
+    {
+     "t": "Sessões de agente: 12",
+     "left": 114.5,
+     "right": 275.5,
+     "top": 1871,
+     "marker": "rgb(43, 87, 217)"
+    }
+   ],
+   "ul": {
+    "top": 1871,
+    "left": 49,
+    "right": 341,
+    "justify": "center",
+    "scrollW": 292,
+    "clientW": 292
+   },
+   "svg": {
+    "top": 1641,
+    "bottom": 1861,
+    "left": 49,
+    "right": 341,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 236,110\n    A 90,90,0,\n    1,0,\n    23"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agente | 12 de out. | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": false,
+   "legend": [],
+   "svg": {
+    "top": 1474.875,
+    "bottom": 1488.875,
+    "left": 113,
+    "right": 127,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--primary))",
+     "fill": "hsl(var(--primary))",
+     "dots": []
+    }
+   ],
+   "dots": [],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "12 de out.",
+     "l": 140.60000610351562,
+     "r": 214.60000610351562
+    },
+    {
+     "t": "15 de out.",
+     "l": 267,
+     "r": 341
+    },
+    {
+     "t": "0",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "1",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "2",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "3",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "4",
+     "l": 54,
+     "r": 64
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 1908
+ },
+ "c-m-light": {
+  "donut": {
+   "h": 394,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 1",
+   "hasTeam": false,
+   "legend": [
+    {
+     "t": "Sessões de agente: 1",
+     "left": 118.5,
+     "right": 271.5,
+     "top": 1871,
+     "marker": "rgb(43, 87, 217)"
+    }
+   ],
+   "ul": {
+    "top": 1871,
+    "left": 49,
+    "right": 341,
+    "justify": "center",
+    "scrollW": 292,
+    "clientW": 292
+   },
+   "svg": {
+    "top": 1641,
+    "bottom": 1861,
+    "left": 49,
+    "right": 341,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 236,110\n    A 90,90,0,\n    1,0,\n    23"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agente | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": false,
+   "legend": [],
+   "svg": {
+    "top": 1474.875,
+    "bottom": 1488.875,
+    "left": 113,
+    "right": 127,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "dots": []
+    }
+   ],
+   "dots": [
+    {
+     "r": "4",
+     "fill": "hsl(var(--primary))",
+     "stroke": "hsl(var(--card))",
+     "cx": "155"
+    }
+   ],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "15 de out.",
+     "l": 167,
+     "r": 241
+    },
+    {
+     "t": "0",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "1",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "2",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "3",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "4",
+     "l": 54,
+     "r": 64
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 1908
+ },
+ "d-m-light": {
+  "donut": {
+   "h": 394,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sem dados no período | Converse com um agente no playground para gerar métricas.",
+   "hasTeam": false,
+   "legend": [],
+   "sectors": [],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sem dados no período | Converse com um agente no playground para gerar métricas.",
+   "hasTeam": false,
+   "legend": [],
+   "sectors": [],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "docH": 1908
+ },
+ "a-m-dark": {
+  "donut": {
+   "h": 394,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 12 | Sessões de team: 5",
+   "hasTeam": true,
+   "legend": [
+    {
+     "t": "Sessões de agente: 12",
+     "left": 114.5,
+     "right": 275.5,
+     "top": 1871,
+     "marker": "rgb(115, 151, 255)"
+    },
+    {
+     "t": "Sessões de team: 5",
+     "left": 124,
+     "right": 266,
+     "top": 1895,
+     "marker": "rgb(149, 160, 180)"
+    }
+   ],
+   "ul": {
+    "top": 1871,
+    "left": 49,
+    "right": 341,
+    "justify": "center",
+    "scrollW": 292,
+    "clientW": 292
+   },
+   "svg": {
+    "top": 1641,
+    "bottom": 1861,
+    "left": 49,
+    "right": 341,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 236,110\n    A 90,90,0,\n    1,0,\n    99"
+    },
+    {
+     "fill": "hsl(var(--muted-foreground))",
+     "d": "M 102.0226,188.5238\n    A 90,90,0,\n    0"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agenteSessões de team | 12 de out. | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": true,
+   "legend": [],
+   "svg": {
+    "top": 1450.875,
+    "bottom": 1464.875,
+    "left": 113,
+    "right": 127,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--primary))",
+     "fill": "hsl(var(--primary))",
+     "dots": []
+    },
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--muted-foreground))",
+     "fill": "hsl(var(--muted-foreground))",
+     "dots": []
+    }
+   ],
+   "dots": [],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "12 de out.",
+     "l": 140.60000610351562,
+     "r": 214.60000610351562
+    },
+    {
+     "t": "15 de out.",
+     "l": 267,
+     "r": 341
+    },
+    {
+     "t": "0",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "1",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "2",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "3",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "4",
+     "l": 54,
+     "r": 64
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente",
+    "Sessões de team"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 1908
+ },
+ "b-m-dark": {
+  "donut": {
+   "h": 394,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 12",
+   "hasTeam": false,
+   "legend": [
+    {
+     "t": "Sessões de agente: 12",
+     "left": 114.5,
+     "right": 275.5,
+     "top": 1871,
+     "marker": "rgb(115, 151, 255)"
+    }
+   ],
+   "ul": {
+    "top": 1871,
+    "left": 49,
+    "right": 341,
+    "justify": "center",
+    "scrollW": 292,
+    "clientW": 292
+   },
+   "svg": {
+    "top": 1641,
+    "bottom": 1861,
+    "left": 49,
+    "right": 341,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 236,110\n    A 90,90,0,\n    1,0,\n    23"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agente | 12 de out. | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": false,
+   "legend": [],
+   "svg": {
+    "top": 1474.875,
+    "bottom": 1488.875,
+    "left": 113,
+    "right": 127,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "stroke": "hsl(var(--primary))",
+     "fill": "hsl(var(--primary))",
+     "dots": []
+    }
+   ],
+   "dots": [],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "12 de out.",
+     "l": 140.60000610351562,
+     "r": 214.60000610351562
+    },
+    {
+     "t": "15 de out.",
+     "l": 267,
+     "r": 341
+    },
+    {
+     "t": "0",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "1",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "2",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "3",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "4",
+     "l": 54,
+     "r": 64
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 1908
+ },
+ "c-m-dark": {
+  "donut": {
+   "h": 394,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sessões de agente: 1",
+   "hasTeam": false,
+   "legend": [
+    {
+     "t": "Sessões de agente: 1",
+     "left": 118.5,
+     "right": 271.5,
+     "top": 1871,
+     "marker": "rgb(115, 151, 255)"
+    }
+   ],
+   "ul": {
+    "top": 1871,
+    "left": 49,
+    "right": 341,
+    "justify": "center",
+    "scrollW": 292,
+    "clientW": 292
+   },
+   "svg": {
+    "top": 1641,
+    "bottom": 1861,
+    "left": 49,
+    "right": 341,
+    "texts": 0
+   },
+   "sectors": [
+    {
+     "fill": "hsl(var(--primary))",
+     "d": "M 236,110\n    A 90,90,0,\n    1,0,\n    23"
+    }
+   ],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sessões de agente | 15 de out. | 0 | 1 | 2 | 3 | 4",
+   "hasTeam": false,
+   "legend": [],
+   "svg": {
+    "top": 1474.875,
+    "bottom": 1488.875,
+    "left": 113,
+    "right": 127,
+    "texts": 0
+   },
+   "sectors": [],
+   "areas": [
+    {
+     "cls": "recharts-layer recharts-area",
+     "dots": []
+    }
+   ],
+   "dots": [
+    {
+     "r": "4",
+     "fill": "hsl(var(--primary))",
+     "stroke": "hsl(var(--card))",
+     "cx": "155"
+    }
+   ],
+   "grid": [
+    "hsl(var(--border))"
+   ],
+   "ticks": [
+    "hsl(var(--muted-foreground))",
+    "hsl(var(--muted-foreground))"
+   ],
+   "axisTexts": [
+    {
+     "t": "15 de out.",
+     "l": 167,
+     "r": 241
+    },
+    {
+     "t": "0",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "1",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "2",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "3",
+     "l": 54,
+     "r": 64
+    },
+    {
+     "t": "4",
+     "l": 54,
+     "r": 64
+    }
+   ],
+   "rlegend": [
+    "Sessões de agente"
+   ],
+   "legendCls": "recharts-legend-wrapper",
+   "skel": 0
+  },
+  "docH": 1908
+ },
+ "d-m-dark": {
+  "donut": {
+   "h": 394,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Sessões por tipo | Distribuição das sessões por tipo | Sem dados no período | Converse com um agente no playground para gerar métricas.",
+   "hasTeam": false,
+   "legend": [],
+   "sectors": [],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "line": {
+   "h": 370,
+   "w": 342,
+   "left": 24,
+   "right": 366,
+   "text": "Atividade por tempo | Distribuição de sessões ao longo do tempo | Sem dados no período | Converse com um agente no playground para gerar métricas.",
+   "hasTeam": false,
+   "legend": [],
+   "sectors": [],
+   "areas": [],
+   "dots": [],
+   "grid": [],
+   "ticks": [],
+   "axisTexts": [],
+   "rlegend": [],
+   "skel": 0
+  },
+  "docH": 1908
+ },
+ "v10": {
+  "d-light": {
+   "skel": {
+    "root": 840,
+    "sk": [
+     {
+      "top": 80,
+      "h": 28,
+      "w": 160
+     },
+     {
+      "top": 112,
+      "h": 24,
+      "w": 288
+     },
+     {
+      "top": 88,
+      "h": 40,
+      "w": 192
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "w": 254
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "w": 254
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "w": 254
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "w": 254
+     },
+     {
+      "top": 314,
+      "h": 164,
+      "w": 520
+     },
+     {
+      "top": 314,
+      "h": 164,
+      "w": 520
+     },
+     {
+      "top": 502,
+      "h": 370,
+      "w": 520
+     },
+     {
+      "top": 502,
+      "h": 370,
+      "w": 520
+     }
+    ]
+   },
+   "loaded": {
+    "root": 840,
+    "cards": [
+     {
+      "top": 160,
+      "h": 130,
+      "t": "Agentes ativos"
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "t": "Máx. usuários/dia"
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "t": "Sessões criadas"
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "t": "Tokens consumidos"
+     },
+     {
+      "top": 314,
+      "h": 164,
+      "t": "Modelos de IA"
+     },
+     {
+      "top": 314,
+      "h": 164,
+      "t": "Modelos de embedding"
+     },
+     {
+      "top": 502,
+      "h": 370,
+      "t": "Atividade por tempo"
+     },
+     {
+      "top": 502,
+      "h": 370,
+      "t": "Sessões por tipo"
+     }
+    ],
+    "header": {
+     "top": 80,
+     "h": 56
+    }
+   }
+  },
+  "d-dark": {
+   "skel": {
+    "root": 840,
+    "sk": [
+     {
+      "top": 80,
+      "h": 28,
+      "w": 160
+     },
+     {
+      "top": 112,
+      "h": 24,
+      "w": 288
+     },
+     {
+      "top": 88,
+      "h": 40,
+      "w": 192
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "w": 254
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "w": 254
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "w": 254
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "w": 254
+     },
+     {
+      "top": 314,
+      "h": 164,
+      "w": 520
+     },
+     {
+      "top": 314,
+      "h": 164,
+      "w": 520
+     },
+     {
+      "top": 502,
+      "h": 370,
+      "w": 520
+     },
+     {
+      "top": 502,
+      "h": 370,
+      "w": 520
+     }
+    ]
+   },
+   "loaded": {
+    "root": 840,
+    "cards": [
+     {
+      "top": 160,
+      "h": 130,
+      "t": "Agentes ativos"
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "t": "Máx. usuários/dia"
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "t": "Sessões criadas"
+     },
+     {
+      "top": 160,
+      "h": 130,
+      "t": "Tokens consumidos"
+     },
+     {
+      "top": 314,
+      "h": 164,
+      "t": "Modelos de IA"
+     },
+     {
+      "top": 314,
+      "h": 164,
+      "t": "Modelos de embedding"
+     },
+     {
+      "top": 502,
+      "h": 370,
+      "t": "Atividade por tempo"
+     },
+     {
+      "top": 502,
+      "h": 370,
+      "t": "Sessões por tipo"
+     }
+    ],
+    "header": {
+     "top": 80,
+     "h": 56
+    }
+   }
+  },
+  "m-light": {
+   "skel": {
+    "root": 1908,
+    "sk": [
+     {
+      "top": 80,
+      "h": 28,
+      "w": 160
+     },
+     {
+      "top": 112,
+      "h": 48,
+      "w": 288
+     },
+     {
+      "top": 100,
+      "h": 40,
+      "w": 54
+     },
+     {
+      "top": 184,
+      "h": 130,
+      "w": 342
+     },
+     {
+      "top": 330,
+      "h": 130,
+      "w": 342
+     },
+     {
+      "top": 476,
+      "h": 130,
+      "w": 342
+     },
+     {
+      "top": 622,
+      "h": 130,
+      "w": 342
+     },
+     {
+      "top": 776,
+      "h": 164,
+      "w": 342
+     },
+     {
+      "top": 964,
+      "h": 164,
+      "w": 342
+     },
+     {
+      "top": 1152,
+      "h": 370,
+      "w": 342
+     },
+     {
+      "top": 1546,
+      "h": 394,
+      "w": 342
+     }
+    ]
+   },
+   "loaded": {
+    "root": 1908,
+    "cards": [
+     {
+      "top": 184,
+      "h": 130,
+      "t": "Agentes ativos"
+     },
+     {
+      "top": 330,
+      "h": 130,
+      "t": "Máx. usuários/dia"
+     },
+     {
+      "top": 476,
+      "h": 130,
+      "t": "Sessões criadas"
+     },
+     {
+      "top": 622,
+      "h": 130,
+      "t": "Tokens consumidos"
+     },
+     {
+      "top": 776,
+      "h": 164,
+      "t": "Modelos de IA"
+     },
+     {
+      "top": 964,
+      "h": 164,
+      "t": "Modelos de embedding"
+     },
+     {
+      "top": 1152,
+      "h": 370,
+      "t": "Atividade por tempo"
+     },
+     {
+      "top": 1546,
+      "h": 394,
+      "t": "Sessões por tipo"
+     }
+    ],
+    "header": {
+     "top": 80,
+     "h": 80
+    }
+   }
+  },
+  "m-dark": {
+   "skel": {
+    "root": 1908,
+    "sk": [
+     {
+      "top": 80,
+      "h": 28,
+      "w": 160
+     },
+     {
+      "top": 112,
+      "h": 48,
+      "w": 288
+     },
+     {
+      "top": 100,
+      "h": 40,
+      "w": 54
+     },
+     {
+      "top": 184,
+      "h": 130,
+      "w": 342
+     },
+     {
+      "top": 330,
+      "h": 130,
+      "w": 342
+     },
+     {
+      "top": 476,
+      "h": 130,
+      "w": 342
+     },
+     {
+      "top": 622,
+      "h": 130,
+      "w": 342
+     },
+     {
+      "top": 776,
+      "h": 164,
+      "w": 342
+     },
+     {
+      "top": 964,
+      "h": 164,
+      "w": 342
+     },
+     {
+      "top": 1152,
+      "h": 370,
+      "w": 342
+     },
+     {
+      "top": 1546,
+      "h": 394,
+      "w": 342
+     }
+    ]
+   },
+   "loaded": {
+    "root": 1908,
+    "cards": [
+     {
+      "top": 184,
+      "h": 130,
+      "t": "Agentes ativos"
+     },
+     {
+      "top": 330,
+      "h": 130,
+      "t": "Máx. usuários/dia"
+     },
+     {
+      "top": 476,
+      "h": 130,
+      "t": "Sessões criadas"
+     },
+     {
+      "top": 622,
+      "h": 130,
+      "t": "Tokens consumidos"
+     },
+     {
+      "top": 776,
+      "h": 164,
+      "t": "Modelos de IA"
+     },
+     {
+      "top": 964,
+      "h": 164,
+      "t": "Modelos de embedding"
+     },
+     {
+      "top": 1152,
+      "h": 370,
+      "t": "Atividade por tempo"
+     },
+     {
+      "top": 1546,
+      "h": 394,
+      "t": "Sessões por tipo"
+     }
+    ],
+    "header": {
+     "top": 80,
+     "h": 80
+    }
+   }
+  }
+ },
+ "v10frames": [
+  {
+   "ms": 347,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 1,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 1,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 354,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 358,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 373,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 390,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 407,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 424,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 441,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 458,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 474,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 491,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  },
+  {
+   "ms": 508,
+   "cs": [
+    {
+     "t": "Atividade por tempo\n",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    },
+    {
+     "t": "Sessões por tipo\n\nDi",
+     "svg": true,
+     "sk": 0,
+     "bodyH": 274
+    }
+   ]
+  }
+ ],
+ "v13": {
+  "pt-BR": {
+   "lang": "pt-BR",
+   "label": "Lido em",
+   "val": "21:19:17",
+   "now": "21:19:19",
+   "tz": "America/Sao_Paulo"
+  },
+  "en": {
+   "lang": "en",
+   "label": "Read at",
+   "val": "9:19:20 PM",
+   "now": "9:19:22 PM",
+   "tz": "America/Sao_Paulo"
+  }
+ }
+}

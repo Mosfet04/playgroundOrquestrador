@@ -44,6 +44,36 @@ const HOLD_COMPLETION_MS = 3000
 // POST /hold/release: o e2e troca o idioma com o stream aberto (P1-04b). O
 // prazo máximo evita stream preso se o teste cair antes de liberar.
 const HOLD_UNTIL_RELEASE_MESSAGE = 'segure até liberar'
+// Mensagem que faz o run do agente falhar depois do RunStarted, como o 503
+// "high demand" do provedor: o agno grava a sessão, com a pergunta e sem
+// resposta (flush_in_flight_messages_on_error), e encerra com RunError
+// (agno/agent/_run.py, acleanup_and_store antes do yield). QA1-02.
+const RUN_ERROR_MESSAGE = 'falhe o run'
+// QA1-03: o 503 que passa no Reenviar (falha só no 1º run da sessão) e o erro
+// pydantic de parâmetro do modelo (`temperature` "0,7", QA1-06 #3). O
+// `content` é o str() da exceção, como no RunErrorEvent do agno 3.1.12.
+const RUN_ERROR_ONCE_MESSAGE = 'sobrecarregue uma vez'
+const INVALID_PARAM_MESSAGE = 'parametro invalido'
+const HIGH_DEMAND_ERROR = {
+  error_type: 'model_provider_error',
+  content:
+    "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+}
+const INVALID_PARAM_ERROR = {
+  error_type: 'ValidationError',
+  content:
+    "1 validation error for GenerateContentConfig\ntemperature\n  Input should be a valid number, unable to parse string as a number [type=float_parsing, input_value='0,7', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.14/v/float_parsing"
+}
+// Run que falha depois de uma tool: o agno grava a pergunta e o assistant da
+// chamada, sem texto (flush_in_flight_messages_on_error). QA1-03, D-QA1-03-5.
+const RUN_ERROR_AFTER_TOOL_MESSAGE = 'falhe depois da tool'
+const RUN_ERRORS = new Map([
+  [RUN_ERROR_MESSAGE, HIGH_DEMAND_ERROR],
+  [INVALID_PARAM_MESSAGE, INVALID_PARAM_ERROR],
+  [RUN_ERROR_AFTER_TOOL_MESSAGE, HIGH_DEMAND_ERROR]
+])
+// Sessões em que o RUN_ERROR_ONCE_MESSAGE já falhou.
+const failedOnceSessions = new Set<string>()
 const HOLD_MAX_MS = 60_000
 // POST /hold/release solta tudo; com `?agent=<id>`, só os streams desse agente
 // (testes em paralelo não soltam os retidos uns dos outros).
@@ -71,7 +101,14 @@ const teamMember = agents[0]
 const sessionsByAgent = new Map<string, FakeSession[]>()
 // Histórico no formato v2.5 lido por src/hooks/useSessionLoader.tsx
 // (`chat_history` com role, content e created_at).
-type ChatEntry = { role: 'user' | 'assistant'; content: string; created_at: number }
+// O assistant da tool call do run que falhou vem com `content` null e os
+// `tool_calls` (QA1-03, D-QA1-03-5).
+type ChatEntry = {
+  role: 'user' | 'assistant'
+  content: string | null
+  created_at: number
+  tool_calls?: Record<string, unknown>[]
+}
 const historyBySession = new Map<string, ChatEntry[]>()
 
 // Formato do AgentResponse do AgentOS (agno/os/routers/agents/schema.py).
@@ -247,6 +284,29 @@ const origin = (route: string) => {
   const parts = /^([a-z][a-z0-9+.-]*):\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]*)(?::(\d*))?(?:[/?#]|$)/i.exec(route)
   return parts ? [parts[1].toLowerCase(), parts[2].toLowerCase(), parts[3] || ''].join('|') : null
 }
+// Hosts do operador (a `TOOL_ROUTE_ALLOWLIST` do real, em tool_route_guard.py):
+// só eles recebem header por referência. Os da spec do QA1-07 e os dos e2e que
+// gravam referência; `api.terceiro.example` fica de fora (o host não confiável).
+const TOOL_ROUTE_ALLOWLIST = new Set([
+  'api.exemplo.com',
+  'api.example.com',
+  'api.loja.example',
+  'outro.example',
+  'clima.example.com'
+])
+const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/
+// Host da rota como o `normalize_host` do real (ssrf.py): minúsculo, sem
+// colchetes e sem o ponto final de nome (`10.0.0.5.` fica como está). Sem a
+// forma canônica de IPv6.
+const routeHost = (route: string) => {
+  const bare = (origin(route)?.split('|')[1] ?? '').replace(/^\[(.*)\]$/, '$1')
+  const name = bare.replace(/\.$/, '')
+  return IPV4.test(name) && name !== bare ? bare : name
+}
+// Loopback literal (`is_loopback_host`): o fake simula o modo não-dev, em que
+// o real recusa a rota (422 `route`) fora da allowlist.
+const isLoopback = (host: string) =>
+  host === 'localhost' || host === '::1' || (IPV4.test(host) && host.startsWith('127.'))
 
 const BOOLEAN_AGENT_KEYS = [
   'markdown',
@@ -375,6 +435,10 @@ function checkTool(body: Record<string, unknown>, current?: ConfigDoc): Checked<
   const headers = body.headers ?? {}
   if (!isRecord(headers) || Object.values(headers).some((value) => typeof value !== 'string'))
     return invalid('headers')
+  // O destino (`ToolRouteGuard`) vem antes da máscara e da regra de segredo.
+  const host = routeHost(String(body.route))
+  const trusted = TOOL_ROUTE_ALLOWLIST.has(host)
+  if (isLoopback(host) && !trusted) return invalid('route')
   // Nome sensível só por referência; a máscara mantém o gravado na mesma origem.
   const stored = isRecord(current?.headers) ? current.headers : {}
   const sameOrigin =
@@ -392,6 +456,9 @@ function checkTool(body: Record<string, unknown>, current?: ConfigDoc): Checked<
     if (sensitive && !isRef(value)) return invalid('headers')
     kept[name] = value
   }
+  // Referência, inclusive a mantida pela máscara, só para host do operador
+  // (`ToolConfigEditor._checked`): senão o segredo iria a um host de terceiro.
+  if (!trusted && Object.values(kept).some(isRef)) return invalid('headers')
   return accepted({
     id: String(body.id),
     name: body.name,
@@ -415,6 +482,18 @@ const shown = (kind: ConfigKind, doc: ConfigDoc): ConfigDoc =>
         )
       }
     : doc
+
+// `updated_at` (FA-08): hora da última gravação pela API, em ISO 8601 UTC com
+// `Z` e em segundos. Fora do documento, como no real (metadado: não entra no
+// diário nem no diff, e o do corpo é descartado). Sem entrada, `null` (store
+// YAML, legado do seed): só `agente-beta` nasce com data.
+const updatedAt = new Map<string, string>([['agents/agente-beta', '2026-11-20T09:30:00Z']])
+const stamp = (kind: ConfigKind, id: string) =>
+  updatedAt.set(`${kind}/${id}`, new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'))
+const withUpdatedAt = (kind: ConfigKind, doc: ConfigDoc): ConfigDoc => ({
+  ...shown(kind, doc),
+  updated_at: updatedAt.get(`${kind}/${doc.id}`) ?? null
+})
 
 const usedBy = (kind: ConfigKind, id: string): Record<string, string[]> | null => {
   if (kind === 'agents') {
@@ -448,7 +527,7 @@ const sendConfig = (
   headers: Record<string, string> = {}
 ) => {
   res.writeHead(status, { 'Content-Type': 'application/json', ETag: `"${doc.version}"`, ...headers })
-  res.end(JSON.stringify(shown(kind, doc)))
+  res.end(JSON.stringify(withUpdatedAt(kind, doc)))
 }
 
 // Troca a quente (FA-04): a revisão do runtime sobe a cada escrita aceita e
@@ -582,7 +661,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     const offset = Number(url.searchParams.get('offset') ?? 0)
     const limit = Number(url.searchParams.get('limit') ?? 50)
     sendJson(res, 200, {
-      items: store.slice(offset, offset + limit).map((doc) => shown(kind, doc)),
+      items: store.slice(offset, offset + limit).map((doc) => withUpdatedAt(kind, doc)),
       total: store.length,
       offset,
       limit
@@ -591,12 +670,13 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
   }
   const check = (doc: Record<string, unknown>, current?: ConfigDoc) =>
     kind === 'agents' ? checkAgent(doc) : kind === 'teams' ? checkTeam(doc) : checkTool(doc, current)
-  // Corpo como objeto JSON, sem operador `$`; a `version` do corpo é descartada.
+  // Corpo como objeto JSON, sem operador `$`; a `version` e o `updated_at` do
+  // corpo são descartados (o ciclo GET → PUT os devolve).
   const body = async (): Promise<Checked<Record<string, unknown>>> => {
     const raw = await readJson(req)
     if (!isRecord(raw) || hasOperator(raw)) return invalid()
-    const { version: _ignored, ...rest } = raw
-    void _ignored
+    const { version: _version, updated_at: _updatedAt, ...rest } = raw
+    void [_version, _updatedAt]
     return accepted(rest)
   }
 
@@ -613,6 +693,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
         created,
         () => {
           store.push(created)
+          stamp(kind, created.id)
           record(kind, null, created)
         },
         (headers) => sendConfig(res, 201, kind, created, headers)
@@ -664,6 +745,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
         restored,
         () => {
           store[index] = restored
+          stamp(kind, id)
           record(kind, current, restored)
         },
         (headers) => sendConfig(res, 200, kind, restored, headers)
@@ -684,6 +766,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
         replaced,
         () => {
           store[index] = replaced
+          stamp(kind, id)
           record(kind, current, replaced)
         },
         (headers) => sendConfig(res, 200, kind, replaced, headers)
@@ -703,6 +786,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
       current,
       () => {
         store.splice(index, 1)
+        updatedAt.delete(`${kind}/${id}`)
         record(kind, current, null)
       },
       (headers) => res.writeHead(204, headers).end()
@@ -715,6 +799,7 @@ async function handleConfig(req: IncomingMessage, res: ServerResponse, url: URL)
     current,
     () => {
       store[index] = deactivated
+      stamp(kind, id)
       record(kind, current, deactivated)
     },
     (headers) => sendConfig(res, 200, kind, deactivated, headers)
@@ -897,6 +982,12 @@ const runAgent = async (
         user_id: userId
       }
     ])
+  } else {
+    // O agno grava o `updated_at` a cada run (QA1-02: a lista mostra o novo).
+    sessionsByAgent.set(
+      agent.id,
+      agentSessions.map((s) => (s.session_id === sessionId ? { ...s, updated_at: now } : s))
+    )
   }
 
   let finished = false
@@ -983,6 +1074,45 @@ const runAgent = async (
       total_tokens: runMetrics.total_tokens
     })
   writeEvent(res, { ...contentRun, event: 'RunStarted', model: 'fake-model' })
+  const failsOnce = message === RUN_ERROR_ONCE_MESSAGE && !failedOnceSessions.has(sessionId)
+  const runError = isTeam ? undefined : failsOnce ? HIGH_DEMAND_ERROR : RUN_ERRORS.get(message)
+  if (runError) {
+    if (failsOnce) failedOnceSessions.add(sessionId)
+    const afterTool = message === RUN_ERROR_AFTER_TOOL_MESSAGE
+    if (afterTool) {
+      writeEvent(res, { ...contentRun, event: 'ToolCallStarted', tool: toolOk })
+      writeEvent(res, {
+        ...contentRun,
+        event: 'ToolCallCompleted',
+        tool: { ...toolOk, tool_call_error: false, metrics: { duration: 0.18 } }
+      })
+    }
+    await delay(CHUNK_DELAY_MS)
+    writeEvent(res, { ...contentRun, event: 'RunError', ...runError })
+    historyBySession.set(sessionId, [
+      ...(historyBySession.get(sessionId) ?? []),
+      { role: 'user', content: message, created_at: base.created_at },
+      ...(afterTool
+        ? [
+            {
+              role: 'assistant' as const,
+              content: null,
+              created_at: base.created_at,
+              tool_calls: [
+                {
+                  id: toolOk.tool_call_id,
+                  type: 'function',
+                  function: { name: toolOk.tool_name, arguments: '{}' }
+                }
+              ]
+            }
+          ]
+        : [])
+    ])
+    finished = true
+    res.end()
+    return
+  }
   if (reasoning) {
     // Cada passo vem como tool think/analyze, e o run deriva dela o ReasoningStep
     // (o ReasoningStarted antes do primeiro).

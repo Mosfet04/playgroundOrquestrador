@@ -153,7 +153,7 @@ test('cria e edita uma tool com rota parametrizada, padrões tipados e headers',
   await page.getByLabel(/^Rota/).fill('https://outro.example/v1/orders/{order_id}')
   await expect(page.getByText(/A origem da rota mudou/)).toContainText('Accept')
   await saveAndConfirm(page)
-  await expect(page.getByText(/O orquestrador recusou algum header e não diz qual/)).toBeVisible()
+  await expect(page.getByText(/O orquestrador recusou um header e não diz qual/)).toBeVisible()
   await expect(page.getByLabel('Valor de Accept (gravado, oculto)')).toBeFocused()
 
   await page.getByRole('button', { name: 'Substituir o valor de Accept' }).click()
@@ -189,12 +189,19 @@ test('header sensível: "Usar segredo" troca o modo e grava a referência', asyn
   })
   await page.goto('/tools/new')
   await hydrated(page)
+  // Sem o schema o modo fica travado (e a troca automática também).
+  await expect(page.getByRole('combobox', { name: /^Método HTTP/ })).toBeEnabled()
   await page.getByLabel(/^ID da tool/).fill(id)
   await page.getByLabel(/^Nome \*/).fill('Tool segredo')
   await page.getByLabel(/^Descrição \*/).fill('Header com segredo')
   await page.getByLabel(/^Rota/).fill('https://clima.example.com/v1/previsao')
   await page.getByRole('button', { name: 'Adicionar header' }).click()
   await page.getByLabel('Nome do header 1').fill('Authorization')
+  // A linha vazia passa a Segredo sozinha; a volta a Texto é manual (D-QA1-07-2).
+  const mode = page.getByRole('combobox', { name: 'Modo do valor de Authorization' })
+  await expect(mode).toHaveText('Segredo')
+  await mode.click()
+  await page.getByRole('option', { name: 'Texto' }).click()
   await page.getByLabel('Valor de Authorization', { exact: true }).fill('Bearer texto-recusado')
   await page.getByRole('button', { name: 'Salvar' }).click()
 

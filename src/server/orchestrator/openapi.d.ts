@@ -7848,7 +7848,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        items: ({
+                            version: number;
+                            updated_at: string | null;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                        total: number;
+                        offset: number;
+                        limit: number;
+                    };
                 };
             };
         };
@@ -7868,7 +7878,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -7890,7 +7905,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -7921,7 +7941,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -7952,7 +7977,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8015,7 +8045,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8044,7 +8079,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        items: ({
+                            version: number;
+                            updated_at: string | null;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                        total: number;
+                        offset: number;
+                        limit: number;
+                    };
                 };
             };
         };
@@ -8064,7 +8109,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -8086,7 +8136,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8117,7 +8172,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8148,7 +8208,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8211,7 +8276,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8240,7 +8310,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        items: ({
+                            version: number;
+                            updated_at: string | null;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                        total: number;
+                        offset: number;
+                        limit: number;
+                    };
                 };
             };
         };
@@ -8260,7 +8340,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -8282,7 +8367,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8313,7 +8403,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8344,7 +8439,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -8407,7 +8507,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        version: number;
+                        updated_at: string | null;
+                    } & {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

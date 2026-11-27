@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type APIResponse } from '@playwright/test'
 
 import { FAKE_ORCHESTRATOR_URL } from '../playwright.config'
 import { TEST_ENV } from './test-env'
@@ -482,6 +482,50 @@ test('fake orchestrator: header mascarado só vale na mesma origem, porta explí
   await request.delete(`${url}/fake-origem?hard=true`, { headers: { ...headers, 'If-Match': '"2"' } })
 })
 
+// QA1-07 (D-QA1-07-1): header por referência só vai a host da allowlist do
+// operador (`ToolConfigEditor._checked` + `ToolRouteGuard` do real). Fora dela,
+// 422 `headers`; header em texto comum segue aceito em qualquer host.
+test('fake orchestrator: segredo em header só para host confiável', async ({ request }) => {
+  const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  const url = `${FAKE_ORCHESTRATOR_URL}/admin/config/tools`
+  const tool = {
+    id: 'fake-segredo-host',
+    name: 'Segredo',
+    description: 'Header por referência',
+    http_method: 'GET',
+    parameters: [],
+    headers: { Authorization: 'env:QA_TOKEN_API_KEY' }
+  }
+
+  const untrusted = await request.post(url, {
+    headers,
+    data: { ...tool, route: 'https://api.terceiro.example/anything' }
+  })
+  expect(untrusted.status()).toBe(422)
+  expect(await untrusted.json()).toMatchObject({ field: 'headers' })
+
+  const text = await request.post(url, {
+    headers,
+    data: { ...tool, route: 'https://api.terceiro.example/anything', headers: { 'X-Conta': 'texto' } }
+  })
+  expect(text.status()).toBe(201)
+  await request.delete(`${url}/fake-segredo-host?hard=true`, { headers: { ...headers, 'If-Match': '"1"' } })
+
+  // Host normalizado como no real: maiúscula e ponto final não mudam o host.
+  for (const route of ['https://API.Exemplo.com/anything', 'https://api.exemplo.com./anything']) {
+    const trusted = await request.post(url, { headers, data: { ...tool, route } })
+    expect(trusted.status(), route).toBe(201)
+    await request.delete(`${url}/fake-segredo-host?hard=true`, { headers: { ...headers, 'If-Match': '"1"' } })
+  }
+
+  // Loopback fora da allowlist (modo não-dev do real): 422 `route`, com ou sem header.
+  for (const route of ['http://localhost:8080/x', 'http://127.0.0.1/x', 'http://[::1]/x']) {
+    const refused = await request.post(url, { headers, data: { ...tool, route, headers: {} } })
+    expect(refused.status(), route).toBe(422)
+    expect(await refused.json()).toMatchObject({ field: 'route' })
+  }
+})
+
 // P3-03: placeholder só no caminho e na query; no host (ou na porta) o real
 // recusa com 422 `route`.
 test('fake orchestrator: placeholder no host da route ⇒ 422 route', async ({ request }) => {
@@ -504,5 +548,92 @@ test('fake orchestrator: placeholder no host da route ⇒ 422 route', async ({ r
     const ok = await request.post(url, { headers, data: { ...tool, route } })
     expect(ok.status(), route).toBe(201)
     await request.delete(`${url}/fake-host?hard=true`, { headers: { ...headers, 'If-Match': '"1"' } })
+  }
+})
+
+// QA1-09 (FA-08): todo documento de /admin/config/* traz `updated_at` (ISO 8601
+// UTC em segundos com `Z`, ou `null` sem data); a escrita grava a hora do
+// servidor e descarta a do corpo, como o real.
+const SECONDS_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/
+
+test('fake orchestrator: updated_at no seed, na escrita e fora do histórico', async ({ request }) => {
+  const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  const url = `${FAKE_ORCHESTRATOR_URL}/admin/config/teams`
+  const seeded = await (await request.get(`${FAKE_ORCHESTRATOR_URL}/admin/config/agents?limit=3`, { headers })).json()
+  expect(seeded.items.map((agent: { id: string; updated_at: string | null }) => [agent.id, agent.updated_at])).toEqual([
+    ['agente-alfa', null],
+    ['agente-beta', '2026-11-20T09:30:00Z'],
+    ['agente-gama', null]
+  ])
+
+  const team = { id: 'fake-data', nome: 'Data', model: 'm', factory_ia_model: 'ollama', member_ids: ['agente-alfa'], mode: 'route' }
+  let version = 1
+  try {
+    const created = await request.post(url, { headers, data: { ...team, updated_at: '2001-01-01T00:00:00Z' } })
+    expect(created.status()).toBe(201)
+    const createdAt = (await created.json()).updated_at
+    expect(createdAt).toMatch(SECONDS_UTC)
+    expect(Math.abs(Date.now() - Date.parse(createdAt))).toBeLessThan(60_000)
+
+    const read = await (await request.get(`${url}/fake-data`, { headers })).json()
+    expect(read.updated_at).toBe(createdAt)
+    const listed = await (await request.get(`${url}?limit=50`, { headers })).json()
+    expect(listed.items.find((item: { id: string }) => item.id === 'fake-data').updated_at).toBe(createdAt)
+
+    const replaced = await request.put(`${url}/fake-data`, {
+      headers: { ...headers, 'If-Match': '"1"' },
+      data: { ...team, nome: 'Data 2', updated_at: read.updated_at }
+    })
+    expect(replaced.status()).toBe(200)
+    version = 2
+    expect((await replaced.json()).updated_at).toMatch(SECONDS_UTC)
+
+    const history = await (await request.get(`${url}/fake-data/history`, { headers })).json()
+    // O diário sobrevive à exclusão definitiva: numa 2ª execução no mesmo fake
+    // há entradas antigas, e a da exclusão tem `document: null`.
+    for (const entry of history.items) {
+      expect(entry.document ?? {}).not.toHaveProperty('updated_at')
+      expect(entry.diff ?? {}).not.toHaveProperty('updated_at')
+    }
+  } finally {
+    await request.delete(`${url}/fake-data?hard=true`, { headers: { ...headers, 'If-Match': `"${version}"` } })
+  }
+})
+
+// QA1-09 (QA): cada escrita regrava a hora (PUT, DELETE lógico, restauração),
+// não só o POST. O fake grava em segundos: o intervalo entre as escritas passa
+// de 1 s para a hora mudar de fato.
+test('fake orchestrator: PUT, DELETE lógico e restauração regravam o updated_at', async ({ request }) => {
+  const headers = bearer(TEST_ENV.ORCHESTRATOR_API_KEY_ADMIN)
+  const url = `${FAKE_ORCHESTRATOR_URL}/admin/config/teams`
+  const team = { id: 'fake-stamp', nome: 'Stamp', model: 'm', factory_ia_model: 'ollama', member_ids: ['agente-alfa'], mode: 'route' }
+  const pause = () => new Promise((resolve) => setTimeout(resolve, 1100))
+  const at = async (response: APIResponse) => Date.parse((await response.json()).updated_at)
+  let version = 1
+  try {
+    const created = await at(await request.post(url, { headers, data: team }))
+    await pause()
+    const replaced = await at(
+      await request.put(`${url}/fake-stamp`, { headers: { ...headers, 'If-Match': '"1"' }, data: { ...team, nome: 'Stamp 2' } })
+    )
+    version = 2
+    expect(replaced).toBeGreaterThan(created)
+
+    await pause()
+    const deactivated = await request.delete(`${url}/fake-stamp`, { headers: { ...headers, 'If-Match': '"2"' } })
+    expect(deactivated.status()).toBe(200)
+    version = 3
+    const deactivatedAt = await at(deactivated)
+    expect(deactivatedAt).toBeGreaterThan(replaced)
+
+    await pause()
+    const restoredResponse = await request.post(`${url}/fake-stamp/history/1/restore`, {
+      headers: { ...headers, 'If-Match': '"3"' }
+    })
+    expect(restoredResponse.status()).toBe(200)
+    version = 4
+    expect(await at(restoredResponse)).toBeGreaterThan(deactivatedAt)
+  } finally {
+    await request.delete(`${url}/fake-stamp?hard=true`, { headers: { ...headers, 'If-Match': `"${version}"` } })
   }
 })

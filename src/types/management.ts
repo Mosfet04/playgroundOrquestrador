@@ -26,7 +26,7 @@ export interface AgentConfig {
   summary_active?: boolean
   // Versão lida: volta no If-Match do PUT/DELETE.
   version: number
-  // O orquestrador não guarda datas: a coluna "Atualizado" mostra "—" (D-P2-06-4).
+  // Hora da última gravação (ISO 8601 UTC); sem ela (store YAML), a lista mostra "—".
   updated_at?: string
 }
 
@@ -307,6 +307,7 @@ export interface AgentFilters {
 }
 
 export interface ToolFilters {
+  active?: boolean
   method?: string
   search?: string
 }

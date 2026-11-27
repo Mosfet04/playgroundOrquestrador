@@ -12,7 +12,7 @@ import { LiveStatus } from '@/components/ui/loading'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { HeaderProblem } from '@/lib/toolHeaders'
 import type { ConfigSchema } from '@/types/management'
-import { FieldError } from '../common/FieldError'
+import { errorA11y, FieldError } from '../common/FieldError'
 import { SectionCard } from '../common/SectionCard'
 import { withCurrent } from '../common/useConfigSchema'
 import { HeadersGroup } from './HeadersGroup'
@@ -76,7 +76,11 @@ export function HttpSection({
             disabled={locked}
             onValueChange={(value) => setValue('http_method', value)}
           >
-            <SelectTrigger id="http_method" className="font-mono">
+            <SelectTrigger
+              id="http_method"
+              {...errorA11y('http_method', !!errors.http_method)}
+              className="font-mono"
+            >
               <SelectValue placeholder={t('methodPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
@@ -87,7 +91,7 @@ export function HttpSection({
               ))}
             </SelectContent>
           </Select>
-          <FieldError message={errors.http_method?.message} />
+          <FieldError id="http_method-error" message={errors.http_method?.message} />
         </div>
 
         <div className="space-y-2">
@@ -97,9 +101,13 @@ export function HttpSection({
             className="font-mono"
             autoComplete="off"
             spellCheck={false}
-            aria-invalid={routeInvalid ? true : undefined}
-            aria-describedby={`route-help${missing.length ? ' route-missing' : ''}${spaced.length ? ' route-spaced' : ''}${routeError ? ' route-error' : ''}`}
-            variant={routeInvalid ? 'destructive' : undefined}
+            {...errorA11y(
+              'route',
+              routeInvalid,
+              'route-help',
+              missing.length > 0 && 'route-missing',
+              spaced.length > 0 && 'route-spaced'
+            )}
             {...register('route', { required: t('routeRequired') })}
             placeholder={t('routePlaceholder')}
           />
@@ -111,21 +119,23 @@ export function HttpSection({
         {t('routeHelp')}
       </p>
       {spaced.length > 0 && (
-        <p id="route-spaced" className="text-sm text-destructive">
-          {t.rich('routePlaceholderSpaces', {
+        <FieldError
+          id="route-spaced"
+          message={t.rich('routePlaceholderSpaces', {
             names: format.list(
               spaced.map((name) => `{${name}}`),
               { type: 'conjunction' }
             ),
             code
           })}
-        </p>
+        />
       )}
       {missing.length > 0 && (
         <div className="space-y-2">
-          <p id="route-missing" className="text-sm text-destructive">
-            {t.rich('routeMissingParams', { names: format.list(missing, { type: 'conjunction' }), code })}
-          </p>
+          <FieldError
+            id="route-missing"
+            message={t.rich('routeMissingParams', { names: format.list(missing, { type: 'conjunction' }), code })}
+          />
           <div className="flex flex-wrap gap-2">
             {missing.map((name) => (
               <Button
@@ -133,7 +143,7 @@ export function HttpSection({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-10 w-full sm:h-8 sm:w-auto"
+                className="h-auto min-h-10 w-full max-w-full whitespace-normal py-1.5 sm:min-h-8 sm:w-auto"
                 onClick={() => onCreateParams([name])}
               >
                 <Plus aria-hidden="true" />

@@ -13,6 +13,7 @@ import {
   type RunResponse
 } from '@/types/playground'
 import useAIResponseStream from './useAIResponseStream'
+import useSessionLoader from './useSessionLoader'
 import { ToolCall } from '@/types/playground'
 import { useQueryState } from 'nuqs'
 import { getJsonMarkdown } from '@/lib/utils'
@@ -63,6 +64,7 @@ const useAIChatStreamHandler = () => {
   )
   const hasStorage = usePlaygroundStore((state) => state.hasStorage)
   const { streamResponse } = useAIResponseStream()
+  const { getSessions } = useSessionLoader()
   const t = useTranslations('playground')
 
   const updateMessagesWithErrorState = useCallback(() => {
@@ -136,14 +138,17 @@ const processToolCall = useCallback(
     [processToolCall]
   )
 
+  // `resent`: a mensagem do usuário que o Reenviar manda de novo (QA1-03); sai
+  // do lugar e volta no fim, com a resposta, sem duplicar a pergunta.
   const handleStreamResponse = useCallback(
-    async (messageText: string) => {
+    async (messageText: string, resent?: PlaygroundChatMessage) => {
       setIsStreaming(true)
       // Abortado ao trocar de conversa ou sair da página (decisão 0020).
       const controller = new AbortController()
       setRunAbortController(controller)
 
       setMessages((prevMessages) => {
+        let kept = prevMessages
         if (prevMessages.length >= 2) {
           const lastMessage = prevMessages[prevMessages.length - 1]
           const secondLastMessage = prevMessages[prevMessages.length - 2]
@@ -152,10 +157,10 @@ const processToolCall = useCallback(
             lastMessage.streamingError &&
             secondLastMessage.role === 'user'
           ) {
-            return prevMessages.slice(0, -2)
+            kept = prevMessages.slice(0, -2)
           }
         }
-        return prevMessages
+        return resent ? kept.filter((message) => message !== resent) : kept
       })
 
       addMessage({
@@ -180,14 +185,6 @@ const processToolCall = useCallback(
       const failRun = (error: StreamingError | null) => {
         updateMessagesWithErrorState()
         setStreamingErrorMessage(error)
-        if (hasStorage && newSessionId) {
-          setSessionsData(
-            (prevSessionsData) =>
-              prevSessionsData?.filter(
-                (session) => session.session_id !== newSessionId
-              ) ?? null
-          )
-        }
       }
       try {
         // O user_id vem da sessão do playground, no BFF (P2-03).
@@ -244,7 +241,7 @@ const processToolCall = useCallback(
                 const sessionData = {
                   session_id: chunk.session_id as string,
                   title: messageText,
-                  created_at: chunk.created_at
+                  updated_at: chunk.created_at
                 }
                 setSessionsData((prevSessionsData) => {
                   const sessionExists = prevSessionsData?.some(
@@ -394,17 +391,13 @@ const processToolCall = useCallback(
               chunk.event === RunEvent.RunCancelled
             ) {
               finished = true
-              failRun({
-                kind:
-                  chunk.event === RunEvent.TeamRunCancelled ||
+              // O texto do RunError só vem saneado no `error` do BFF (QA1-03).
+              failRun(
+                chunk.event === RunEvent.TeamRunCancelled ||
                   chunk.event === RunEvent.RunCancelled
-                    ? 'cancelled'
-                    : 'runError',
-                detail:
-                  typeof chunk.content === 'string' && chunk.content
-                    ? chunk.content
-                    : undefined
-              })
+                  ? { kind: 'cancelled' }
+                  : (chunk.error ?? { kind: 'other' })
+              )
             } else if (
               chunk.event === RunEvent.UpdatingMemory ||
               chunk.event === RunEvent.TeamMemoryUpdateStarted ||
@@ -477,6 +470,11 @@ const processToolCall = useCallback(
           focusChatInput()
           setIsStreaming(false)
         }
+        // A lista é do servidor: no fim do run, ok ou com erro (o agno grava
+        // a sessão antes do RunError), ela é relida com o horário novo. Run
+        // abortado não relê: a conversa já é outra (troca, nova, saída).
+        if (hasStorage && newSessionId && !controller.signal.aborted)
+          getSessions({ entityType: mode, agentId, teamId }, { quiet: true })
       }
     },
     [
@@ -493,6 +491,7 @@ const processToolCall = useCallback(
       focusChatInput,
       setSessionsData,
       setLoadedSessionId,
+      getSessions,
       sessionId,
       setSessionId,
       hasStorage,

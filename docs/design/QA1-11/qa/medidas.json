@@ -1,0 +1,1010 @@
+{
+ "inicio d-light": {
+  "pend": [
+   {
+    "title": "Crie seu primeiro agente",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "mark": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "linkAbsX": 1110,
+    "markAbsX": 1110
+   },
+   {
+    "title": "Adicione uma tool HTTP",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "mark": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "linkAbsX": 1110,
+    "markAbsX": 1110
+   },
+   {
+    "title": "Teste no playground",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "mark": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "linkAbsX": 1110,
+    "markAbsX": 1110
+   }
+  ],
+  "done": [
+   {
+    "title": "Crie seu primeiro agente",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "undo": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "borderSuccess": true
+   },
+   {
+    "title": "Adicione uma tool HTTP",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "undo": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "borderSuccess": true
+   },
+   {
+    "title": "Teste no playground",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "undo": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "borderSuccess": true
+   }
+  ],
+  "undo": {
+   "focused": true,
+   "cardH": 138,
+   "borderSuccess": false,
+   "chip": "2 de 3 concluídos"
+  }
+ },
+ "playground d-light": {
+  "text": "AA | Agente Alfa | Google Gemini · gemini-2.0-flash",
+  "overflowX": false,
+  "w": 255,
+  "truncated": true
+ },
+ "playground-style d-light": [
+  {
+   "t": "AA",
+   "font": "plexMono, \"plexMono ",
+   "color": "rgb(255, 255, 255)"
+  },
+  {
+   "t": "Agente Alfa",
+   "font": "plexSans, \"plexSans ",
+   "color": "rgb(15, 20, 28)"
+  },
+  {
+   "t": " · ",
+   "font": "plexSans, \"plexSans ",
+   "color": "rgb(86, 96, 112)"
+  },
+  {
+   "t": "gemini-2.0-flash",
+   "font": "plexMono, \"plexMono ",
+   "color": "rgb(86, 96, 112)"
+  }
+ ],
+ "team-tab d-light": {
+  "ariaDisabled": "true",
+  "cursor": "not-allowed",
+  "opacity": "0.5",
+  "tooltipRole": true,
+  "colors": {
+   "bg": "rgb(255, 255, 255)",
+   "fg": "rgb(15, 20, 28)"
+  },
+  "urlSame": true,
+  "urlHasTeam": false,
+  "describedby": "«re»-team",
+  "srText": "Crie um team primeiro",
+  "srClass": "sr-only",
+  "gridBefore": [
+   {
+    "x": 275,
+    "y": 119,
+    "width": 123.5,
+    "height": 30
+   },
+   {
+    "x": 400.5,
+    "y": 119,
+    "width": 123.5,
+    "height": 30
+   }
+  ],
+  "gridAfter": [
+   {
+    "x": 275,
+    "y": 119,
+    "width": 123.5,
+    "height": 30
+   },
+   {
+    "x": 400.5,
+    "y": 119,
+    "width": 123.5,
+    "height": 30
+   }
+  ],
+  "tabW": 123.5,
+  "agentW": 123.5
+ },
+ "agents-visible d-light": [
+  "Google Gemini · gemini-2.0-flash",
+  "Azure OpenAI · gpt-4o"
+ ],
+ "agents d-light": {
+  "alfa": "AA Agente Alfa agente-alfa Google Gemini · gemini-2.0-flash 0 Ativo — N/D ",
+  "beta": "AB Agente Beta agente-beta Azure OpenAI · gpt-4o 0 Ativo 20/11, 06:30 ",
+  "overflowX": false
+ },
+ "teams d-light": {
+  "text": "Gerenciamento de teams Crie e gerencie teams de agentes, cada um com um líder 1 team 1 ativo 0 inativos Novo team Filtros Buscar Apenas ativos Mostrar apenas teams ativos Team Modelo Modo Membros Status Atualizado Abrir TC Time Config time-config Google Gemini · gemini-2.0-flash route 1 Ativo — N/D ",
+  "overflowX": false
+ },
+ "dashboard d-light": {
+  "gem": 1,
+  "azure": 1,
+  "fake": 2,
+  "slash": 0
+ },
+ "dropdown d-light": [
+  {
+   "text": "Ollama ollama",
+   "h": 30.58161163330078
+  },
+  {
+   "text": "OpenAI openai",
+   "h": 30.581619262695312
+  },
+  {
+   "text": "Anthropic anthropic",
+   "h": 30.581619262695312
+  },
+  {
+   "text": "Google Gemini gemini | Id principal do Gemini, da Google.",
+   "h": 45.8724365234375
+  },
+  {
+   "text": "Google Gemini google | Apelido de gemini: é o mesmo provedor.",
+   "h": 45.872406005859375
+  },
+  {
+   "text": "Groq groq",
+   "h": 30.581634521484375
+  },
+  {
+   "text": "Azure OpenAI azure | Id principal do Azure OpenAI.",
+   "h": 45.8724365234375
+  },
+  {
+   "text": "Azure OpenAI azureopenai | Apelido de azure: é o mesmo provedor.",
+   "h": 45.8724365234375
+  },
+  {
+   "text": "Compatível com OpenAI openai_compatible | Servidor próprio com API no formato da OpenAI.",
+   "h": 45.872406005859375
+  },
+  {
+   "text": "plugin-novo",
+   "h": 30.581634521484375
+  }
+ ],
+ "trigger d-light": "Google Gemini gemini",
+ "inicio d-dark": {
+  "pend": [
+   {
+    "title": "Crie seu primeiro agente",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "mark": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "linkAbsX": 1110,
+    "markAbsX": 1110
+   },
+   {
+    "title": "Adicione uma tool HTTP",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "mark": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "linkAbsX": 1110,
+    "markAbsX": 1110
+   },
+   {
+    "title": "Teste no playground",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "mark": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "linkAbsX": 1110,
+    "markAbsX": 1110
+   }
+  ],
+  "done": [
+   {
+    "title": "Crie seu primeiro agente",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "undo": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "borderSuccess": true
+   },
+   {
+    "title": "Adicione uma tool HTTP",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "undo": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "borderSuccess": true
+   },
+   {
+    "title": "Teste no playground",
+    "cardH": 138,
+    "link": [
+     830,
+     25,
+     208,
+     40
+    ],
+    "undo": [
+     830,
+     73,
+     208,
+     40
+    ],
+    "borderSuccess": true
+   }
+  ],
+  "undo": {
+   "focused": true,
+   "cardH": 138,
+   "borderSuccess": false,
+   "chip": "2 de 3 concluídos"
+  }
+ },
+ "playground d-dark": {
+  "text": "AA | Agente Alfa | Google Gemini · gemini-2.0-flash",
+  "overflowX": false,
+  "w": 255,
+  "truncated": true
+ },
+ "playground-style d-dark": [
+  {
+   "t": "AA",
+   "font": "plexMono, \"plexMono ",
+   "color": "rgb(6, 11, 28)"
+  },
+  {
+   "t": "Agente Alfa",
+   "font": "plexSans, \"plexSans ",
+   "color": "rgb(231, 235, 243)"
+  },
+  {
+   "t": " · ",
+   "font": "plexSans, \"plexSans ",
+   "color": "rgb(149, 160, 180)"
+  },
+  {
+   "t": "gemini-2.0-flash",
+   "font": "plexMono, \"plexMono ",
+   "color": "rgb(149, 160, 180)"
+  }
+ ],
+ "team-tab d-dark": {
+  "ariaDisabled": "true",
+  "cursor": "not-allowed",
+  "opacity": "0.5",
+  "tooltipRole": true,
+  "colors": {
+   "bg": "rgb(19, 23, 34)",
+   "fg": "rgb(231, 235, 243)"
+  },
+  "urlSame": true,
+  "urlHasTeam": false,
+  "describedby": "«re»-team",
+  "srText": "Crie um team primeiro",
+  "srClass": "sr-only",
+  "gridBefore": [
+   {
+    "x": 275,
+    "y": 119,
+    "width": 123.5,
+    "height": 30
+   },
+   {
+    "x": 400.5,
+    "y": 119,
+    "width": 123.5,
+    "height": 30
+   }
+  ],
+  "gridAfter": [
+   {
+    "x": 275,
+    "y": 119,
+    "width": 123.5,
+    "height": 30
+   },
+   {
+    "x": 400.5,
+    "y": 119,
+    "width": 123.5,
+    "height": 30
+   }
+  ],
+  "tabW": 123.5,
+  "agentW": 123.5
+ },
+ "agents-visible d-dark": [
+  "Google Gemini · gemini-2.0-flash",
+  "Azure OpenAI · gpt-4o"
+ ],
+ "agents d-dark": {
+  "alfa": "AA Agente Alfa agente-alfa Google Gemini · gemini-2.0-flash 0 Ativo — N/D ",
+  "beta": "AB Agente Beta agente-beta Azure OpenAI · gpt-4o 0 Ativo 20/11, 06:30 ",
+  "overflowX": false
+ },
+ "teams d-dark": {
+  "text": "Gerenciamento de teams Crie e gerencie teams de agentes, cada um com um líder 1 team 1 ativo 0 inativos Novo team Filtros Buscar Apenas ativos Mostrar apenas teams ativos Team Modelo Modo Membros Status Atualizado Abrir TC Time Config time-config Google Gemini · gemini-2.0-flash route 1 Ativo — N/D ",
+  "overflowX": false
+ },
+ "dashboard d-dark": {
+  "gem": 1,
+  "azure": 1,
+  "fake": 2,
+  "slash": 0
+ },
+ "dropdown d-dark": [
+  {
+   "text": "Ollama ollama",
+   "h": 30.95458984375
+  },
+  {
+   "text": "OpenAI openai",
+   "h": 30.95458984375
+  },
+  {
+   "text": "Anthropic anthropic",
+   "h": 30.954605102539062
+  },
+  {
+   "text": "Google Gemini gemini | Id principal do Gemini, da Google.",
+   "h": 46.43190002441406
+  },
+  {
+   "text": "Google Gemini google | Apelido de gemini: é o mesmo provedor.",
+   "h": 46.43190002441406
+  },
+  {
+   "text": "Groq groq",
+   "h": 30.95458984375
+  },
+  {
+   "text": "Azure OpenAI azure | Id principal do Azure OpenAI.",
+   "h": 46.431884765625
+  },
+  {
+   "text": "Azure OpenAI azureopenai | Apelido de azure: é o mesmo provedor.",
+   "h": 46.431915283203125
+  },
+  {
+   "text": "Compatível com OpenAI openai_compatible | Servidor próprio com API no formato da OpenAI.",
+   "h": 46.431884765625
+  },
+  {
+   "text": "plugin-novo",
+   "h": 30.954559326171875
+  }
+ ],
+ "trigger d-dark": "Google Gemini gemini",
+ "inicio m-light": {
+  "pend": [
+   {
+    "title": "Crie seu primeiro agente",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "mark": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "linkAbsX": 41,
+    "markAbsX": 41
+   },
+   {
+    "title": "Adicione uma tool HTTP",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "mark": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "linkAbsX": 41,
+    "markAbsX": 41
+   },
+   {
+    "title": "Teste no playground",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "mark": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "linkAbsX": 41,
+    "markAbsX": 41
+   }
+  ],
+  "done": [
+   {
+    "title": "Crie seu primeiro agente",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "undo": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "borderSuccess": true
+   },
+   {
+    "title": "Adicione uma tool HTTP",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "undo": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "borderSuccess": true
+   },
+   {
+    "title": "Teste no playground",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "undo": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "borderSuccess": true
+   }
+  ],
+  "undo": {
+   "focused": true,
+   "cardH": 218,
+   "borderSuccess": false,
+   "chip": "2 de 3 concluídos"
+  }
+ },
+ "playground m-light": {
+  "text": "AA | Agente Alfa | Google Gemini · gemini-2.0-flash",
+  "overflowX": false,
+  "w": 287,
+  "truncated": true
+ },
+ "playground-style m-light": [
+  {
+   "t": "AA",
+   "font": "plexMono, \"plexMono ",
+   "color": "rgb(255, 255, 255)"
+  },
+  {
+   "t": "Agente Alfa",
+   "font": "plexSans, \"plexSans ",
+   "color": "rgb(15, 20, 28)"
+  },
+  {
+   "t": " · ",
+   "font": "plexSans, \"plexSans ",
+   "color": "rgb(86, 96, 112)"
+  },
+  {
+   "t": "gemini-2.0-flash",
+   "font": "plexMono, \"plexMono ",
+   "color": "rgb(86, 96, 112)"
+  }
+ ],
+ "team-tab m-light": {
+  "ariaDisabled": "true",
+  "cursor": "not-allowed",
+  "opacity": "0.5",
+  "tooltipRole": true,
+  "colors": {
+   "bg": "rgb(255, 255, 255)",
+   "fg": "rgb(15, 20, 28)"
+  },
+  "urlSame": true,
+  "urlHasTeam": false,
+  "describedby": "«rn»-team",
+  "srText": "Crie um team primeiro",
+  "srClass": "sr-only",
+  "gridBefore": [
+   {
+    "x": 19,
+    "y": 59,
+    "width": 139.5,
+    "height": 40
+   },
+   {
+    "x": 160.5,
+    "y": 59,
+    "width": 139.5,
+    "height": 40
+   }
+  ],
+  "gridAfter": [
+   {
+    "x": 19,
+    "y": 59,
+    "width": 139.5,
+    "height": 40
+   },
+   {
+    "x": 160.5,
+    "y": 59,
+    "width": 139.5,
+    "height": 40
+   }
+  ],
+  "tabW": 139.5,
+  "agentW": 139.5
+ },
+ "agents-visible m-light": [
+  "Google Gemini · gemini-2.0-flash",
+  "Azure OpenAI · gpt-4o"
+ ],
+ "agents m-light": {
+  "alfa": "Gerenciamento de agentes Crie e gerencie seus agentes de IA 3 agentes 2 ativos 1 inativo Novo agente Filtros Buscar Apenas ativos Mostrar apenas agentes ativos AA Agente Alfa Ativo agente-alfa · Google Gemini · gemini-2.0-flash AB Agente Beta Ativo agente-beta · Azure OpenAI · gpt-4o AG Agente Gama Inativo agente-gama · Ollama · fake-model",
+  "beta": "",
+  "overflowX": false
+ },
+ "teams m-light": {
+  "text": "Gerenciamento de teams Crie e gerencie teams de agentes, cada um com um líder 1 team 1 ativo 0 inativos Novo team Filtros Buscar Apenas ativos Mostrar apenas teams ativos TC Time Config Ativo time-config · 1 membro",
+  "overflowX": false
+ },
+ "dashboard m-light": {
+  "gem": 1,
+  "azure": 1,
+  "fake": 2,
+  "slash": 0
+ },
+ "dropdown m-light": [
+  {
+   "text": "Ollama ollama",
+   "h": 31.322181701660156
+  },
+  {
+   "text": "OpenAI openai",
+   "h": 31.322181701660156
+  },
+  {
+   "text": "Anthropic anthropic",
+   "h": 31.322181701660156
+  },
+  {
+   "text": "Google Gemini gemini | Id principal do Gemini, da Google.",
+   "h": 46.9832763671875
+  },
+  {
+   "text": "Google Gemini google | Apelido de gemini: é o mesmo provedor.",
+   "h": 46.9832763671875
+  },
+  {
+   "text": "Groq groq",
+   "h": 31.3221435546875
+  },
+  {
+   "text": "Azure OpenAI azure | Id principal do Azure OpenAI.",
+   "h": 46.9832763671875
+  },
+  {
+   "text": "Azure OpenAI azureopenai | Apelido de azure: é o mesmo provedor.",
+   "h": 46.9832763671875
+  },
+  {
+   "text": "Compatível com OpenAI openai_compatible | Servidor próprio com API no formato da OpenAI.",
+   "h": 46.983245849609375
+  },
+  {
+   "text": "plugin-novo",
+   "h": 31.322174072265625
+  }
+ ],
+ "trigger m-light": "Google Gemini gemini",
+ "inicio m-dark": {
+  "pend": [
+   {
+    "title": "Crie seu primeiro agente",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "mark": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "linkAbsX": 41,
+    "markAbsX": 41
+   },
+   {
+    "title": "Adicione uma tool HTTP",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "mark": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "linkAbsX": 41,
+    "markAbsX": 41
+   },
+   {
+    "title": "Teste no playground",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "mark": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "linkAbsX": 41,
+    "markAbsX": 41
+   }
+  ],
+  "done": [
+   {
+    "title": "Crie seu primeiro agente",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "undo": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "borderSuccess": true
+   },
+   {
+    "title": "Adicione uma tool HTTP",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "undo": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "borderSuccess": true
+   },
+   {
+    "title": "Teste no playground",
+    "cardH": 218,
+    "link": [
+     17,
+     113,
+     308,
+     40
+    ],
+    "undo": [
+     17,
+     161,
+     308,
+     40
+    ],
+    "borderSuccess": true
+   }
+  ],
+  "undo": {
+   "focused": true,
+   "cardH": 218,
+   "borderSuccess": false,
+   "chip": "2 de 3 concluídos"
+  }
+ },
+ "playground m-dark": {
+  "text": "AA | Agente Alfa | Google Gemini · gemini-2.0-flash",
+  "overflowX": false,
+  "w": 287,
+  "truncated": true
+ },
+ "playground-style m-dark": [
+  {
+   "t": "AA",
+   "font": "plexMono, \"plexMono ",
+   "color": "rgb(6, 11, 28)"
+  },
+  {
+   "t": "Agente Alfa",
+   "font": "plexSans, \"plexSans ",
+   "color": "rgb(231, 235, 243)"
+  },
+  {
+   "t": " · ",
+   "font": "plexSans, \"plexSans ",
+   "color": "rgb(149, 160, 180)"
+  },
+  {
+   "t": "gemini-2.0-flash",
+   "font": "plexMono, \"plexMono ",
+   "color": "rgb(149, 160, 180)"
+  }
+ ],
+ "team-tab m-dark": {
+  "ariaDisabled": "true",
+  "cursor": "not-allowed",
+  "opacity": "0.5",
+  "tooltipRole": true,
+  "colors": {
+   "bg": "rgb(19, 23, 34)",
+   "fg": "rgb(231, 235, 243)"
+  },
+  "urlSame": true,
+  "urlHasTeam": false,
+  "describedby": "«rn»-team",
+  "srText": "Crie um team primeiro",
+  "srClass": "sr-only",
+  "gridBefore": [
+   {
+    "x": 19,
+    "y": 59,
+    "width": 139.5,
+    "height": 40
+   },
+   {
+    "x": 160.5,
+    "y": 59,
+    "width": 139.5,
+    "height": 40
+   }
+  ],
+  "gridAfter": [
+   {
+    "x": 19,
+    "y": 59,
+    "width": 139.5,
+    "height": 40
+   },
+   {
+    "x": 160.5,
+    "y": 59,
+    "width": 139.5,
+    "height": 40
+   }
+  ],
+  "tabW": 139.5,
+  "agentW": 139.5
+ },
+ "agents-visible m-dark": [
+  "Google Gemini · gemini-2.0-flash",
+  "Azure OpenAI · gpt-4o"
+ ],
+ "agents m-dark": {
+  "alfa": "Gerenciamento de agentes Crie e gerencie seus agentes de IA 3 agentes 2 ativos 1 inativo Novo agente Filtros Buscar Apenas ativos Mostrar apenas agentes ativos AA Agente Alfa Ativo agente-alfa · Google Gemini · gemini-2.0-flash AB Agente Beta Ativo agente-beta · Azure OpenAI · gpt-4o AG Agente Gama Inativo agente-gama · Ollama · fake-model",
+  "beta": "",
+  "overflowX": false
+ },
+ "teams m-dark": {
+  "text": "Gerenciamento de teams Crie e gerencie teams de agentes, cada um com um líder 1 team 1 ativo 0 inativos Novo team Filtros Buscar Apenas ativos Mostrar apenas teams ativos TC Time Config Ativo time-config · 1 membro",
+  "overflowX": false
+ },
+ "dashboard m-dark": {
+  "gem": 1,
+  "azure": 1,
+  "fake": 2,
+  "slash": 0
+ },
+ "dropdown m-dark": [
+  {
+   "text": "Ollama ollama",
+   "h": 30.95362091064453
+  },
+  {
+   "text": "OpenAI openai",
+   "h": 30.95361328125
+  },
+  {
+   "text": "Anthropic anthropic",
+   "h": 30.953628540039062
+  },
+  {
+   "text": "Google Gemini gemini | Id principal do Gemini, da Google.",
+   "h": 46.43043518066406
+  },
+  {
+   "text": "Google Gemini google | Apelido de gemini: é o mesmo provedor.",
+   "h": 46.430450439453125
+  },
+  {
+   "text": "Groq groq",
+   "h": 30.95361328125
+  },
+  {
+   "text": "Azure OpenAI azure | Id principal do Azure OpenAI.",
+   "h": 46.430450439453125
+  },
+  {
+   "text": "Azure OpenAI azureopenai | Apelido de azure: é o mesmo provedor.",
+   "h": 46.430419921875
+  },
+  {
+   "text": "Compatível com OpenAI openai_compatible | Servidor próprio com API no formato da OpenAI.",
+   "h": 46.430450439453125
+  },
+  {
+   "text": "plugin-novo",
+   "h": 30.95361328125
+  }
+ ],
+ "trigger m-dark": "Google Gemini gemini"
+}

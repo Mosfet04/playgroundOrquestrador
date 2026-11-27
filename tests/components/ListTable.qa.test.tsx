@@ -63,8 +63,8 @@ const countChips = () => {
   return Array.from(region.children).map((chip) => chip.textContent)
 }
 
-describe('tools: estados do P1-05 no layout novo (sem chips, ordem de precedência)', () => {
-  it('carregando, erro 503, vazio e vazio do filtro: nenhum chip, nenhuma tabela e nenhum toast', async () => {
+describe('tools: estados do P1-05 no layout novo (chips só sem erro, ordem de precedência)', () => {
+  it('carregando (esqueletos), erro 503 (sem chips), vazio e vazio do filtro (0/0/0): nenhuma tabela e nenhum toast', async () => {
     server.use(
       http.get('*/api/tools', async () => {
         await delay('infinite')
@@ -73,7 +73,7 @@ describe('tools: estados do P1-05 no layout novo (sem chips, ordem de precedênc
     )
     const loading = renderWithIntl(<ToolManagement />)
     expect(await screen.findByRole('status')).toHaveTextContent('Carregando tools…')
-    expect(countChips()).toEqual([])
+    expect(countChips()).toEqual(['', '', ''])
     loading.unmount()
 
     server.use(
@@ -102,11 +102,11 @@ describe('tools: estados do P1-05 no layout novo (sem chips, ordem de precedênc
     const user = userEvent.setup()
     renderWithIntl(<ToolManagement />)
     await screen.findByRole('heading', { name: 'O orquestrador ainda não tem tools' })
-    expect(countChips()).toEqual([])
+    expect(countChips()).toEqual(['0 tools', '0 ativas', '0 inativas'])
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('Buscar'), 'zzz')
     await screen.findByRole('heading', { name: /Nenhuma tool encontrada/ })
-    expect(countChips()).toEqual([])
+    expect(countChips()).toEqual(['0 tools', '0 ativas', '0 inativas'])
   })
 
   it('erro depois de conteúdo (busca falha): bloco no lugar da tabela, chips somem; limpar a busca traz tudo de volta', async () => {

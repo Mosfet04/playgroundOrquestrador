@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { callOrchestrator, streamOrchestrator } from './client'
 import type { components } from './openapi'
+import { classifyRunErrors } from './runError'
 
 // Chat do playground pelo BFF (P2-03): listas do AgentOS, sessões e runs.
 // Os ids vêm do browser e entram no path com encodeURIComponent (o `..` que
@@ -99,24 +100,54 @@ export async function listSessions(
       : result
   return {
     ok: true as const,
+    // Horário da linha: a última atividade (a ordem já é por updated_at), que
+    // mandar outra mensagem atualiza (D-QA1-02-3).
     data: result.data.data.map((session) => ({
       session_id: session.session_id,
       title: session.session_name,
-      created_at:
+      updated_at:
         Math.floor(
-          Date.parse(session.created_at ?? session.updated_at ?? '') / 1000
+          Date.parse(session.updated_at ?? session.created_at ?? '') / 1000
         ) || 0
     }))
   }
 }
 
 // O histórico traz também as mensagens de sistema (instruções, memórias):
-// só user/assistant, e só os campos mostrados, chegam ao browser.
-const historyEntrySchema = z.object({
+// só user/assistant, e só os campos mostrados, chegam ao browser. `tool_calls`
+// e a mídia só decidem o filtro abaixo; não saem daqui.
+const MEDIA_FIELDS = [
+  'images',
+  'videos',
+  'audio',
+  'files',
+  'image_output',
+  'video_output',
+  'audio_output',
+  'file_output'
+] as const
+const historyEntrySchema = z.looseObject({
   role: z.string().optional(),
   content: z.unknown(),
-  created_at: z.number().nullish()
+  created_at: z.number().nullish(),
+  tool_calls: z.array(z.unknown()).nullish().catch(undefined)
 })
+type HistoryEntry = z.infer<typeof historyEntrySchema>
+
+const hasText = ({ content }: HistoryEntry) =>
+  Array.isArray(content) ? content.length > 0 : content != null && content !== ''
+const hasMedia = (entry: HistoryEntry) =>
+  MEDIA_FIELDS.some((field) => {
+    const value = entry[field]
+    return Array.isArray(value) ? value.length > 0 : value != null
+  })
+
+// O run que falha depois de uma tool deixa gravado o assistant da chamada,
+// com `tool_calls` e sem texto (agno 3.1.12, flush_in_flight_messages_on_error):
+// não é resposta, e a pergunta fica "sem resposta" no chat (D-QA1-03-5). Com
+// mídia, ou sem nada, conta como resposta.
+const isAnswer = (entry: HistoryEntry) =>
+  hasText(entry) || hasMedia(entry) || !entry.tool_calls?.length
 const sessionDetailSchema = z.object({
   chat_history: z.array(historyEntrySchema).nullish()
 }) satisfies z.ZodType<{ chat_history?: Record<string, unknown>[] | null }>
@@ -134,8 +165,10 @@ export async function getSessionHistory(kind: ChatKind, sessionId: string) {
   return {
     ok: true as const,
     data: {
-      chat_history: (result.data.chat_history ?? []).filter(
-        (entry) => entry.role === 'user' || entry.role === 'assistant'
+      chat_history: (result.data.chat_history ?? []).flatMap((entry) =>
+        entry.role === 'user' || (entry.role === 'assistant' && isAnswer(entry))
+          ? [{ role: entry.role, content: entry.content, created_at: entry.created_at }]
+          : []
       )
     }
   }
@@ -149,7 +182,8 @@ export const deleteSession = (sessionId: string) =>
     schema: z.unknown()
   })
 
-export function streamRun(
+// O erro do run chega ao browser classificado e saneado (QA1-03).
+export async function streamRun(
   kind: ChatKind,
   id: string,
   {
@@ -165,8 +199,9 @@ export function streamRun(
   if (sessionId) form.set('session_id', sessionId)
   form.set('user_id', userId)
   if (kind === 'team') form.set('monitor', 'true')
-  return streamOrchestrator(`/${kind}s/${encodeURIComponent(id)}/runs`, {
+  const result = await streamOrchestrator(`/${kind}s/${encodeURIComponent(id)}/runs`, {
     form,
     signal
   })
+  return result.ok ? { ...result, data: classifyRunErrors(result.data) } : result
 }

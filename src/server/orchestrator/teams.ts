@@ -16,6 +16,7 @@ import {
   pageOf,
   replaceConfig,
   restoreConfig,
+  updatedAtSchema,
   withFormField
 } from './adminConfig'
 import type { OrchestratorResult } from './client'
@@ -49,7 +50,8 @@ const teamSchema = z.looseObject({
   add_history_to_context: optional(z.boolean()),
   user_memory_active: optional(z.boolean()),
   summary_active: optional(z.boolean()),
-  version: z.number().int().nonnegative()
+  version: z.number().int().nonnegative(),
+  updated_at: updatedAtSchema
 })
 type TeamDocument = z.infer<typeof teamSchema>
 
@@ -95,7 +97,8 @@ const toTeam = (doc: TeamDocument): TeamConfig => ({
   add_history_to_context: doc.add_history_to_context,
   user_memory_active: doc.user_memory_active,
   summary_active: doc.summary_active,
-  version: doc.version
+  version: doc.version,
+  updated_at: doc.updated_at
 })
 
 // Os campos do formulário no documento. Campo opcional vazio ou ausente fica
@@ -158,8 +161,8 @@ export async function createTeam(input: TeamInput) {
 export async function replaceTeam(id: string, input: Omit<TeamInput, 'id'>, version: number) {
   const current = await getConfig('teams', id, teamSchema)
   if (!current.ok) return current
-  const { version: _read, ...document } = current.data
-  void _read
+  const { version: _read, updated_at: _updatedAt, ...document } = current.data
+  void [_read, _updatedAt]
   return mapped(
     await replaceConfig('teams', id, { ...document, ...formFields(input), id }, version, teamSchema)
   )

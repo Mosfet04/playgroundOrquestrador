@@ -70,7 +70,7 @@ describe('TeamManagement', () => {
         .map((header) => header.textContent)
     ).toEqual(['Team', 'Modelo', 'Modo', 'Membros', 'Status', 'Atualizado', 'Abrir'])
     const row = within(table).getByRole('link', { name: 'Suporte Vendas' }).closest('tr') as HTMLElement
-    expect(within(row).getByText('openai/gpt-4o')).toBeInTheDocument()
+    expect(row).toHaveTextContent('OpenAI · gpt-4o')
     expect(within(row).getByText('coordinate')).toBeInTheDocument()
     expect(within(row).getByText('3')).toBeInTheDocument()
     expect(within(row).getByText('Ativo')).toBeInTheDocument()
@@ -106,6 +106,19 @@ describe('TeamManagement', () => {
 
     await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
     await waitFor(() => expect(queries.at(-1)).toBe('?limit=100'))
+  })
+
+  it('QA1-10: lista vazia mostra os 3 chips em zero, como agents e tools', async () => {
+    serveTeams([])
+    renderWithIntl(<TeamManagement />)
+
+    await screen.findByRole('heading', { name: 'O orquestrador ainda não tem teams' })
+    const region = document.querySelector('[aria-live="polite"][aria-atomic="true"]')
+    expect(Array.from(region?.children ?? []).map((chip) => chip.textContent)).toEqual([
+      '0 teams',
+      '0 ativos',
+      '0 inativos'
+    ])
   })
 
   it('carregando mostra o status; falha mostra o erro com "Tentar de novo"', async () => {

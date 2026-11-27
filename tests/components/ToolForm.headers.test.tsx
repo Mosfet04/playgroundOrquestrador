@@ -45,13 +45,14 @@ const group = () => screen.getByRole('group', { name: 'Headers HTTP' })
 const nameField = (n: number) => screen.getByLabelText(`Nome do header ${n}`)
 const addHeader = () => screen.getByRole('button', { name: 'Adicionar header' })
 
+// O valor antes do nome: linha com texto não passa sozinha a Segredo (D-QA1-07-2).
 async function addRow(user: ReturnType<typeof userEvent.setup>, name: string, value: string) {
   await user.click(addHeader())
   const rows = within(group()).getAllByRole('listitem')
   const row = rows[rows.length - 1]
   const [nameInput, valueInput] = within(row).getAllByRole('textbox')
-  await user.type(nameInput, name)
   await paste(user, valueInput, value)
+  await user.type(nameInput, name)
   return row
 }
 
@@ -79,7 +80,7 @@ describe('estados do valor', () => {
   it('o chip descreve o valor (aria-describedby)', async () => {
     await renderReady(stored)
 
-    expect(screen.getByLabelText('Valor de Accept')).toHaveAccessibleDescription('texto')
+    expect(screen.getByLabelText('Valor de Accept')).toHaveAccessibleDescription(/^texto\s*$/)
     expect(screen.getByLabelText('Variável de ambiente (X-Api-Key)')).toHaveAccessibleDescription(
       /^referência/
     )
@@ -197,7 +198,7 @@ describe('header sensível em texto (D-P3-03-3)', () => {
       expect(row.textContent).not.toContain(SECRET)
       expect(within(row).getAllByRole('textbox')[1]).toBeInvalid()
       expect(within(row).getAllByRole('textbox')[1]).toHaveFocus()
-      expect(screen.getByText(error, { selector: 'p' })).not.toHaveTextContent(SECRET)
+      expect(screen.getByText(error)).not.toHaveTextContent(SECRET)
       expect(bodies).toEqual([])
       expect(requests.filter((request) => request.startsWith('PUT') || request.startsWith('POST'))).toEqual([])
       server.events.removeAllListeners()
@@ -298,7 +299,7 @@ describe('422 em headers', () => {
     await touchName(user)
     await saveAndConfirm(user)
 
-    const message = await screen.findByText(/O orquestrador recusou algum header e não diz qual/)
+    const message = await screen.findByText(/O orquestrador recusou um header e não diz qual/)
     expect(within(group()).getByText(message.textContent ?? '')).toBe(message)
     expect(screen.getByRole('list', { name: 'Headers HTTP' })).toHaveAccessibleDescription(message.textContent ?? '')
     await waitFor(() => expect(screen.getByLabelText('Valor de Accept')).toHaveFocus())
@@ -317,7 +318,7 @@ describe('422 em headers sem nenhuma linha', () => {
     await touchName(user)
     await saveAndConfirm(user)
 
-    expect(await screen.findByText(/O orquestrador recusou algum header e não diz qual/)).toBeVisible()
+    expect(await screen.findByText(/O orquestrador recusou um header e não diz qual/)).toBeVisible()
     await waitFor(() => expect(addHeader()).toHaveFocus())
   })
 })

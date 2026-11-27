@@ -78,9 +78,9 @@ test.describe('desktop 1440', () => {
 
     await expect(aside.getByText('Agent UI')).toHaveCount(0)
     await expect(aside.getByText('Modo', { exact: true })).toHaveCount(0)
-    // provider/modelo no cartão
+    // provedor · modelo no cartão
     await expect(aside.getByRole('combobox', { name: 'Agente: Agente Alfa' })).toContainText(
-      'Fake/fake-model'
+      'Fake · fake-model'
     )
     // sem alvo "Nova conversa" habilitado antes de haver mensagens
     await expect(aside.getByRole('button', { name: 'Nova conversa' })).toBeDisabled()
@@ -146,7 +146,11 @@ test.describe('desktop 1440', () => {
     const log = page.getByRole('log')
     await expect(page.getByText('1,4 s · 812 tokens')).toBeVisible()
     // bolha do usuário à direita da coluna central, resposta com nome e modelo
-    const user = await log.getByText('Olá', { exact: true }).boundingBox()
+    // QA1-03: o texto é markdown dentro da bolha; mede-se a bolha.
+    const user = await log
+      .getByText('Olá', { exact: true })
+      .locator('xpath=ancestor::div[contains(@class, "bg-primary-soft")]')
+      .boundingBox()
     const reply = await log.getByText('Agente Alfa recebeu: Olá').boundingBox()
     expect(user!.x).toBeGreaterThan(reply!.x)
     // coluna central de até 768 px; a bolha do usuário encosta na borda direita
@@ -285,7 +289,7 @@ test.describe('desktop 1440', () => {
       'false'
     )
     await expect(aside.getByRole('combobox', { name: 'Team: Time Suporte' })).toContainText(
-      'Fake/fake-model'
+      'Fake · fake-model'
     )
     await expect(
       page.getByRole('textbox', { name: 'Mensagem para Time Suporte' })

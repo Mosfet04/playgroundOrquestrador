@@ -37,6 +37,9 @@ export function useNotFoundPage() {
 
 // Casca das rotas de (app): navegação lateral (lg+), cabeçalho de 56 px e o
 // <main id="conteudo">. Abaixo de lg a navegação vai para o Sheet do cabeçalho.
+// Só o <main> rola: o `relative` dá aos inputs nativos ocultos do Radix
+// (Select, Switch: `position:absolute`) o <main> como containing block, e o
+// `overflow-clip` da casca impede o documento de rolar (QA1-01).
 // A revisão do runtime (P4-01) fica no rodapé da navegação, acima de Sair.
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [pageLabel, setPageLabel] = useState<string>()
@@ -55,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           {t('skipToContent')}
         </a>
-        <div className="flex h-dvh bg-background">
+        <div className="flex h-dvh overflow-clip bg-background">
           <div className="hidden w-64 shrink-0 flex-col border-r border-border bg-card lg:flex">
             <div className="flex h-14 shrink-0 items-center px-4">
               <Brand />
@@ -71,7 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <main
               id="conteudo"
               tabIndex={-1}
-              className="min-h-0 flex-1 overflow-y-auto focus:outline-none"
+              className="relative min-h-0 flex-1 overflow-y-auto focus:outline-none"
             >
               <NotFoundContext.Provider value={setNotFound}>
                 {children}

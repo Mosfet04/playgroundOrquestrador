@@ -9,7 +9,7 @@ import { LiveStatus } from '@/components/ui/loading'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import type { ConfigSchema } from '@/types/management'
-import { FieldError } from './FieldError'
+import { errorA11y, FieldError } from './FieldError'
 import { FieldWarning } from './FieldWarning'
 import { SectionCard } from './SectionCard'
 
@@ -39,9 +39,9 @@ const ITEM_CLASS = 'space-y-2 border-t border-border py-3 first:border-t-0 first
 
 // Seção Execução (P3-02, reusada pelo team na P3-04): o que a entidade recebe
 // de contexto e como responde. Os defaults e a faixa são os do schema (`agent`
-// ou `team`); a memória do agent desliga por padrão e a do team liga (defaults
-// das entidades). O team só tem 4 das 7 opções. Sem o schema não há default a
-// mostrar: skeleton (carregando) ou aviso (falha).
+// ou `team`); a memória do usuário desliga por padrão nos dois (D-QA1-06-3). O
+// team só tem 4 das 7 opções. Sem o schema não há default a mostrar: skeleton
+// (carregando) ou aviso (falha).
 export function ExecutionSection<T extends ExecutionFormValues>({
   entity,
   form: entityForm,
@@ -118,7 +118,11 @@ export function ExecutionSection<T extends ExecutionFormValues>({
               checked={!!control.value}
               disabled={locked || extra?.disabled}
               aria-controls={extra?.controls}
-              aria-describedby={`${field}-help${extra?.describedBy ? ` ${extra.describedBy}` : ''}`}
+              // Sem slot reservado (D-QA1-05-2): o erro só é apontado quando existe.
+              aria-invalid={errors[field] ? true : undefined}
+              aria-describedby={[`${field}-help`, extra?.describedBy, errors[field] && `${field}-error`]
+                .filter(Boolean)
+                .join(' ')}
               onCheckedChange={control.onChange}
             />
           )}
@@ -138,7 +142,8 @@ export function ExecutionSection<T extends ExecutionFormValues>({
         </div>
       </div>
       {extra?.children}
-      <FieldError id={`${field}-error`} message={errors[field]?.message} />
+      {/* Só o orquestrador recusa um switch: sem espaço reservado, o erro abre o slot (D-QA1-05-2). */}
+      {errors[field] && <FieldError id={`${field}-error`} message={errors[field]?.message} />}
     </li>
   )
 
@@ -159,9 +164,7 @@ export function ExecutionSection<T extends ExecutionFormValues>({
         min={numHistoryRuns.minimum}
         max={numHistoryRuns.maximum}
         disabled={!historyOn}
-        aria-describedby={`num_history_runs-help${errors.num_history_runs ? ' num_history_runs-error' : ''}`}
-        aria-invalid={errors.num_history_runs ? true : undefined}
-        variant={errors.num_history_runs ? 'destructive' : undefined}
+        {...errorA11y('num_history_runs', !!errors.num_history_runs, 'num_history_runs-help')}
         className="w-24 font-mono"
         {...register('num_history_runs', {
           valueAsNumber: true,
@@ -220,7 +223,7 @@ export function ExecutionSection<T extends ExecutionFormValues>({
               </p>
             )
           })}
-        {item('user_memory_active', t('userMemory'), t('userMemoryHelp'), !isAgent)}
+        {item('user_memory_active', t('userMemory'), t('userMemoryHelp'), false)}
         {item('summary_active', t('summary'), t('summaryHelp'), false)}
       </ul>
     </SectionCard>

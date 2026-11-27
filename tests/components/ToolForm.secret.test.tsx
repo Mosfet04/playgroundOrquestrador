@@ -140,6 +140,8 @@ describe('V-22: nome sensível com texto e "Usar segredo"', () => {
     const bodies = captureSave()
     const user = await renderReady(tool)
     const row = await addNamed(user, 'Authorization')
+    // Nome sensível em linha vazia passa a Segredo; a volta a Texto é manual (D-QA1-07-2).
+    await chooseMode(user, 'Authorization', 'Texto')
     await paste(user, within(row).getAllByRole('textbox')[1], TEXT)
 
     await user.click(saveButton())
@@ -157,6 +159,8 @@ describe('V-22: nome sensível com texto e "Usar segredo"', () => {
     const bodies = captureSave()
     const user = await renderReady(tool)
     const row = await addNamed(user, 'Authorization')
+    // Nome sensível em linha vazia passa a Segredo; a volta a Texto é manual (D-QA1-07-2).
+    await chooseMode(user, 'Authorization', 'Texto')
     await paste(user, within(row).getAllByRole('textbox')[1], TEXT)
     await user.click(saveButton())
     await within(row).findByText(/é sensível/)

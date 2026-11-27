@@ -117,7 +117,7 @@ async function ready(element = <TeamForm team={team} onSuccess={() => {}} />) {
 
 const provider = () => screen.getByRole('combobox', { name: /^Provedor \*/ })
 const save = () => screen.getByRole('button', { name: 'Salvar' })
-const members = () => screen.getByRole('group', { name: 'Agents do team' })
+const members = () => screen.getByRole('group', { name: 'Agentes do team' })
 const member = (name: RegExp | string) => within(members()).getByRole('checkbox', { name })
 const mode = (name: string) => screen.getByRole('radio', { name })
 const execution = () => screen.getByRole('region', { name: 'Execução' })
@@ -138,7 +138,7 @@ describe('TeamForm: seções', () => {
       'Instruções',
       'Execução'
     ])
-    expect(screen.getByRole('textbox', { name: 'Prompt do líder' })).toHaveValue('Escolha o melhor membro.')
+    expect(screen.getByRole('textbox', { name: 'Instruções do líder' })).toHaveValue('Escolha o melhor membro.')
     expect(screen.getByLabelText(/^ID do team/)).toBeDisabled()
   })
 
@@ -150,7 +150,7 @@ describe('TeamForm: seções', () => {
     expect(screen.queryByRole('button', { name: 'Excluir team' })).not.toBeInTheDocument()
     expect(mode('route')).toBeChecked()
     expect(within(mode('route').closest('div') as HTMLElement).getByText('Padrão')).toBeInTheDocument()
-    // V-14: 4 switches; markdown, histórico e memória ligados; resumo desligado.
+    // V-14: 4 switches; markdown e histórico ligados; memória (D-QA1-06-3) e resumo desligados.
     const switches = within(execution()).getAllByRole('switch')
     expect(switches.map((item) => item.id)).toEqual([
       'markdown',
@@ -158,10 +158,10 @@ describe('TeamForm: seções', () => {
       'user_memory_active',
       'summary_active'
     ])
-    expect(switches.map((item) => item.getAttribute('aria-checked'))).toEqual(['true', 'true', 'true', 'false'])
+    expect(switches.map((item) => item.getAttribute('aria-checked'))).toEqual(['true', 'true', 'false', 'false'])
     expect(within(execution()).queryByRole('spinbutton')).not.toBeInTheDocument()
     expect(within(execution()).queryByText('Raciocínio passo a passo')).not.toBeInTheDocument()
-    expect(within(execution()).getByText('Memória do usuário').closest('li')).toHaveTextContent('Padrão: ligado')
+    expect(within(execution()).getByText('Memória do usuário').closest('li')).toHaveTextContent('Padrão: desligado')
   })
 
   it('V-13: o modelo do líder tem os campos do agent, com os textos do team', async () => {
@@ -197,7 +197,7 @@ describe('TeamForm: membros', () => {
   it('V-6: a busca filtra por nome, id e descrição sem desmarcar; sem resultado, "Limpar busca"', async () => {
     serveAgents()
     const user = await ready()
-    const search = screen.getByRole('searchbox', { name: 'Buscar agent por nome, id ou descrição' })
+    const search = screen.getByRole('searchbox', { name: 'Buscar agente por nome, id ou descrição' })
 
     await user.type(search, 'web')
     expect(within(members()).getAllByRole('checkbox')).toHaveLength(1)
@@ -209,7 +209,7 @@ describe('TeamForm: membros', () => {
 
     await user.clear(search)
     await user.type(search, 'zzz')
-    expect(screen.getByText('Nenhum agent para “zzz”')).toBeInTheDocument()
+    expect(screen.getByText('Nenhum agente para “zzz”')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Limpar busca' }))
     expect(within(members()).getAllByRole('checkbox')).toHaveLength(3)
     expect(member(/Suporte local/)).toBeChecked()
@@ -253,7 +253,7 @@ describe('TeamForm: membros', () => {
     const missing = within(members()).getAllByRole('checkbox')[0]
     expect(missing).toHaveAccessibleName(/sumiu/)
     expect(missing).toBeChecked()
-    expect(screen.getByText(/Este agent não existe mais/)).toBeInTheDocument()
+    expect(screen.getByText(/Este agente não existe mais/)).toBeInTheDocument()
 
     await user.click(missing)
     expect(within(members()).queryByText(/sumiu/)).not.toBeInTheDocument()
@@ -267,18 +267,18 @@ describe('TeamForm: membros', () => {
     serveAgents(AGENTS, 112)
     await ready(<TeamForm team={{ ...team, member_ids: ['fora', 'suporte-local'] }} onSuccess={() => {}} />)
 
-    expect(screen.getByText('Fora da lista carregada (mostrando 3 de 112 agents).')).toBeInTheDocument()
-    expect(screen.queryByText(/Este agent não existe mais/)).not.toBeInTheDocument()
+    expect(screen.getByText('Fora da lista carregada (mostrando 3 de 112 agentes).')).toBeInTheDocument()
+    expect(screen.queryByText(/Este agente não existe mais/)).not.toBeInTheDocument()
   })
 
-  it('V-9: sem agents cadastrados, "Criar agent" abre em nova aba e salvar cai no membro obrigatório', async () => {
+  it('V-9: sem agents cadastrados, "Criar agente" abre em nova aba e salvar cai no membro obrigatório', async () => {
     serveAgents([])
     const sent = serveSave()
     const user = userEvent.setup()
     renderWithIntl(<TeamForm onSuccess={() => {}} />)
 
-    expect(await screen.findByText('Nenhum agent cadastrado')).toBeInTheDocument()
-    const link = screen.getByRole('link', { name: /Criar agent/ })
+    expect(await screen.findByText('Nenhum agente cadastrado')).toBeInTheDocument()
+    const link = screen.getByRole('link', { name: /Criar agente/ })
     expect(link).toHaveAttribute('href', '/agents/new')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
@@ -313,15 +313,15 @@ describe('TeamForm: membros', () => {
     const user = userEvent.setup()
     renderWithIntl(<TeamForm team={team} onSuccess={() => {}} />)
 
-    expect(await screen.findByText('Carregando agents…')).toBeInTheDocument()
+    expect(await screen.findByText('Carregando agentes…')).toBeInTheDocument()
     expect(save()).toBeDisabled()
     gates[0]()
-    const alert = await screen.findByText('Não foi possível carregar os agents')
+    const alert = await screen.findByText('Não foi possível carregar os agentes')
     expect(alert.closest('[role="alert"]')).toHaveTextContent('Salvar fica desabilitado até a lista carregar')
     expect(save()).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: 'Tentar de novo' }))
-    expect(await screen.findByText('Carregando agents…')).toBeInTheDocument()
+    expect(await screen.findByText('Carregando agentes…')).toBeInTheDocument()
     await waitFor(() => expect(gates).toHaveLength(2))
     gates[1]()
     await screen.findByRole('checkbox', { name: /Suporte local/ })
@@ -338,7 +338,7 @@ describe('TeamForm: membros', () => {
     for (const checkbox of within(members()).getAllByRole('checkbox')) expect(checkbox).toBeDisabled()
     for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled()
     expect(within(execution()).getAllByRole('switch').every((item) => item.hasAttribute('disabled'))).toBe(true)
-    expect(screen.getByRole('searchbox', { name: /Buscar agent/ })).toBeEnabled()
+    expect(screen.getByRole('searchbox', { name: /Buscar agente/ })).toBeEnabled()
   })
 })
 
@@ -498,7 +498,8 @@ describe('TeamForm: salvar', () => {
       api_key_ref: '',
       markdown: true,
       add_history_to_context: true,
-      user_memory_active: true,
+      // Sem tocar na memória (D-QA1-06-3).
+      user_memory_active: false,
       summary_active: true
     })
     expect(teamBodySchema.safeParse(sent[0].body).success).toBe(true)
@@ -605,7 +606,7 @@ describe('TeamForm: recusa do orquestrador (422)', () => {
 })
 
 describe('TeamForm: excluir', () => {
-  it('V-16: o Dialog diz que os agents membros não são excluídos; confirmar faz o DELETE com a versão', async () => {
+  it('V-16: o Dialog diz que os agentes membros não são excluídos; confirmar faz o DELETE com a versão', async () => {
     serveAgents()
     const deleted: string[] = []
     server.use(
@@ -622,7 +623,7 @@ describe('TeamForm: excluir', () => {
     await user.click(screen.getByRole('button', { name: 'Excluir team' }))
     const dialog = screen.getByRole('dialog', { name: 'Excluir team' })
     expect(dialog).toHaveTextContent(
-      'Tem certeza que deseja excluir o team “Suporte”? Esta ação não pode ser desfeita. Os agents membros não são excluídos.'
+      'Tem certeza que deseja excluir o team “Suporte”? Esta ação não pode ser desfeita. Os agentes membros não são excluídos.'
     )
     await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
 

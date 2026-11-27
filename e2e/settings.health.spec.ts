@@ -30,7 +30,7 @@ test('degradado: o indicador e a /settings mostram os checks do 503; a casca seg
   const checks = orchestrator.getByRole('list', { name: 'Checks de saúde' }).getByRole('listitem')
   await expect(checks.nth(0)).toContainText(/Erro\s*Não respondeu\./)
   await expect(checks.nth(2)).toContainText('Não configurada')
-  await expect(page.getByRole('region', { name: 'Config store' })).toContainText('Gravável')
+  await expect(page.getByRole('region', { name: 'Armazenamento da configuração' })).toContainText('Gravável')
 
   // A casca não quebra: navegar pelo menu segue, e o indicador continua com a
   // leitura desta carga (navegação client-side não relê).
@@ -43,15 +43,22 @@ test('fora do ar: seções em erro com "Tentar de novo", indicador "fora do ar";
   page
 }) => {
   await setHealth('down')
+  // O backoff do indicador (QA1-02: 1ª releitura em 5 s) relê sozinho; com o
+  // fake já `healthy`, uma releitura entre o `setHealth` e o clique tiraria o
+  // botão "Tentar de novo". O relógio da página corre normal na carga e para
+  // logo depois da hidratação (sem nenhuma releitura pendente que dispare), e o clique é que
+  // dá a leitura.
+  await page.clock.install({ time: Date.now() })
   await page.goto('/settings')
   await hydrated(page)
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 200)
 
   const shell = page.getByRole('link', { name: 'Orquestrador fora do ar' })
   await expect(shell).toHaveAttribute('title', 'Orquestrador não respondeu. Veja os detalhes em Configurações.')
   const orchestrator = page.getByRole('region', { name: 'Orquestrador' })
   // Sem resposta do orquestrador, o código do BFF (spec §4).
   await expect(orchestrator.getByRole('alert')).toContainText('unreachable')
-  await expect(page.getByRole('region', { name: 'Config store e provedores' }).getByRole('alert')).toContainText(
+  await expect(page.getByRole('region', { name: 'Armazenamento da configuração e provedores' }).getByRole('alert')).toContainText(
     'SCHEMA_UNAVAILABLE'
   )
   await expect(

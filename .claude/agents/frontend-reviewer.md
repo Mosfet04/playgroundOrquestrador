@@ -4,7 +4,7 @@ description: Code reviewer sênior do playground focado em (1) segurança web/BF
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit
 model: opus
-effort: xhigh
+effort: high
 color: red
 ---
 

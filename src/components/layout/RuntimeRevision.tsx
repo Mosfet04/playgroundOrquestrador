@@ -10,9 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { runtimeHealthSchema, type RuntimeHealth } from '@/lib/runtimeHealth'
 import { cn, focusRing } from '@/lib/utils'
 
-// Saúde do orquestrador e revisão do runtime (P4-01, P4-05): uma leitura do
-// GET /api/orchestrator/runtime por carga da casca, sem polling, que o
-// indicador do rodapé e a /settings compartilham. "Atualizar" refaz a mesma
+// Saúde do orquestrador e revisão do runtime (P4-01, P4-05): a leitura do
+// GET /api/orchestrator/runtime que o indicador do rodapé e a /settings
+// compartilham. Online, uma por carga da casca; fora do ar ou degradado, relida
+// com backoff e na volta do foco (D-QA1-02-1). "Atualizar" refaz a mesma
 // leitura. A escrita aceita (e a recarga) troca só a revisão, sem request; o
 // estado de saúde só muda por leitura (D-P4-05-12).
 type HealthRead =
@@ -44,6 +45,9 @@ const RuntimeActionsContext = createContext<RuntimeActions>({
   refresh: async () => false
 })
 
+// Espera até a próxima releitura fora do ar ou degradado; a última se repete.
+const RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000]
+
 const revisionSchema = z.number().int().nonnegative()
 const responseSchema = z.object({ success: z.literal(true), data: runtimeHealthSchema })
 // O código da falha que o BFF mandou (`unreachable`, `unauthorized`…), para a
@@ -71,6 +75,8 @@ export function RuntimeRevisionProvider({ children }: { children: React.ReactNod
   // Leitura em curso; `wrote`: uma escrita respondeu depois que ela saiu, e a
   // revisão dela é mais nova que a que a leitura vai trazer.
   const reading = useRef<{ controller: AbortController; wrote: boolean } | null>(null)
+  // Releituras seguidas fora do ar ou degradado (o passo do backoff).
+  const retries = useRef(0)
 
   const refresh = useCallback(async () => {
     reading.current?.controller.abort()
@@ -98,6 +104,33 @@ export function RuntimeRevisionProvider({ children }: { children: React.ReactNod
       reading.current = null
     }
   }, [refresh])
+
+  // Fora do ar ou degradado: cada leitura que chega (`state.read` novo) arma
+  // a próxima. Aba escondida não relê; a volta dela (ou do foco da janela)
+  // relê na hora, uma vez só mesmo com os dois eventos. Online, nada.
+  useEffect(() => {
+    const read = state.read
+    if (read.status === 'loading') return
+    if (read.status === 'ready' && read.health.status === 'healthy') {
+      retries.current = 0
+      return
+    }
+    const readIfVisible = () => {
+      if (document.visibilityState === 'visible' && !reading.current) void refresh()
+    }
+    const delay = RETRY_DELAYS_MS[Math.min(retries.current, RETRY_DELAYS_MS.length - 1)]
+    const timer = setTimeout(() => {
+      retries.current++
+      readIfVisible()
+    }, delay)
+    document.addEventListener('visibilitychange', readIfVisible)
+    window.addEventListener('focus', readIfVisible)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', readIfVisible)
+      window.removeEventListener('focus', readIfVisible)
+    }
+  }, [state.read, refresh])
 
   const actions = useMemo(() => ({ setRevision, refresh }), [setRevision, refresh])
   const value = useMemo<RuntimeState>(

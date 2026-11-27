@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { ProviderOption } from '@/types/management'
-import { FieldError } from './FieldError'
+import { errorA11y, FieldError } from './FieldError'
 import { FieldWarning } from './FieldWarning'
 
 // Campo do formulário que guarda a URL base: a do modelo (agent e team) ou a do
@@ -71,9 +71,7 @@ export function BaseUrlField({
         className="font-mono"
         autoComplete="off"
         spellCheck={false}
-        aria-describedby={`${id}-help${error ? ` ${id}-error` : ''}${notUsed ? ` ${id}-warning` : ''}`}
-        aria-invalid={error ? true : undefined}
-        variant={error ? 'destructive' : undefined}
+        {...errorA11y(id, !!error, `${id}-help`, notUsed && `${id}-warning`)}
         {...field}
         onFocus={() => setEntered(true)}
       />

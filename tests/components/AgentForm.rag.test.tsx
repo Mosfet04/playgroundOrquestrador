@@ -104,10 +104,10 @@ async function pick(user: ReturnType<typeof userEvent.setup>, select: HTMLElemen
 }
 
 describe('RagSection: campos (V-11..V-15)', () => {
-  it('V-11: switch, documento | estratégia, subgrupo Embedder, referência e parâmetros, nessa ordem', async () => {
+  it('V-11: switch, documento | estratégia, subgrupo Embedding, referência e parâmetros, nessa ordem', async () => {
     await ready()
 
-    const embedder = card().getByRole('group', { name: 'Embedder' })
+    const embedder = card().getByRole('group', { name: 'Embedding' })
     const order = [
       toggle(),
       doc(),
@@ -115,8 +115,8 @@ describe('RagSection: campos (V-11..V-15)', () => {
       embedder,
       embedderProvider(),
       embedderModel(),
-      card().getByRole('group', { name: 'Referência da chave do embedder' }),
-      card().getByRole('group', { name: 'Parâmetros do embedder' })
+      card().getByRole('group', { name: 'Referência da chave do embedding' }),
+      card().getByRole('group', { name: 'Parâmetros do modelo de embedding' })
     ]
     for (let index = 1; index < order.length; index++)
       expect(
@@ -162,7 +162,7 @@ describe('RagSection: campos (V-11..V-15)', () => {
     const add = () => card().getByRole('button', { name: 'Adicionar parâmetro' })
 
     // openai: só `dimensions`, que já está na lista.
-    expect(card().getByRole('group', { name: 'Parâmetros do embedder' })).toHaveTextContent(
+    expect(card().getByRole('group', { name: 'Parâmetros do modelo de embedding' })).toHaveTextContent(
       'Todos os parâmetros de openai já estão na lista.'
     )
     expect(add()).toBeDisabled()
@@ -174,8 +174,8 @@ describe('RagSection: campos (V-11..V-15)', () => {
     expect(optionNames()).toEqual(['truncate'])
     await user.keyboard('{Escape}')
 
-    await pick(user, embedderProvider(), 'ollama')
-    expect(card().getByRole('group', { name: 'Parâmetros do embedder' })).toHaveTextContent(
+    await pick(user, embedderProvider(), 'Ollama ollama')
+    expect(card().getByRole('group', { name: 'Parâmetros do modelo de embedding' })).toHaveTextContent(
       'ollama não aceita parâmetros.'
     )
     // O gravado que o provedor não aceita fica, com aviso.
@@ -186,7 +186,7 @@ describe('RagSection: campos (V-11..V-15)', () => {
   it('V-13: sem parâmetros mostra o texto do embedder', async () => {
     await ready(<AgentForm agent={withRag({ model_params: undefined })} onSuccess={() => {}} />)
 
-    expect(card().getByText('Nenhum parâmetro: o embedder usa os padrões do provedor.')).toBeVisible()
+    expect(card().getByText('Nenhum parâmetro: o modelo de embedding usa os padrões do provedor.')).toBeVisible()
   })
 
   it('V-14: embedder que exige URL base mostra o campo em linha inteira, obrigatório; vazio não envia', async () => {
@@ -201,7 +201,7 @@ describe('RagSection: campos (V-11..V-15)', () => {
     expect(baseUrl.closest('div')).toHaveClass('md:col-span-2')
     await user.click(save())
 
-    expect(await card().findByText('fake-embed exige URL base')).toHaveClass('text-destructive')
+    expect((await card().findByText('fake-embed exige URL base')).closest('p')).toHaveClass('text-destructive')
     expect(baseUrl).toBeInvalid()
     expect(sent).toEqual([])
   })
@@ -314,10 +314,10 @@ describe('RagSection: referência da chave do embedder (D-P3-05-1, D-P3-05-5)', 
     const user = userEvent.setup()
     await user.click(toggle())
 
-    const group = card().getByRole('group', { name: 'Referência da chave do embedder' })
+    const group = card().getByRole('group', { name: 'Referência da chave do embedding' })
     expect(within(group).getByRole('combobox', { name: 'Formato' })).toHaveTextContent('env:')
     expect(group).toHaveTextContent('Só a referência, nunca a chave.')
-    expect(group).toHaveTextContent('Vazio: o embedder não define chave própria.')
+    expect(group).toHaveTextContent('Vazio: o modelo de embedding não define chave própria.')
     expect(group).toHaveClass('md:col-span-2')
   })
 
@@ -401,7 +401,7 @@ describe('RagSection: 422 por campo (V-P3-05, §4)', () => {
     await touchName(user)
     await saveAndConfirm(user)
 
-    const group = card().getByRole('group', { name: 'Parâmetros do embedder' })
+    const group = card().getByRole('group', { name: 'Parâmetros do modelo de embedding' })
     expect(await within(group).findByText('Valor recusado pelo orquestrador')).toBeVisible()
     await waitFor(() => expect(card().getByRole('textbox', { name: 'Valor de dimensions' })).toHaveFocus())
   })

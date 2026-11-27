@@ -176,7 +176,7 @@ export function AppHeader({
       : ''
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-1 lg:px-6">
+    <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-1 max-lg:bg-background lg:px-6">
       <MenuSheet notFound={notFound} />
       <nav
         aria-label={t('youAreHere')}
@@ -222,6 +222,7 @@ export function AppHeader({
       </nav>
       <div className="min-w-0 flex-1 px-1 lg:hidden">
         <p
+          title={current}
           className={cn(
             'truncate text-base font-semibold',
             currentIsId && 'font-mono'

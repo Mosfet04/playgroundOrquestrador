@@ -5,11 +5,12 @@ import { useTranslations } from 'next-intl'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ProviderSelectItem } from '@/components/management/common/ProviderModel'
+import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { referencePrefixes } from '@/lib/secretRef'
 import type { ConfigSchema } from '@/types/management'
 import { BaseUrlField, type BaseUrlForm } from './BaseUrlField'
-import { FieldError } from './FieldError'
+import { errorA11y, FieldError } from './FieldError'
 import { withCurrent } from './useConfigSchema'
 import type { ModelFormValues } from './modelFormValues'
 import { ModelParams, type ParamsForm } from './ModelParams'
@@ -68,20 +69,16 @@ export function ModelSection<T extends ModelFormValues>({
             disabled={locked}
             onValueChange={(value) => setValue('factoryIaModel', value)}
           >
-            <SelectTrigger id="factoryIaModel">
+            <SelectTrigger id="factoryIaModel" {...errorA11y('factoryIaModel', !!errors.factoryIaModel)}>
               <SelectValue placeholder={t('providerPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {withCurrent(schema?.chatProviders.map(({ name }) => name) ?? [], factoryIaModel).map(
-                (name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                )
+                (name) => <ProviderSelectItem key={name} name={name} />
               )}
             </SelectContent>
           </Select>
-          <FieldError message={errors.factoryIaModel?.message} />
+          <FieldError id="factoryIaModel-error" message={errors.factoryIaModel?.message} />
         </div>
 
         <div className="space-y-2">
@@ -90,11 +87,12 @@ export function ModelSection<T extends ModelFormValues>({
             id="model"
             className="font-mono"
             {...register('model', { required: t('modelRequired') })}
+            {...errorA11y('model', !!errors.model)}
             placeholder={tc('example', {
               value: MODEL_EXAMPLES.get(factoryIaModel) ?? 'claude-3-sonnet'
             })}
           />
-          <FieldError message={errors.model?.message} />
+          <FieldError id="model-error" message={errors.model?.message} />
         </div>
 
         <BaseUrlField

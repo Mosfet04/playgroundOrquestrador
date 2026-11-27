@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import { PopStateGate } from '@/components/layout/PopStateGate'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
@@ -90,6 +91,8 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
+            {/* Antes do listener de popstate do App Router: o aviso de rascunho (QA1-06). */}
+            <PopStateGate />
             <NuqsAdapter>{children}</NuqsAdapter>
             <Toaster />
           </ThemeProvider>

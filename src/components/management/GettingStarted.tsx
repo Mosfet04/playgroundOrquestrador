@@ -41,9 +41,9 @@ export function GettingStarted() {
   ])
   const strong = (chunks: React.ReactNode) => <strong>{chunks}</strong>
 
-  const markAsCompleted = (stepId: string) => {
+  const toggleCompleted = (stepId: string) => {
     setSteps(prev => prev.map(step => 
-      step.id === stepId ? { ...step, completed: true } : step
+      step.id === stepId ? { ...step, completed: !step.completed } : step
     ))
   }
 
@@ -90,7 +90,7 @@ export function GettingStarted() {
           const isCompleted = step.completed
           
           return (
-            <Card key={step.id} className={cn(
+            <Card key={step.id} role="group" aria-labelledby={`step-${step.id}-title`} className={cn(
               "transition-all duration-200",
               isCompleted ? 'border-success' : '',
               "mx-2 lg:mx-0"
@@ -98,7 +98,7 @@ export function GettingStarted() {
               <CardHeader className="p-4 lg:p-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                   {/* Icon and Title Section */}
-                  <div className="flex items-start gap-4 lg:items-center">
+                  <div className="flex min-w-0 items-start gap-4 lg:flex-1 lg:items-center">
                     <div className={cn(
                       "flex size-10 flex-shrink-0 items-center justify-center rounded-full lg:size-12",
                       isCompleted 
@@ -113,7 +113,7 @@ export function GettingStarted() {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="flex flex-col items-start gap-2 text-base lg:flex-row lg:items-center">
+                      <CardTitle id={`step-${step.id}-title`} className="flex flex-col items-start gap-2 text-base lg:flex-row lg:items-center">
                         <span className="text-xs text-muted-foreground lg:text-sm">
                           {t('step', { number: index + 1 })}
                         </span>
@@ -124,9 +124,10 @@ export function GettingStarted() {
                           {t(`steps.${step.id}.title`)}
                         </span>
                       </CardTitle>
+                      {/* 2 linhas reservadas no celular: a altura do card não muda ao marcar. */}
                       <CardDescription className={cn(
                         isCompleted ? 'text-success' : '',
-                        "mt-1 text-xs lg:mt-0 lg:text-sm"
+                        "mt-1 min-h-8 text-xs lg:mt-0 lg:min-h-0 lg:text-sm"
                       )}>
                         {isCompleted
                           ? t('stepDone')
@@ -135,24 +136,26 @@ export function GettingStarted() {
                     </div>
                   </div>
                   
-                  {/* Action Buttons */}
-                  {!isCompleted && (
-                    <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-shrink-0 lg:flex-row">
-                      <Button asChild className="w-full justify-center gap-2 lg:w-auto">
-                        <Link href={step.href}>
-                          {t(`steps.${step.id}.action`)}
-                          <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                        </Link>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => markAsCompleted(step.id)}
-                        className="w-full lg:w-auto"
-                      >
-                        {t('markDone')}
-                      </Button>
-                    </div>
-                  )}
+                  {/* Coluna de ações fixa: os botões não mudam de lugar entre os passos nem ao marcar. */}
+                  <div className="flex w-full flex-col gap-2 lg:w-52 lg:shrink-0">
+                    <Button asChild size="lg" className="w-full justify-center gap-2 px-4">
+                      <Link href={step.href}>
+                        {t(`steps.${step.id}.action`)}
+                        <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => toggleCompleted(step.id)}
+                      className="w-full justify-center px-4"
+                    >
+                      {isCompleted ? t('undo') : t('markDone')}
+                    </Button>
+                  </div>
+                  <p role="status" aria-live="polite" className="sr-only">
+                    {t(isCompleted ? 'stepAnnounceDone' : 'stepAnnouncePending', { number: index + 1 })}
+                  </p>
                 </div>
               </CardHeader>
             </Card>

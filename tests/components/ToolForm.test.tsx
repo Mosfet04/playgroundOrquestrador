@@ -51,7 +51,7 @@ describe('ToolForm', () => {
 
     expect(await screen.findByText('Descrição é obrigatória')).toBeVisible()
     // é a descrição que barra o envio, não outro campo em branco
-    expect(screen.queryByText(/é obrigatóri[ao]$/, { selector: 'p' })).toBe(
+    expect(screen.queryByText(/é obrigatóri[ao]$/)).toBe(
       screen.getByText('Descrição é obrigatória')
     )
     expect(bodies).toEqual([])
