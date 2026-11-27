@@ -217,6 +217,12 @@ test.describe('desktop 1440', () => {
     await send(page, first)
     await expect(page.getByText(`Agente Beta recebeu: ${first}`)).toBeVisible()
     await expect(page).toHaveURL(/[?&]session=/)
+    // A lista de sessões recarrega depois do run (QA1-02) e é ela que destaca a
+    // sessão nova: sem esperar, essa recarga sai já sem cookie, leva o 401 e
+    // manda ao login antes do envio abaixo.
+    await expect(
+      page.locator('aside').getByRole('button', { name: new RegExp(`^${first}`) })
+    ).toHaveAttribute('aria-current', 'true')
     const chatUrl = new URL(page.url())
     const cookies = await context.cookies()
 
